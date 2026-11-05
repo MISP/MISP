@@ -246,6 +246,8 @@ class AttributesController extends AppController
         } else {
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
+            // On top of fetchAttributes()' own, for the event popover (Attributes/event_peek).
+            $params['fields'] = ['Event.published', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.attribute_count'];
             $this->paginate['conditions'] = $conditions;
             $hasNextPage = null;
             if ($excludeWarninglistHits) {
@@ -281,9 +283,25 @@ class AttributesController extends AppController
         $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
         $sgids = $this->MispAttribute->SharingGroup->authorizedIds($user);
         $related = $this->MispAttribute->relatedAttributesOf($user, $sgids, $attributes, []);
+        // The page's events shared with a group the reader belongs to name it.
+        $eventSgIds = array_intersect(
+            array_unique(array_filter(Hash::extract($attributes, '{n}.Event.sharing_group_id'))),
+            $sgids
+        );
+        $eventSgNames = empty($eventSgIds) ? [] : $this->MispAttribute->SharingGroup->find('list', [
+            'conditions' => ['SharingGroup.id' => $eventSgIds],
+            'fields' => ['SharingGroup.id', 'SharingGroup.name'],
+        ]);
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                 $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
+            }
+            if (isset($orgTable[$attribute['Event']['org_id']])) {
+                $attribute['Event']['Org'] = $orgTable[$attribute['Event']['org_id']];
+            }
+            $eventSgId = (int)($attribute['Event']['sharing_group_id'] ?? 0);
+            if (isset($eventSgNames[$eventSgId])) {
+                $attribute['Event']['SharingGroup'] = ['id' => $eventSgId, 'name' => $eventSgNames[$eventSgId]];
             }
             $temp = $related[$attribute['Attribute']['id']];
             foreach ($temp as &$t) {
@@ -839,7 +857,10 @@ class AttributesController extends AppController
 
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
-        $this->set('advancedExtractionAvailable', $this->MispAttribute->isAdvancedExtractionAvailable());
+        // Seconds of Python: Overmind's form asks advancedExtractionStatus later.
+        if (($this->theme ?? null) !== 'Overmind') {
+            $this->set('advancedExtractionAvailable', $this->MispAttribute->isAdvancedExtractionAvailable());
+        }
         $this->set('attachmentObjectTemplates', MispAttribute::ATTACHMENT_OBJECT_TEMPLATES);
         $this->__common();
         $this->set('title_for_layout', __('Add attachment'));
@@ -2774,6 +2795,20 @@ class AttributesController extends AppController
     public function describeTypes()
     {
         return $this->RestResponse->viewData(['result' => $this->MispAttribute->describeTypes()], 'json');
+    }
+
+    /**
+     * Whether an uploaded malware sample can go through advanced extraction.
+     */
+    public function advancedExtractionStatus()
+    {
+        $this->request->allowMethod(['get']);
+        // The Python check takes seconds: don't hold the session lock meanwhile.
+        $this->_closeSession();
+        return $this->RestResponse->viewData(
+            ['available' => $this->MispAttribute->isAdvancedExtractionAvailable()],
+            'json'
+        );
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)

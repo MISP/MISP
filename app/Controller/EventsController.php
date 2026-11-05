@@ -1373,6 +1373,10 @@ class EventsController extends AppController
                 $events,
                 Event::INDEX_OBJECT_LIMIT
             );
+            // Overmind's attribute count links to the tab that lists them.
+            if ($this->theme === 'Overmind') {
+                $events = $this->Event->attachAttributesInObjectsOnlyToEvents($events);
+            }
         }
 
         if (in_array('correlations', $columns, true)) {
@@ -1417,11 +1421,9 @@ class EventsController extends AppController
         if (empty($events)) {
             return $events;
         }
-        App::uses('EventContextTool', 'Tools/EventOverview');
-        App::uses('EventCardTool', 'Tools/EventOverview');
+        App::uses('EventCardBatch', 'Tools/EventOverview');
         $user = $this->Auth->user();
-        $permitted = ClassRegistry::init('AnalystProfile')->pivotLabels($user, $plan)['permitted'];
-        $markingNamespaces = ValueLabelPriority::markings($profile);
+        $cards = EventCardBatch::cards($events, $user, $profile, $plan);
         $uuids = array_column(array_column($events, 'Event'), 'uuid');
 
         // Callbacks off: AnalystData::afterFind resolves orgs and child notes per row.
@@ -1459,41 +1461,8 @@ class EventsController extends AppController
             $extendedBy[$row['Event']['extends_uuid']] = (int)$row[0]['children'];
         }
 
-        App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
-        $grades = ValueTrustTool::planFor($profile)['grades'];
-        $pinned = EventCardTool::pinned($profile);
-        $pinnedExtras = array_diff($pinned, $markingNamespaces);
-
-        $contexts = [];
-        $pinnedTagNames = [];
-        foreach ($events as $k => $event) {
-            $contexts[$k] = EventContextTool::rows(
-                $event['EventTag'] ?? [],
-                $event['GalaxyCluster'] ?? [],
-                null,
-                [],
-                [],
-                $profile,
-                $permitted
-            );
-            foreach ($contexts[$k]['classification'] as $item) {
-                if ($item['kind'] === 'tag' && in_array($item['key'], $pinnedExtras, true)) {
-                    $pinnedTagNames[$item['name']] = true;
-                }
-            }
-        }
-        // Redis-cached, and bounded by the distinct pinned tags on the page.
-        $descriptions = [];
-        if ($pinnedTagNames) {
-            $Taxonomy = ClassRegistry::init('Taxonomy');
-            foreach (array_keys($pinnedTagNames) as $tagName) {
-                $descriptions[$tagName] = EventCardTool::tagDescription($Taxonomy->getTaxonomyForTag($tagName));
-            }
-        }
-
         foreach ($events as $k => $event) {
             $e = $event['Event'];
-            $context = $contexts[$k];
             $extends = null;
             if (!empty($e['extends_uuid'])) {
                 $parent = $extendedEvents[$e['extends_uuid']] ?? null;
@@ -1501,12 +1470,7 @@ class EventsController extends AppController
                     ? ['id' => (int)$parent['id'], 'info' => $parent['info'], 'uuid' => $e['extends_uuid']]
                     : ['id' => null, 'info' => null, 'uuid' => $e['extends_uuid']];
             }
-            $events[$k]['EventCard'] = [
-                'rows' => EventCardTool::rows($context, $profile),
-                'markings' => EventCardTool::markings($context, $markingNamespaces, $pinned, $descriptions),
-                'grade' => EventCardTool::grade($event['Orgc'] ?? [], $grades),
-                'state' => EventCardTool::state($e),
-                'distribution' => EventCardTool::distribution($e['distribution'], $event['SharingGroup'] ?? null),
+            $events[$k]['EventCard'] = $cards[$k] + [
                 'graphs' => $graphs[$e['uuid']] ?? [],
                 'extends' => $extends,
                 'extended_by' => $extendedBy[$e['uuid']] ?? 0,
@@ -3318,11 +3282,18 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
         $this->set('objects', $result['Object']);
+        $objectIds = array_map('intval', array_column($result['Object'], 'id'));
+        $this->set('referencesIn', empty($objectIds)
+            ? [] : $this->Event->Object->indexReferenceCounts($user, $objectIds)[1]);
         $focusId = null;
         if (!empty($options['focus'])) {
             foreach ($result['Object'] as $object) {
@@ -3496,7 +3467,11 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
@@ -4763,7 +4738,9 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+            ['fields' => [
+                'Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id',
+            ]]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));

@@ -173,7 +173,7 @@
     display: inline-flex; align-items: center; gap: .45rem; border: 0; background: none; padding: .1rem 0;
     font-weight: 700; font-size: .86rem; color: var(--bs-emphasis-color); text-align: left; cursor: pointer;
 }
-.eo-group-name:hover, .eo-group-name:focus-visible { color: var(--bs-link-color); text-decoration: underline; }
+button.eo-group-name:hover, button.eo-group-name:focus-visible { color: var(--bs-link-color); text-decoration: underline; }
 .eo-swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--eo-tone); flex-shrink: 0; }
 .eo-group-count { font-size: .8rem; color: var(--bs-secondary-color); padding-top: .15rem; }
 .eo-group-count b { color: var(--bs-emphasis-color); font-size: .9rem; }
@@ -185,15 +185,32 @@
     border: 1px dashed var(--bs-border-color); border-radius: .3rem; background: none; color: var(--bs-body-color);
     white-space: nowrap;
 }
+span.eo-type, span.eo-group-name { cursor: default; }
 .eo-type.is-ids { border-style: solid; border-color: color-mix(in srgb, var(--eo-tone) 45%, var(--bs-border-color)); background: color-mix(in srgb, var(--eo-tone) 10%, transparent); }
 .eo-type b { font-weight: 700; }
 .eo-type.is-object { border-style: solid; }
 .eo-group-objects { --eo-tone: var(--bs-secondary-color); }
 .eo-group-objects .eo-group-name .misp-icon { font-size: .8rem; color: var(--bs-secondary-color); }
 .eo-groups > .eo-empty { padding: .6rem 0; }
+.eo-ways { display: flex; flex-direction: column; padding: .25rem 0 .4rem; }
+.eo-way {
+    --eo-way-ink: color-mix(in srgb, var(--eo-way) 70%, var(--bs-emphasis-color));
+    display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: .75rem; align-items: center;
+    padding: .6rem 1rem; border-bottom: 1px solid var(--bs-border-color-translucent);
+    color: inherit; text-decoration: none;
+}
+.eo-way:last-child { border-bottom: 0; }
+.eo-way:hover, .eo-way:focus-visible { color: inherit; background: color-mix(in srgb, var(--eo-way) 6%, transparent); }
+.eo-way-tile {
+    width: 30px; height: 30px; border-radius: .45rem; display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; color: var(--eo-way-ink); background: color-mix(in srgb, var(--eo-way) 12%, transparent);
+}
+.eo-way-title { display: block; font-weight: 600; font-size: .88rem; color: var(--bs-emphasis-color); }
+.eo-way-text { display: block; font-size: .78rem; line-height: 1.4; color: var(--bs-secondary-color); }
+.eo-way-go { font-size: .7rem; color: var(--eo-way-ink); }
 .eo-objects-block { padding-bottom: .1rem; border-bottom: 1px solid var(--bs-border-color-translucent); }
 .eo-objects-block:not(:has(.eo-group:not(.d-none))) { display: none; }
-.eo-type:hover, .eo-type:focus-visible { border-color: var(--eo-tone); color: var(--bs-emphasis-color); }
+button.eo-type:hover, button.eo-type:focus-visible { border-color: var(--eo-tone); color: var(--bs-emphasis-color); }
 .eo-rule { flex-basis: 100%; font-size: .8rem; display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .4rem; }
 .eo-rule .fa-shield-halved { color: var(--eo-tone); }
 .eo-rule-name { font-weight: 600; font-style: italic; }
@@ -212,6 +229,14 @@
     display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; padding: .15rem .6rem;
     border: 1px dashed var(--bs-border-color); border-radius: .35rem; color: var(--bs-secondary-color);
 }
+.eo-rows dd.eo-skeleton { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; }
+.eo-skeleton .eo-none { font-size: .76rem; padding: .1rem .5rem; }
+.eo-hint { font-size: .74rem; color: var(--bs-secondary-color); }
+.eo-hint-from {
+    padding: 0; border: 0; background: none; font-size: inherit; font-weight: 600;
+    color: color-mix(in srgb, var(--eo-from) 80%, var(--bs-emphasis-color));
+}
+button.eo-hint-from:hover, button.eo-hint-from:focus-visible { text-decoration: underline; }
 .eo-chips { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
 .eo-techniques { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; }
 .eo-techniques li {
@@ -321,11 +346,7 @@ button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: col
     font-size: .74rem; line-height: 1.4; color: var(--bs-secondary-color);
 }
 .eo-file-ext { padding: 0 .4rem; border-radius: 999px; font-size: .64rem; font-weight: 700; letter-spacing: .04em; }
-.eo-file-comment {
-    margin-top: .1rem; font-size: .74rem; color: var(--bs-secondary-color);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.eo-file-comment .fa-comment { margin-right: .3rem; font-size: .66rem; opacity: .7; }
+.eo-file-comment { margin-top: .1rem; }
 
 /* details */
 .eo-details-toggle {
@@ -379,44 +400,30 @@ button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: col
 .etl-notice-error { --etl-notice: var(--bs-danger); }
 .etl-notice .btn-link { font-size: inherit; padding: 0; vertical-align: baseline; }
 @media (max-width: 1440px) {
-    .etl .etl-kind .etl-kind-n { display: none; }
-    .etl .etl-search { width: 10rem; }
     .etl .etl-sub-events { display: none; }
-    .etl .etl-toolbar .form-select { max-width: 8.5rem; }
 }
 .etl-tile {
     width: 36px; height: 36px; flex: none;
     background: var(--etl-tile-bg);
     color: var(--etl-tile-fg);
 }
-.etl-toolbar {
-    display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
-    margin-left: auto; min-width: 0;
+/* The bar over the card (index-filters.css): the basis switch is the bars'
+   view switch with words, the panel's Rows choice the same control. */
+.etl-basis .ifp-segv-btn, .etl-kind .ifp-segv-btn {
+    display: inline-flex; align-items: center; gap: .4rem; width: auto; padding: 0 .8rem;
+    font-size: .82rem; font-weight: 600; white-space: nowrap;
 }
-.etl-toolbar .form-select { max-width: 13rem; }
-.etl-search { width: 15rem; max-width: 100%; }
-.etl-kind .btn { white-space: nowrap; }
-.etl-basis {
-    gap: 2px; padding: 2px;
-    border: 1px solid var(--bs-border-color); border-radius: 999px;
-    background: var(--bs-tertiary-bg);
-}
-.etl-basis > .btn {
-    display: inline-flex; align-items: center; gap: .35rem;
-    margin: 0 !important; padding: .12rem .7rem;
-    border: 0; border-radius: 999px !important;
-    font-size: .78rem; white-space: nowrap;
-    color: var(--bs-secondary-color);
-}
-.etl-basis > .btn > i { font-size: .72rem; }
-.etl-basis > .btn:hover { color: var(--bs-body-color); }
-.etl-basis > .btn.active {
-    background: var(--etl-tile-bg); color: var(--etl-tile-fg); font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
-}
-.etl-basis > .btn:focus-visible { box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--etl-tile-fg) 35%, transparent); }
+.etl-basis .ifp-segv-btn > i { font-size: .75rem; }
+.etl-kind .ifp-segv-btn:disabled { opacity: .45; pointer-events: none; }
 .etl-kind .etl-kind-n {
-    font-variant-numeric: tabular-nums; opacity: .7; margin-left: .25rem;
+    font-variant-numeric: tabular-nums; opacity: .7; margin-left: .1rem;
+}
+.etl-fields { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.etl-field { display: flex; flex-direction: column; gap: 4px; margin: 0; font-size: .75rem; color: var(--bs-secondary-color); }
+/* Nothing dated, nothing to filter: only the basis switch is left. */
+.etl-nothing .ifp-query, .etl-nothing [data-etl-filters] { display: none; }
+@media (max-width: 575.98px) {
+    .etl-basis .ifp-segv-btn > span { display: none; }
 }
 
 .etl-body { padding: 1rem; }
@@ -504,7 +511,12 @@ button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: col
 .etl-seen-field { display: grid; grid-template-columns: 4.6rem 1fr; align-items: center; gap: .5rem; margin-bottom: .45rem; }
 .etl-seen-field label { color: var(--bs-secondary-color); font-weight: 500; }
 .etl-seen-input { display: flex; align-items: center; gap: .2rem; min-width: 0; }
-.etl-seen-input .form-control { min-width: 0; font-variant-numeric: tabular-nums; }
+/* The application's date field (Forms/date_field), at the popover's size. */
+.etl-seen-input .ov-date { flex: 1 1 auto; min-width: 0; }
+.etl-seen-input .ov-date-box { gap: .35rem; padding: .1rem .2rem .1rem .55rem; }
+.etl-seen-input .ov-date-input { font-size: .8rem; }
+.etl-seen-input .ov-date-btn { width: 1.5rem; height: 1.5rem; }
+.etl-seen-input .ov-field-error { font-size: .72rem; }
 .etl-seen-tool {
     flex: none; width: 28px; padding: .2rem 0;
     border: 1px solid transparent; color: var(--bs-secondary-color);

@@ -1,6 +1,7 @@
 <?php
 /*
- * Compact "‹ Page N ›" pager for the log filter bars.
+ * Compact "‹ Page N ›" pager for the log filter bars. The links carry
+ * .page-link themselves, as an event tab's pager handling looks for.
  */
 $P    = $this->Paginator;
 $page = $P->params()['page'] ?? 1;
@@ -11,7 +12,7 @@ $page = $P->params()['page'] ?? 1;
         <?php if ($P->hasPrev()): ?>
             <li class="page-item">
                 <?= $P->prev('<i class="fas fa-chevron-left"></i>',
-                    ['class' => 'page-link', 'escape' => false], null, ['escape' => false]) ?>
+                    ['tag' => false, 'class' => 'page-link', 'escape' => false], null, ['escape' => false]) ?>
             </li>
         <?php else: ?>
             <li class="page-item disabled">
@@ -26,7 +27,7 @@ $page = $P->params()['page'] ?? 1;
         <?php if ($P->hasNext()): ?>
             <li class="page-item">
                 <?= $P->next('<i class="fas fa-chevron-right"></i>',
-                    ['class' => 'page-link', 'escape' => false], null, ['escape' => false]) ?>
+                    ['tag' => false, 'class' => 'page-link', 'escape' => false], null, ['escape' => false]) ?>
             </li>
         <?php else: ?>
             <li class="page-item disabled">

@@ -40,29 +40,30 @@ $_mayCollect = $this->Acl->canAccess('collectionElements', 'addElementToCollecti
 $extensionEvents = $extensionEvents ?? [];
 $inExtensionView = count($extensionEvents) > 1;
 
-// Everything the two renderings of an object (the accordion list and the card
-// grid) need to derive from it. Computed once per object, by whichever loop is
-// rendering — the two must not drift on rights, origin or ordering.
+// Everything the two renderings of an object (the table row and the card)
+// need to derive from it, computed once per object so the two never drift on
+// rights, origin or what opens by itself.
+$focusId = (int)($focusId ?? 0);
 $objContext = function (array $object) use (
     $inExtensionView, $extensionEvents, $canEdit, $canTagObj, $currentProposal,
-    $currentObject, $_mayGraph
+    $currentObject, $focusId, $_mayGraph
 ) {
     $attrs = $object['Attribute'] ?? [];
     $origin = $inExtensionView
         ? ($extensionEvents[(int)($object['event_id'] ?? 0)] ?? null)
         : null;
-    $foreign = $origin !== null && $origin['role'] !== 'self';
     $first = empty($attrs) ? null : reset($attrs);
     $hasProposal = false;
+    $hasFocus = false;
     foreach ($attrs as $_a) {
-        if (!empty($_a['ShadowAttribute'])) { $hasProposal = true; break; }
+        $hasProposal = $hasProposal || !empty($_a['ShadowAttribute']);
+        $hasFocus = $hasFocus || (int)$_a['id'] === $focusId;
     }
     return [
-        'id' => (int)$object['id'],
         'attrs' => $attrs,
-        'count' => count($attrs),
         'deleted' => !empty($object['deleted']),
         'origin' => $origin,
+        'foreign' => $origin !== null && $origin['role'] !== 'self',
         // A merged object belongs to another event, whose editing and tagging
         // rights are not the same as the current event's.
         'canEdit' => $origin === null ? $canEdit : !empty($origin['mayModify']),
@@ -70,18 +71,16 @@ $objContext = function (array $object) use (
         'graphItem' => ($_mayGraph && empty($object['deleted']))
             ? ['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]
             : null,
-        'style' => $foreign ? sprintf(
-            'border-left:4px solid %s !important;background:%s;',
-            $origin['palette']['badgeBorder'],
-            $origin['palette']['sectionBg']
-        ) : '',
-        'firstValue' => $first === null ? '' : (string)($first['value'] ?? ''),
-        'firstRelation' => $first === null
-            ? '' : (string)($first['object_relation'] ?? ''),
-        // Auto-expand objects that carry a proposal while the Proposals toggle
-        // is on, and the one object a link pointed at
+        'headline' => $first === null ? null : [
+            'relation' => (string)($first['object_relation'] ?? ''),
+            'value' => (string)($first['value'] ?? ''),
+        ],
+        // Open from the start: the objects carrying a proposal while the
+        // Proposals toggle is on, the one object a link pointed at, and the one
+        // holding the attribute a focus link names.
         'expand' => ($currentProposal && $hasProposal)
-            || $currentObject === (int)$object['id'],
+            || $currentObject === (int)$object['id']
+            || $hasFocus,
     ];
 };
 
@@ -148,6 +147,217 @@ $foldChildren = empty($objects) ? [] : [
         ],
     ],
 ];
+
+// The rows in the objects index's shape, so its columns and its card read them.
+$referencesIn = $referencesIn ?? [];
+$rows = [];
+foreach ($objects as $object) {
+    $ctx = $objContext($object);
+    $rows[] = [
+        'Object' => $object + [
+            'attribute_count' => count($ctx['attrs']),
+            'headline' => $ctx['headline'],
+        ],
+        'ctx' => $ctx,
+        'open' => $ctx['expand'],
+    ];
+}
+
+$anySelectable = false;
+foreach ($rows as $row) {
+    if ($row['ctx']['canEdit'] || $row['ctx']['graphItem'] !== null) {
+        $anySelectable = true;
+        break;
+    }
+}
+
+// The objects index's columns, less the event and its creator org.
+$fields = [
+    [
+        'element' => 'custom',
+        'class' => 'oi-col-select',
+        'card_section' => 'selector',
+        // Not the scaffold's select_all: that one ticks every .item-checkbox
+        // of the tab, the attributes of the open objects included.
+        'header_html' => $anySelectable ? sprintf(
+            '<input type="checkbox" class="obj-select-all form-check-input mt-0" aria-label="%s" title="%s">',
+            h(__('Select all')),
+            h(__('Select all'))
+        ) : '',
+        'function' => function ($row) {
+            $ctx = $row['ctx'];
+            if (!$ctx['canEdit'] && $ctx['graphItem'] === null) {
+                return '';
+            }
+            return sprintf(
+                '<span class="d-inline-flex align-items-center checkbox-index">'
+                    . '<input type="checkbox" class="obj-select form-check-input mt-0" data-object-id="%d"'
+                    . ' data-can-delete="%s"%s aria-label="%s" title="%s"></span>',
+                (int)$row['Object']['id'],
+                $ctx['canEdit'] ? '1' : '0',
+                $ctx['graphItem'] === null ? '' : ' data-graph-item="' . h(json_encode($ctx['graphItem'])) . '"',
+                h(__('Select this object')),
+                h(__('Select this object'))
+            );
+        },
+    ],
+    [
+        'name' => __('Object'),
+        'sort' => 'name',
+        'class' => 'oi-col-object',
+        'display_in' => ['table'],
+        'element' => 'custom',
+        'function' => function ($row) {
+            return $this->element('Objects/index_object_cell', [
+                'object' => $row['Object'],
+                'open' => $row['open'],
+            ]);
+        },
+    ],
+    [
+        'name' => __('References'),
+        'class' => 'oi-col-refs',
+        'card_section' => 'references',
+        'element' => 'custom',
+        'function' => function ($row, $viewMode) use ($referencesIn) {
+            $object = $row['Object'];
+            return $this->element('Objects/object_relationships', [
+                'references' => $object['ObjectReference'] ?? [],
+                'objId' => $object['id'],
+                'eventId' => $object['event_id'] ?? null,
+                'canEdit' => $row['ctx']['canEdit'] && !$row['ctx']['deleted'],
+                'menuPrefix' => $viewMode === 'card' ? 'objCardRels' : 'objRels',
+                'inbound' => $referencesIn[(int)$object['id']] ?? 0,
+            ]);
+        },
+    ],
+    [
+        'name' => __('Seen'),
+        'sort' => 'first_seen',
+        'class' => 'oi-col-seen',
+        'display_in' => ['table'],
+        'element' => 'custom',
+        'function' => function ($row) {
+            return $this->element('Objects/index_seen', ['object' => $row['Object']]);
+        },
+    ],
+    [
+        'name' => __('Modified'),
+        'sort' => 'timestamp',
+        'class' => 'oi-col-modified',
+        'display_in' => ['table'],
+        'element' => 'custom',
+        'function' => function ($row) {
+            return $this->element('Objects/index_modified', ['object' => $row['Object']]);
+        },
+    ],
+    [
+        'name' => __('Analyst data'),
+        'header_html' => sprintf(
+            '<span title="%s"><i class="misp-icon misp-icon-analyst-note misp-simple"></i></span>',
+            h(__('Analyst data'))
+        ),
+        'class' => 'oi-col-analyst',
+        'card_section' => 'analyst',
+        'element' => 'analyst_data_badges',
+        'note_path' => 'Object.Note',
+        'opinion_path' => 'Object.Opinion',
+        'relationship_path' => 'Object.Relationship',
+        'relationship_inbound_path' => 'Object.RelationshipInbound',
+        'uuid_path' => 'Object.uuid',
+        'object_type' => 'Object',
+    ],
+    [
+        'element' => 'custom',
+        'class' => 'oi-col-actions',
+        'card_section' => 'actions',
+        'function' => function ($row) use ($_mayGraph, $_mayCollect, $_enrichmentEnabled) {
+            return $this->element('Objects/object_row_actions', [
+                'object' => $row['Object'],
+                'canEdit' => $row['ctx']['canEdit'],
+                'mayGraph' => $_mayGraph,
+                'mayCollect' => $_mayCollect,
+                'enrichmentEnabled' => $_enrichmentEnabled,
+            ]);
+        },
+    ],
+    // A card opens on the attribute list, as the objects index's cards do.
+    [
+        'display_in' => ['card'],
+        'card_section' => 'attributes',
+        'element' => 'custom',
+        'function' => function ($row) use ($_mayGraph, $_enrichmentEnabled, $_cortexEnabled) {
+            return '<div class="oi-card">' . $this->element('Objects/object_attribute_list', [
+                'attrs' => $row['ctx']['attrs'],
+                'canEdit' => $row['ctx']['canEdit'],
+                'canTag' => $row['ctx']['canTag'],
+                'mayGraph' => $_mayGraph,
+                'enrichmentEnabled' => $_enrichmentEnabled,
+                'cortexEnabled' => $_cortexEnabled,
+            ]) . '</div>';
+        },
+    ],
+];
+$columnCount = count(array_filter($fields, function ($field) {
+    return empty($field['display_in']) || in_array('table', $field['display_in'], true);
+}));
+
+$hasFilters = !empty(array_diff_key(
+    $namedParams,
+    array_flip(['extended', 'extending', 'page', 'sort', 'direction', 'limit', 'focus'])
+));
+$indexData = ['data' => [
+    'data' => $rows,
+    'fields' => $fields,
+    'table_class' => 'oi-table',
+    'card_element' => 'Objects/index_card_tile',
+    'cards_per_row' => ['' => 1, 'lg' => 2, 'xxl' => 3],
+    'empty_message' => $hasFilters
+        ? __('No object matches these filters.')
+        : __('No objects in this event.'),
+    'row_class_callable' => function ($row) {
+        $classes = [];
+        if ($row['open']) {
+            $classes[] = 'oi-open';
+        }
+        if ($row['ctx']['deleted']) {
+            $classes[] = 'oi-deleted';
+        }
+        if ($row['ctx']['foreign']) {
+            $classes[] = 'evt-extension-row';
+        }
+        return implode(' ', $classes);
+    },
+    'row_style_callable' => function ($row) {
+        if (!$row['ctx']['foreign']) {
+            return '';
+        }
+        return sprintf(
+            '--extension-tint:%s;--extension-accent:%s;',
+            $row['ctx']['origin']['palette']['sectionBg'],
+            $row['ctx']['origin']['palette']['badgeBorder']
+        );
+    },
+    'row_marker_callable' => function ($row) use ($inExtensionView) {
+        if (!$inExtensionView) {
+            return '';
+        }
+        return $this->element('Events/View/extension_band', [
+            'event_id' => $row['Object']['event_id'] ?? 0,
+        ]);
+    },
+    // The attribute table under each object, open or not.
+    'row_after_callable' => function ($row) use ($columnCount, $_mayGraph, $_enrichmentEnabled, $_cortexEnabled) {
+        return $this->element('Objects/object_index_detail', [
+            'object' => $row['Object'],
+            'ctx' => $row['ctx'],
+            'columns' => $columnCount,
+            'mayGraph' => $_mayGraph,
+            'enrichmentEnabled' => $_enrichmentEnabled,
+            'cortexEnabled' => $_cortexEnabled,
+        ]);
+    },
+]];
 ?>
 
 <div id="objectListContainer" class="container-fluid px-0" data-ifp-scope="<?= h($objectsUrl) ?>">
@@ -277,475 +487,27 @@ $foldChildren = empty($objects) ? [] : [
         <?php endif; ?>
     </div>
 
-    <!-- ── Objects: list view (accordion) / card view ──────── -->
-    <?php if (!empty($objects)): ?>
-        <div id="objTableView">
-        <div class="accordion" id="objectAccordion">
-        <?php foreach ($objects as $idx => $object): ?>
-        <?php
-            $ctx = $objContext($object);
-            $objId       = $ctx['id'];
-            $collapseId  = 'obj_collapse_' . $objId;
-            $headingId   = 'obj_heading_'  . $objId;
-            $expandForProposal = $ctx['expand'];
-            $isDeleted   = $ctx['deleted'];
-            $objOrigin   = $ctx['origin'];
-            $objStyle    = $ctx['style'];
-            $objCanEdit  = $ctx['canEdit'];
-            $objSelectable = $objCanEdit || $ctx['graphItem'] !== null;
-            $objCanTag   = $ctx['canTag'];
-            $_canGraph   = !$isDeleted && $_mayGraph;
-            $_canCollect = !$isDeleted && $_mayCollect;
-        ?>
-        <div class="accordion-item shadow-sm mb-2 rounded border<?= $isDeleted ? ' opacity-50' : '' ?>"
-             style="<?= h($objStyle) ?>"
-             data-primary-id="<?= $objId ?>">
-
-            <!-- Card header -->
-            <h2 class="accordion-header obj-header d-flex align-items-center" id="<?= $headingId ?>">
-                <?php if ($objSelectable): ?>
-                <span class="ps-3 pe-1 d-inline-flex align-items-center flex-shrink-0 checkbox-index">
-                    <input type="checkbox"
-                           class="obj-select form-check-input mt-0"
-                           data-object-id="<?= $objId ?>"
-                           data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
-                           <?php if ($ctx['graphItem'] !== null): ?>data-graph-item="<?= h(json_encode($ctx['graphItem'])) ?>"<?php endif; ?>
-                           aria-label="<?= h(__('Select this object')) ?>"
-                           title="<?= h(__('Select this object')) ?>">
-                </span>
-                <?php endif; ?>
-                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 <?= $objSelectable ? 'ps-2 pe-3' : 'px-3' ?> rounded flex-grow-1"
-                        style="min-width:0;"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#<?= $collapseId ?>"
-                        aria-expanded="<?= $expandForProposal ? 'true' : 'false' ?>"
-                        aria-controls="<?= $collapseId ?>">
-
-                    <?= $this->element('Objects/object_header', [
-                        'object' => $object,
-                        'ctx' => $ctx,
+    <!-- ── Objects, laid out as the objects index ──────── -->
+    <div class="oi-index">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-0">
+                <div id="objTableView">
+                    <?= $this->element('genericElementsBS5/IndexTable/index_table', [
+                        'scaffold_data' => $indexData,
                     ]) ?>
-
-                </button>
-
-                <?php
-                /*
-                 * Outside the accordion button on purpose: a link inside it would
-                 * collapse the card on the way to its target.
-                 */
-                $objRefs = $object['ObjectReference'] ?? [];
-                ?>
-                <?php $showRels = !empty($objRefs) || ($objCanEdit && !$isDeleted); ?>
-                <?= $this->element('Objects/object_map_button', [
-                    'object' => $object,
-                    'class' => $showRels ? 'pe-2' : 'pe-3',
-                ]) ?>
-                <?php if ($showRels): ?>
-                    <?= $this->element('Objects/object_relationships', [
-                        'references' => $objRefs,
-                        'objId' => $objId,
-                        'eventId' => $object['event_id'] ?? null,
-                        'canEdit' => $objCanEdit && !$isDeleted,
-                    ]) ?>
-                <?php endif; ?>
-            </h2>
-
-            <!-- Card body -->
-            <div id="<?= $collapseId ?>"
-                 class="accordion-collapse obj-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
-                 aria-labelledby="<?= $headingId ?>">
-
-                <div class="accordion-body p-0">
-
-                    <!-- Object meta row -->
-                    <?php if (
-                        !empty($object['description'])
-                        || !empty($object['comment'])
-                        || !empty($object['uuid'])
-                        || !empty($object['first_seen'])
-                        || !empty($object['last_seen'])
-                        || $objCanEdit
-
-                    ): ?>
-                    <div class="px-3 py-2 bg-light border-bottom
-                                d-flex flex-wrap align-items-center gap-2 small text-muted">
-                        <?php if (!empty($object['uuid'])): ?>
-                            <span class="d-inline-flex align-items-center gap-1">
-                                <i class="fas fa-fingerprint me-1"></i>
-                                <code class="user-select-all">
-                                    <?= h($object['uuid']) ?>
-                                </code>
-                                <button type="button"
-                                        class="btn btn-sm btn-link p-0 text-muted lh-1"
-                                        title="<?= h(__('Copy UUID')) ?>"
-                                        onclick="copyValueToClipboard('<?= h($object['uuid']) ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </span>
-                        <?php endif; ?>
-                        <?php if (!empty($object['comment'])): ?>
-                            <span class="card card-link-item bg-white w-100">
-                                <div class="card-body p-1 text-truncate">
-                                    <i class="fas fa-comment"></i>
-                                    <?= h($object['comment']) ?>
-                                </div>
-                            </span>
-                        <?php endif; ?>
-                        <?= $this->element('Objects/object_taxonomy', ['object' => $object]) ?>
-                        <?php
-                            $fmtSeen = function ($value) {
-                                $dt = date_create((string)$value);
-                                if ($dt === false) {
-                                    return ['date' => (string)$value, 'time' => ''];
-                                }
-                                return [
-                                    'date' => $dt->format('Y-m-d'),
-                                    'time' => $dt->format('H:i:s'),
-                                ];
-                            };
-                        ?>
-                        <?php if (!empty($object['first_seen'])): $fs = $fmtSeen($object['first_seen']); ?>
-                            <span class="d-inline-flex align-items-center gap-1"
-                                  title="<?= h($object['first_seen']) ?>">
-                                <i class="fas fa-calendar-plus text-secondary"></i>
-                                <span class="text-uppercase fw-semibold"
-                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('First seen') ?></span>
-                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
-                                    <?= h($fs['date']) ?><?php if ($fs['time'] !== ''): ?><span class="text-muted ms-1"><?= h($fs['time']) ?></span><?php endif; ?>
-                                </span>
-                            </span>
-                        <?php endif; ?>
-                        <?php if (!empty($object['last_seen'])): $ls = $fmtSeen($object['last_seen']); ?>
-                            <span class="d-inline-flex align-items-center gap-1"
-                                  title="<?= h($object['last_seen']) ?>">
-                                <i class="fas fa-calendar-check text-secondary"></i>
-                                <span class="text-uppercase fw-semibold"
-                                      style="font-size:.65rem;letter-spacing:.04em;"><?= __('Last seen') ?></span>
-                                <span class="badge bg-white border text-secondary fw-normal font-monospace">
-                                    <?= h($ls['date']) ?><?php if ($ls['time'] !== ''): ?><span class="text-muted ms-1"><?= h($ls['time']) ?></span><?php endif; ?>
-                                </span>
-                            </span>
-                        <?php endif; ?>
-
-                        <?php if ($objCanEdit): ?>
-                            <a href="<?= $baseurl ?>/objects/edit/<?= $objId ?>"
-                            onclick="event.preventDefault(); openModal('<?= $baseurl ?>/objects/edit/<?= $objId ?>');"
-                            class="btn btn-sm btn-outline-secondary ms-auto">
-                                <i class="fas fa-pen-to-square me-1"></i>
-                                <?= __('Edit') ?>
-                            </a>
-                            <?php
-                                $delUrl   = $baseurl . '/objects/delete/' . $objId . ($isDeleted ? '/true' : '');
-                                $delLabel = $isDeleted ? __('Delete permanently') : __('Delete');
-                            ?>
-                            <a href="<?= $delUrl ?>"
-                            class="btn btn-sm btn-outline-danger"
-                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'md');">
-                                <i class="fas fa-trash me-1"></i>
-                                <?= $delLabel ?>
-                            </a>
-                            <?php if ($_enrichmentEnabled && !$isDeleted): ?>
-                                <a href="<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object"
-                                   class="btn btn-sm btn-outline-enrichment"
-                                   onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $objId ?>/0/Enrichment/Object');">
-                                    <i class="fas fa-wand-magic-sparkles me-1"></i>
-                                    <?= __('Enrich') ?>
-                                </a>
-                            <?php endif; ?>
-                        <?php endif; ?>
-                        <?php if ($_canGraph): ?>
-                            <a href="#" class="btn btn-sm btn-outline-analystGraph<?= $objCanEdit ? '' : ' ms-auto' ?>"
-                               data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]])) ?>">
-                                <i class="misp-icon misp-icon-analyst-graph misp-simple me-1"></i>
-                                <?= __('Add to workspace') ?>
-                            </a>
-                        <?php endif; ?>
-                        <?php if ($_canCollect): ?>
-                            <?php $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . h($object['uuid']); ?>
-                            <a href="<?= $collectUrl ?>"
-                               class="btn btn-sm btn-outline-dark<?= ($objCanEdit || $_canGraph) ? '' : ' ms-auto' ?>"
-                               onclick="event.preventDefault(); openModal('<?= $collectUrl ?>', 'xl');">
-                                <i class="fas fa-folder-plus me-1"></i>
-                                <?= __('Add to collection') ?>
-                            </a>
-                        <?php endif; ?>
-                        <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
-                            <div class="<?= ($objCanEdit || $_canGraph || $_canCollect) ? '' : 'ms-auto' ?>">
-                                <?= $this->element('AnalystData/add_controls', [
-                                    'objectType' => 'Object',
-                                    'objectUuid' => $object['uuid'] ?? '',
-                                    'mode' => 'dropdown',
-                                ]) ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <?php endif; ?>
-
-
-                    <!-- Attribute table -->
-                    <?php if (!empty($object['Attribute'])): ?>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover
-                                      align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th></th>
-                                    <th><?= __('Value') ?></th>
-                                    <th><?= __('Type') ?></th>
-                                    <th><?= __('Category') ?></th>
-                                    <th><?= __('Tags') ?></th>
-                                    <th><?= __('Galaxies') ?></th>
-                                    <th><?= __('IDS') ?></th>
-                                    <th><?= __('Correlate') ?></th>
-                                    <th><?= __('Related Events') ?></th>
-                                    <th><?= __('Feed Hits') ?></th>
-                                    <th><?= __('Sightings') ?></th>
-                                    <th><?= __('Analyst data') ?></th>
-                                    <th class="me-2"><?= __('Actions') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach (
-                                $object['Attribute'] as $attr
-                            ): ?>
-                            <?php $attrId = (int)$attr['id']; ?>
-                                <tr data-primary-id="<?= $attrId ?>"<?php if (
-                                    !empty($attr['deleted'])
-                                ): ?> class="ov-attr-deleted"<?php
-                                endif; ?>>
-
-                                    <!-- Checkbox -->
-                                    <td>
-                                        <div class="d-inline-flex align-items-center
-                                                    checkbox-actions-wrapper
-                                                    checkbox-index">
-                                            <input
-                                                type="checkbox"
-                                                class="item-checkbox form-check-input
-                                                       mass-select mt-0"
-                                                data-item-id="<?= $attrId ?>"
-                                                data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
-                                                <?php if ($_mayGraph && empty($attr['deleted'])): ?>
-                                                data-graph-item="<?= h(json_encode(['type' => 'Attribute', 'uuid' => $attr['uuid'], 'label' => $attr['value']])) ?>"
-                                                <?php endif; ?>
-                                            >
-                                        </div>
-                                    </td>
-
-                                    <!-- Value: distribution badge + value + comment via attribute_value -->
-                                    <td class="text-break">
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/attribute_value',
-                                            [
-                                                'row'   => ['Attribute' => $attr],
-                                                'field' => ['data_path' => 'Attribute'],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-                                    <!-- Category + Relation (merged) -->
-                                    <td>
-                                        <div class="d-flex align-items-center gap-1">
-                                            <?php echo $this->element(
-                                                'genericElementsBS5/Badges/category',
-                                                ['category' => $attr['category'] ?? '']
-                                            ); ?>
-                                            <?php if (!empty($attr['object_relation'])): ?>
-                                                <span class="d-inline-flex align-items-center">
-                                                    <p class="border border-dark rounded p-1 mb-0
-                                                               bg-dark text-white"
-                                                       style="font-size:inherit;">
-                                                        <?= h($attr['object_relation']) ?>
-                                                    </p>
-                                                </span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-
-                                    <!-- Type -->
-                                    <td>
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/Badges/type',
-                                            ['type' => $attr['type'] ?? '']
-                                        ); ?>
-                                    </td>
-
-                                    <!-- Tags -->
-                                    <td>
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/tag_list',
-                                            [
-                                                'row'   => $attr,
-                                                'field' => [
-                                                    'data_path'       => 'AttributeTag',
-                                                    'add_tag'         => $objCanTag,
-                                                    'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
-                                                    'add_tag_id_path' => 'id',
-                                                    'add_relationship_url' => $baseurl
-                                                        . '/attributes/editAttributeTagRelationships/%id%',
-                                                ],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-
-                                    <!-- Galaxies -->
-                                    <td>
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/galaxy',
-                                            [
-                                                'row'   => $attr,
-                                                'field' => [
-                                                    'data_path'          => 'Galaxy',
-                                                    'add_galaxy'         => $objCanTag,
-                                                    'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
-                                                    'add_galaxy_id_path' => 'id',
-                                                    'add_galaxy_relationship_url' => $baseurl
-                                                        . '/attributes/editAttributeGalaxyRelationships/%id%',
-                                                ],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-                                    <!-- IDS (interactive via ids.ctp) -->
-                                    <td class="text-center">
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/ids',
-                                            [
-                                                'row'   => $attr,
-                                                'field' => ['data_path' => 'to_ids'],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-                                    <!-- Correlate (interactive via correlate.ctp) -->
-                                    <td class="text-center">
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/correlate',
-                                            [
-                                                'row'   => $attr,
-                                                'field' => ['data_path' => 'disable_correlation'],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-                                    <!-- Related Events -->
-                                    <td>
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/relatedEvents',
-                                            [
-                                                'row'   => $attr,
-                                                'field' => [],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-                                    <!-- Feed Hits -->
-                                    <td>
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/feedHits',
-                                            [
-                                                'row'   => ['Attribute' => $attr],
-                                                'field' => [],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-                                    <!-- Sightings -->
-                                    <td>
-                                        <?php echo $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/sightings',
-                                            [
-                                                'row'   => $attr,
-                                                'field' => [
-                                                    'sightings' => [
-                                                        'data' => [],
-                                                        'csv'  => [],
-                                                    ],
-                                                ],
-                                            ]
-                                        ); ?>
-                                    </td>
-
-                                    <!-- Analyst data -->
-                                    <td>
-                                        <?= $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/analyst_data_badges',
-                                            [
-                                                'row'   => $attr,
-                                                'field' => [
-                                                    'note_path'         => 'Note',
-                                                    'opinion_path'      => 'Opinion',
-                                                    'relationship_path' => 'Relationship',
-                                                    'uuid_path'         => 'uuid',
-                                                    'object_type'       => 'Attribute',
-                                                ],
-                                            ]
-                                        ) ?>
-                                    </td>
-
-                                    <!-- Actions (3-dots dropdown) -->
-                                    <td class="pe-3">
-                                        <div class="d-inline-flex align-items-center
-                                                    checkbox-actions-wrapper
-                                                    checkbox-index">
-                                            <?= $this->element('Objects/attribute_actions', [
-                                                'attr' => $attr,
-                                                'canEdit' => $objCanEdit,
-                                                'enrichmentEnabled' => $_enrichmentEnabled,
-                                                'cortexEnabled' => $_cortexEnabled,
-                                                'showView' => false,
-                                            ]) ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php else: ?>
-                        <p class="text-muted small fst-italic px-3 py-2 mb-0">
-                            <i class="fas fa-info-circle me-1"></i>
-                            <?= __('No visible attributes.') ?>
-                        </p>
-                    <?php endif; ?>
-
                 </div>
-            </div><!-- /.accordion-collapse -->
-
-        </div><!-- /.accordion-item -->
-        <?php endforeach; ?>
-        </div><!-- /#objectAccordion -->
-        </div><!-- /#objTableView -->
-
-        <div id="objCardView" class="d-none">
-            <div class="idx-card-grid row g-0 row-cols-1 row-cols-xl-2 row-cols-xxxl-3">
-                <?php foreach ($objects as $object): ?>
-                    <?= $this->element('Objects/object_card', [
-                        'object' => $object,
-                        'ctx' => $objContext($object),
-                        'enrichmentEnabled' => $_enrichmentEnabled,
-                        'cortexEnabled' => $_cortexEnabled,
+                <div id="objCardView" class="d-none">
+                    <?= $this->element('genericElementsBS5/IndexTable/index_card', [
+                        'scaffold_data' => $indexData,
                     ]) ?>
-                <?php endforeach; ?>
+                </div>
             </div>
         </div>
+    </div>
 
-    <?php else: ?>
-        <div class="card shadow-sm">
-            <div class="card-body text-center text-muted py-5">
-                <span class="misp-icon misp-icon-object misp-hexagone mb-3 opacity-25" style="font-size:2em;"></span>
-                <p class="mb-0"><?= __('No objects in this event.') ?></p>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- ── Bottom pagination ───────────────────────────── -->
     <?php if (!empty($objects)): ?>
         <?= $this->element('genericElementsBS5/IndexTable/pagination_bottom', [
             'rows' => count($objects),
-            'class' => 'mt-3',
         ]) ?>
     <?php endif; ?>
 
@@ -832,60 +594,11 @@ $foldChildren = empty($objects) ? [] : [
     }
 
 
-    function setAllObjectsExpanded(expand) {
-        (container || document)
-            .querySelectorAll('.obj-collapse')
-            .forEach(function (panel) {
-                if (panel.classList.contains('show') === expand) return;
-                var collapse = bootstrap.Collapse.getOrCreateInstance(
-                    panel, { toggle: false }
-                );
-                if (expand) { collapse.show(); } else { collapse.hide(); }
-            });
+    // The two views, an object's toggles in both, Expand / Collapse all, and
+    // the open objects kept per event for this browser tab (objects-index.js).
+    if (window.ObjectsIndex) {
+        window.ObjectsIndex.bindList(container || document, 'misp.openObjects.' + eventId);
     }
-
-    // The open objects survive a reload of the event view — a modal form
-    // (adding a note, editing an attribute) comes back through a full page
-    // load. Kept per event, for this browser tab only.
-    var _openKey = 'misp.openObjects.' + eventId;
-    function readOpenObjects() {
-        try { return JSON.parse(sessionStorage.getItem(_openKey) || '[]'); } catch (e) { return []; }
-    }
-    function writeOpenObjects(ids) {
-        try { sessionStorage.setItem(_openKey, JSON.stringify(ids)); } catch (e) {}
-    }
-    (function () {
-        var scope = container || document;
-        var openIds = readOpenObjects();
-        scope.querySelectorAll('.obj-collapse').forEach(function (panel) {
-            var id = panel.id.replace('obj_collapse_', '');
-            if (openIds.indexOf(id) !== -1 && !panel.classList.contains('show')) {
-                panel.classList.add('show');
-                var toggle = scope.querySelector('[data-bs-target="#' + panel.id + '"]');
-                if (toggle) {
-                    toggle.classList.remove('collapsed');
-                    toggle.setAttribute('aria-expanded', 'true');
-                }
-            }
-            panel.addEventListener('shown.bs.collapse', function (e) {
-                if (e.target !== panel) return;
-                var ids = readOpenObjects();
-                if (ids.indexOf(id) === -1) { ids.push(id); writeOpenObjects(ids); }
-            });
-            panel.addEventListener('hidden.bs.collapse', function (e) {
-                if (e.target !== panel) return;
-                writeOpenObjects(readOpenObjects().filter(function (x) { return x !== id; }));
-            });
-        });
-    }());
-
-    [['.obj-expand-all', true], ['.obj-collapse-all', false]].forEach(function (pair) {
-        var btn = (container || document).querySelector(pair[0]);
-        if (!btn) return;
-        btn.addEventListener('click', function () {
-            setAllObjectsExpanded(pair[1]);
-        });
-    });
 
     // Object mass-select. Deliberately not `.item-checkbox`: that class feeds
     // the global selectedItems map, which the attribute toolbar deletes through
@@ -902,6 +615,11 @@ $foldChildren = empty($objects) ? [] : [
     }
 
     function updateObjToolbar() {
+        var all = objScope().querySelector('.obj-select-all');
+        if (all) {
+            var boxes = Array.from(objScope().querySelectorAll('#objTableView .obj-select'));
+            all.checked = boxes.length > 0 && boxes.every(function (box) { return box.checked; });
+        }
         var bar = objScope().querySelector('#objMultiSelectToolbar');
         if (!bar) return;
         bar.classList.toggle('d-none', objSelected.size === 0);
@@ -939,6 +657,17 @@ $foldChildren = empty($objects) ? [] : [
             setObjSelected(box.dataset.objectId, box.checked, box);
         });
     });
+
+    var objSelectAll = objScope().querySelector('.obj-select-all');
+    if (objSelectAll) {
+        objSelectAll.addEventListener('change', function () {
+            var checked = objSelectAll.checked;
+            objScope().querySelectorAll('#objTableView .obj-select').forEach(function (box) {
+                if (box.checked !== checked) setObjSelected(box.dataset.objectId, checked, box);
+            });
+            updateObjToolbar();
+        });
+    }
 
     var objDelBtn = objScope().querySelector('#obj-multi-delete-button');
     if (objDelBtn) {
@@ -978,46 +707,7 @@ $foldChildren = empty($objects) ? [] : [
 
     updateObjToolbar();
 
-    // View switch (list <-> cards). mispOvermind.js binds #viewList/#viewCard on
-    // DOMContentLoaded against #tableView/#cardView — neither the buttons nor
-    // those containers exist yet in a lazily loaded tab, which is why the
-    // toggle did nothing here. So this fragment owns its own, scoped to its
-    // container: the two button ids repeat in every tab's filter bar.
-    function applyObjView(mode, animate) {
-        var scope = container || document;
-        var list = scope.querySelector('#objTableView');
-        var cards = scope.querySelector('#objCardView');
-        if (!list || !cards) return;
-        var showCards = mode === 'card';
-        list.classList.toggle('d-none', showCards);
-        cards.classList.toggle('d-none', !showCards);
-        var btnList = scope.querySelector('#viewList');
-        var btnCard = scope.querySelector('#viewCard');
-        if (btnList) btnList.classList.toggle('active', !showCards);
-        if (btnCard) btnCard.classList.toggle('active', showCards);
-        if (animate && typeof animateIndexView === 'function') {
-            animateIndexView(showCards ? cards : list);
-        }
-    }
-
-    // Own storage key: 'indexViewMode' drives the scaffold indexes, and an
-    // object card is a different trade-off from an attribute card.
-    [['#viewList', 'table'], ['#viewCard', 'card']].forEach(function (pair) {
-        var btn = container ? container.querySelector(pair[0]) : null;
-        if (!btn) return;
-        var fresh = btn.cloneNode(true);
-        btn.parentNode.replaceChild(fresh, btn);
-        fresh.addEventListener('click', function () {
-            try { localStorage.setItem('objectsViewMode', pair[1]); } catch (e) {}
-            applyObjView(pair[1], true);
-        });
-    });
-
-    var _savedObjView = 'table';
-    try { _savedObjView = localStorage.getItem('objectsViewMode') || 'table'; } catch (e) {}
-    applyObjView(_savedObjView, false);
-
-    (container || document).querySelectorAll('.obj-attr-actions').forEach(function (toggle) {
+    (container || document).querySelectorAll('.obj-attr-actions, .obj-row-actions, .oi-refs-toggle').forEach(function (toggle) {
         bootstrap.Dropdown.getOrCreateInstance(toggle, {
             popperConfig: { strategy: 'fixed' }
         });

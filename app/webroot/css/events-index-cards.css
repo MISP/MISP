@@ -330,6 +330,7 @@
 .dk-n b { font-size: 1rem; font-weight: 650; color: var(--dk-ink); margin-right: 4px; }
 .dk-n.is-zero b { color: var(--dk-ink3); font-weight: 500; }
 .dk-n.is-zero > i { opacity: .38; }
+a.dk-n, a.dk-n:hover { color: inherit; text-decoration: none; cursor: pointer; }
 .dk-card { container-type: inline-size; }
 @container (max-width: 380px) {
     .dk-foot:has(.dk-xtra) .dk-n { min-width: 3.3em; }

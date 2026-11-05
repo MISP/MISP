@@ -66,6 +66,7 @@ class ModalAccent
         'type'        => array(),
         'analystData' => array('white' => true),
         'enrichment'  => array('white' => true),
+        'analystGraph' => array('white' => true),
     );
 
     /**
