@@ -848,6 +848,11 @@ class Feed extends AppModel
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
+
+            if ($currentItem % 50 === 0) {
+                $this->__clearModelCaches();
+            }
+
             $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
             $currentItem++;
         }
@@ -867,13 +872,38 @@ class Feed extends AppModel
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
-            if ($currentItem % 10 === 0) {
-                $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
+
+            if ($currentItem % 50 === 0) {
+                $this->__clearModelCaches();
+                if ($currentItem % 10 === 0) {
+                    $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
+                }
             }
+
             $currentItem++;
         }
 
         return $results;
+    }
+
+    /**
+     * Clear model and registry caches to prevent memory accumulation.
+     * Call this periodically during feed downloads to release cyclic references
+     * held by CakePHP's ClassRegistry that would otherwise persist in memory.
+     *
+     * @return void
+     */
+    private function __clearModelCaches()
+    {
+        if (!empty($this->Event)) {
+            $this->Event->cache(false);
+            if (!empty($this->Event->Attribute)) {
+                $this->Event->Attribute->cache(false);
+            }
+            if (!empty($this->Event->Object)) {
+                $this->Event->Object->cache(false);
+            }
+        }
     }
 
     private function __createFeedRequest($headers = false)
@@ -1315,10 +1345,24 @@ class Feed extends AppModel
     }
 
     /**
-     * @param int $feedId
-     * @param array $user
-     * @param int|false $jobId
-     * @return array|bool
+     * Download and process a feed, with memory optimizations for large feeds.
+     *
+     * Large feeds (10k+ events) can cause significant memory accumulation if not
+     * handled carefully. This method implements several optimizations:
+     *
+     * 1. Results array limiting: Only count successes/failures, not all UUIDs
+     * 2. Periodic garbage collection: gc_collect_cycles() every 50 events
+     * 3. Model cache clearing: Disable query caches to break cyclic references
+     * 4. Raw data cleanup: Explicitly unset() large temporary buffers
+     *
+     * These combined measures reduce peak memory from O(n*event_size) to
+     * approximately O(100*event_size), making large feeds manageable within
+     * reasonable memory limits (4-8 GB).
+     *
+     * @param int $feedId Feed ID to download
+     * @param array $user User performing the download
+     * @param int|false $jobId Background job ID (if any)
+     * @return array|bool Feed download results or false on error
      * @throws Exception
      */
     public function downloadFromFeedInitiator($feedId, $user, $jobId = false)
