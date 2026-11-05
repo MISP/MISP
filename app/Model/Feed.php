@@ -848,6 +848,11 @@ class Feed extends AppModel
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
+
+            if ($currentItem % 50 === 0) {
+                gc_collect_cycles();
+            }
+
             $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
             $currentItem++;
         }
@@ -867,9 +872,14 @@ class Feed extends AppModel
             }
 
             $this->__cleanupFile($feed, '/' . $uuid . '.json');
-            if ($currentItem % 10 === 0) {
-                $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
+
+            if ($currentItem % 50 === 0) {
+                gc_collect_cycles();
+                if ($currentItem % 10 === 0) {
+                    $this->jobProgress($jobId, null, 100 * (($currentItem + 1) / $total));
+                }
             }
+
             $currentItem++;
         }
 
