@@ -1417,6 +1417,9 @@ class FeedsController extends AppController
 
             if ($this->theme === 'Overmind') {
                 $all = true;
+                // Read before rearrangeEventForView() folds the body into `objects`.
+                App::uses('RemoteEventOverviewTool', 'Tools/EventOverview');
+                $this->set('previewOverview', (new RemoteEventOverviewTool())->overview($this->Auth->user(), $event));
             }
             $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
             // Galaxy clusters are also carried as event tags; drop them so the
@@ -1510,8 +1513,13 @@ class FeedsController extends AppController
         }
 
         $this->loadModel('Event');
-        // The fragment always carries the whole tab, never a 60-row slice.
-        $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, true);
+        // The fragment always carries the whole tab, never a 60-row slice. Its
+        // filters are the tab's own (RemoteEventPreviewFilter), applied after.
+        $params = $this->Event->rearrangeEventForView(
+            $event,
+            array_diff_key($this->passedArgs, $this->request->params['named']),
+            true
+        );
         $this->params->params['paging'] = array('Feed' => $params);
         $this->set('event', $event);
         $this->set('feed', $feed);
@@ -1543,6 +1551,9 @@ class FeedsController extends AppController
             'tagFilterUrl' => $baseurl . '/feeds/previewIndex/' . $feedId . '/searchall:%tag%',
             'tagFilterKey' => 'name',
             'pagingModel' => 'Feed',
+            // What the tabs' filter bars build on.
+            'attributesUrl' => $baseurl . '/feeds/previewEventAttributes/' . $feedId . '/' . $eventUuid,
+            'objectsUrl' => $baseurl . '/feeds/previewEventObjects/' . $feedId . '/' . $eventUuid,
             // The attributes tab caps how many rows it renders; this reloads it uncapped.
             'viewAllUrl' => $baseurl . '/feeds/previewEventAttributes/' . $feedId
                 . '/' . $eventUuid . '/all',

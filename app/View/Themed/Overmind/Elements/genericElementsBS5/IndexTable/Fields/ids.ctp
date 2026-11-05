@@ -19,8 +19,9 @@ $attribute = isset($row['Attribute']) ? $row['Attribute'] : $row;
  */
 $readonly = !empty($field['readonly']);
 
-if ($attribute && isset($attribute['id'], $attribute['to_ids'])):
-    $objectId  = h($attribute['id']);
+// Read-only, a remote row without a local id is reported too.
+if ($attribute && isset($attribute['to_ids']) && ($readonly || isset($attribute['id']))):
+    $objectId  = h($attribute['id'] ?? $attribute['uuid'] ?? '');
     $toIds     = !empty($attribute['to_ids']);
     $mayModify = $readonly
         ? false

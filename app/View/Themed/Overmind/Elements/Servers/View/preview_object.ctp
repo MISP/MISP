@@ -12,8 +12,23 @@ $objects = array_values(array_filter(
     }
 ));
 
+// Filtered here, as the Attributes tab is: the whole event is on hand.
+App::uses('RemoteEventPreviewFilter', 'Tools');
+$filters = RemoteEventPreviewFilter::active(
+    $this->request->params['named'] ?? [],
+    RemoteEventPreviewFilter::OBJECT_FILTERS
+);
+$panelChildren = RemoteEventPreviewFilter::children(
+    array_merge(...array_column($objects, 'Attribute')),
+    $objects,
+    RemoteEventPreviewFilter::OBJECT_FILTERS
+);
+$hasObjects = !empty($objects);
+$objects = RemoteEventPreviewFilter::objects($objects, $filters);
+$tabUrl = $previewContext['objectsUrl'] ?? '';
+
 $taggingEnabled = (bool)Configure::read('MISP.tagging');
-$uid = 'preview-objects-' . h($data['Event']['id'] ?? '0');
+$uid = 'preview-objects-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0');
 
 
 $distBadge = function ($dist) {
@@ -53,38 +68,40 @@ $valueCell = function ($attr) {
 };
 ?>
 
-<div id="<?= $uid ?>-container" class="container-fluid px-0">
+<div id="<?= $uid ?>-container" class="container-fluid px-0" data-ifp-scope="<?= h($tabUrl) ?>">
 
-    <!-- FILTER CARD — same disposition as the classic Objects tab (filter_bar). -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <?php
-            echo $this->element('genericElementsBS5/IndexTable/filter_bar', [
-                'scaffold_data' => [
-                    'filter_bar' => [
-                        'skip_pagination' => true,
-                        'children' => [
-                            [
-                                'type' => 'search',
-                                'button' => __('Search'),
-                                'placeholder' => __('Filter by object name, category or attribute value'),
-                                'mode' => 'legacy',
-                                'name' => 'searchFor',
-                            ],
+    <!-- ── Filter bar, as the scaffold draws it ──── -->
+    <div class="ifp-card">
+        <?= $this->element('genericElementsBS5/IndexTable/filter_bar', [
+            'scaffold_data' => [
+                // For the count beside the chips.
+                'data' => $objects,
+                'filter_bar' => [
+                    'base_url' => $tabUrl,
+                    'skip_pagination' => true,
+                    // One list, no card view to switch to.
+                    'view_switch' => false,
+                    'chips' => ['labels' => ['name' => __('Template')]],
+                    'children' => array_merge([
+                        [
+                            'type' => 'search',
+                            'button' => __('Search'),
+                            'placeholder' => __('Filter objects…'),
+                            'mode' => 'legacy',
+                            'name' => 'searchFor',
                         ],
-                    ],
+                    ], $panelChildren),
                 ],
-                'item_url' => '/objects',
-            ]);
-            ?>
-        </div>
+            ],
+            'item_url' => '/objects',
+        ]) ?>
     </div>
 
     <?php if (empty($objects)): ?>
         <div class="card shadow-sm">
             <div class="card-body text-center text-muted py-5">
                 <span class="misp-icon misp-icon-object misp-hexagone mb-3 opacity-25" style="font-size:2em;"></span>
-                <p class="mb-0"><?= __('No objects in this event.') ?></p>
+                <p class="mb-0"><?= $hasObjects ? __('No object matches these filters.') : __('No objects in this event.') ?></p>
             </div>
         </div>
     <?php else: ?>
@@ -96,17 +113,8 @@ $valueCell = function ($attr) {
                 $headingId  = $uid . '-heading-' . $objId;
                 $attrs      = $object['Attribute'] ?? [];
                 $attrCount  = count($attrs);
-                $objSearch  = strtolower(trim(
-                    ($object['name'] ?? '') . ' '
-                    . ($object['meta-category'] ?? '') . ' '
-                    . ($object['comment'] ?? '') . ' '
-                    . implode(' ', array_map(function ($a) {
-                        return ($a['value'] ?? '') . ' ' . ($a['type'] ?? '');
-                    }, $attrs))
-                ));
             ?>
-            <div class="accordion-item shadow-sm mb-2 rounded border preview-object-item"
-                 data-object-search="<?= h($objSearch) ?>">
+            <div class="accordion-item shadow-sm mb-2 rounded border preview-object-item">
 
                 <h2 class="accordion-header" id="<?= $headingId ?>">
                     <button class="accordion-button collapsed py-2 px-3 rounded"
@@ -214,7 +222,7 @@ $valueCell = function ($attr) {
                                         </td>
                                         <td><?= $this->element('genericElementsBS5/Badges/type', ['type' => $attr['type'] ?? '']) ?></td>
                                         <?php if ($taggingEnabled): ?>
-                                        <td><?= $this->element('genericElementsBS5/IndexTable/Fields/tag_list', ['row' => $attr, 'field' => ['data_path' => 'AttributeTag']]) ?></td>
+                                        <td><?= $this->element('genericElementsBS5/IndexTable/Fields/tag_list', ['row' => $attr, 'field' => ['data_path' => 'Tag']]) ?></td>
                                         <?php endif; ?>
                                         <td><?= $this->element('genericElementsBS5/IndexTable/Fields/galaxy', ['row' => $attr, 'field' => ['data_path' => 'Galaxy'], 'data_path' => 'Galaxy']) ?></td>
                                         <td class="text-center">
@@ -248,54 +256,6 @@ $valueCell = function ($attr) {
             </div>
         <?php endforeach; ?>
         </div>
-
-        <div id="<?= $uid ?>-noresult" class="d-none text-center text-muted py-4">
-            <i class="fas fa-search me-1"></i><?= __('No object matches your search') ?>
-        </div>
     <?php endif; ?>
 
 </div>
-
-<?php if (!empty($objects)): ?>
-<script>
-(function () {
-    var uid       = <?= json_encode($uid) ?>;
-    var container = document.getElementById(uid + '-container');
-    var noResult  = document.getElementById(uid + '-noresult');
-    if (!container) { return; }
-
-    // Strip the filter_bar's own navigation listeners by cloning its controls,
-    // then wire client-side filtering (all objects are already loaded).
-    function strip(el) {
-        if (!el) { return null; }
-        var clone = el.cloneNode(true);
-        el.parentNode.replaceChild(clone, el);
-        return clone;
-    }
-    var search = strip(container.querySelector('#filterField'));
-    var btn    = strip(container.querySelector('#filterButton'));
-
-    var items = container.querySelectorAll('.preview-object-item');
-
-    function apply() {
-        var q = (search ? search.value : '').toLowerCase().trim();
-        var visible = 0;
-        items.forEach(function (item) {
-            var hay  = item.getAttribute('data-object-search') || '';
-            var show = q === '' || hay.indexOf(q) !== -1;
-            item.classList.toggle('d-none', !show);
-            if (show) { visible++; }
-        });
-        if (noResult) { noResult.classList.toggle('d-none', visible !== 0); }
-    }
-
-    if (btn)    { btn.addEventListener('click', apply); }
-    if (search) {
-        search.addEventListener('input', apply);
-        search.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); apply(); }
-        });
-    }
-}());
-</script>
-<?php endif; ?>

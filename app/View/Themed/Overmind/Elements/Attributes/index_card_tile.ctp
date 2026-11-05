@@ -22,10 +22,12 @@
  * (Objects/object_attribute_list), which hands over the sections itself, the
  * object relation as $sections['relation'] between the category and the type,
  * and `readonly` for a page that has not loaded the attribute's event: the IDS
- * and correlation states without their toggles.
+ * and correlation states without their toggles. A remote event preview passes
+ * `readonly` too, through the scaffold's `card_params`; its rows have a uuid
+ * but no id here.
  */
 $attribute = $row['Attribute'] ?? $row;
-if (empty($attribute['id'])) {
+if (empty($attribute['id']) && empty($attribute['uuid'])) {
     return;
 }
 $dist = $this->DistributionLevel->get((int)($attribute['distribution'] ?? 0));

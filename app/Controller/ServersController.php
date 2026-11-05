@@ -312,7 +312,12 @@ class ServersController extends AppController
          * attribute+object array, so a 60-row slice of a large event would leave
          * the Objects tab all but empty. The view caps what it renders instead.
          */
-        $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, true);
+        $params = $this->Event->rearrangeEventForView(
+            $event,
+            // The tab's own filters (RemoteEventPreviewFilter) are applied after.
+            array_diff_key($this->passedArgs, $this->request->params['named']),
+            true
+        );
         $this->__removeGalaxyClusterTags($event);
         $this->params->params['paging'] = array('Server' => $params);
         $this->set('event', $event);
@@ -342,6 +347,9 @@ class ServersController extends AppController
             'tagFilterUrl' => $baseurl . '/servers/previewIndex/' . $serverId . '/searchtag:%tag%',
             'tagFilterKey' => 'id',
             'pagingModel' => 'Server',
+            // What the tabs' filter bars build on.
+            'attributesUrl' => $baseurl . '/servers/previewEventAttributes/' . $serverId . '/' . $eventId,
+            'objectsUrl' => $baseurl . '/servers/previewEventObjects/' . $serverId . '/' . $eventId,
             // Reloads this same fragment uncapped, in place.
             'viewAllUrl' => $baseurl . '/servers/previewEventAttributes/'
                 . $serverId . '/' . $eventId . '/all',

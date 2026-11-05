@@ -10,7 +10,9 @@ $eventInfo = $event['Event']['info'] ?? '';
 
 // Chart.js powers the attribute-stats donuts in the general card.
 echo $this->element('genericElements/assetLoader', [
-    'js' => ['Chart.min']
+    'js' => ['Chart.min'],
+    // The Attributes tab's cards.
+    'css' => ['attributes-index'],
 ]);
 $this->set('headerCountText', '');
 $headerTitle = h($eventInfo);

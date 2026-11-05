@@ -14,7 +14,9 @@ $previewIndexUrl = $baseurl . '/feeds/previewIndex/' . $feedId;
 $canFetch = !empty($feed['Feed']['enabled']) && !empty($isSiteAdmin);
 
 echo $this->element('genericElements/assetLoader', [
-    'js' => ['Chart.min']
+    'js' => ['event-overview'],
+    // attributes-index: the Attributes tab's cards.
+    'css' => ['event-overview', 'attributes-index'],
 ]);
 
 $this->set('headerTitle', h($event['Event']['info'] ?? ''));
@@ -56,6 +58,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
         'org' => $event['Org'] ?? [],
         'distribution' => $event['Event']['distribution'] ?? null,
         'sharingGroup' => $event['SharingGroup'] ?? [],
+        'markings' => $previewOverview['markings'] ?? [],
         'link' => false,
     ],
     'tabs' => [
@@ -64,8 +67,9 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'title' => __('General'),
             'icon' => 'fas fa-info-circle',
             'left' => [
-                ['row' => ['Servers/View/preview_tags', 'Servers/View/preview_galaxies']],
-                'Servers/View/preview_general',
+                'Events/View/overview_band',
+                ['element' => 'Events/View/overview_facts', 'params' => ['overview' => $previewOverview]],
+                ['element' => 'Events/View/overview_details', 'params' => ['activity' => false]],
             ],
             'right' => array_values(array_filter([
                 $canFetch ? 'Feeds/View/preview_actions' : null,
