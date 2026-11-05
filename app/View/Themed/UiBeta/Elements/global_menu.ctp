@@ -826,7 +826,7 @@ $(document).ready(function() {
                 location.reload();
             },
             error: function(xhr, status, error) {
-                alert('<?php echo __('Failed to toggle Beta UI. Please try again.'); ?>');
+                showMessage('fail', <?= json_encode(__('Failed to change the theme. Please try again.')) ?>);
             }
         });
     });
