@@ -1633,7 +1633,10 @@ $divider = '<li class="divider"></li>';
                                 'url' => $baseurl . '/galaxy_clusters/add/' . h($galaxy_id) . '/forkUuid:' . h($cluster['GalaxyCluster']['uuid']),
                                 'text' => __('Fork Cluster')
                             ));
-                            if ($this->Acl->canPublishGalaxyCluster($cluster)) {
+                            $canTogglePublishState = $cluster['GalaxyCluster']['published']
+                                ? $this->Acl->canUnpublishGalaxyCluster($cluster)
+                                : $this->Acl->canPublishGalaxyCluster($cluster);
+                            if ($canTogglePublishState) {
                                 echo $divider;
                                 echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                     'onClick' => array(
