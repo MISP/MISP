@@ -24,20 +24,20 @@ if ($card['service'] === IndexCardsTool::SERVICE_ON && $card['asked'] > 0
         : array('text' => __('all ready'), 'tone' => 't-plain');
 }
 
-// The index's enrichment line: what it says and its tone.
+// The index's enrichment line: its pill and the pill's tone.
 if ($card['profile'] === null) {
-    $summary = array(__('no profile is in force for you'), 'plain');
+    $summary = array(__('no profile'), 'plain');
 } elseif ($card['service'] === IndexCardsTool::SERVICE_OFF) {
-    $summary = array(__('switched off on this instance'), 'warn');
+    $summary = array(__('switched off'), 'warn');
 } elseif ($card['service'] === IndexCardsTool::SERVICE_UNREACHABLE) {
-    $summary = array(__('the modules service is not answering'), 'warn');
+    $summary = array(__('not answering'), 'warn');
 } elseif ($card['asked'] === 0) {
-    $summary = array(__('your profile asks for no module'), 'plain');
+    $summary = array(__('none asked'), 'plain');
 } elseif (!$card['can_run']) {
-    $summary = array(__('your role cannot run modules'), 'plain');
+    $summary = array(__('not for your role'), 'plain');
 } else {
     $summary = array(
-        __('%s of %s modules can run for you', $card['ready'], $card['asked']),
+        __('%s of %s ready', $card['ready'], $card['asked']),
         $blocked > 0 ? 'warn' : 'ok'
     );
 }

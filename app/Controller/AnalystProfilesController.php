@@ -570,7 +570,8 @@ class AnalystProfilesController extends AppController
      * are different conversations with different people.
      *
      * @param array $board The index board, for the instance selection
-     * @return array
+     * @return array Each with its `setting` and the settings page (`tab`)
+     *               that holds it
      */
     private function __capabilities(array $board)
     {
@@ -591,25 +592,25 @@ class AnalystProfilesController extends AppController
         return array(
             'hover_card' => array(
                 'setting' => 'MISP.value_hover_card',
-                'tab' => 'MISP',
+                'tab' => 'instance',
                 'on' => (bool)Configure::read('MISP.value_hover_card'),
             ),
             'enrichment_modules' => array(
                 'setting' => 'Plugin.Enrichment_services_enable',
-                'tab' => 'Plugin',
+                'tab' => 'enrichment',
                 'on' => (bool)Configure::read(
                     'Plugin.Enrichment_services_enable'),
             ),
             'enrichment_auto_run' => array(
                 'setting' => 'Plugin.ValueIntelligence_enrichment_auto_run',
-                'tab' => 'Plugin',
+                'tab' => 'valueintelligence',
                 'state' => ValueEnrichmentTool::normaliseGate(
                     Configure::read(
                         'Plugin.ValueIntelligence_enrichment_auto_run')),
             ),
             'instance_profile' => array(
                 'setting' => 'Plugin.ValueIntelligence_instance_profile',
-                'tab' => 'Plugin',
+                'tab' => 'valueintelligence',
                 'uuid' => $uuid,
                 'name' => $named === null ? null : $named['name'],
                 'id' => $named === null ? null : $named['id'],

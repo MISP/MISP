@@ -841,38 +841,48 @@ a.ap-hop-a:hover { text-decoration: underline; }
     color: var(--bs-secondary-color);
 }
 
-.ap-health {
-    display: flex;
-    flex-direction: column;
-    gap: .35rem;
-    margin: .5rem 0 0;
-    padding: 0;
-    list-style: none;
+/* Status: a setting's name, its state as a pill, and the way to act on it,
+ * in three columns so the pills and the actions line up down the card. */
+.ap-st { margin: .35rem 0 0; }
+.ap-st-i {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 4.5rem;
+    align-items: center;
+    gap: .6rem;
+    padding: .45rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
 }
-.ap-health-i {
+.ap-st-i:last-child { border-bottom: 0; }
+.ap-st-i dt {
     display: flex;
     align-items: center;
     gap: .55rem;
-    min-height: 1.75rem;
+    min-width: 0;
+    font-weight: 400;
 }
-.ap-health-ico {
+.ap-st-i dt i {
     flex: none;
     width: 1rem;
     text-align: center;
     color: var(--bs-secondary-color);
 }
-.ap-health-i[data-tone="ok"] .ap-health-ico { color: var(--bs-primary); }
-.ap-health-i[data-tone="warn"] .ap-health-ico {
-    color: var(--vp-conflict-ink, var(--vp-conflict));
-}
-.ap-health-t { flex: 1 1 auto; min-width: 0; }
-.btn.ap-health-act {
-    flex: none;
-    padding: 0 .25rem;
+.ap-st-i[data-tone="warn"] dt i { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.ap-st-i dd { margin: 0; }
+.ap-st-i dd:last-child { text-align: right; }
+.ap-st .pill .spinner-border { width: .65rem; height: .65rem; border-width: .12em; }
+.ap-st-act {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: .8125rem;
     font-weight: 600;
+    color: var(--bs-link-color);
     text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
 }
-.btn.ap-health-btn { flex: none; padding: .05rem .6rem; }
+.ap-st-act:hover { text-decoration: underline; }
 .ap-pins { min-width: 16rem; max-width: 26rem; padding: .25rem 0; }
 .ap-pin {
     display: flex;

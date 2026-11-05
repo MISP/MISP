@@ -93,16 +93,16 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
     $status = null;
 }
 
-// The index's enrichment line: what it says, its tone, and its button.
+// The index's enrichment line: its pill, the pill's tone, and its button.
 if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
-    $summary = array(__('the modules service is off'), 'warn');
+    $summary = array(__('service off'), 'warn');
 } elseif ($card['service'] === IndexCardsTool::SERVICE_UNREACHABLE) {
-    $summary = array(__('misp-modules is not answering'), 'warn');
+    $summary = array(__('not answering'), 'warn');
 } elseif ($card['asked'] === 0) {
-    $summary = array(__('no profile asks for a module'), 'plain');
+    $summary = array(__('none asked'), 'plain');
 } else {
     $summary = array(
-        __('%s of %s modules ready', $card['ready'], $card['asked']),
+        __('%s of %s ready', $card['ready'], $card['asked']),
         $card['attention'] > 0 ? 'warn' : 'ok'
     );
 }

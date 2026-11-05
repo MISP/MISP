@@ -20,7 +20,6 @@
  * @var array|null $shipped Site admins only
  */
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
-App::uses('ServerSettingGroups', 'Tools');
 
 $hopReason = array(
     'missing' => __('the profile it named is gone'),
@@ -38,12 +37,31 @@ $reasonWord = array(
     'unreadable' => __('names a profile this scope may not use'),
 );
 
+// The pill each status tone takes, and the link to a setting for those who may change it.
+$pill = array('ok' => 't-force', 'warn' => 't-over', 'plain' => 't-plain');
+$settings = function (array $cap) use ($may_select_for_instance) {
+    if (!$may_select_for_instance) {
+        return '';
+    }
+    return '<a class="ap-st-act" href="' . h(Router::url(array(
+            'controller' => 'servers', 'action' => 'serverSettings',
+            $cap['tab'])) . '#setting=' . $cap['setting'])
+        . '" title="' . h(sprintf(__('Change %s'), $cap['setting'])) . '">'
+        . h(__('Settings')) . '</a>';
+};
+
 $hover = $capabilities['hover_card'];
-$tone = array(
-    'ok' => 'circle-check',
-    'warn' => 'triangle-exclamation',
-    'plain' => 'circle-info',
+$hoverTone = $hover['on'] ? 'ok' : 'plain';
+$auto = $capabilities['enrichment_auto_run'];
+$autoWord = array(
+    'off' => __('Off'),
+    'site_admin' => __('Site admins only'),
+    'on' => __('On'),
 );
+// Allowed to run without a press, with no module switched on, runs nothing.
+$autoTone = $auto['state'] === 'off'
+    ? 'plain'
+    : ($capabilities['enrichment_modules']['on'] ? 'ok' : 'warn');
 
 if ($shipped !== null) {
     $loadable = array_filter($shipped['profiles'], function ($profile) {
@@ -145,89 +163,103 @@ if ($shipped !== null) {
 
     <div class="ap-stand-side" data-tour="ap-standing">
         <div class="ap-stand-k"><?= h(__('Status')) ?></div>
-        <ul class="ap-health">
-            <li class="ap-health-i" data-ap-enrichment data-tone="busy">
-                <span class="ap-health-ico" aria-hidden="true"><span
-                    class="spinner-border spinner-border-sm"></span></span>
-                <span class="ap-health-t"><b><?= h(__('Enrichment')) ?></b>:
-                    <span data-ap-summary><?= h(__('asking the modules'
-                        . ' service…')) ?></span></span>
-                <button type="button" class="btn btn-link btn-sm ap-health-act"
-                        data-bs-toggle="modal" data-bs-target="#ap-enrichment-modal"
-                        data-ap-open hidden></button>
-            </li>
+        <dl class="ap-st">
+            <div class="ap-st-i" data-ap-enrichment data-tone="busy" title="<?= h(__(
+                'The enrichment modules the profiles ask for, and how many of'
+                . ' them can run here.')) ?>">
+                <dt><i class="fas fa-puzzle-piece" aria-hidden="true"></i><?= h(
+                    __('Enrichment modules')) ?></dt>
+                <dd><span class="pill t-plain" data-ap-summary><span
+                    class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                    <?= h(__('checking')) ?></span></dd>
+                <dd><button type="button" class="ap-st-act" data-bs-toggle="modal"
+                            data-bs-target="#ap-enrichment-modal" data-ap-open
+                            hidden></button></dd>
+            </div>
 
-            <li class="ap-health-i" data-tone="<?= $hover['on'] ? 'ok' : 'plain' ?>">
-                <span class="ap-health-ico" aria-hidden="true"><i class="fas fa-<?=
-                    $tone[$hover['on'] ? 'ok' : 'plain'] ?>"></i></span>
-                <span class="ap-health-t"><b><?= h(__('Hover card')) ?></b>:
-                    <?= h($hover['on'] ? __('on') : __('off')) ?></span>
-                <?php if ($may_select_for_instance): ?>
-                    <a class="btn btn-link btn-sm ap-health-act" href="<?= h(
-                        Router::url(array('controller' => 'servers',
-                            'action' => 'serverSettings',
-                            ServerSettingGroups::resolve($hover['tab'])))
-                        . '#setting=' . $hover['setting']) ?>"
-                       title="<?= h(sprintf(__('Change %s'),
-                           $hover['setting'])) ?>"><?= h(__('Settings')) ?></a>
-                <?php endif; ?>
-            </li>
+            <div class="ap-st-i" data-tone="<?= h($autoTone) ?>" title="<?= h(
+                $autoTone === 'warn'
+                    ? __('Allowed, but no enrichment module is switched on here,'
+                        . ' so nothing runs.')
+                    : __('Whether the modules a profile marks to run on their own'
+                        . ' do so when a value page opens, without anybody'
+                        . ' pressing Enrich.')) ?>">
+                <dt><i class="fas fa-bolt" aria-hidden="true"></i><?= h(
+                    __('Enrichment without a press')) ?></dt>
+                <dd><span class="pill <?= $pill[$autoTone] ?>"><?= h(
+                    isset($autoWord[$auto['state']])
+                        ? $autoWord[$auto['state']]
+                        : $auto['state']) ?></span></dd>
+                <dd><?= $settings($auto) ?></dd>
+            </div>
+
+            <div class="ap-st-i" data-tone="<?= h($hoverTone) ?>" title="<?= h(__(
+                'The card a value opens when you hover it, with its'
+                . ' assessment.')) ?>">
+                <dt><i class="fas fa-hand-pointer" aria-hidden="true"></i><?= h(
+                    __('Hover card')) ?></dt>
+                <dd><span class="pill <?= $pill[$hoverTone] ?>"><?= h(
+                    $hover['on'] ? __('On') : __('Off')) ?></span></dd>
+                <dd><?= $settings($hover) ?></dd>
+            </div>
 
             <?php if ($shipped !== null): ?>
-                <li class="ap-health-i" data-tone="<?= h($shippedTone) ?>"<?=
+                <div class="ap-st-i" data-tone="<?= h($shippedTone) ?>"<?=
                     $shippedTitle === '' ? '' : ' title="' . h($shippedTitle) . '"' ?>>
-                    <span class="ap-health-ico" aria-hidden="true"><i class="fas fa-<?=
-                        $tone[$shippedTone] ?>"></i></span>
-                    <span class="ap-health-t"><b><?= h(__('Shipped profiles')) ?></b>:
-                        <?= h(empty($loadable)
+                    <dt><i class="fas fa-box-open" aria-hidden="true"></i><?= h(
+                        __('Shipped profiles')) ?></dt>
+                    <dd><span class="pill <?= $pill[$shippedTone] ?>"><?= h(
+                        empty($loadable)
                             ? __('%s, all current', count($shipped['profiles']))
                             : __n('%s to load', '%s to load', count($loadable),
-                                count($loadable))) ?></span>
-                    <?php if (!empty($loadable)): ?>
-                        <?php $loadUrl = $this->Html->url(array('action' => 'update')); ?>
-                        <a class="btn btn-sm btn-primary ap-health-btn"
-                           href="<?= h($loadUrl) ?>"
-                           onclick="<?= h('event.preventDefault(); openModal('
-                               . json_encode($loadUrl) . ", 'md');") ?>"><?= h(
-                            __('Load')) ?></a>
-                    <?php endif; ?>
-                </li>
+                                count($loadable))) ?></span></dd>
+                    <dd>
+                        <?php if (!empty($loadable)): ?>
+                            <?php $loadUrl = $this->Html->url(array('action' => 'update')); ?>
+                            <a class="ap-st-act" href="<?= h($loadUrl) ?>"
+                               onclick="<?= h('event.preventDefault(); openModal('
+                                   . json_encode($loadUrl) . ", 'md');") ?>"><?= h(
+                                __('Load')) ?></a>
+                        <?php endif; ?>
+                    </dd>
+                </div>
             <?php endif; ?>
 
-            <li class="ap-health-i" data-tone="plain" title="<?= h(
+            <div class="ap-st-i" data-tone="plain" title="<?= h(
                 empty($comparison_set)
                     ? __('Pin a value while editing a profile and it follows'
                         . ' you between profiles, so every change is judged on'
                         . ' the same value.')
                     : __('These follow you into every profile you open, so a'
                         . ' change is judged on the same values each time.')) ?>">
-                <span class="ap-health-ico" aria-hidden="true"><i
-                    class="fas fa-thumbtack"></i></span>
-                <span class="ap-health-t"><b><?= h(__('Pinned values')) ?></b>:
-                    <?= h(sprintf(__('%1$s of %2$s'), count($comparison_set),
-                        $comparison_limit)) ?></span>
-                <?php if (!empty($comparison_set)): ?>
-                    <div class="dropdown">
-                        <button type="button" class="btn btn-link btn-sm ap-health-act"
-                                data-bs-toggle="dropdown" aria-expanded="false"><?= h(
-                            __('Show')) ?></button>
-                        <ul class="dropdown-menu dropdown-menu-end ap-pins">
-                            <?php foreach ($comparison_set as $value): ?>
-                                <li class="ap-pin">
-                                    <span class="ap-pin-v" title="<?= h($value) ?>"><?= h(
-                                        $value) ?></span>
-                                    <?= $this->Form->postLink(
-                                        __('unpin'),
-                                        array('action' => 'unpin',
-                                            ValueUrlTool::encode($value)),
-                                        array('class' => 'ap-pin-x')
-                                    ) ?>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                <?php endif; ?>
-            </li>
-        </ul>
+                <dt><i class="fas fa-thumbtack" aria-hidden="true"></i><?= h(
+                    __('Pinned values')) ?></dt>
+                <dd><span class="pill t-plain"><?= h(sprintf(__('%1$s of %2$s'),
+                    count($comparison_set), $comparison_limit)) ?></span></dd>
+                <dd>
+                    <?php if (!empty($comparison_set)): ?>
+                        <div class="dropdown">
+                            <button type="button" class="ap-st-act"
+                                    data-bs-toggle="dropdown" aria-expanded="false"><?= h(
+                                __('Show')) ?></button>
+                            <ul class="dropdown-menu dropdown-menu-end ap-pins">
+                                <?php foreach ($comparison_set as $value): ?>
+                                    <li class="ap-pin">
+                                        <span class="ap-pin-v" title="<?= h($value) ?>"><?= h(
+                                            $value) ?></span>
+                                        <?= $this->Form->postLink(
+                                            __('unpin'),
+                                            array('action' => 'unpin',
+                                                ValueUrlTool::encode($value)),
+                                            array('class' => 'ap-pin-x')
+                                        ) ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+                </dd>
+            </div>
+        </dl>
     </div>
 </section>

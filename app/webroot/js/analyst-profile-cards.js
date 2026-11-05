@@ -6,10 +6,11 @@
 (function () {
     'use strict';
 
-    var ICONS = {
-        ok: 'circle-check',
-        warn: 'triangle-exclamation',
-        plain: 'circle-info'
+    // The pill the line's value takes for each tone.
+    var PILLS = {
+        ok: 't-force',
+        warn: 't-over',
+        plain: 't-plain'
     };
 
     if (document.readyState === 'loading') {
@@ -74,12 +75,11 @@
     }
 
     function sumUp(line, tone, summary, action) {
-        tone = ICONS[tone] ? tone : 'plain';
+        tone = PILLS[tone] ? tone : 'plain';
         line.setAttribute('data-tone', tone);
-        var glyph = document.createElement('i');
-        glyph.className = 'fas fa-' + ICONS[tone];
-        line.querySelector('.ap-health-ico').replaceChildren(glyph);
-        line.querySelector('[data-ap-summary]').textContent = summary || '';
+        var value = line.querySelector('[data-ap-summary]');
+        value.className = 'pill ' + PILLS[tone];
+        value.textContent = summary || '';
         var open = line.querySelector('[data-ap-open]');
         open.textContent = action || '';
         open.hidden = !action;
