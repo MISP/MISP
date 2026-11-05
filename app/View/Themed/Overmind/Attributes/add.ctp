@@ -12,18 +12,18 @@ $submitId = $isEdit
     : h($event['Event']['id'] ?? '');
 
 /* Initial card border colours */
-$toIdsChecked        = !empty($attrData['to_ids']);
-$disableCorrelChecked = !empty($attrData['disable_correlation']);
+$toIdsChecked   = !empty($attrData['to_ids']);
+$correlChecked  = empty($attrData['disable_correlation']);
 
-$idsBorder    = $toIdsChecked        ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-line, #dee2e6)';
-$correlBorder = $disableCorrelChecked ? 'var(--misp-check-off-line, #dee2e6)'  : 'var(--misp-tone-green-solid, #198754)';
+$idsBorder    = $toIdsChecked  ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-line, #dee2e6)';
+$correlBorder = $correlChecked ? 'var(--misp-tone-green-solid, #198754)'  : 'var(--misp-check-off-line, #dee2e6)';
 
 $idsIconStyle    = $toIdsChecked
     ? 'color:var(--misp-tone-yellow-solid, #ffc107);opacity:1;'
     : 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;';
-$correlIconStyle = $disableCorrelChecked
-    ? 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;'
-    : 'color:var(--misp-tone-green-solid, #198754);opacity:1;';
+$correlIconStyle = $correlChecked
+    ? 'color:var(--misp-tone-green-solid, #198754);opacity:1;'
+    : 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;';
 
 /*
  * An attribute inside an object takes its category and type from the object's
@@ -224,23 +224,28 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                                   h-100 w-100 user-select-none mb-0"
                            style="cursor:pointer; border:1px solid <?= $correlBorder ?>;
                                   transition:border-color .15s;">
+                        <?php /* Ticked posts disable_correlation=0, unticked the hidden 1. */ ?>
                         <?= $this->Form->checkbox('disable_correlation', [
-                            'id'    => 'AttributeDisableCorrelation',
-                            'class' => 'form-check-input flex-shrink-0',
-                            'style' => 'margin-top:0;',
+                            'id'          => 'AttributeCorrelate',
+                            'value'       => '0',
+                            'hiddenField' => '1',
+                            'checked'     => $correlChecked,
+                            'class'       => 'form-check-input flex-shrink-0',
+                            'style'       => 'margin-top:0;',
+                            'data-locked-title' => __('This type never correlates'),
                         ]) ?>
                         <div class="flex-fill">
                             <div class="fw-bold text-uppercase"
                                  style="font-size:.72rem; letter-spacing:.06em; line-height:1.2;">
-                                <?= __('Disable Correlation') ?>
+                                <?= __('Correlation') ?>
                             </div>
                             <div class="text-muted"
                                  style="font-size:.76rem; margin-top:.2rem; line-height:1.3;">
-                                <?= __('Exclude from correlation engine') ?>
+                                <?= __('Match the value against other events') ?>
                             </div>
                         </div>
                         <i id="icon-correl"
-                           class="fas fa-<?= $disableCorrelChecked ? 'link-slash' : 'link' ?>"
+                           class="fas fa-<?= $correlChecked ? 'link' : 'link-slash' ?>"
                            style="font-size:.95rem; <?= $correlIconStyle ?>
                                   transition:color .15s;"></i>
                     </label>
@@ -256,8 +261,8 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                     <strong><?= __('FOR IDS') ?></strong>
                     <?= __('means that this attribute should trigger detection rules and is not for contextual reference.') ?>
                     <br>
-                    <strong><?= __('DISABLE CORRELATION') ?></strong>
-                    <?= __('prevents MISP from generating correlation graphs for this value.') ?>
+                    <strong><?= __('CORRELATION') ?></strong>
+                    <?= __('links this value to the events holding the same value. Untick it to keep the value out of the correlation engine.') ?>
                 </div>
             </div>
 

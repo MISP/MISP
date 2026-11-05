@@ -7,23 +7,27 @@
  * Sized as the objects index's cards (Objects/index_card_tile) and handled as
  * the events index's (Events/index_card): the attribute icon leads and gives
  * way to the selection box on hover, the menu shows on hover. Then the
- * distribution, the category and type (drawn as the table draws them) and the
+ * event (Attributes/event_peek) on an index whose rows come from any event,
+ * the distribution otherwise, the category and type (drawn as the table draws them) and the
  * last change (as the page header gives it) over the value, the facts closed
  * by the IDS and correlation toggles, and a foot with the sightings and the
  * analyst data.
  *
  * Each part the index configures arrives as the section its field names
- * (Elements/Attributes/index.ctp). The two toggles are drawn here in their card
- * form, which attributes-index.css turns into status chips.
+ * (Elements/Attributes/index.ctp), drawn by the same field element as its
+ * table cell. The two toggles are drawn here in their card form, which
+ * attributes-index.css turns into status chips.
  *
  * Also the card of an attribute inside an object's card
  * (Objects/object_attribute_list), which hands over the sections itself, the
  * object relation as $sections['relation'] between the category and the type,
  * and `readonly` for a page that has not loaded the attribute's event: the IDS
- * and correlation states without their toggles.
+ * and correlation states without their toggles. A remote event preview passes
+ * `readonly` too, through the scaffold's `card_params`; its rows have a uuid
+ * but no id here.
  */
 $attribute = $row['Attribute'] ?? $row;
-if (empty($attribute['id'])) {
+if (empty($attribute['id']) && empty($attribute['uuid'])) {
     return;
 }
 $dist = $this->DistributionLevel->get((int)($attribute['distribution'] ?? 0));
@@ -36,19 +40,8 @@ $section = function ($name) use ($sections) {
     return implode('', $sections[$name] ?? []);
 };
 
+// The event and its organisations are in the value's event icon, as in the table.
 $facts = [];
-if (!empty($sections['event']) && !empty($row['Event']['id'])) {
-    $facts[__('Event')] = sprintf(
-        '<a class="ai-event" href="%s" title="%s"><span class="ai-event-id">#%d</span>'
-            . '<span class="ai-event-info">%s</span></a>',
-        h($baseurl . '/events/view/' . (int)$row['Event']['id']),
-        h($row['Event']['info'] ?? ''),
-        (int)$row['Event']['id'],
-        h($row['Event']['info'] ?? '')
-    );
-}
-$facts[__('Creator org')] = $section('orgc');
-$facts[__('Owner org')] = $section('org');
 $facts[__('Tags')] = $section('tags');
 $facts[__('Galaxies')] = $section('galaxies');
 $facts[__('Related')] = $section('related');
@@ -65,11 +58,15 @@ $facts = array_filter($facts, function ($html) {
                 <span class="ai-tile-sel"><?= $section('selector') ?></span>
             <?php endif; ?>
         </span>
-        <span class="ov-obj-dist"
-              style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
-              title="<?= h($distTitle) ?>">
-            <i class="<?= h($dist['icon']) ?>"></i>
-        </span>
+        <?php if (!empty($sections['event'])): ?>
+            <?= $section('event') ?>
+        <?php else: ?>
+            <span class="ov-obj-dist"
+                  style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
+                  title="<?= h($distTitle) ?>">
+                <i class="<?= h($dist['icon']) ?>"></i>
+            </span>
+        <?php endif; ?>
         <div class="ai-tile-title">
             <div class="ai-tile-kind">
                 <?= $section('category') ?>

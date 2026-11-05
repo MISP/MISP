@@ -38,6 +38,32 @@ class EventIndexHelper extends AppHelper
     }
 
     /**
+     * @param int $eventId
+     * @param string $tab the event view's tab, e.g. 'attributes'
+     * @return string
+     */
+    public function tabUrl($eventId, $tab)
+    {
+        return $this->baseurl() . '/events/view/' . (int)$eventId . '#tab-' . $tab;
+    }
+
+    /**
+     * Where an event's attribute count leads, and what it says: its Objects
+     * tab when they all sit in objects, since the Attributes tab leaves those out.
+     *
+     * @param array $event Event row
+     * @return array [tab, title]
+     */
+    public function attributesTab(array $event)
+    {
+        $n = (int)($event['attribute_count'] ?? 0);
+        if (!empty($event['attributes_in_objects_only'])) {
+            return ['objects', $this->plural($n, '%s attribute, in an object', '%s attributes, all in objects')];
+        }
+        return ['attributes', $this->plural($n, '%s attribute', '%s attributes')];
+    }
+
+    /**
      * @param array $event Event row
      * @param string $state EventCard state
      * @return string the state as a sentence, with its publish date
@@ -255,10 +281,12 @@ class EventIndexHelper extends AppHelper
         if ($sections === '') {
             return '';
         }
+        // A remote event (the feed preview) has no local id to show.
+        $id = (int)($event['id'] ?? 0);
         return sprintf(
-            '<template class="dk-ctx-tpl"><div class="dk-pop-in"><div class="dk-pop-head"><span class="dk-pop-id">#%d</span><b title="%s">%s</b>'
+            '<template class="dk-ctx-tpl"><div class="dk-pop-in"><div class="dk-pop-head">%s<b title="%s">%s</b>'
                 . '<button type="button" class="dk-pop-x" data-dk-close aria-label="%s"><i class="fas fa-xmark"></i></button></div>%s</div></template>',
-            (int)$event['id'],
+            $id ? '<span class="dk-pop-id">#' . $id . '</span>' : '',
             h($event['info']),
             h($event['info']),
             h(__('Close')),
@@ -273,6 +301,17 @@ class EventIndexHelper extends AppHelper
     public function distribution(array $dist)
     {
         $sg = $dist['sharing_group'] ?? null;
+        // A remote event's group (the server preview) has no local record to open.
+        if ($sg && empty($sg['id'])) {
+            return sprintf(
+                '<span class="dk-dist is-sg" style="%s" title="%s" aria-label="%s"><i class="%s"></i><span class="dk-dist-name">%s</span></span>',
+                h($dist['style']),
+                h($dist['label']),
+                h($dist['label']),
+                h($dist['icon']),
+                h($sg['name'])
+            );
+        }
         if ($sg) {
             return sprintf(
                 '<button type="button" class="dk-dist is-sg" style="%s" data-sg-id="%d" data-sg-name="%s" aria-label="%s" aria-haspopup="dialog" aria-expanded="false">'
@@ -324,7 +363,7 @@ class EventIndexHelper extends AppHelper
             $extras[] = sprintf(
                 '<a class="dk-x-report_count dk-report" href="%s" title="%s">'
                     . '<i class="misp-icon misp-icon-report misp-simple text-report"></i> %s</a>',
-                h($this->baseurl() . '/events/view/' . (int)$event['id'] . '#tab-reports'),
+                h($this->tabUrl($event['id'], 'reports')),
                 h($this->plural($n, '%s event report', '%s event reports')),
                 EventCardTool::compactCount($n)
             );

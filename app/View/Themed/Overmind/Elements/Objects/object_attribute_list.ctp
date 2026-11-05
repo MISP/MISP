@@ -16,6 +16,9 @@
  *   readonly           bool   report the IDS and correlation states without
  *                             their toggles, for a page that has not loaded
  *                             the attribute's event
+ *   remote             bool   a remote event's attributes (a feed or server
+ *                             preview), whose ids name nothing here: no
+ *                             sightings, enrichment hover or picture
  *   enrichmentEnabled  bool   Plugin.Enrichment_services_enable
  *   cortexEnabled      bool   Plugin.Cortex_services_enable
  *
@@ -26,13 +29,14 @@ $objCanTag = !empty($canTag);
 $mayGraph = !empty($mayGraph);
 $showActions = $showActions ?? true;
 $readonly = !empty($readonly);
+$remote = !empty($remote);
 $menuOptions = [
     'canEdit' => $objCanEdit,
     'enrichmentEnabled' => !empty($enrichmentEnabled),
     'cortexEnabled' => !empty($cortexEnabled),
 ];
 
-$sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $menuOptions, $baseurl) {
+$sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $menuOptions, $baseurl, $remote) {
     $row = ['Attribute' => $attr];
     $field = function ($element, array $field, $fieldRow = null) use ($row) {
         return $this->element('genericElementsBS5/IndexTable/Fields/' . $element, [
@@ -48,7 +52,7 @@ $sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $
             $field('category', ['data_path' => 'Attribute.category'])
         ),
         'type' => $field('type', ['data_path' => 'Attribute.type']),
-        'value' => $field('attribute_value', ['data_path' => 'Attribute']),
+        'value' => $field('attribute_value', ['data_path' => 'Attribute', 'remote' => $remote]),
         'tags' => $field('tag_list', [
             'data_path' => 'Attribute.AttributeTag',
             'add_tag' => $objCanTag,
@@ -65,7 +69,7 @@ $sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $
         ]),
         'related' => $field('relatedEvents', [], $attr),
         'feeds' => $field('feedHits', []),
-        'sightings' => $field('sightings', ['sightings' => ['data' => [], 'csv' => []]], $attr),
+        'sightings' => $field('sightings', ['sightings' => ['data' => [], 'csv' => []], 'readonly' => $remote], $attr),
         'analyst' => $field('analyst_data_badges', [
             'note_path' => 'Note',
             'opinion_path' => 'Opinion',
@@ -79,12 +83,9 @@ $sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $
         if ($attr['object_relation'] === ($attr['type'] ?? null)) {
             unset($sections['type']);
         }
-        $sections['relation'] = sprintf(
-            '<span class="d-inline-flex align-items-center"><p class="border border-dark rounded p-1 mb-0'
-                . ' bg-dark text-white" style="font-size:inherit;" title="%s">%s</p></span>',
-            h(__('Object relation')),
-            h($attr['object_relation'])
-        );
+        $sections['relation'] = $this->element('genericElementsBS5/Badges/object_relation', [
+            'relation' => $attr['object_relation'],
+        ]);
     }
     if ($showActions) {
         $sections['selector'] = sprintf(

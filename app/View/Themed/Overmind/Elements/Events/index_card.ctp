@@ -47,25 +47,32 @@ $line = function ($lane, $count, array $chips, $empty) use ($ei) {
 };
 $rows = $card['rows'];
 
-$count = function ($n, $icon, $title, $more = false) {
+// A count above zero opens the event's tab that lists them.
+$count = function ($n, $tab, $icon, $title, $more = false) use ($ei, $id) {
     $n = (int)$n;
+    $inner = $icon . '<b>' . EventCardTool::compactCount($n) . ($more ? '+' : '') . '</b>';
+    if (!$n) {
+        return sprintf('<span class="dk-n is-zero" title="%s">%s</span>', h($title), $inner);
+    }
     return sprintf(
-        '<span class="dk-n%s" title="%s">%s<b>%s</b></span>',
-        $n || $more ? '' : ' is-zero',
+        '<a class="dk-n" href="%s" title="%s">%s</a>',
+        h($ei->tabUrl($id, $tab)),
         h($title),
-        $icon,
-        EventCardTool::compactCount($n) . ($more ? '+' : '')
+        $inner
     );
 };
+[$attributesTab, $attributesTitle] = $ei->attributesTab($event);
 $counts = $count(
     $event['attribute_count'] ?? 0,
+    $attributesTab,
     '<i class="misp-icon misp-icon-attribute misp-simple text-attribute"></i>',
-    $plural((int)($event['attribute_count'] ?? 0), '%s attribute', '%s attributes')
+    $attributesTitle
 );
 if (isset($event['object_count'])) {
     $more = !empty($event['object_count_more']);
     $counts .= $count(
         $event['object_count'],
+        'objects',
         '<i class="misp-icon misp-icon-object misp-simple text-object"></i>',
         $more
             ? __('At least %s objects', (int)$event['object_count'])
@@ -77,6 +84,7 @@ if (isset($event['correlation_count'])) {
     $more = !empty($event['correlation_count_more']);
     $counts .= $count(
         $event['correlation_count'],
+        'correlation',
         '<i class="fas fa-link text-correlation"></i>',
         $more
             ? __('At least %s correlations', (int)$event['correlation_count'])

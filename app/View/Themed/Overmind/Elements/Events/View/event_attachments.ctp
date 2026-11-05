@@ -30,8 +30,9 @@ $mayModify = $this->Acl->canModifyEvent($data);
         <span class="d-inline-flex gap-1 flex-shrink-0">
             <?php if ($mayModify || $isSiteAdmin): ?>
                 <a href="<?= $uploadUrl ?>"
+                   id="<?= $uid ?>-upload"
                    onclick="event.preventDefault(); openModal('<?= $uploadUrl ?>')"
-                   class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                   class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 d-none">
                     <i class="fas fa-upload"></i><?= __('Upload') ?>
                 </a>
             <?php endif; ?>
@@ -60,32 +61,48 @@ $mayModify = $this->Acl->canModifyEvent($data);
     var search   = document.getElementById(uid + '-search');
     var countEl  = document.getElementById(uid + '-count');
     var fetchUrl = <?= json_encode($fetchUrl) ?>;
+    var total    = 0;
 
-    fetch(fetchUrl)
-        .then(function (r) {
-            if (!r.ok) { throw new Error(r.status); }
-            return r.text();
-        })
-        .then(function (html) {
-            body.innerHTML = html;
-            var root  = body.querySelector('[data-attachment-count]');
-            var total = root ? parseInt(root.getAttribute('data-attachment-count'), 10) : 0;
-            setCount(total, total);
-            bindSearch(total);
-            var filter = document.getElementById(uid + '-filter');
-            var dlBtn = document.getElementById(uid + '-dl-all');
-            if (filter) { filter.classList.toggle('d-none', total <= 3); }
-            if (dlBtn) { dlBtn.classList.toggle('d-none', total <= 1); }
-            body.classList.toggle('my-auto', total === 0);
-        })
-        .catch(function () {
-            body.innerHTML =
-                '<div class="text-center text-muted py-4 small">'
-                + '<i class="fas fa-exclamation-triangle me-2"></i>'
-                + <?= json_encode(__('Could not load attachments.')) ?>
-                + '</div>';
-            if (countEl) { countEl.textContent = ''; }
-        });
+    function load() {
+        fetch(fetchUrl, { cache: 'no-store' })
+            .then(function (r) {
+                if (!r.ok) { throw new Error(r.status); }
+                return r.text();
+            })
+            .then(function (html) {
+                body.innerHTML = html;
+                var root = body.querySelector('[data-attachment-count]');
+                total = root ? parseInt(root.getAttribute('data-attachment-count'), 10) : 0;
+                if (search && search.value) {
+                    applySearch();
+                } else {
+                    setCount(total, total);
+                }
+                var filter = document.getElementById(uid + '-filter');
+                var dlBtn = document.getElementById(uid + '-dl-all');
+                // Empty, the body's prompt carries the upload instead.
+                var uploadBtn = document.getElementById(uid + '-upload');
+                if (filter) { filter.classList.toggle('d-none', total <= 3); }
+                if (dlBtn) { dlBtn.classList.toggle('d-none', total <= 1); }
+                if (uploadBtn) { uploadBtn.classList.toggle('d-none', total === 0); }
+                body.classList.toggle('my-auto', total === 0 && !uploadBtn);
+            })
+            .catch(function () {
+                body.innerHTML =
+                    '<div class="text-center text-muted py-4 small">'
+                    + '<i class="fas fa-exclamation-triangle me-2"></i>'
+                    + <?= json_encode(__('Could not load attachments.')) ?>
+                    + '</div>';
+                if (countEl) { countEl.textContent = ''; }
+            });
+    }
+
+    if (search) {
+        search.addEventListener('input', applySearch);
+    }
+    // An attachment added from the attribute modal lands without a page load.
+    document.addEventListener('misp:attributes-changed', load);
+    load();
 
     function setCount(total, visible) {
         if (!countEl) { return; }
@@ -102,14 +119,7 @@ $mayModify = $this->Acl->canModifyEvent($data);
         }
     }
 
-    function bindSearch(total) {
-        if (!search) { return; }
-        search.addEventListener('input', function () {
-            applySearch(total);
-        });
-    }
-
-    function applySearch(total) {
+    function applySearch() {
         var q        = search.value.toLowerCase().trim();
         var rows     = body.querySelectorAll('[data-attachment-row]');
         var noResult = body.querySelector('[data-attachment-noresult]');

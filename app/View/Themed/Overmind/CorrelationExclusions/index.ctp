@@ -85,7 +85,7 @@ $fields = [
     [
         'name' => __('Comment'),
         'data_path' => 'CorrelationExclusion.comment',
-        'element' => '',
+        'element' => 'comment',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],

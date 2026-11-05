@@ -39,9 +39,9 @@ $initGJson = json_encode($currentGlobalTags, JSON_HEX_TAG | JSON_HEX_AMP);
 $initLJson = json_encode($currentLocalTags,  JSON_HEX_TAG | JSON_HEX_AMP);
 
 $browser = [
-    'scopes'      => $baseurl . '/tags/pickerScopes',
-    'source'      => $baseurl . '/tags/pickerSearch',
-    'tree'        => $baseurl . '/tags/pickerTree',
+    'scopes'      => $baseurl . '/tags/pickerScopes?attach=1',
+    'source'      => $baseurl . '/tags/pickerSearch?attach=1',
+    'tree'        => $baseurl . '/tags/pickerTree?attach=1',
     'label'       => __('Tags'),
     'strings'     => IndexPicker::browserStrings(),
     'collections' => $tagCollections,

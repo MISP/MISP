@@ -14,7 +14,7 @@ $config = $this->DistributionLevel->get($distribution);
 
 ?>
 
-<span class="badge d-inline-flex align-items-center px-2 py-1"
+<span class="badge om-dist d-inline-flex align-items-center<?= $full ? ' px-2 py-1' : ' is-short' ?>"
       style="
         background-color: <?= h($this->DistributionLevel->themed($config, 'bg')) ?>;
         color: <?= h($this->DistributionLevel->themed($config, 'fg')) ?>;

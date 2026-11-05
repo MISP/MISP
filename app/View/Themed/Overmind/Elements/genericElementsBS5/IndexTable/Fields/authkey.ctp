@@ -21,12 +21,5 @@ $comment = $authKey['comment'] ?? '';
         </span>
     <?php endif; ?>
 
-    <?php if (!empty($comment)): ?>
-        <div class="card card-link-item bg-light">
-            <div class="card-body p-1">
-                <i class="fa fa-comment"></i>
-                <span><?= h($comment) ?></span>
-            </div>
-        </div>
-    <?php endif; ?>
+    <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $comment]) ?>
 </div>

@@ -119,12 +119,14 @@
 
     /* ── scope models ─────────────────────────────────────────────────── */
 
+    // By URL: a filter bar and a picker modal on one page ask for different scopes.
     function loadModel(kind, url) {
-        if (!models[kind]) {
-            models[kind] = api(url).then(kind === 'tag' ? tagModel : galaxyModel);
-            models[kind].catch(function () { delete models[kind]; });
+        var key = kind + '|' + url;
+        if (!models[key]) {
+            models[key] = api(url).then(kind === 'tag' ? tagModel : galaxyModel);
+            models[key].catch(function () { delete models[key]; });
         }
-        return models[kind];
+        return models[key];
     }
 
     // Profile scopes in the profile's own order, pinned before preferred.
@@ -249,7 +251,7 @@
     }
 
     function loadTree(ns) {
-        var key = lc(ns);
+        var key = st.urls.tree + '|' + lc(ns);
         if (!trees[key]) {
             trees[key] = api(st.urls.tree, { namespace: ns }).then(treeModel);
             trees[key].catch(function () { delete trees[key]; });

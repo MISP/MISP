@@ -6,10 +6,14 @@ $railCards = $railCards ?? [];
 
 $this->set('headerIdentity', $feed);
 $this->set('headerTitle', $feed['name'] ?? '');
-$this->set('headerDescription', empty($feed['provider'])
-    ? ''
-    : '<span title="' . h(__('Provider')) . '"><i class="fas fa-building me-1 opacity-50"></i>'
-        . h(__('Provided by %s', $feed['provider'])) . '</span>');
+
+// The provider is the organisation the card names; the creator org the feed
+// may force on pulled events is what its note says.
+$provider = trim((string)($feed['provider'] ?? ''));
+$orgc = $data['Orgc'] ?? [];
+$pulledAs = empty($orgc['name'])
+    ? __('pulled events keep their own creator organisation')
+    : __('pulled events are created by %s', $orgc['name']);
 
 $tabs = [
     [
@@ -45,7 +49,8 @@ if (!empty($feed['caching_enabled'])) {
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
     'ownership' => [
-        'orgc' => $data['Orgc'] ?? [],
+        'orgc' => $provider === '' ? $orgc : ['name' => $provider],
+        'orgNote' => $provider === '' ? '' : __('Provider') . ' · ' . $pulledAs,
         'noOrgText' => __('Pulled events keep their own creator organisation'),
         'distribution' => $feed['distribution'] ?? null,
         'sharingGroup' => $data['SharingGroup'] ?? [],

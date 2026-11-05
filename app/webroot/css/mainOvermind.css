@@ -1211,14 +1211,14 @@ th .sort-icon::before {
     font-weight: 600;
 }
 .ov-view-tabs .nav-view.active::after {
-    background: var(--bs-primary);
+    background: var(--ov-view-tab-accent, var(--bs-primary));
 }
 .ov-view-tabs .nav-view i {
     font-size: .9em;
     color: var(--ov-view-tab-icon, var(--bs-secondary-color));
 }
 .ov-view-tabs .nav-view.active i {
-    color: var(--ov-view-tab-icon, var(--misp-accent));
+    color: var(--ov-view-tab-icon, var(--ov-view-tab-accent, var(--misp-accent)));
 }
 /* entity colours such as --bs-object are too dark to read on a dark band */
 [data-misp-mode="dark"] .ov-view-tabs .nav-view[style] i {
@@ -1235,8 +1235,19 @@ th .sort-icon::before {
     font-variant-numeric: tabular-nums;
 }
 .ov-view-tabs .nav-view.active .ov-tab-count {
-    background: var(--bs-primary-bg-subtle);
-    color: var(--misp-accent);
+    background: var(--ov-view-tab-accent-bg, var(--bs-primary-bg-subtle));
+    color: var(--ov-view-tab-accent, var(--misp-accent));
+}
+/* The same tabs inside a modal or a card: in the flow, edge to edge, and in
+   the colour of what they belong to through --ov-view-tab-accent(-bg). */
+.ov-view-tabs.is-inline {
+    position: static;
+    z-index: auto;
+    align-items: flex-end;
+    margin: 0;
+    padding: 0 1rem;
+    border-top: 0;
+    background: transparent;
 }
 .ov-view-tabs .nav-view-badge {
     padding: 0 7px;

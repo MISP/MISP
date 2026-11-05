@@ -8,9 +8,13 @@ $serverName = !empty($server['Server']['name'])
 
 $eventInfo = $event['Event']['info'] ?? '';
 
-// Chart.js powers the attribute-stats donuts in the general card.
+// Pulling requires the server to allow it, and only a site admin may do it.
+$canPull = !empty($server['Server']['pull']) && !empty($isSiteAdmin);
+
 echo $this->element('genericElements/assetLoader', [
-    'js' => ['Chart.min']
+    'js' => ['event-overview', 'objects-index'],
+    // attributes-index, objects-index: the Attributes and Objects tabs.
+    'css' => ['event-overview', 'attributes-index', 'objects-index'],
 ]);
 $this->set('headerCountText', '');
 $headerTitle = h($eventInfo);
@@ -25,22 +29,7 @@ $headerActions = [
 $this->set('headerTitle', $headerTitle);
 $this->set('headerActions', $headerActions);
 
-/*
- * How the shared Servers/View/preview_* partials should address this remote
- * source. A server previews events by id and can filter its remote index on a
- * tag id; the feed preview passes a uuid-based context instead.
- */
 $eventId = $event['Event']['id'] ?? '';
-$this->set('previewContext', [
-    'eventUrl' => $baseurl . '/servers/previewEvent/' . $serverId . '/%id%',
-    'eventKey' => 'id',
-    'tagFilterUrl' => $baseurl . '/servers/previewIndex/' . $serverId . '/searchtag:%tag%',
-    'tagFilterKey' => 'id',
-    'pagingModel' => 'Server',
-    // The attributes tab caps how many rows it renders; this reloads it uncapped.
-    'viewAllUrl' => $baseurl . '/servers/previewEventAttributes/' . $serverId
-        . '/' . h($eventId) . '/all',
-]);
 
 // rearrangeEventForView() merges attributes/objects/proposals into $event['objects']
 // (each tagged with objectType) and unsets Event.Attribute. The Attributes tab
@@ -58,12 +47,9 @@ foreach ($event['objects'] ?? [] as $previewObject) {
 ?>
 
 <div class="container-fluid">
-    <div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">
-        <i class="fas fa-satellite-dish fs-4"></i>
-        <div>
-            <?= __('You are currently viewing an event on the remote instance %s', '<strong>' . h($serverName) . '</strong>') ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Layout/remote_notice', [
+        'message' => __('You are currently viewing an event on the remote instance %s', '<strong>' . h($serverName) . '</strong>'),
+    ]) ?>
 
 </div>
 
@@ -75,6 +61,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
         'org' => $event['Org'] ?? [],
         'distribution' => $event['Event']['distribution'] ?? null,
         'sharingGroup' => $event['SharingGroup'] ?? [],
+        'markings' => $previewOverview['markings'] ?? [],
         'link' => false,
     ],
     'tabs' => [
@@ -83,13 +70,14 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'title' => __('General'),
             'icon' => 'fas fa-info-circle',
             'left' => [
-                ['row' => ['Servers/View/preview_tags', 'Servers/View/preview_galaxies']],
-                'Servers/View/preview_general',
+                'Events/View/overview_band',
+                ['element' => 'Events/View/overview_facts', 'params' => ['overview' => $previewOverview]],
+                ['element' => 'Events/View/overview_details', 'params' => ['activity' => false]],
             ],
-            'right' => [
-                'Servers/View/preview_actions',
+            'right' => array_values(array_filter([
+                $canPull ? 'Servers/View/preview_actions' : null,
                 'Servers/View/preview_related',
-            ],
+            ])),
         ],
         [
             'id' => 'objects',

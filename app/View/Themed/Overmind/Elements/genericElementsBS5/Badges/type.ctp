@@ -9,5 +9,5 @@ $type = isset($type) ? $type : null;
 ?>
 
 <div class="d-flex align-items-center">
-    <p class="border border-dark rounded p-1 mb-0"><?= h($type) ?></p>
+    <p class="om-type mb-0"><?= h($type) ?></p>
 </div>

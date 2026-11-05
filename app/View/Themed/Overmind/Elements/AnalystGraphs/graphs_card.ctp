@@ -47,9 +47,9 @@ echo $this->element('genericElements/assetLoader', [
     'css' => ['intel-graph-thumbs'],
 ]);
 ?>
-<div class="card shadow-sm mb-3" data-ig-graphs-card>
+<div class="card shadow-sm mb-3<?= $canCreate ? '' : ' d-none' ?>" data-ig-graphs-card>
     <script type="application/json" data-ig-card-config><?= json_encode($config, $jsonFlags) ?></script>
-    <div class="p-3 border-bottom">
+    <div class="p-3 border-bottom" data-ig-card-head>
         <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center"
                  style="width:36px;height:36px;background:rgba(var(--bs-analystGraph-rgb),.25);">

@@ -3170,7 +3170,7 @@ function initSharingGroupForm(container) {
  * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter, .om-lazy-popover';
+    var LAZY_POPOVERS = '.role-perm-counter, .om-lazy-popover';
 
     function lazyPopover(e) {
         /*
@@ -3354,29 +3354,10 @@ function openSelectedSightings() {
 (function installSightingActions() {
     document.addEventListener('click', function (e) {
         if (!e.target.closest) return;
-        var more = e.target.closest('.sighting-more');
-        if (more) {
-            e.preventDefault();
-            bootstrap.Dropdown.getOrCreateInstance(more, {
-                popperConfig: { strategy: 'fixed' }
-            }).toggle();
-            return;
-        }
-
         var details = e.target.closest('[data-sighting-details]');
         if (details) {
             e.preventDefault();
-            var pop = bootstrap.Popover.getInstance(details);
-            if (pop) pop.hide();
             openSightingDetails(details.dataset.sightingDetails);
-            return;
-        }
-
-        var onValue = e.target.closest('[data-sighting-value]');
-        if (onValue) {
-            e.preventDefault();
-            openModal(baseurl + '/sightings/quickAdd/' + onValue.dataset.sightingValue
-                + '/' + onValue.dataset.type + '/1', 'md');
             return;
         }
 
@@ -3393,9 +3374,13 @@ function openSelectedSightings() {
                     showToast(data.errors || data.message || 'Could not add the sighting.', 'danger');
                     return;
                 }
-                var countEl = document.querySelector('#sightings_' + attrId
-                    + ' .sighting-' + (type === '0' ? 's' : 'f'));
-                if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                // The attribute may be on the page twice, as a table row and as a card.
+                document.querySelectorAll('.sighting-add[data-attribute-id="' + attrId + '"][data-type="' + type + '"]')
+                    .forEach(function (add) {
+                        var countEl = add.querySelector('.sighting-' + (type === '0' ? 's' : 'f'));
+                        if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                        add.classList.remove('is-zero');
+                    });
                 showToast(data.success || 'Sighting added.', 'success');
                 notifySightingChange({ attributeId: attrId, type: type });
             })
@@ -3405,14 +3390,6 @@ function openSelectedSightings() {
             .finally(function () {
                 btn.disabled = false;
             });
-    });
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        var details = e.target.closest && e.target.closest('.sighting-counts[data-sighting-details]');
-        if (!details) return;
-        e.preventDefault();
-        details.click();
     });
 })();
 
@@ -5494,8 +5471,22 @@ function formTypeChanged(idPrefix) {
     if (!typeEl) { return; }
     var isNonCorr = (typeof non_correlating_types !== 'undefined')
         && non_correlating_types.indexOf(typeEl.value) !== -1;
-    var corrEl = document.getElementById(idPrefix + 'DisableCorrelation');
-    if (corrEl) { corrEl.disabled = isNonCorr; }
+    var corrEl = document.getElementById(idPrefix + 'Correlate');
+    if (!corrEl || corrEl.disabled === isNonCorr) { return; }
+    // Show such a type unticked, and give the user's choice back afterwards.
+    if (isNonCorr) {
+        corrEl.dataset.wasChecked = corrEl.checked ? '1' : '';
+        corrEl.checked = false;
+    } else {
+        corrEl.checked = corrEl.dataset.wasChecked === '1';
+    }
+    corrEl.disabled = isNonCorr;
+    // The unticked fallback would disable correlation: post 0 as before.
+    var fallback = document.getElementById(idPrefix + 'Correlate_');
+    if (fallback) { fallback.value = isNonCorr ? '0' : '1'; }
+    var card = corrEl.closest('label');
+    if (card) { card.title = isNonCorr ? corrEl.dataset.lockedTitle : ''; }
+    corrEl.dispatchEvent(new Event('change'));
 }
 
 function checkNoticeList(type) {
@@ -5692,11 +5683,11 @@ function initAttributeForm(currentDist, isEdit) {
             on:  { border: ON_YELLOW, color: ON_YELLOW, iconClass: null },
             off: { border: OFF_LINE, color: OFF_ICON, iconClass: null }
         },
-        AttributeDisableCorrelation: {
+        AttributeCorrelate: {
             card: 'card-correl', icon: 'icon-correl',
-            on:  { border: OFF_LINE, color: OFF_ICON,
-                   iconClass: 'fas fa-link-slash' },
-            off: { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' }
+            on:  { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' },
+            off: { border: OFF_LINE, color: OFF_ICON,
+                   iconClass: 'fas fa-link-slash' }
         }
     };
 
@@ -8658,8 +8649,16 @@ function initObjectAddForm(container, payloadEl) {
 
     /* ---- review --------------------------------------------------------- */
 
-    /* Deliberately a compact digest, not a copy of the object index's markup -
-     * the two used to be kept in step by hand and drifted. */
+    /* A piece of the review as the object index draws it: Objects/add.ctp
+     * renders the shared elements into #objReviewPieces, so the markup is
+     * theirs rather than a copy kept in step by hand. */
+    function reviewPiece(name, value) {
+        var pieces = container.querySelector('#objReviewPieces');
+        var el = pieces && pieces.content.querySelector('[data-piece="' + name + '"]');
+        if (!el) { return ''; }
+        return el.innerHTML.split('__V__').join(escapeHtml(value == null ? '' : String(value)));
+    }
+
     function buildReview() {
         var rows = savedRows().map(describeRow);
         var distEl = container.querySelector('#ObjectDistribution');
@@ -8699,28 +8698,27 @@ function initObjectAddForm(container, payloadEl) {
             + '</span>'
             + '</div>';
 
-        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-3">'
-            + '<thead class="table-light"><tr>'
-            + '<th>Value</th><th>Type</th><th>Category</th>'
-            + '<th class="text-center">IDS</th><th class="text-center">Correlate</th>'
+        /* The columns of the object index's attribute table (Objects/object_attribute_table). */
+        html += '<div class="table-responsive"><table class="table table-hover align-middle mb-3 ix-table">'
+            + '<thead><tr>'
+            + '<th>Value</th><th>Category</th><th>Type</th><th>IDS</th><th>Correlate</th>'
             + '</tr></thead><tbody>';
 
         rows.forEach(function (a) {
-            var value = distBadgeHtml(a.distribution, false)
-                + ' ' + escapeHtml(a.value || '—')
-                + (a.comment
-                    ? '<div class="text-muted fst-italic small"><i class="fa fa-comment me-1"></i>'
-                        + escapeHtml(a.comment) + '</div>'
-                    : '');
-
             html += '<tr>'
-                + '<td class="text-break">' + value + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.category) + '</td>'
-                + '<td class="text-center"><i class="fas fa-shield-halved '
-                + (a.to_ids ? 'text-warning' : 'text-secondary opacity-50') + '"></i></td>'
-                + '<td class="text-center"><i class="fas '
-                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary opacity-50')
+                + '<td class="text-break"><div class="attr-value"><div class="attr-value-line">'
+                + reviewPiece('dist-' + a.distribution)
+                + '<p class="fw-semibold mb-0">' + escapeHtml(a.value || '—') + '</p>'
+                + '</div>' + (a.comment ? reviewPiece('comment', a.comment) : '') + '</div></td>'
+                + '<td><div class="d-flex align-items-center gap-1">'
+                + reviewPiece('category', a.category)
+                + (a.relation ? reviewPiece('relation', a.relation) : '')
+                + '</div></td>'
+                + '<td>' + reviewPiece('type', a.type) + '</td>'
+                + '<td><i class="fas fa-shield-halved om-flag '
+                + (a.to_ids ? 'text-warning' : 'text-secondary') + '"></i></td>'
+                + '<td><i class="fas om-flag '
+                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary')
                 + '"></i></td>'
                 + '</tr>';
         });
