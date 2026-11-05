@@ -275,6 +275,17 @@ class EventIndexHelper extends AppHelper
     public function distribution(array $dist)
     {
         $sg = $dist['sharing_group'] ?? null;
+        // A remote event's group (the server preview) has no local record to open.
+        if ($sg && empty($sg['id'])) {
+            return sprintf(
+                '<span class="dk-dist is-sg" style="%s" title="%s" aria-label="%s"><i class="%s"></i><span class="dk-dist-name">%s</span></span>',
+                h($dist['style']),
+                h($dist['label']),
+                h($dist['label']),
+                h($dist['icon']),
+                h($sg['name'])
+            );
+        }
         if ($sg) {
             return sprintf(
                 '<button type="button" class="dk-dist is-sg" style="%s" data-sg-id="%d" data-sg-name="%s" aria-label="%s" aria-haspopup="dialog" aria-expanded="false">'

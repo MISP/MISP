@@ -1360,7 +1360,7 @@ class FeedsController extends AppController
 
     /**
      * The attribute and object counts of a few events of a MISP feed, for its
-     * preview index to fill in (Feeds/preview_index.ctp). The `uuids` query
+     * preview index to fill in (Feeds/preview_index.ctp). The `events` query
      * lists uuid:timestamp pairs, the manifest timestamp keying the cache.
      */
     public function previewIndexCounts($feedId)
@@ -1375,7 +1375,7 @@ class FeedsController extends AppController
         // Each event is a download: don't hold the session lock meanwhile.
         $this->_closeSession();
         $events = [];
-        foreach (array_slice(explode(',', (string)$this->request->query('uuids')), 0, 10) as $token) {
+        foreach (array_slice(explode(',', (string)$this->request->query('events')), 0, 10) as $token) {
             $parts = explode(':', $token, 2);
             if (count($parts) === 2 && Validation::uuid($parts[0]) && ctype_digit($parts[1])) {
                 $events[$parts[0]] = (int)$parts[1];

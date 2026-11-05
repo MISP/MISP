@@ -5,7 +5,8 @@
  * hands each one over with its EventCard. A remote event has no local id, so
  * its title and actions go by uuid, and it has no publish state. A manifest
  * carries no counts either: the ones not cached yet are read from the feed
- * after the page is drawn (FeedsController::previewIndexCounts()).
+ * after the page is drawn (FeedsController::previewIndexCounts(), through
+ * preview-index-counts.js).
  */
 $feedId = (int)$feed['Feed']['id'];
 
@@ -161,14 +162,19 @@ $tableConfig = [
 
 echo $this->element('genericElements/assetLoader', [
     'css' => ['org-tile', 'events-index-cards', 'events-index-table'],
-    'js' => ['events-index-cards', 'events-index-table'],
+    'js' => ['events-index-cards', 'events-index-table', 'preview-index-counts'],
 ]);
 
 echo '<div class="container-fluid">' . $this->element('genericElementsBS5/Layout/remote_notice', [
     'message' => __('You are currently viewing the event index of the feed %s', '<strong>' . h($feedName) . '</strong>'),
 ]) . '</div>';
 
-printf('<style class="te-colstyle"></style><div class="dk-index te-index" data-te="%s">', h(json_encode($tableConfig)));
+printf(
+    '<style class="te-colstyle"></style><div class="dk-index te-index" data-te="%s" data-counts-url="%s" data-counts-failed="%s">',
+    h(json_encode($tableConfig)),
+    h($baseurl . '/feeds/previewIndexCounts/' . $feedId),
+    h(__('This event could not be read from the feed'))
+);
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -194,59 +200,3 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'item_url' => '/feeds'
 ]);
 echo '</div>';
-?>
-
-<script>
-(function () {
-    // The counts the server had no cache for: four events a request, three requests at a time.
-    var url = <?= json_encode($baseurl . '/feeds/previewIndexCounts/' . $feedId) ?>;
-    var failed = <?= json_encode(__('This event could not be read from the feed')) ?>;
-    var cells = { attributes: '.te-c-attrs', objects: '.te-c-objs' };
-    var rows = Array.prototype.filter.call(document.querySelectorAll('.te-index tr[data-primary-id]'), function (tr) {
-        return tr.querySelector('.te-pending');
-    });
-    var batches = [];
-    for (var i = 0; i < rows.length; i += 4) {
-        batches.push(rows.slice(i, i + 4));
-    }
-
-    function settle(tr, block) {
-        Object.keys(cells).forEach(function (count) {
-            var cell = tr.querySelector(cells[count]);
-            var piece = block && block.querySelector('[data-count="' + count + '"]');
-            if (!cell) return;
-            cell.innerHTML = piece
-                ? piece.innerHTML
-                : '<span class="te-zero" title="' + escapeHtml(failed) + '">—</span>';
-        });
-    }
-
-    function fill(batch) {
-        var tokens = batch.map(function (tr) { return tr.dataset.primaryId + ':' + (tr.dataset.ts || 0); });
-        return fetch(url + '?uuids=' + encodeURIComponent(tokens.join(',')), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (response) {
-                if (!response.ok) throw new Error(response.status);
-                return response.text();
-            })
-            .then(function (html) {
-                var box = document.createElement('div');
-                box.innerHTML = html;
-                batch.forEach(function (tr) {
-                    settle(tr, box.querySelector('[data-uuid="' + tr.dataset.primaryId + '"]:not([data-failed])'));
-                });
-            })
-            .catch(function () {
-                batch.forEach(function (tr) { settle(tr, null); });
-            });
-    }
-
-    var next = 0;
-    function work() {
-        if (next >= batches.length) return null;
-        return fill(batches[next++]).then(work);
-    }
-    for (var w = 0; w < 3; w++) {
-        work();
-    }
-})();
-</script>

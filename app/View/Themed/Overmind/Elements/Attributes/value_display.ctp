@@ -2,7 +2,8 @@
 App::uses('CakeNumber', 'Utility');
 /*
  * An attribute's value rendered for its type. Expects a flat attribute row in
- * $attribute; rows without an id (freetext results) get no download link.
+ * $attribute; rows without an id (freetext results) get no download link, and
+ * nor do `remote` ones (a feed or server preview), whose id names nothing here.
  */
 $value = (string)($attribute['value'] ?? '');
 $type = (string)($attribute['type'] ?? '');
@@ -85,7 +86,7 @@ switch ($type) {
         } else {
             $confirm = null;
         }
-        if (!empty($downloadId)) {
+        if (!empty($downloadId) && empty($remote)) {
             $url = sprintf('%s/%s/download/%s', $baseurl, $isProposal ? 'shadow_attributes' : 'attributes', (int)$downloadId);
             echo $hover('<a href="' . h($url) . '" class="om-value-download"'
                 . ($confirm !== null ? ' data-om-confirm="' . h($confirm) . '"' : '')

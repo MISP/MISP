@@ -789,6 +789,7 @@ class ACLComponent extends Component
             'previewEventAttributes' => ['AND' => ['host_org_user', 'theming_enabled']],
             'previewEventObjects' => ['AND' => ['host_org_user', 'theming_enabled']],
             'previewIndex' => ['host_org_user'],
+            'previewIndexCounts' => ['AND' => ['host_org_user', 'theming_enabled']],
             'pull' => array(),
             'pullSelectedEvents' => ['AND' => ['perm_site_admin', 'theming_enabled']],
             'purgeSessions' => array(),

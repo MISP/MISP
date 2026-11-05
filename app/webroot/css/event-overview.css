@@ -173,7 +173,7 @@
     display: inline-flex; align-items: center; gap: .45rem; border: 0; background: none; padding: .1rem 0;
     font-weight: 700; font-size: .86rem; color: var(--bs-emphasis-color); text-align: left; cursor: pointer;
 }
-.eo-group-name:hover, .eo-group-name:focus-visible { color: var(--bs-link-color); text-decoration: underline; }
+button.eo-group-name:hover, button.eo-group-name:focus-visible { color: var(--bs-link-color); text-decoration: underline; }
 .eo-swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--eo-tone); flex-shrink: 0; }
 .eo-group-count { font-size: .8rem; color: var(--bs-secondary-color); padding-top: .15rem; }
 .eo-group-count b { color: var(--bs-emphasis-color); font-size: .9rem; }
@@ -185,6 +185,7 @@
     border: 1px dashed var(--bs-border-color); border-radius: .3rem; background: none; color: var(--bs-body-color);
     white-space: nowrap;
 }
+span.eo-type, span.eo-group-name { cursor: default; }
 .eo-type.is-ids { border-style: solid; border-color: color-mix(in srgb, var(--eo-tone) 45%, var(--bs-border-color)); background: color-mix(in srgb, var(--eo-tone) 10%, transparent); }
 .eo-type b { font-weight: 700; }
 .eo-type.is-object { border-style: solid; }
@@ -209,7 +210,7 @@
 .eo-way-go { font-size: .7rem; color: var(--eo-way-ink); }
 .eo-objects-block { padding-bottom: .1rem; border-bottom: 1px solid var(--bs-border-color-translucent); }
 .eo-objects-block:not(:has(.eo-group:not(.d-none))) { display: none; }
-.eo-type:hover, .eo-type:focus-visible { border-color: var(--eo-tone); color: var(--bs-emphasis-color); }
+button.eo-type:hover, button.eo-type:focus-visible { border-color: var(--eo-tone); color: var(--bs-emphasis-color); }
 .eo-rule { flex-basis: 100%; font-size: .8rem; display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .4rem; }
 .eo-rule .fa-shield-halved { color: var(--eo-tone); }
 .eo-rule-name { font-weight: 600; font-style: italic; }

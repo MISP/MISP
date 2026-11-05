@@ -16,13 +16,16 @@ if (isset($row['Attribute'])) {
     $row = $row['Attribute'];
 }
 
+// `remote`: a remote event's attribute (a feed or server preview), whose id
+// names nothing here — no enrichment hover, no picture, no download.
+$isRemote = !empty($field['remote']);
 $proposals         = !empty($attribute['ShadowAttribute']) ? $attribute['ShadowAttribute'] : [];
 $isProposalRow     = !empty($attribute['is_proposal']);
 $canModifyProposal = !empty($isSiteAdmin) || !empty($mayModify);
 
 // Hover enrichment: when enabled, the value queries the hover modules and shows a floating popover
 $hoverEnrichId = (Configure::read('Plugin.Enrichment_hover_enable') && !empty($me['Role']['perm_add'])
-    && empty($isProposalRow) && !empty($attribute['id']))
+    && empty($isProposalRow) && !empty($attribute['id']) && !$isRemote)
     ? (int)$attribute['id'] : null;
 $hoverClickOnly = (bool)Configure::read('Plugin.Enrichment_hover_popover_only');
 
@@ -54,17 +57,18 @@ if ($vpHoverValue !== null && $hoverEnrichId && !$hoverClickOnly) {
 // The hover card wraps only the value's text, never the controls beside it.
 // `value_cap`: past that many characters a table row shows the value's head and tail.
 $valueCap = $isCard ? 0 : (int)($field['value_cap'] ?? 0);
-$valueBody = $this->element('Attributes/value_display', ['attribute' => $attribute, 'cap' => $valueCap]);
+$valueBody = $this->element('Attributes/value_display', ['attribute' => $attribute, 'cap' => $valueCap, 'remote' => $isRemote]);
 $vpValueHtml = $vpHoverValue === null ? $valueBody : $this->element('Attributes/value_display', [
     'attribute' => $attribute,
     'hoverValue' => $vpHoverValue,
     'cap' => $valueCap,
+    'remote' => $isRemote,
 ]);
 
 // The thumbnails are the default-size ones getThumbnail() caches (webp twice as
 // large, for a sharp render); the CSS sizes them down.
 $pictureUrl = null;
-if (($attribute['type'] ?? '') === 'attachment' && !$isProposalRow && !empty($attribute['id'])
+if (($attribute['type'] ?? '') === 'attachment' && !$isProposalRow && !empty($attribute['id']) && !$isRemote
     && Validation::extension((string)$attribute['value'], MispAttribute::IMAGE_EXTENSIONS)) {
     $pictureUrl = $baseurl . '/attributes/viewPicture/' . (int)$attribute['id'];
 }

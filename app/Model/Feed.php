@@ -1149,73 +1149,33 @@ class Feed extends AppModel
     }
 
     /**
+     * How many attributes and objects these events of a MISP feed hold, as its
+     * event preview counts them, for the preview index: a manifest carries no
+     * counts.
+     *
+     * @param array $feed
+     * @param array $events uuid => manifest timestamp
+     * @param bool $download false answers from the cache alone
+     * @return array as RemoteEventCounts::read()
+     */
+    public function previewCounts(array $feed, array $events, $download = true)
+    {
+        App::uses('RemoteEventCounts', 'Tools');
+        return RemoteEventCounts::read(
+            'misp:feed_preview_counts:' . (int)$feed['Feed']['id'],
+            $events,
+            $download ? function ($uuid) use ($feed) {
+                return $this->downloadEventFromFeed($feed, $uuid, true);
+            } : null
+        );
+    }
+
+    /**
      * @param array $feed
      * @param string $uuid
      * @return bool|string|array
      * @throws Exception
      */
-    /**
-     * How many attributes and objects these events of a MISP feed hold, as its
-     * event preview counts them, for the preview index: a manifest carries no
-     * counts. Each count is cached against the event's manifest timestamp, so
-     * a changed event is read again.
-     *
-     * @param array $feed
-     * @param array $events uuid => manifest timestamp
-     * @param bool $download false answers from the cache alone
-     * @return array uuid => ['attribute_count' => int, 'object_count' => int],
-     *  or null for an event that could not be read; an event neither cached
-     *  nor downloaded is left out
-     */
-    public function previewCounts(array $feed, array $events, $download = true)
-    {
-        $redis = null;
-        try {
-            $redis = RedisTool::init();
-        } catch (Exception $e) {
-            // Without a cache every count is read from the feed.
-        }
-        $key = function ($uuid, $timestamp) use ($feed) {
-            return 'misp:feed_preview_counts:' . (int)$feed['Feed']['id'] . ':' . $uuid . ':' . (int)$timestamp;
-        };
-        $counts = [];
-        if ($redis && !empty($events)) {
-            $cached = $redis->mget(array_map($key, array_keys($events), $events));
-            foreach (array_keys($events) as $i => $uuid) {
-                if (is_string($cached[$i] ?? null) && preg_match('/^(\d+),(\d+)$/', $cached[$i], $match)) {
-                    $counts[$uuid] = ['attribute_count' => (int)$match[1], 'object_count' => (int)$match[2]];
-                }
-            }
-        }
-        if (!$download) {
-            return $counts;
-        }
-        foreach ($events as $uuid => $timestamp) {
-            if (array_key_exists($uuid, $counts)) {
-                continue;
-            }
-            try {
-                $event = $this->downloadEventFromFeed($feed, $uuid, true);
-            } catch (Exception $e) {
-                $event = null;
-            }
-            if (!is_array($event) || empty($event['Event'])) {
-                $counts[$uuid] = null;
-                continue;
-            }
-            $objects = $event['Event']['Object'] ?? [];
-            $attributes = count($event['Event']['Attribute'] ?? []);
-            foreach ($objects as $object) {
-                $attributes += count($object['Attribute'] ?? []);
-            }
-            $counts[$uuid] = ['attribute_count' => $attributes, 'object_count' => count($objects)];
-            if ($redis) {
-                $redis->setex($key($uuid, $timestamp), 30 * 86400, $attributes . ',' . count($objects));
-            }
-        }
-        return $counts;
-    }
-
     public function downloadEventFromFeed(array $feed, $uuid, $permissive = false, &$error_message = null)
     {
         $filerRules = $this->__prepareFilterRules($feed);

@@ -14,9 +14,9 @@ $previewIndexUrl = $baseurl . '/feeds/previewIndex/' . $feedId;
 $canFetch = !empty($feed['Feed']['enabled']) && !empty($isSiteAdmin);
 
 echo $this->element('genericElements/assetLoader', [
-    'js' => ['event-overview'],
-    // attributes-index: the Attributes tab's cards.
-    'css' => ['event-overview', 'attributes-index'],
+    'js' => ['event-overview', 'objects-index'],
+    // attributes-index, objects-index: the Attributes and Objects tabs.
+    'css' => ['event-overview', 'attributes-index', 'objects-index'],
 ]);
 
 $this->set('headerTitle', h($event['Event']['info'] ?? ''));

@@ -13,6 +13,9 @@
  *   readonly           bool   for a page that has not loaded the attribute's
  *                             event: no selection box and no action menu, the
  *                             IDS and correlation states without their toggles
+ *   remote             bool   a remote event's attributes (a feed or server
+ *                             preview), whose ids name nothing here: no
+ *                             sightings, enrichment hover or picture
  *
  * Read from the view: $baseurl, $me.
  */
@@ -22,6 +25,7 @@ $mayGraph = !empty($mayGraph);
 $enrichmentEnabled = !empty($enrichmentEnabled);
 $cortexEnabled = !empty($cortexEnabled);
 $readonly = !empty($readonly);
+$remote = !empty($remote);
 ?>
 <?php if (!empty($attrs)): ?>
 <div class="table-responsive">
@@ -51,7 +55,8 @@ $readonly = !empty($readonly);
         <?php foreach (
             $attrs as $attr
         ): ?>
-        <?php $attrId = (int)$attr['id']; ?>
+        <?php // A feed's attributes (a remote preview) have no id. ?>
+        <?php $attrId = (int)($attr['id'] ?? 0); ?>
             <tr data-primary-id="<?= $attrId ?>"<?php if (
                 !empty($attr['deleted'])
             ): ?> class="ov-attr-deleted"<?php
@@ -83,7 +88,7 @@ $readonly = !empty($readonly);
                         'genericElementsBS5/IndexTable/Fields/attribute_value',
                         [
                             'row'   => ['Attribute' => $attr],
-                            'field' => ['data_path' => 'Attribute'],
+                            'field' => ['data_path' => 'Attribute', 'remote' => $remote],
                         ]
                     ); ?>
                 </td>
@@ -201,6 +206,7 @@ $readonly = !empty($readonly);
                                     'data' => [],
                                     'csv'  => [],
                                 ],
+                                'readonly' => $remote,
                             ],
                         ]
                     ); ?>

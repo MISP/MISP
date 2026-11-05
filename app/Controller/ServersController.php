@@ -179,16 +179,32 @@ class ServersController extends AppController
             $params['prevPage'] = $params['page'] > 1;
             $params['nextPage'] = $params['page'] < $params['pageCount'];
         }
-        $this->params->params['paging'] = array($this->modelClass => $params);
         if (count($events) > 60) {
             $customPagination->truncateByPagination($events, $params);
         }
-        $this->set('events', $events);
+        // As CakePHP's paginator has it: the rows on this page, which the filter bar counts.
+        $params['current'] = count($events);
+        $this->params->params['paging'] = array($this->modelClass => $params);
         App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
-        $this->set('labelPlan', ValueLabelPriority::planFor(
-            ClassRegistry::init('AnalystProfile')
-                ->resolveFor($this->Auth->user())
-        ));
+        App::uses('EventCardBatch', 'Tools/EventOverview');
+        $user = $this->Auth->user();
+        $profile = ClassRegistry::init('AnalystProfile')->resolveFor($user);
+        $plan = ValueLabelPriority::planFor($profile);
+        $rows = $this->__previewIndexRows($events, $user);
+        foreach (EventCardBatch::cards($rows, $user, $profile, $plan) as $k => $card) {
+            $rows[$k]['EventCard'] = $card;
+        }
+        // The object counts already read; the page asks previewIndexCounts() for the others.
+        $timestamps = [];
+        foreach ($rows as $k => $row) {
+            $timestamps[(int)$row['Event']['id']] = (int)($row['Event']['timestamp'] ?? 0);
+        }
+        $cached = $this->Server->previewCounts($server, $timestamps, false);
+        foreach ($rows as $k => $row) {
+            $rows[$k]['Event'] += (array)($cached[(int)$row['Event']['id']] ?? []);
+        }
+        $this->set('events', $rows);
+        $this->set('labelPlan', $plan);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -200,6 +216,90 @@ class ServersController extends AppController
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
         $this->set('server', $server);
+    }
+
+    /**
+     * The attribute and object counts of a few events of a remote instance,
+     * for its preview index to fill in (Servers/preview_index.ctp). The
+     * `events` query lists remote id:timestamp pairs, the timestamp keying the
+     * cache.
+     */
+    public function previewIndexCounts($serverId)
+    {
+        $server = $this->Server->find('first', [
+            'conditions' => ['Server.id' => $serverId],
+            'recursive' => -1,
+        ]);
+        if (empty($server)) {
+            throw new NotFoundException(__('Invalid server ID.'));
+        }
+        // Each event is a download: don't hold the session lock meanwhile.
+        $this->_closeSession();
+        $events = [];
+        foreach (array_slice(explode(',', (string)$this->request->query('events')), 0, 10) as $token) {
+            $parts = explode(':', $token, 2);
+            if (count($parts) === 2 && ctype_digit($parts[0]) && ctype_digit($parts[1])) {
+                $events[(int)$parts[0]] = (int)$parts[1];
+            }
+        }
+        $this->set('counts', $this->Server->previewCounts($server, $events));
+        $this->layout = false;
+        $this->render('ajax/preview_index_counts');
+    }
+
+    /**
+     * The remote index's events as the events index draws its own. The remote
+     * instance's ids name nothing here: its creator orgs and sharing groups
+     * are matched to local ones by uuid, and kept by name only otherwise.
+     *
+     * @param array $events rows of Event, as Server::previewIndex() returns them
+     * @param array $user
+     * @return array rows of Event, Orgc, EventTag, GalaxyCluster, SharingGroup
+     */
+    private function __previewIndexRows(array $events, array $user)
+    {
+        $uuids = ['Orgc' => [], 'SharingGroup' => []];
+        foreach ($events as $event) {
+            foreach ($uuids as $model => $list) {
+                if (!empty($event['Event'][$model]['uuid'])) {
+                    $uuids[$model][] = $event['Event'][$model]['uuid'];
+                }
+            }
+        }
+        $localOrgs = empty($uuids['Orgc']) ? [] : ClassRegistry::init('Organisation')->find('list', [
+            'conditions' => ['Organisation.uuid' => array_unique($uuids['Orgc'])],
+            'fields' => ['Organisation.uuid', 'Organisation.id'],
+        ]);
+        $localGroups = [];
+        if (!empty($uuids['SharingGroup'])) {
+            $SharingGroup = ClassRegistry::init('SharingGroup');
+            $localGroups = $SharingGroup->find('list', [
+                'conditions' => [
+                    'SharingGroup.uuid' => array_unique($uuids['SharingGroup']),
+                    'SharingGroup.id' => $SharingGroup->authorizedIds($user),
+                ],
+                'fields' => ['SharingGroup.uuid', 'SharingGroup.id'],
+            ]);
+        }
+        $local = function ($record, array $ids) {
+            if (empty($record)) {
+                return [];
+            }
+            $record['id'] = $ids[$record['uuid'] ?? ''] ?? null;
+            return $record;
+        };
+        $rows = [];
+        foreach ($events as $k => $event) {
+            $remote = $event['Event'];
+            $rows[$k] = [
+                'Event' => array_diff_key($remote, array_flip(['Orgc', 'Org', 'EventTag', 'GalaxyCluster', 'SharingGroup'])),
+                'Orgc' => $local($remote['Orgc'] ?? [], $localOrgs),
+                'EventTag' => $remote['EventTag'] ?? [],
+                'GalaxyCluster' => $remote['GalaxyCluster'] ?? [],
+                'SharingGroup' => $local($remote['SharingGroup'] ?? [], $localGroups),
+            ];
+        }
+        return $rows;
     }
 
     public function previewEvent($serverId, $eventId, $all = false)
@@ -237,6 +337,10 @@ class ServersController extends AppController
             // The Overmind preview loads the attribute/object tabs over ajax, so
             // the page itself needs the complete set
             $all = true;
+            // Read before rearrangeEventForView() folds the body into `objects`.
+            App::uses('RemoteEventOverviewTool', 'Tools/EventOverview');
+            $this->set('previewOverview', (new RemoteEventOverviewTool())->overview($this->Auth->user(), $event));
+            $this->set('previewContext', $this->__serverPreviewContext($server, $eventId));
         }
         $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
         $this->__removeGalaxyClusterTags($event);

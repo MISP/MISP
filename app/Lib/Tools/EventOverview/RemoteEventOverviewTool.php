@@ -9,7 +9,8 @@ App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
  *
  * Its tags need not exist here: each name stands in as a Tag row with a
  * negative id, and its galaxy tags resolve to the clusters this instance
- * holds.
+ * holds, else to those the event carries itself (a remote instance's does,
+ * a feed's does not), stripped of the remote ids.
  */
 class RemoteEventOverviewTool
 {
@@ -90,6 +91,12 @@ class RemoteEventOverviewTool
                     $clusters[(int)$cluster['tag_id']] = $cluster;
                 }
             }
+            $carried = $this->carriedClusters($body);
+            foreach ($galaxyNames as $tagId => $name) {
+                if (!isset($clusters[$tagId]) && isset($carried[mb_strtolower($name)])) {
+                    $clusters[$tagId] = ['tag_id' => $tagId] + $carried[mb_strtolower($name)];
+                }
+            }
         }
         $eventClusters = [];
         foreach ($eventTags as $eventTag) {
@@ -128,5 +135,40 @@ class RemoteEventOverviewTool
             'profileName' => $profile['name'] ?? null,
             'profileId' => $profile['id'] ?? null,
         ];
+    }
+
+    /**
+     * The clusters the event's own body carries, at event level and on its
+     * attributes, by lower-cased tag name: each with its Galaxy, without the
+     * ids that name records on the remote instance.
+     *
+     * @param array $body Event row
+     * @return array
+     */
+    private function carriedClusters(array $body)
+    {
+        $galaxyLists = [$body['Galaxy'] ?? []];
+        foreach ($body['Attribute'] ?? [] as $attribute) {
+            $galaxyLists[] = $attribute['Galaxy'] ?? [];
+        }
+        foreach ($body['Object'] ?? [] as $object) {
+            foreach ($object['Attribute'] ?? [] as $attribute) {
+                $galaxyLists[] = $attribute['Galaxy'] ?? [];
+            }
+        }
+        $carried = [];
+        foreach ($galaxyLists as $galaxies) {
+            foreach ($galaxies as $galaxy) {
+                $meta = array_diff_key($galaxy, array_flip(['id', 'GalaxyCluster']));
+                foreach ($galaxy['GalaxyCluster'] ?? [] as $cluster) {
+                    if (empty($cluster['tag_name'])) {
+                        continue;
+                    }
+                    $carried[mb_strtolower($cluster['tag_name'])] = ['Galaxy' => $meta]
+                        + array_diff_key($cluster, array_flip(['id', 'galaxy_id', 'tag_id', 'Galaxy', 'org_id', 'orgc_id']));
+                }
+            }
+        }
+        return $carried;
     }
 }

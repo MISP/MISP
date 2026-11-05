@@ -10,9 +10,12 @@
  * $field['sightings']['data'] keyed by attribute id, while the event view and
  * the object index carry them on the row itself, under 'Sighting'. Both are
  * keyed by 'sighting', 'false-positive' and 'expiration'.
+ *
+ * `readonly` (a remote event preview) draws nothing: the buttons and the
+ * details go by an id that names no attribute here.
  */
 $attribute = isset($row['Attribute']) ? $row['Attribute'] : $row;
-if (empty($attribute['id'])) {
+if (empty($attribute['id']) || !empty($field['readonly'])) {
     return;
 }
 
