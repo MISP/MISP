@@ -29,7 +29,7 @@
  * value, visible to nobody else, and a store that comes back empty
  * simply gives the default (§7.6).
  *
- * It closes the rail's Assessments card, beside the thresholds link,
+ * It closes the bar's analyst profile menu, beside the thresholds link,
  * and takes a line of its own when it is opened.
  */
 App::uses('ValueLean', 'Tools/ValueIntelligence');

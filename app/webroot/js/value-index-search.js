@@ -36,7 +36,6 @@
         var ASSESS = base + '/values/assess';
         var box = form.querySelector('#ValueValue');
         var invite = document.querySelector('[data-vi-invite]');
-        var page = form.closest('.vi-page');
 
         /* A translated sentence with its placeholders filled by markup. */
         function T(text) {
@@ -99,53 +98,54 @@
          * --------------------------------------------------------------- */
         var doors = el(
             '<div class="vsr-doors">'
-            + '<div class="vsr-seg" role="tablist" aria-label="' + esc(L.doors) + '">'
-            + '<button type="button" class="vsr-tab" role="tab" id="vsr-tab-lookup"'
-            + ' data-vsr-door="lookup" aria-selected="true">'
-            + '<i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i>' + esc(L.tabLookupFull) + '</button>'
-            + '<button type="button" class="vsr-tab" role="tab" id="vsr-tab-search"'
-            + ' data-vsr-door="search" aria-selected="false" tabindex="-1">'
-            + '<i class="fas fa-magnifying-glass" aria-hidden="true"></i>' + esc(L.tabSearchFull) + '</button>'
+            + '<div class="vsr-seg ifp-segv" role="tablist" aria-label="' + esc(L.doors) + '">'
+            + '<button type="button" class="vsr-tab ifp-segv-btn" role="tab" id="vsr-tab-lookup"'
+            + ' data-vsr-door="lookup" aria-selected="true" title="' + esc(L.tabLookupFull) + '">'
+            + '<i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i>' + esc(L.tabLookup) + '</button>'
+            + '<button type="button" class="vsr-tab ifp-segv-btn" role="tab" id="vsr-tab-search"'
+            + ' data-vsr-door="search" aria-selected="false" tabindex="-1" title="' + esc(L.tabSearchFull) + '">'
+            + '<i class="fas fa-magnifying-glass" aria-hidden="true"></i>' + esc(L.tabSearch) + '</button>'
             + '</div>'
             + '<p class="vsr-doorsay" data-vsr-say aria-live="polite" hidden></p>'
             + '</div>'
         );
+        // The filter bar's search box, as the Look up box is
         var field = el(
             '<div class="vsr-field">'
-            + '<div class="vsr-box">'
-            + '<i class="fas fa-magnifying-glass vsr-box__icon" aria-hidden="true"></i>'
+            + '<div class="vsr-box ifp-query">'
+            + '<i class="fas fa-magnifying-glass ifp-q-icon" aria-hidden="true"></i>'
             + '<input type="text" id="vsr-q" class="vsr-q" autocomplete="off"'
             + ' autocapitalize="off" spellcheck="false" enterkeyhint="search"'
+            + ' aria-keyshortcuts="/"'
             + ' aria-label="' + esc(L.field) + '" aria-describedby="vsr-reading"'
             + ' placeholder="' + esc(L.placeholder) + '">'
+            + '<span class="ifp-q-end">'
             + '<button type="button" class="vsr-anywhere" data-vsr-anywhere aria-pressed="false"'
             + ' title="' + esc(L.anywhereTitle) + '">'
             + '<span class="vsr-anywhere__dot" aria-hidden="true"></span>' + esc(L.anywhere)
             + ' <span class="vsr-anywhere__slow">' + esc(L.anywhereSlow) + '</span></button>'
-            + '<button type="button" class="vsr-x" data-vsr-x hidden'
+            + '<button type="button" class="vsr-x ifp-q-clear" data-vsr-x hidden'
             + ' aria-label="' + esc(L.clear) + '" title="' + esc(L.clearTitle) + '">'
             + '<i class="fas fa-xmark" aria-hidden="true"></i></button>'
+            + '<button type="button" class="vsr-go ifp-q-go" data-vsr-go disabled>'
+            + '<span aria-hidden="true">↵</span><span data-vsr-goword>' + esc(L.go) + '</span></button>'
+            + '<kbd class="ifp-q-kbd" title="' + esc(L.slash) + '">/</kbd>'
+            + '</span>'
             + '</div>'
             + '<p class="vsr-reading" id="vsr-reading" data-vsr-reading></p>'
             + '</div>'
         );
-        var side = el(
-            '<div class="vsr-side">'
-            + '<button type="button" class="vsr-go" data-vsr-go disabled>'
-            + '<span data-vsr-goword>' + esc(L.go) + '</span><span class="vsr-kbd">Enter</span>'
-            + '</button></div>'
-        );
         form.insertBefore(doors, form.querySelector('.vi-prompt__field'));
         var lookSide = form.querySelector('.vi-prompt__side');
         lookSide.parentNode.insertBefore(field, lookSide.nextSibling);
-        field.parentNode.insertBefore(side, field.nextSibling);
+        var qBox = field.querySelector('.vsr-box');
 
         var q = field.querySelector('#vsr-q');
         var x = field.querySelector('[data-vsr-x]');
         var anywhere = field.querySelector('[data-vsr-anywhere]');
         var reading = field.querySelector('[data-vsr-reading]');
-        var go = side.querySelector('[data-vsr-go]');
-        var goWord = side.querySelector('[data-vsr-goword]');
+        var go = field.querySelector('[data-vsr-go]');
+        var goWord = field.querySelector('[data-vsr-goword]');
         var say = doors.querySelector('[data-vsr-say]');
         var tabs = Array.prototype.slice.call(doors.querySelectorAll('[data-vsr-door]'));
 
@@ -225,9 +225,6 @@
                 box.value = q.value.trim();
             }
             form.classList.toggle('vsr-on-search', to === 'search');
-            if (page) {
-                page.classList.toggle('vi-searching', to === 'search');
-            }
             tabs.forEach(function (tab) {
                 var on = tab.getAttribute('data-vsr-door') === to;
                 tab.setAttribute('aria-selected', String(on));
@@ -278,6 +275,8 @@
             var mode = guess(text);
             x.hidden = text === '';
             go.disabled = S.busy || text.trim() === '';
+            qBox.classList.toggle('has-value', text !== '');
+            qBox.classList.toggle('is-dirty', text.trim() !== '');
             goWord.textContent = S.busy ? L.going : L.go;
             var t = code(text.trim());
             reading.hidden = S.answered !== null && text.trim() === S.answered.trim()

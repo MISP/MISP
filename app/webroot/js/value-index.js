@@ -27,7 +27,7 @@
  *      only carries the choice to the next page load.
  *   6. Clear puts the box and the region back to how the page
  *      arrived, which without it is a reload — and a reload also
- *      re-reads the rail and the carried-over list, none of which the
+ *      re-reads the figures and the carried-over list, none of which the
  *      reader's paste changed. The control is hidden in
  *      the markup and shown from here, so a page whose script never
  *      boots does not offer it.
@@ -154,9 +154,6 @@
      * switching cannot lose the cursor, the marks, the filter or the
      * sort — which is what the pick asked for when it took A's compact
      * table into C as a second view over one model.
-     *
-     * The batch's progress and filters are cards it brought with it,
-     * moved into the page's rail for as long as the batch lives.
      * ============================================================== */
 
     /*
@@ -252,12 +249,7 @@
         this.url = root.getAttribute('data-vi-assess');
         this.wrap = root.querySelector('.vi-listwrap');
         this.list = root.querySelector('[data-vi-rows]');
-        this.side = root.querySelector('[data-vi-side-cards]')
-            || document.createElement('div');
-        this.slot = document.querySelector('[data-vi-side-work]');
-        this.progress = this.side.querySelector('[data-vi-progress]');
-        this.seen = this.side.querySelector('[data-vi-meter-seen]');
-        this.doneBar = this.side.querySelector('[data-vi-meter-done]');
+        this.progress = root.querySelector('[data-vi-progress]');
         this.note = root.querySelector('[data-vi-sortnote]');
         this.blank = root.querySelector('[data-vi-empty]');
         this.done = root.querySelector('[data-vi-done]');
@@ -289,37 +281,16 @@
         this.stopped = false;
         this.bind();
         root.classList.add('is-live');
-        this.dock();
         this.paint();
         this.pump();
     }
 
-    /*
-     * The rail holds one batch's cards at a time, and the instance card
-     * steps aside while they are there.
-     */
-    Work.prototype.dock = function () {
-        if (!this.slot) {
-            return;
-        }
-        this.slot.innerHTML = '';
-        this.slot.appendChild(this.side);
-        this.slot.closest('[data-vi-side]').classList.add('is-working');
-    };
-
-    Work.prototype.undock = function () {
-        if (!this.slot || this.side.parentNode !== this.slot) {
-            return;
-        }
-        this.slot.removeChild(this.side);
-        this.slot.closest('[data-vi-side]').classList.remove('is-working');
-    };
 
     Work.prototype.bind = function () {
         var self = this;
         var root = this.root;
 
-        this.side.querySelectorAll('[data-vi-f]').forEach(function (button) {
+        root.querySelectorAll('[data-vi-f]').forEach(function (button) {
             button.addEventListener('click', function () {
                 self.filter = button.getAttribute('data-vi-f');
                 self.paint();
@@ -419,7 +390,6 @@
      */
     Work.prototype.stop = function () {
         this.stopped = true;
-        this.undock();
     };
 
     /* Whether anything in the batch has been opened or cleared. */
@@ -592,8 +562,6 @@
             this.blank.hidden = visible > 0;
         }
         this.say(here, opened + cleared, failed, waiting);
-        this.meter(here, opened + cleared);
-        this.leans();
         this.counts(opened, cleared);
         this.sortNote(here, waiting);
         this.band(opened, cleared);
@@ -646,34 +614,6 @@
         this.progress.innerHTML = text;
     };
 
-    Work.prototype.meter = function (here, done) {
-        var total = this.rows.length || 1;
-        if (this.seen) {
-            this.seen.style.width = (100 * here / total) + '%';
-        }
-        if (this.doneBar) {
-            this.doneBar.style.width = (100 * done / total) + '%';
-        }
-    };
-
-    /* How the assessed rows lean, against the whole batch. */
-    Work.prototype.leans = function () {
-        var total = this.rows.length || 1;
-        var tally = {};
-        this.rows.forEach(function (row) {
-            if (landed(row) && row.lean) {
-                tally[row.lean] = (tally[row.lean] || 0) + 1;
-            }
-        });
-        this.side.querySelectorAll('[data-vi-lean-row]').forEach(function (li) {
-            var n = tally[li.getAttribute('data-vi-lean-row')] || 0;
-            li.querySelector('[data-vi-lean-n]').textContent = String(n);
-            li.querySelector('[data-vi-lean-bar]').style.width
-                = (100 * n / total) + '%';
-            li.classList.toggle('is-zero', n === 0);
-        });
-    };
-
     Work.prototype.counts = function (opened, cleared) {
         var self = this;
         var total = this.rows.length;
@@ -683,7 +623,7 @@
             opened: opened,
             cleared: cleared
         };
-        this.side.querySelectorAll('[data-vi-f]').forEach(function (b) {
+        this.root.querySelectorAll('[data-vi-f]').forEach(function (b) {
             var key = b.getAttribute('data-vi-f');
             b.setAttribute('aria-pressed', String(key === self.filter));
             var slot = b.querySelector('b');
@@ -742,11 +682,12 @@
             return;
         }
         var lead = this.done.querySelector('[data-vi-done-lead]');
-        var tally = this.done.querySelector('[data-vi-done-counts]');
+        var openedSay = this.done.querySelector('[data-vi-done-opened]');
+        var clearedSay = this.done.querySelector('[data-vi-done-cleared]');
         var copy = this.done.querySelector('[data-vi-copy]');
         lead.innerHTML = fill(lead.getAttribute('data-vi-tpl'), [total]);
-        tally.innerHTML = fill(tally.getAttribute('data-vi-tpl'),
-            [opened, cleared]);
+        openedSay.innerHTML = fill(openedSay.getAttribute('data-vi-tpl'), [opened]);
+        clearedSay.innerHTML = fill(clearedSay.getAttribute('data-vi-tpl'), [cleared]);
         /*
          * *Copy the 0 you opened* is an offer with nothing behind it.
          * A reader who cleared the whole batch has no shortlist to
@@ -754,7 +695,9 @@
          * not there.
          */
         copy.hidden = opened === 0;
-        copy.innerHTML = fill(copy.getAttribute('data-vi-tpl'), [opened]);
+        copy.querySelector('[data-vi-copy-label]').innerHTML = opened === 1
+            ? esc(copy.getAttribute('data-vi-tpl-one'))
+            : fill(copy.getAttribute('data-vi-tpl'), [opened]);
     };
 
     Work.prototype.copy = function () {
@@ -775,13 +718,32 @@
         try {
             if (navigator.clipboard) {
                 var promise = navigator.clipboard.writeText(box.value);
-                if (promise && promise.catch) {
-                    promise.catch(function () {});
+                if (promise && promise.then) {
+                    promise.then(this.copied.bind(this), function () {});
                 }
             }
         } catch (error) {
             /* refused: the selection above is still the answer */
         }
+    };
+
+    // Said on the button for a moment, then the offer comes back.
+    Work.prototype.copied = function () {
+        var copy = this.done.querySelector('[data-vi-copy]');
+        if (copy.classList.contains('is-copied')) {
+            return;
+        }
+        var label = copy.querySelector('[data-vi-copy-label]');
+        var icon = copy.querySelector('i');
+        var said = label.innerHTML;
+        label.textContent = copy.getAttribute('data-vi-copied');
+        icon.className = 'fas fa-check';
+        copy.classList.add('is-copied');
+        window.setTimeout(function () {
+            label.innerHTML = said;
+            icon.className = 'fas fa-copy';
+            copy.classList.remove('is-copied');
+        }, 2500);
     };
 
     /* ---------------------------------------------------------------
@@ -986,6 +948,7 @@
             return;
         }
         var counter = form.querySelector('[data-vi-count]');
+        var field = box.closest('.ifp-query');
         var verb = form.querySelector('[data-vi-verb]');
         var out = document.querySelector('[data-vi-out]');
         var wipe = form.querySelector('[data-vi-clear]');
@@ -1052,7 +1015,7 @@
         /*
          * Clear. The state a reload would reach, minus the reload:
          * the box empty, the region back to its invitation and the
-         * batch abandoned. The rail and the carried-over list are
+         * batch abandoned. The figures and the carried-over list are
          * untouched, because neither came from what the reader pasted.
          */
         function clear() {
@@ -1122,6 +1085,11 @@
                 }
             }
             go.disabled = busy || box.value.trim() === '';
+            if (field) {
+                field.classList.toggle('has-value', box.value !== '');
+                field.classList.toggle('is-dirty', box.value.trim() !== '');
+            }
+            grow();
             if (wipe) {
                 wipe.hidden = !dirty();
                 if (wipe.hidden && asking) {
@@ -1129,6 +1097,39 @@
                 }
             }
         }
+
+        /*
+         * One line, as the other index pages' search boxes, until a list
+         * is pasted: then as tall as the list, up to a scroll.
+         */
+        function grow() {
+            box.style.height = 'auto';
+            box.style.height = Math.min(box.scrollHeight, 168) + 'px';
+        }
+
+        /*
+         * `/` puts the cursor in the box, as it does in the search of
+         * every other index page; on the Search door, in its field.
+         */
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== '/' || event.defaultPrevented
+                || event.ctrlKey || event.metaKey || event.altKey) {
+                return;
+            }
+            var t = event.target;
+            if (t.isContentEditable || (t.closest && t.closest('input, textarea, select'))
+                || document.querySelector('.modal.show')) {
+                return;
+            }
+            var target = form.classList.contains('vsr-on-search')
+                ? form.querySelector('#vsr-q')
+                : box;
+            if (!target) {
+                return;
+            }
+            event.preventDefault();
+            target.focus();
+        });
 
         /*
          * Enter submits and Shift+Enter makes a line, which is the

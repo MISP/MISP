@@ -16,15 +16,17 @@
 
 
 /* ==================================================================
- * The page: a main column and a rail
+ * The page
  * ------------------------------------------------------------------
- * Bootstrap's own `col-lg-9` / `col-lg-3`, as the Analyst Profile view
- * lays out its rail, so the rail drops under the main column below
- * 992px without a rule here.
+ * Laid out as the other index pages: the stat cards (`ifp-stats`), the
+ * filter bar's card (`ifp-bar`), and each answer as a count line
+ * (`ifp-row`) over a table card. This sheet only places the pieces those
+ * shared classes do not cover.
  * ================================================================== */
 
 .vi-page {
-    padding: 12px 12px 24px;
+    padding-top: 4px;
+    padding-bottom: 24px;
 }
 
 /*
@@ -39,109 +41,41 @@
     display: none !important;
 }
 
-.vi-main {
-    min-width: 0;
-}
-
-/*
- * Whatever the region under the box holds is a card of its own: a
- * worklist, an answer, the search's invitation or its results. The
- * empty region's marker is hidden, so an untouched page shows nothing
- * between the box and the recent values.
- */
-.vi-out > :not(.vi-invite) {
-    margin-top: 1rem;
-    background: var(--bs-body-bg);
-    color: var(--bs-body-color);
-    border: 1px solid var(--bs-border-color-translucent);
-    border-radius: var(--bs-border-radius);
-    box-shadow: var(--bs-box-shadow-sm);
-}
-
-/* The rail stays in view while a long list scrolls past it. */
-@media (min-width: 992px) {
-    .vi-side {
-        position: sticky;
-        top: .5rem;
-        align-self: flex-start;
-        max-height: calc(100vh - 1rem);
-        overflow-y: auto;
-    }
-}
-
-/*
- * A batch's cards take the top of the rail and the instance figures
- * step aside; on the Search tab the batch is put away, so the rail goes
- * back to how the page arrived.
- */
-.vi-page:not(.vi-searching) .vi-side.is-working .vi-side-instance,
-.vi-page.vi-searching .vi-side-work {
-    display: none;
-}
-
-.vi-work:not(.is-live) .vi-work__side {
-    display: none;
-}
-
-
-/* ------------------------------------------------------------------
- * Rail cards: an icon, a title, a body
- * ------------------------------------------------------------------ */
-
-.vi-rcard {
-    overflow: hidden;
-}
-
-.vi-side .vi-rcard {
+.vi-page .ifp-card {
     margin-bottom: 1rem;
 }
 
-.vi-rcard-h {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    padding: .75rem 1rem;
-    border-bottom: 1px solid var(--bs-border-color);
-}
-
-.vi-rcard-ico {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: .5rem;
-    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
-    color: var(--bs-primary);
-    font-size: .85rem;
-}
-
-.vi-rcard-t {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-}
-
-.vi-rcard-sub {
-    margin-left: auto;
-    font-size: .75rem;
-    color: var(--bs-secondary-color);
-}
-
-.vi-rcard-b {
-    padding: .75rem 1rem 1rem;
+/*
+ * An answer or a note under the bar is a card. A worklist and a page of
+ * search results are a count line over a table card, as on every index.
+ */
+.vi-out > :not(.vi-invite):not(.vi-work):not([data-vsr-results]) {
+    margin-bottom: 1rem;
+    background: var(--bs-card-bg, var(--bs-body-bg));
+    color: var(--bs-body-color);
+    border: 1px solid var(--bs-card-border-color, var(--bs-border-color));
+    border-radius: var(--bs-card-border-radius, .6rem);
+    box-shadow: var(--bs-box-shadow-sm);
 }
 
 
 /* ==================================================================
- * The Assessments card
+ * The analyst profile menu
  * ------------------------------------------------------------------
- * Whose thresholds decide an assessment, and the method note under
- * the link to them.
+ * At the end of the bar, where the other indexes keep their Filters
+ * button: whose thresholds decide an assessment, and the method note.
  * ================================================================== */
 
+.vi-cond-name {
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .vi-cond {
+    width: 24rem;
+    max-width: calc(100vw - 2rem);
+    padding: .75rem 1rem;
     font-size: .8125rem;
     line-height: 1.5;
     color: var(--bs-secondary-color);
@@ -204,8 +138,8 @@
 /* ==================================================================
  * The method note
  * ------------------------------------------------------------------
- * The Assessments card's last occupant. Closed it is one quiet line
- * beside the thresholds link; open it takes a row of its own.
+ * The profile menu's last occupant. Closed it is one quiet line beside
+ * the thresholds link; open it takes a row of its own.
  *
  * `flex: 1 0 100%` is what does that, and it is on `[open]` rather
  * than always: a note that reserved its own row while shut would cost
@@ -293,7 +227,7 @@
 }
 
 /*
- * The axes, each name over its question and vocabulary: the rail is
+ * The axes, each name over its question and vocabulary: the menu is
  * too narrow for the name to keep a column of its own.
  */
 .vi-axes {
@@ -363,151 +297,114 @@
 /* ==================================================================
  * The prompt
  * ------------------------------------------------------------------
- * The main column's first card: the Look up | Search tabs across its
- * top (value-index-search.js puts them there), the box, and under it
- * one line with the extraction switch, the counter and the verb. The
- * box and the verb are Bootstrap's own `form-control` and
- * `btn-primary`; this block only lays them out.
+ * The filter bar: the Look up | Search switch (value-index-search.js
+ * puts it first), the box in the shared search box's look, the
+ * extraction toggle in the Filters button's, and the profile menu.
  * ================================================================== */
 
 .vi-prompt {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
     margin: 0;
-    background: var(--bs-body-bg);
-    color: var(--bs-body-color);
-    border: 1px solid var(--bs-border-color-translucent);
-    border-radius: var(--bs-border-radius);
-    box-shadow: var(--bs-box-shadow-sm);
 }
 
-.vi-prompt__field {
-    flex: 1 0 100%;
-    min-width: 0;
-    padding: 14px 14px 0;
+/*
+ * The box is a textarea, one line high until a list is pasted, so the
+ * search box's fixed height gives way to its content and the end of
+ * the box stays on its first line.
+ */
+.vi-query {
+    height: auto;
+    min-height: 40px;
+    align-items: flex-start;
+}
+
+.vi-query .ifp-q-icon {
+    top: 20px;
+}
+
+.vi-query .ifp-q-end {
+    min-height: 38px;
 }
 
 /* Values are read character by character, so the box is monospace. */
 .vi-ta {
-    font-family: var(--bs-font-monospace);
-    font-size: 0.85rem;
-    line-height: 1.55;
-    resize: vertical;
-}
-
-/*
- * The one question about the paste, under the paste. It is small and
- * quiet because it is a qualifier on the box rather than a second
- * control competing with it — and it is a `<label>` so the whole line,
- * not a 13px square, is the target.
- */
-.vi-mode {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
-    font-size: 0.8rem;
-    line-height: 1.4;
-    cursor: pointer;
-}
-
-.vi-mode input[type="checkbox"] {
-    flex: 0 0 auto;
-    margin: 0;
-    accent-color: var(--primary);
-    cursor: pointer;
-}
-
-.vi-mode__say {
-    color: var(--bs-body-color);
-    font-weight: 500;
-}
-
-.vi-hint {
-    font-size: 0.76rem;
-    color: var(--bs-secondary-color);
-}
-
-.vi-hint code {
-    padding: 1px 4px;
-    border-radius: var(--bs-border-radius-sm);
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-body-color);
-    font-size: 0.72rem;
-}
-
-.vi-grow {
     flex: 1 1 auto;
-}
-
-.vi-prompt__side {
-    flex: 1 0 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    align-items: center;
-    padding: 10px 14px 14px;
-}
-
-.vi-run {
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap;
-}
-
-.vi-kbd {
-    margin-left: 8px;
-    padding: 3px 5px;
-    border: 1px solid var(--bs-border-color);
-    border-bottom-width: 2px;
-    border-radius: 3px;
-    background: var(--bs-body-bg);
-    color: var(--bs-body-color);
-    font-family: var(--bs-font-monospace);
-    font-size: 0.68rem;
-    font-weight: 600;
-    line-height: 1;
-}
-
-/* Inside the button it is the button's own ink, not the page's. */
-.vi-run .vi-kbd,
-.vi-wipe .vi-kbd {
-    border-color: currentColor;
-    background: transparent;
+    min-width: 0;
+    height: 38px;
+    max-height: 168px;
+    padding: 9px 6px 9px 40px;
+    border: 0;
+    outline: 0;
+    background: none;
     color: inherit;
-    opacity: 0.7;
+    font-family: var(--bs-font-monospace);
+    font-size: .875rem;
+    line-height: 20px;
+    resize: none;
+    overflow-y: auto;
+}
+
+.vi-ta::placeholder {
+    color: var(--bs-secondary-color);
+    font-family: var(--bs-body-font-family);
+    font-size: .95rem;
+    opacity: 1;
+}
+
+.vi-query:not(.has-value) .vi-count {
+    display: none;
+}
+
+/* The extraction mode: a toggle in the Filters button's look, set when on. */
+.vi-mode {
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.vi-mode:has(input:checked) {
+    color: var(--bs-primary-text-emphasis);
+    border-color: color-mix(in srgb, var(--bs-primary) 55%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 7%, var(--bs-body-bg));
+}
+
+.vi-mode:has(input:checked) > i {
+    color: var(--bs-primary);
+}
+
+.vi-mode:has(input:focus-visible) {
+    box-shadow: 0 0 0 .22rem color-mix(in srgb, var(--bs-primary) 25%, transparent);
 }
 
 /*
- * Clear. It is `.vi-btn--quiet` because it is the third thing on a
- * line whose second thing is a count and whose third is the page's
- * one filled button: a second filled button here would make the
- * reader choose between two, and only one of them does anything they
- * came for.
+ * Clear, quiet beside the verb. A batch with rows already opened or
+ * cleared is work the page cannot hand back — it writes nothing — so
+ * clearing it asks once, in the button, rather than in a dialog the
+ * reader has to read somewhere else.
  */
 .vi-wipe {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    height: 26px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: .42rem;
+    background: none;
+    color: var(--bs-secondary-color);
+    font-size: .76rem;
     white-space: nowrap;
     cursor: pointer;
 }
 
-/*
- * The second press. A batch with rows already opened or cleared is
- * work the page cannot hand back — it writes nothing — so clearing it
- * asks once, in the button, rather than in a dialog the reader has to
- * read somewhere else.
- */
+.vi-wipe:hover,
+.vi-wipe:focus-visible {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-emphasis-color);
+    outline: 0;
+}
+
 .vi-wipe.is-asking {
-    border-color: var(--primary);
     color: var(--primary);
     font-weight: 600;
 }
 
-.vi-run:focus-visible,
 .vi-btn:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
@@ -728,40 +625,108 @@
  * filters, the worst-first sort and the compact second view.
  * ================================================================== */
 
-.vi-work {
-    padding: 13px 14px 14px;
-}
-
-.vi-work__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 8px 16px;
-    margin-bottom: 10px;
-}
-
-.vi-work__intro {
-    flex: 1 1 320px;
-    min-width: 0;
-}
-
-.vi-work__title {
-    margin: 0 0 2px;
-    font-size: 1.0625rem;
-    font-weight: 700;
+.vi-work__bar {
+    gap: 6px 12px;
 }
 
 .vi-prov {
-    margin: 0;
-    max-width: 78ch;
+    min-width: 0;
     color: var(--bs-secondary-color);
     font-size: 0.78rem;
-    line-height: 1.55;
 }
 
-.vi-prov b {
+.vi-work__tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.vi-progress {
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+
+.vi-progress b {
     color: var(--bs-body-color);
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The filters and the view switch are the shared segmented control; the
+ * pressed state follows `aria-pressed`, which the script keeps.
+ */
+.vi-work .ifp-segv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+    min-width: 34px;
+    padding: 0 10px;
+    font-size: .8rem;
+    white-space: nowrap;
+}
+
+.vi-work .ifp-segv-btn b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.vi-work .ifp-segv-btn[aria-pressed="true"] {
+    background: var(--bs-body-bg);
+    color: var(--bs-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 0 0 1px color-mix(in srgb, var(--bs-body-color) 10%, transparent);
+}
+
+.vi-sort[aria-pressed="true"] {
+    color: var(--bs-primary-text-emphasis);
+    border-color: color-mix(in srgb, var(--bs-primary) 55%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 7%, var(--bs-body-bg));
+}
+
+.vi-sort[aria-pressed="true"] > i {
+    color: var(--bs-primary);
+}
+
+.vi-work__card {
+    margin-bottom: .5rem;
+    overflow: hidden;
+}
+
+/* Under the table, where the other indexes put their pager. */
+.vi-work__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 16px;
+    margin: 0 2px 1rem;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+.vi-keys {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+
+.vi-keys > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.vi-keys kbd {
+    padding: 1px 5px;
+    border: 1px solid var(--bs-border-color);
+    border-bottom-width: 2px;
+    border-radius: .3rem;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+    font: 600 .68rem/1.3 var(--bs-font-monospace);
 }
 
 .vi-whole {
@@ -836,93 +801,6 @@
 }
 
 
-/* ------------------------------------------------------------------
- * The rail's Review card: where the reader is, and the filters
- * ------------------------------------------------------------------ */
-
-.vi-progress {
-    margin: 0 0 8px;
-    font-size: 0.8125rem;
-    color: var(--bs-secondary-color);
-}
-
-.vi-progress b {
-    color: var(--bs-body-color);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-/*
- * Two fills on one track: how much has been assessed, faintly, and how
- * much the reader has reviewed over it.
- */
-.vi-meter {
-    position: relative;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--bs-secondary-bg);
-    overflow: hidden;
-}
-
-.vi-meter > span {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    transition: width 0.2s ease;
-}
-
-.vi-meter__seen {
-    background: color-mix(in srgb, var(--primary) 25%, transparent);
-}
-
-.vi-meter__done {
-    background: var(--primary);
-}
-
-.vi-flts {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    padding: 0 .5rem .5rem;
-}
-
-.vi-flt {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: .35rem .6rem;
-    border: 0;
-    border-radius: var(--bs-border-radius);
-    background: none;
-    color: var(--bs-body-color);
-    font-size: .8125rem;
-    text-align: left;
-    cursor: pointer;
-}
-
-.vi-flt:hover {
-    background: color-mix(in srgb, var(--primary) 7%, transparent);
-}
-
-.vi-flt[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--primary) 13%, transparent);
-    color: var(--bs-link-color);
-    font-weight: 600;
-}
-
-.vi-flt b {
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-.vi-flt:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: -2px;
-}
-
 @media (prefers-reduced-motion: no-preference) {
     .vi-row[data-s="flight"] .vi-bar {
         animation: vi-breathe 1.3s ease-in-out infinite;
@@ -936,148 +814,8 @@
 
 
 /* ------------------------------------------------------------------
- * The rail's lean card: how the assessed rows lean
+ * The sort note
  * ------------------------------------------------------------------ */
-
-.vi-leans {
-    display: flex;
-    flex-direction: column;
-    gap: .45rem;
-    margin: 0;
-    padding: .75rem 1rem .9rem;
-    list-style: none;
-}
-
-.vi-leanrow {
-    display: grid;
-    grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr) 3ch;
-    align-items: center;
-    gap: .6rem;
-    font-size: .8125rem;
-}
-
-.vi-leanrow > span:first-child {
-    justify-self: start;
-}
-
-.vi-leanrow b {
-    text-align: right;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-
-.vi-leanrow.is-zero b {
-    font-weight: 400;
-    color: var(--bs-secondary-color);
-}
-
-.vi-leanbar {
-    height: 6px;
-    border-radius: 3px;
-    background: var(--bs-secondary-bg);
-    overflow: hidden;
-}
-
-.vi-leanbar i {
-    display: block;
-    width: 0;
-    height: 100%;
-    background: var(--vi-lacks);
-    transition: width 0.2s ease;
-}
-
-[data-vi-lean-row="threat"] .vi-leanbar i {
-    background: var(--vi-mal-chip);
-}
-
-[data-vi-lean-row="benign"] .vi-leanbar i {
-    background: var(--vi-ben-chip);
-}
-
-[data-vi-lean-row="contested"] .vi-leanbar i {
-    background: var(--vi-rel-aging);
-}
-
-
-/* ------------------------------------------------------------------
- * The controls
- * ------------------------------------------------------------------ */
-
-.vi-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 12px;
-}
-
-.vi-segs {
-    display: inline-flex;
-    border: 1px solid var(--primary);
-    border-radius: var(--bs-border-radius-sm);
-    overflow: hidden;
-}
-
-.vi-seg {
-    padding: 3px 9px;
-    border: 0;
-    border-right: 1px solid var(--primary);
-    background: transparent;
-    color: var(--primary);
-    font-size: 0.7rem;
-    line-height: 1.5;
-    cursor: pointer;
-}
-
-.vi-seg:last-child {
-    border-right: 0;
-}
-
-.vi-seg:hover {
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-}
-
-.vi-seg[aria-pressed="true"] {
-    background: var(--primary);
-    color: #fff;
-    font-weight: 600;
-}
-
-.vi-seg b {
-    font-variant-numeric: tabular-nums;
-}
-
-.vi-seg:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: -2px;
-}
-
-.vi-keys {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 12px;
-    padding: .6rem 1rem;
-    border-top: 1px solid var(--bs-border-color);
-    font-size: 0.72rem;
-    color: var(--bs-secondary-color);
-}
-
-.vi-keys > span {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.vi-keys .vi-kbd {
-    margin-left: 0;
-}
-
-.vi-tabonly {
-    margin: 0;
-    padding: 0 1rem .75rem;
-    font-size: 0.72rem;
-    color: var(--bs-secondary-color);
-}
 
 .vi-sortnote {
     margin-bottom: 8px;
@@ -1119,9 +857,6 @@
 
 .vi-listwrap {
     container-type: inline-size;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    overflow: hidden;
 }
 
 .vi-rows {
@@ -1230,10 +965,8 @@
 
 .vi-val {
     min-width: 0;
-    font-family: var(--bs-font-monospace);
-    font-size: 0.82rem;
+    font-size: .8125rem;
     font-weight: 600;
-    letter-spacing: -0.01em;
     overflow-wrap: anywhere;
 }
 
@@ -1242,11 +975,19 @@
     color: var(--bs-secondary-color);
 }
 
-.vi-types {
-    font-family: var(--bs-font-monospace);
-    font-size: 0.68rem;
+/* The types are the shared `Badges/type` chips; this only lines them up. */
+.vi-types,
+.vi-c-types {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.vi-types-more {
+    font-size: .72rem;
     color: var(--bs-secondary-color);
-    overflow-wrap: anywhere;
 }
 
 /*
@@ -1715,15 +1456,27 @@
     display: none;
 }
 
+/* The head and the rows are drawn as the shared `ix-table`'s. */
+.vi-thead > span {
+    overflow: hidden;
+    font: inherit;
+    color: inherit;
+    letter-spacing: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .vi-thead {
     display: none;
-    height: 25px;
+    height: 36px;
     align-items: center;
     padding: 0 12px 0 8px;
     gap: 0 10px;
-    background: var(--bs-secondary-bg);
-    border-bottom: 1px solid var(--bs-border-color);
-    font-size: 0.66rem;
+    background: var(--bs-card-bg, var(--bs-body-bg));
+    border-bottom: 1px solid var(--bs-card-border-color, var(--bs-border-color));
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.25;
     color: var(--bs-secondary-color);
 }
 
@@ -1742,38 +1495,53 @@
 
 .vi-thead,
 .vi-listwrap.is-table .vi-row {
-    --vi-cols: 22px minmax(90px, 1fr) 104px 106px 84px 124px 46px 64px 148px;
+    --vi-cols: 22px minmax(90px, 1fr) 150px 106px 100px 124px 52px 104px 148px;
 }
 
 .vi-listwrap.is-table .vi-row {
     grid-template-columns: var(--vi-cols);
     align-items: center;
-    height: 29px;
+    height: 38px;
     padding: 0 12px 0 8px;
     overflow: hidden;
+    border-bottom-color: color-mix(in srgb, var(--bs-card-border-color, var(--bs-border-color)) 70%, transparent);
+}
+
+.vi-listwrap.is-table .vi-row {
+    font-size: .8125rem;
+}
+
+.vi-listwrap.is-table .vi-row:hover {
+    background: color-mix(in srgb, var(--bs-body-color) 4.5%, var(--bs-card-bg, var(--bs-body-bg)));
 }
 
 .vi-listwrap.is-table .vi-rail {
     padding-top: 0;
 }
 
+/*
+ * The value is the shared `.attr-value`; in a row of uniform height its
+ * text keeps to one line and the rest is in its title.
+ */
 .vi-c-val {
     display: flex;
-    align-items: baseline;
-    gap: 5px;
+    align-items: center;
     min-width: 0;
-    font-family: var(--bs-font-monospace);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: -0.01em;
 }
 
-.vi-c-valtext,
-.vi-c-types {
-    min-width: 0;
+.vi-c-val > .attr-value {
+    width: 100%;
+}
+
+.vi-listwrap.is-table .vi-c-val .attr-value-line > p {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+}
+
+.vi-listwrap.is-table .vi-c-types {
+    flex-wrap: nowrap;
+    overflow: hidden;
 }
 
 .vi-row.is-done .vi-c-valtext {
@@ -1898,19 +1666,32 @@
     vertical-align: -1px;
 }
 
+/* Counts as the events index draws them: right-aligned figures, a zero faded. */
 .vi-c-num {
-    font-family: var(--bs-font-monospace);
-    font-size: 0.68rem;
-    color: var(--bs-secondary-color);
+    text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .vi-c-num b {
-    color: var(--vi-carries);
     font-weight: 600;
+}
+
+.vi-zero {
+    color: var(--bs-tertiary-color);
+    opacity: .7;
+}
+
+/* The sightings are the shared `Fields/sightings` pills, read only. */
+.vi-c-sig {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.vi-skip {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
 }
 
 .vi-listwrap.is-table .vi-acts {
@@ -1989,7 +1770,7 @@
 @container (max-width: 1000px) {
     .vi-thead,
     .vi-listwrap.is-table .vi-row {
-        --vi-cols: 22px minmax(90px, 1fr) 106px 84px 124px 46px 64px 148px;
+        --vi-cols: 22px minmax(90px, 1fr) 106px 100px 124px 52px 104px 148px;
     }
 
     .vi-listwrap.is-table .vi-c-types,
@@ -2001,7 +1782,7 @@
 @container (max-width: 820px) {
     .vi-thead,
     .vi-listwrap.is-table .vi-row {
-        --vi-cols: 22px minmax(90px, 1fr) 106px 84px 124px 148px;
+        --vi-cols: 22px minmax(90px, 1fr) 106px 100px 124px 148px;
     }
 
     .vi-listwrap.is-table .vi-c-orgs,
@@ -2036,13 +1817,13 @@
 
 .vi-listwrap.is-unassessed .vi-thead,
 .vi-listwrap.is-unassessed.is-table .vi-row {
-    --vi-cols: 22px minmax(90px, 1fr) 104px 46px 64px 148px;
+    --vi-cols: 22px minmax(90px, 1fr) 150px 52px 104px 148px;
 }
 
 @container (max-width: 1000px) {
     .vi-listwrap.is-unassessed .vi-thead,
     .vi-listwrap.is-unassessed.is-table .vi-row {
-        --vi-cols: 22px minmax(90px, 1fr) 46px 64px 148px;
+        --vi-cols: 22px minmax(90px, 1fr) 52px 104px 148px;
     }
 }
 
@@ -2067,25 +1848,106 @@
  * The one thing a page that writes nothing can still hand over.
  * ================================================================== */
 
+/* Shown once every row is decided: a card under the table, in place of the keys. */
 .vi-done {
-    margin-top: 12px;
-    padding: 12px 14px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    background: var(--bs-tertiary-bg);
+    margin-bottom: 1rem;
+    padding: 14px 16px;
 }
 
-.vi-done h3 {
-    margin: 0 0 5px;
-    font-size: 0.92rem;
+.vi-work:has(.vi-done:not([hidden])) .vi-work__foot {
+    display: none;
+}
+
+.vi-done__main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+}
+
+.vi-done__ico {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .5rem;
+    background: color-mix(in srgb, var(--bs-success) 14%, transparent);
+    color: var(--bs-success-text-emphasis, var(--bs-success));
+    font-size: 1.05rem;
+}
+
+.vi-done__text {
+    flex: 1 1 280px;
+    min-width: 0;
+}
+
+.vi-done__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--bs-emphasis-color);
+}
+
+.vi-done__tally {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin: 2px 0 0;
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+
+.vi-done__n {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vi-done__n i {
+    font-size: .72rem;
+}
+
+.vi-done__n b {
+    color: var(--bs-emphasis-color);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.vi-done__n.is-opened i,
+.vi-done__n.is-opened b {
+    color: var(--bs-primary);
+}
+
+.vi-done__acts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.vi-done__acts .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     font-weight: 600;
 }
 
-.vi-done p {
-    margin: 0 0 10px;
-    max-width: 78ch;
-    font-size: 0.75rem;
-    line-height: 1.55;
+.vi-done__copy.is-copied {
+    background: var(--bs-success);
+    border-color: var(--bs-success);
+}
+
+.vi-done__note {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin: 12px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--bs-card-border-color, var(--bs-border-color));
+    font-size: .75rem;
     color: var(--bs-secondary-color);
 }
 
@@ -2093,15 +1955,21 @@
     display: block;
     width: 100%;
     margin-top: 10px;
-    min-height: 92px;
+    min-height: 64px;
     padding: 8px 10px;
     border: 1px solid var(--bs-border-color);
-    border-radius: 4px;
-    background: var(--bs-body-bg);
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
     color: var(--bs-body-color);
     font-family: var(--bs-font-monospace);
-    font-size: 0.75rem;
+    font-size: .8125rem;
     resize: vertical;
+}
+
+.vi-shortlist:focus {
+    outline: 0;
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 .22rem color-mix(in srgb, var(--bs-primary) 20%, transparent);
 }
 
 .vi-refusal {
@@ -2113,17 +1981,19 @@
 /* ==================================================================
  * Carried over
  * ------------------------------------------------------------------
- * A card under the box: a way back to what the reader was doing.
+ * The values this reader last opened, as a count line over a table,
+ * under whatever the box answered: a way back to what they were doing.
  *
- * Each entry is a link that also answers on hover, so it takes the
+ * Each value is a link that also answers on hover, so it takes the
  * hover card's trigger class and overrides what that class says about
  * the cursor — `cursor: help` and a dotted underline are the affordance
- * for a word inside a sentence, and this is an entry whose whole job is
+ * for a word inside a sentence, and this is a link whose whole job is
  * to be clicked.
  * ================================================================== */
 
-.vi-recent {
-    margin-top: 1rem;
+.vi-recent__mine {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
 }
 
 .vi-recent__lead {
@@ -2133,139 +2003,105 @@
     color: var(--bs-secondary-color);
 }
 
-.vi-recent__list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: .5rem .75rem;
-    margin: 0;
-    padding: .75rem 1rem;
-    list-style: none;
-}
-
-.vi-recent__list .vi-chip {
-    display: flex;
-    justify-content: space-between;
-}
-
-.vi-chip {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    max-width: 100%;
-    padding: 4px 7px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius-sm);
-    background: var(--bs-body-bg);
-    color: var(--bs-link-color);
-}
-
-.vi-chip,
-.vi-chip.vp-hc-trigger {
-    cursor: pointer;
+/* The value is the shared `.attr-value`; the link only takes its colour. */
+.vi-recent__value,
+.vi-recent__value:hover {
+    color: inherit;
     text-decoration: none;
 }
 
-.vi-chip:hover,
-.vi-chip:focus-visible {
-    border-color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 7%, var(--bs-body-bg));
-    color: var(--bs-link-hover-color);
+.vi-recent__value:hover .om-value-text {
+    text-decoration: underline;
 }
 
-/*
- * A `sha256` is 64 characters and a line of ten of them is not a line.
- * The chip truncates and the profile it links to carries the value in
- * full — the same trade the compact worklist row makes, and for the
- * same reason (`02a-contract.md` §12.8).
- */
-.vi-chip__value {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 34ch;
-    font-family: var(--bs-font-monospace);
-    font-size: 0.72rem;
-    font-weight: 500;
+.vi-recent__table td:first-child {
+    max-width: 0;
+    width: 100%;
 }
 
-.vi-chip__at {
-    flex: none;
-    font-size: 0.68rem;
+.vi-recent__at {
     color: var(--bs-secondary-color);
-}
-
-
-/* ==================================================================
- * The rail's instance card
- * ------------------------------------------------------------------
- * One fact a line, the label quiet and the figure in the body ink; the
- * longer explanation is the line's tooltip.
- * ================================================================== */
-
-.vi-facts {
-    margin: 0;
-    padding: .25rem 0;
-}
-
-.vi-fact {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: .45rem 1rem;
-    border-top: 1px solid var(--bs-border-color-translucent);
-    font-size: .8125rem;
-}
-
-.vi-fact:first-child {
-    border-top: 0;
-}
-
-.vi-fact dt {
-    min-width: 0;
-    font-weight: 400;
-    color: var(--bs-secondary-color);
-}
-
-.vi-fact dd {
-    margin: 0;
-    font-weight: 600;
     text-align: right;
     white-space: nowrap;
 }
 
-.vi-fact__sub {
-    font-size: .75rem;
-    font-weight: 400;
+.vi-recent__table thead th.vi-recent__at {
+    text-align: right;
+}
+
+
+/* ==================================================================
+ * The stat cards
+ * ------------------------------------------------------------------
+ * The shared `ifp-stats` band; an absence is words in the quiet ink, and
+ * New values carries its sparkline beside the figure.
+ * ================================================================== */
+
+.vi-stats .ifp-stat {
+    min-width: 0;
+}
+
+.vi-stat-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    min-width: 0;
+}
+
+.vi-stats .ifp-stat.is-quiet .ifp-stat-fig {
     color: var(--bs-secondary-color);
-}
-
-.vi-fact__none {
-    font-weight: 500;
-    color: var(--bs-secondary-color);
-}
-
-.vi-fact__warn {
-    color: var(--vi-rel-aging);
-}
-
-.vi-fact__link {
-    margin-left: .35rem;
     font-weight: 600;
-    text-decoration: none;
 }
 
-.vi-fact__link:hover,
-.vi-fact__link:focus-visible {
-    text-decoration: underline;
+/*
+ * One bar per day for thirty days, in ink weight rather than a hue:
+ * colour on these pages means assessment. The seven days the figure
+ * counts are darker than the rest and today is the full ink; a day from
+ * before the first count draws only a faint baseline, so it reads as
+ * unknown rather than as zero.
+ */
+.vi-spark {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: flex-end;
+    gap: 2px;
+    min-width: 60px;
+    height: 24px;
+    margin-bottom: 4px;
+}
+
+.vi-spark__bar {
+    flex: 1 1 0;
+    min-width: 0;
+    height: max(2px, var(--h));
+    border-radius: 1px 1px 0 0;
+    background: color-mix(in srgb, var(--vi-carries) 22%, transparent);
+}
+
+.vi-spark__bar--window {
+    background: color-mix(in srgb, var(--vi-carries) 55%, transparent);
+}
+
+.vi-spark__bar:hover {
+    background: color-mix(in srgb, var(--vi-carries) 80%, transparent);
+}
+
+.vi-spark__bar--today,
+.vi-spark__bar--today:hover {
+    background: var(--vi-carries);
+}
+
+.vi-spark__bar--uncounted,
+.vi-spark__bar--uncounted:hover {
+    height: 2px;
+    background: color-mix(in srgb, var(--vi-lacks) 20%, transparent);
 }
 
 
 /* ==================================================================
  * Narrow
  * ------------------------------------------------------------------
- * The rail already drops under the main column below 992px; on a
- * phone the keyboard hints go as well, since there is no keyboard.
+ * On a phone the keyboard hints go, since there is no keyboard.
  * ================================================================== */
 
 @media (max-width: 575.98px) {

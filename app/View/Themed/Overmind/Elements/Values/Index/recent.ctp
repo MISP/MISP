@@ -11,7 +11,7 @@
  * enrichment because naming the runner tells the organisation which
  * colleague is looking at which value; a recently-viewed list anybody
  * else could read is that disclosure with a different label. The
- * sentence in the card's header is not reassurance — it is the reason a
+ * sentence beside its count is not reassurance — it is the reason a
  * reader can use the block without thinking about who is watching.
  *
  * **No lean on an entry.** Ten assessments is ten engine runs spent
@@ -38,38 +38,60 @@ App::uses('CakeTime', 'Utility');
 
 $hoverCard = (bool)Configure::read('MISP.value_hover_card');
 ?>
-<section class="card shadow-sm vi-rcard vi-recent" aria-labelledby="vi-rcard-recent">
-    <header class="vi-rcard-h">
-        <span class="vi-rcard-ico" aria-hidden="true"><i class="fas fa-clock-rotate-left"></i></span>
-        <h2 class="vi-rcard-t" id="vi-rcard-recent"><?= h(__('Recently opened')) ?></h2>
-        <span class="vi-rcard-sub"><?= h(__('Only you can see this list.')) ?></span>
-    </header>
+<section class="vi-recent" aria-labelledby="vi-recent-title">
+    <div class="ifp-row">
+        <span class="ifp-count" id="vi-recent-title"><?= sprintf(
+            h(__('%s recently opened')),
+            '<b>' . h(count($recent)) . '</b>'
+        ) ?></span>
+        <span class="vi-recent__mine"><i class="fas fa-lock" aria-hidden="true"></i> <?= h(__('Only you can see this list.')) ?></span>
+    </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-0">
 <?php if (empty($recent)): ?>
-    <p class="vi-recent__lead"><?= h(__('Values you open will be listed here.')) ?></p>
+            <p class="vi-recent__lead"><?= h(__('Values you open will be listed here.')) ?></p>
 <?php else: ?>
-    <ul class="vi-recent__list">
+            <table class="table table-hover align-middle mb-0 ix-table vi-recent__table">
+                <thead>
+                    <tr>
+                        <th scope="col"><?= h(__('Value')) ?></th>
+                        <th scope="col" class="vi-recent__at"><?= h(__('Opened')) ?></th>
+                    </tr>
+                </thead>
+                <tbody>
 <?php   foreach ($recent as $entry): ?>
-        <li><a class="vi-chip<?= $hoverCard ? ' vp-hc-trigger' : '' ?>"
-           href="<?= h($this->Html->url(array(
-               'controller' => 'values',
-               'action' => 'view',
-               ValueUrlTool::address($entry['value']),
-           ))) ?>"
-<?php       if ($hoverCard): ?>
-           data-vp-hc-value="<?= h(ValueUrlTool::address($entry['value'])) ?>"
-<?php       endif; ?>
-           ><span class="vi-chip__value"><?= h($entry['value']) ?></span>
-            <span class="vi-chip__at"><?= h(
-                CakeTime::timeAgoInWords($entry['at'], array(
-                    /*
-                     * One unit rather than two past a day: the hour is
-                     * not what a reader scanning this list is asking
-                     * about. Below a day the default is already one unit.
-                     */
-                    'accuracy' => array('day' => 'day'),
-                ))
-            ) ?></span></a></li>
+                    <tr>
+                        <td>
+                            <div class="attr-value">
+                                <div class="attr-value-line">
+                                    <p class="fw-semibold mb-0"><a class="vi-recent__value"
+                                       href="<?= h($this->Html->url(array(
+                                           'controller' => 'values',
+                                           'action' => 'view',
+                                           ValueUrlTool::address($entry['value']),
+                                       ))) ?>"><?= $this->element('Attributes/value_display', array(
+                                           'attribute' => array('value' => $entry['value'], 'type' => ''),
+                                           'hoverValue' => $hoverCard ? ValueUrlTool::address($entry['value']) : null,
+                                           'cap' => 128,
+                                       )) ?></a></p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="vi-recent__at" title="<?= h(date('Y-m-d H:i', $entry['at'])) ?>"><?= h(
+                            CakeTime::timeAgoInWords($entry['at'], array(
+                                /*
+                                 * One unit rather than two past a day: the
+                                 * hour is not what a reader scanning this
+                                 * list is asking about.
+                                 */
+                                'accuracy' => array('day' => 'day'),
+                            ))
+                        ) ?></td>
+                    </tr>
 <?php   endforeach; ?>
-    </ul>
+                </tbody>
+            </table>
 <?php endif; ?>
+        </div>
+    </div>
 </section>

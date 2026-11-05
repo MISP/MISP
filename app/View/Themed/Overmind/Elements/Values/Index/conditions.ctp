@@ -1,7 +1,8 @@
 <?php
 /**
- * The rail's Assessments card — whose thresholds decide this reader's
- * assessments, and the method note saying what an assessment is.
+ * The analyst profile in force, as a menu at the end of the bar: whose
+ * thresholds decide this reader's assessments, and the method note saying
+ * what an assessment is.
  *
  * The name says which document, the revision which version of it — a
  * band that moved overnight moved because the value did or because the
@@ -41,13 +42,23 @@ if ($inForce !== null && $inForce['id'] !== null) {
         array('class' => 'vi-condlink')
     );
 }
+if ($inForce === null) {
+    $button = __('No analyst profile');
+} elseif (!$shows) {
+    $button = __('Assessment off');
+} else {
+    $button = $inForce['name'];
+}
 ?>
-<section class="card shadow-sm vi-rcard" aria-labelledby="vi-rcard-profile">
-    <header class="vi-rcard-h">
-        <span class="vi-rcard-ico" aria-hidden="true"><i class="fas fa-scale-balanced"></i></span>
-        <h2 class="vi-rcard-t" id="vi-rcard-profile"><?= h(__('Assessments')) ?></h2>
-    </header>
-    <div class="vi-rcard-b vi-cond">
+<div class="dropdown vi-cond-menu">
+    <button type="button" class="ifp-fbtn<?= $inForce !== null && $shows ? ' is-set' : '' ?>"
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+            title="<?= h(__('The analyst profile deciding the assessments')) ?>">
+        <i class="fas fa-scale-balanced" aria-hidden="true"></i>
+        <span class="vi-cond-name"><?= h($button) ?></span>
+        <i class="fas fa-chevron-down ifp-caret" aria-hidden="true"></i>
+    </button>
+    <div class="dropdown-menu dropdown-menu-end vi-cond">
 <?php if ($inForce === null): ?>
         <p><?= h(__(
             'No analyst profile is active, so assessments show a lean but'
@@ -76,4 +87,4 @@ if ($inForce !== null && $inForce['id'] !== null) {
         </div>
 <?php endif; ?>
     </div>
-</section>
+</div>
