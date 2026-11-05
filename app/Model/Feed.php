@@ -2210,8 +2210,10 @@ class Feed extends AppModel
                     }
                 }
             }
+            unset($raw_data);
             return $data;
         } catch (Exception $e) {
+            unset($raw_data);
             throw new Exception($error_message, 0, $e);
         }
     }
