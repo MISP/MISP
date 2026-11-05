@@ -43,12 +43,9 @@ foreach ($event['objects'] ?? [] as $previewObject) {
 ?>
 
 <div class="container-fluid">
-    <div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">
-        <i class="fas fa-satellite-dish fs-4"></i>
-        <div>
-            <?= __('You are currently viewing an event from the feed %s', '<strong>' . h($feedName) . '</strong>') ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Layout/remote_notice', [
+        'message' => __('You are currently viewing an event from the feed %s', '<strong>' . h($feedName) . '</strong>'),
+    ]) ?>
 </div>
 
 <?php

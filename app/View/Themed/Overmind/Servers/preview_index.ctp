@@ -173,13 +173,9 @@ $fields = [
 
 <div class="container-fluid">
 
-    <!-- "Remote instance" indicator kept from the legacy preview -->
-    <div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">
-        <i class="fas fa-satellite-dish fs-4"></i>
-        <div>
-            <?= __('You are currently viewing the event index of the remote instance %s', '<strong>' . h($serverName) . '</strong>') ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Layout/remote_notice', [
+        'message' => __('You are currently viewing the event index of the remote instance %s', '<strong>' . h($serverName) . '</strong>'),
+    ]) ?>
 
     <!-- Search + active filters (previewIndex uses a positional /<serverId> scope) -->
     <div class="card shadow-sm mb-4">

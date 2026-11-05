@@ -1,5 +1,6 @@
 <?php
 // Overmind events index: one count (`count`: attributes, objects, reports, correlations).
+// `pending`: a count the page fills in later (the feed preview) shows as such until then.
 App::uses('EventCardTool', 'Tools/EventOverview');
 $event = $row['Event'] ?? [];
 $counts = [
@@ -10,6 +11,9 @@ $counts = [
 ];
 [$key, $one, $many] = $counts[$field['count']];
 if (!isset($event[$key])) {
+    if (!empty($field['pending'])) {
+        printf('<span class="te-pending" title="%s">…</span>', h(__('Counting…')));
+    }
     return;
 }
 $n = (int)$event[$key];

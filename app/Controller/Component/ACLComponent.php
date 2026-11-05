@@ -518,6 +518,7 @@ class ACLComponent extends Component
             'previewEventAttributes' => ['theming_enabled'],
             'previewEventObjects' => ['theming_enabled'],
             'previewIndex' => ['*'],
+            'previewIndexCounts' => ['theming_enabled'],
             'railCard' => ['host_org_user'],
             'searchCaches' => ['*'],
             'toggleSelected' => array(),

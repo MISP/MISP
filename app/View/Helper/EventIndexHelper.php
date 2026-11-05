@@ -255,10 +255,12 @@ class EventIndexHelper extends AppHelper
         if ($sections === '') {
             return '';
         }
+        // A remote event (the feed preview) has no local id to show.
+        $id = (int)($event['id'] ?? 0);
         return sprintf(
-            '<template class="dk-ctx-tpl"><div class="dk-pop-in"><div class="dk-pop-head"><span class="dk-pop-id">#%d</span><b title="%s">%s</b>'
+            '<template class="dk-ctx-tpl"><div class="dk-pop-in"><div class="dk-pop-head">%s<b title="%s">%s</b>'
                 . '<button type="button" class="dk-pop-x" data-dk-close aria-label="%s"><i class="fas fa-xmark"></i></button></div>%s</div></template>',
-            (int)$event['id'],
+            $id ? '<span class="dk-pop-id">#' . $id . '</span>' : '',
             h($event['info']),
             h($event['info']),
             h(__('Close')),
