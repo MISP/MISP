@@ -122,6 +122,20 @@ class AclHelper extends Helper
      */
     public function canPublishGalaxyCluster(array $cluster)
     {
+        return $this->ACL->canPublishGalaxyCluster($this->me, $cluster);
+    }
+
+    /**
+     * Unlike publishing, unpublishing a galaxy cluster only requires
+     * perm_galaxy_editor (see ACLComponent::ACL_LIST['galaxyClusters']['unpublish']),
+     * not perm_publish. This mirrors that asymmetry so the side menu can offer the
+     * correct control depending on the cluster's current published state.
+     *
+     * @param array $cluster
+     * @return bool
+     */
+    public function canUnpublishGalaxyCluster(array $cluster)
+    {
         return $this->ACL->canModifyGalaxyCluster($this->me, $cluster);
     }
 
