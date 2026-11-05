@@ -64,11 +64,18 @@ $actions[] = array(
     'pinned' => true,
 );
 $actions[] = array(
+    'url' => '#',
+    'onclick' => 'event.preventDefault(); analystProfileRaw();',
+    'icon' => 'fas fa-code',
+    'label' => __('Raw JSON'),
+    'short' => __('JSON'),
+    'pinned' => true,
+);
+$actions[] = array(
     'url' => $this->Html->url(array('action' => 'export', $profile['id'])),
     'icon' => 'fas fa-file-export',
     'label' => __('Export JSON'),
     'short' => __('Export'),
-    'pinned' => true,
 );
 if ($writes !== null) {
     if (!empty($writes['fork'])) {

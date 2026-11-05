@@ -1,7 +1,7 @@
 <?php
 /**
  * The editor's action card, in the view's frame: save the form, go back
- * to the profile, compare on a value, export.
+ * to the profile, compare on a value, the raw document, export.
  *
  * @var array $profile
  * @var array $bench
@@ -17,6 +17,7 @@ echo $this->element('genericElementsBS5/Cards/card_launch_bar', array(
             'icon' => 'fas fa-floppy-disk',
             'label' => __('Save'),
             'success' => true,
+            'pinned' => true,
         ),
         array(
             'url' => $this->Html->url(array('action' => 'view', $profile['id'],
@@ -24,6 +25,7 @@ echo $this->element('genericElementsBS5/Cards/card_launch_bar', array(
             'icon' => 'fas fa-eye',
             'label' => __('Back to the profile'),
             'short' => __('View'),
+            'pinned' => true,
         ),
         array(
             'url' => $this->Html->url(array('action' => 'simulate',
@@ -32,6 +34,15 @@ echo $this->element('genericElementsBS5/Cards/card_launch_bar', array(
             'icon' => 'fas fa-flask',
             'label' => __('Open the full comparison'),
             'short' => __('Compare'),
+            'pinned' => true,
+        ),
+        array(
+            'url' => '#',
+            'onclick' => 'event.preventDefault(); analystProfileRaw();',
+            'icon' => 'fas fa-code',
+            'label' => __('Raw JSON, to read or replace'),
+            'short' => __('JSON'),
+            'pinned' => true,
         ),
         array(
             'url' => $this->Html->url(array('action' => 'export', $profile['id'])),

@@ -955,22 +955,23 @@ a.ap-hop-a:hover { text-decoration: underline; }
 }
 
 /* ==================================================================
- * The profile view: a card per section in each tab, and rail cards.
+ * The profile view and editor: a card per section tab, and rail cards.
  * ================================================================== */
+.ap-tab-card {
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem 1.25rem;
+}
+
 .ap-vcard,
 .ap-rcard { margin-bottom: 1rem; overflow: hidden; }
-.ap-vcard-h,
+.ap-vcard-b { padding: .75rem 1rem 1rem; }
 .ap-rcard-h {
     display: flex;
     align-items: center;
     gap: .75rem;
     padding: .85rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
 }
-summary.ap-vcard-h { cursor: pointer; list-style: none; }
-summary.ap-vcard-h::-webkit-details-marker { display: none; }
-details.ap-vcard[open] > .ap-vcard-h,
-section.ap-vcard > .ap-vcard-h,
-.ap-rcard-h { border-bottom: 1px solid var(--bs-border-color); }
 .ap-vcard-ico {
     flex: none;
     display: inline-flex;
@@ -982,31 +983,7 @@ section.ap-vcard > .ap-vcard-h,
     background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
     color: var(--bs-primary);
 }
-.ap-vcard-t {
-    flex: 1 1 auto;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-.ap-vcard-title,
 .ap-rcard-t { margin: 0; font-size: 1.0625rem; font-weight: 700; }
-.ap-vcard-blurb { font-size: .8125rem; color: var(--bs-secondary-color); }
-.ap-vcard-caret {
-    flex: none;
-    color: var(--bs-secondary-color);
-    transition: transform .15s ease;
-}
-details.ap-vcard:not([open]) .ap-vcard-caret { transform: rotate(-90deg); }
-.ap-vcard-b { padding: .75rem 1rem 1rem; }
-.wb-sec-tools {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: .25rem 1rem;
-    margin-bottom: .6rem;
-}
-.wb-guide-fold { margin-bottom: .75rem; }
 .ap-raw {
     margin: 0;
     padding: 1rem;
@@ -1051,9 +1028,12 @@ details.ap-vcard:not([open]) .ap-vcard-caret { transform: rotate(-90deg); }
 }
 .ap-score.is-win { background: color-mix(in srgb, var(--bs-primary) 8%, transparent); }
 .ap-score.is-win .ap-hop-n { background: var(--bs-primary); color: #fff; }
-.ap-score-l { flex: 1 1 auto; min-width: 0; }
+/* The scope keeps its name whole; a long profile name gives way. */
+.ap-score-l { flex: none; white-space: nowrap; }
 .ap-score-a {
+    flex: 1 1 auto;
     min-width: 0;
+    text-align: right;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -1,8 +1,8 @@
 <?php
 /**
- * The editor, in the view's frame: the same tabs and section cards with
- * their inputs live, and a rail that stays on screen with the save, whom
- * the profile scores, and the value under assessment.
+ * The editor, in the view's frame: the same tab per section with its
+ * inputs live, and a rail that stays on screen with the save, whom the
+ * profile scores, and the value under assessment.
  *
  * The rail's bench is the bet: it is recomputed on every change, so
  * changing a weight and not looking at what it did is not a thing the
@@ -57,7 +57,7 @@ echo $this->element('AnalystProfiles/profile_header', array(
                       data-many="<?= h(__('%s unsaved changes')) ?>" hidden></span>
             </div>
         </div>
-        <?= $this->element('AnalystProfiles/profile_tabs', array(
+        <?= $this->element('AnalystProfiles/profile_sections', array(
             'editable' => true,
             'rail' => array(
                 'AnalystProfiles/edit_actions',

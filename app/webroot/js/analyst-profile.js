@@ -18,7 +18,7 @@
     /*
      * `assetLoader` echoes the script tag where the view runs, which is
      * above the markup this file drives — so at the moment it executes
-     * there is no `#ap-rail` to find, and a lookup here answers null.
+     * there is no `.wb-bench` to find, and a lookup here answers null.
      * Waiting for the document is the whole difference between an
      * editor and a page that shipped no JS at all.
      */
@@ -60,16 +60,27 @@
         window.analystProfileCompare(link.getAttribute('href'));
     });
 
+    // The whole document, from the template profile_sections leaves in the page.
+    window.analystProfileRaw = function () {
+        var template = document.getElementById('ap-raw-modal');
+        var modal = document.getElementById('mainModal');
+        if (!template || !modal
+            || typeof renderMainModalContent !== 'function'
+        ) {
+            return;
+        }
+        setModalSize('xl');
+        renderMainModalContent(template.innerHTML);
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+    };
+
 function boot() {
     var form = document.getElementById('ap-form');
-    var rail = document.getElementById('ap-rail');
     var bench = document.querySelector('.wb-bench');
-    if (!rail && !bench) {
+    if (!form && !bench) {
         return;
     }
 
-    var raw = document.getElementById('ap-raw');
-    var body = rail ? rail.parentNode : null;
     /*
      * The editor and the read-only viewer carry the form, so their
      * bench recomputes in place. The expanded simulator is a page with
@@ -79,68 +90,31 @@ function boot() {
     var live = !!(form && bench && carried);
     var unsavedLabel = (form && form.getAttribute('data-ap-unsaved')) || '';
 
-    /* ------------------------------------------------------------ *
-     * One section open at a time
-     * ------------------------------------------------------------ */
-
-    function open(section) {
-        if (!rail || !body) {
-            return;
-        }
-        Array.prototype.forEach.call(
-            rail.querySelectorAll('.wb-rail-item'),
-            function (item) {
-                item.classList.toggle('is-open',
-                    item.getAttribute('data-sec') === section);
-            }
-        );
-        Array.prototype.forEach.call(
-            body.querySelectorAll('.wb-sec'),
-            function (pane) {
-                pane.classList.toggle('is-open',
-                    pane.getAttribute('data-sec') === section);
-            }
-        );
-        /*
-         * A disabled field posts nothing, and `edit` prefers a pasted
-         * document over a merged section — so the textarea is live
-         * only while its own pane is the one on screen. Otherwise
-         * saving a weight would post the whole stored document beside
-         * it and the paste would win.
-         */
-        if (raw) {
-            raw.disabled = section !== 'raw';
-        }
-    }
-
-    if (rail) {
-        rail.addEventListener('click', function (event) {
-            var item = event.target.closest
-                ? event.target.closest('.wb-rail-item')
-                : null;
-            if (!item || !item.getAttribute('data-sec')) {
-                return;
-            }
-            open(item.getAttribute('data-sec'));
-        });
-    }
-
     /*
-     * In the tabbed frame the document has a tab of its own, and its
-     * textarea posts only while that tab is on screen, for the reason
-     * open() gives.
+     * The pasted document lives in #mainModal and joins the form through
+     * its `form` attribute. A disabled field posts nothing, and `edit`
+     * prefers a pasted document over a merged section — so once the
+     * modal closes the textarea is switched off, or the next save would
+     * post the whole document beside the weights and the paste would win.
      */
-    document.addEventListener('shown.bs.tab', function (event) {
-        if (!raw || rail) {
-            return;
-        }
-        raw.disabled = event.target.getAttribute('href') !== '#tab-document';
-        mark();
-    });
-    if (raw) {
-        raw.addEventListener('input', function () {
+    document.addEventListener('input', function (event) {
+        if (event.target.id === 'ap-raw') {
             mark();
+        }
+    });
+    var modal = document.getElementById('mainModal');
+    if (form && modal) {
+        modal.addEventListener('hidden.bs.modal', function () {
+            var raw = document.getElementById('ap-raw');
+            if (raw && modal.contains(raw)) {
+                raw.disabled = true;
+                mark();
+            }
         });
+    }
+    var rawTemplate = document.getElementById('ap-raw-modal');
+    if (rawTemplate && rawTemplate.hasAttribute('data-ap-open')) {
+        window.analystProfileRaw();
     }
 
     /* ------------------------------------------------------------ *
@@ -221,28 +195,24 @@ function boot() {
                     folds.indexOf(fold) !== -1);
             }
         );
-        Array.prototype.forEach.call(
-            document.querySelectorAll('[data-ap-dirty-mark]'),
-            function (glyph) {
-                glyph.hidden =
-                    !dirty[glyph.getAttribute('data-ap-dirty-mark')];
-            }
-        );
-        // A tab whose cards hold a change says so, since its panes are out of sight.
+        // A tab whose sections hold a change says so, since it may be out of sight.
         if (typeof setTabBadge === 'function') {
             Array.prototype.forEach.call(
                 document.querySelectorAll('.nav-view-badge[data-tab-badge]'),
                 function (badge) {
                     var id = badge.getAttribute('data-tab-badge');
                     var pane = document.getElementById('tab-' + id);
-                    var edited = pane && pane.querySelector(
-                        '[data-ap-dirty-mark]:not([hidden])');
-                    var pasted = raw && !raw.disabled && pane
-                        && pane.contains(raw) && raw.value !== raw.defaultValue;
-                    setTabBadge(id, edited || pasted ? unsavedLabel : '');
+                    var edited = pane && Array.prototype.some.call(
+                        pane.querySelectorAll('.wb-sec[data-sec]'),
+                        function (sec) {
+                            return dirty[sec.getAttribute('data-sec')];
+                        }
+                    );
+                    setTabBadge(id, edited ? unsavedLabel : '');
                 }
             );
         }
+        var raw = document.getElementById('ap-raw');
         var counter = document.querySelector('[data-ap-unsaved-count]');
         if (counter) {
             var total = count + (raw && !raw.disabled
@@ -663,14 +633,14 @@ function boot() {
     });
 
     /*
-     * A box the browser refuses sits in whatever pane it belongs to,
-     * and a closed pane is `display: none` — a control the browser
+     * A box the browser refuses sits in whatever tab it belongs to,
+     * and a tab out of sight is `display: none` — a control the browser
      * cannot report on, so it blocks the save and says nothing at all.
-     * Opening the pane first is what turns a silent refusal back into
-     * the message beside the box.
+     * Bringing the tab forward first is what turns a silent refusal
+     * back into the message beside the box.
      *
      * The first refusal only. The events arrive in tree order and the
-     * browser reports on the first of them, so opening a pane for each
+     * browser reports on the first of them, so showing a tab for each
      * would leave the last one on screen and the reported box behind
      * it. The flag clears on the next tick, which is after the whole
      * pass.
@@ -690,13 +660,6 @@ function boot() {
         if (fold) {
             fold.open = true;
         }
-        // In the tabbed frame: unfold the field's card and bring its tab forward.
-        var card = event.target.closest
-            ? event.target.closest('details.ap-vcard')
-            : null;
-        if (card) {
-            card.open = true;
-        }
         var tab = event.target.closest
             ? event.target.closest('.tab-pane')
             : null;
@@ -706,13 +669,6 @@ function boot() {
                 bootstrap.Tab.getOrCreateInstance(link).show();
             }
         }
-        var pane = event.target.closest
-            ? event.target.closest('.wb-sec')
-            : null;
-        if (!pane || pane.classList.contains('is-open')) {
-            return;
-        }
-        open(pane.getAttribute('data-sec'));
     }, true);
 
     /*

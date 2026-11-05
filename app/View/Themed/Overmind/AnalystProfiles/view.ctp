@@ -1,9 +1,8 @@
 <?php
 /**
  * A profile, read-only, in the frame every Overmind detail page uses: one
- * tab per family of sections, each section a card the reader folds, and
- * a rail with the actions, whom the profile scores and the value under
- * assessment.
+ * tab per section, and a rail with the actions, whom the profile scores
+ * and the value under assessment.
  *
  * With `?value=` each weight is shown beside the contribution it
  * produced on that value. Without one the column stays empty rather
@@ -19,7 +18,7 @@ echo $this->element('genericElements/assetLoader', array(
 echo $this->element('AnalystProfiles/profile_header');
 ?>
 <div class="ap-page ap-view">
-    <?= $this->element('AnalystProfiles/profile_tabs', array(
+    <?= $this->element('AnalystProfiles/profile_sections', array(
         'editable' => false,
         'rail' => array(
             'AnalystProfiles/view_actions',

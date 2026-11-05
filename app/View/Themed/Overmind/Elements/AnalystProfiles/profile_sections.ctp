@@ -1,8 +1,8 @@
 <?php
 /**
- * A profile's sections in the detail-page frame, for the view and the
- * editor alike: one tab per family, each section a card the reader folds,
- * the document in its own tab, and a rail every tab shares.
+ * A profile in the detail-page frame, for the view and the editor alike:
+ * its notices, one tab per section in the order the groups put them, and
+ * a rail every tab shares. The whole document is a modal the rail opens.
  *
  * @var bool $editable
  * @var array $rail Element paths, see view_layout's `rail`
@@ -12,15 +12,10 @@
  * @var array $bench
  * @var string|null $value
  * @var string|null $open_section
- * @var array|null $standing This profile's row of the index board
  */
 App::uses('AnalystProfileFormTool', 'Tools/AnalystProfile');
 
 $readings = AnalystProfileFormTool::benchReadings($bench['detail']);
-// A benched value is read against the signals first.
-$opened = $open_section !== null
-    ? $open_section
-    : ($value === null ? null : 'signals');
 
 // What a section holds, as the editor's rail used to count it.
 $count = function (array $section) {
@@ -36,7 +31,7 @@ $count = function (array $section) {
             }
         }
     }
-    return (string)$n;
+    return $n;
 };
 
 $grouped = array_fill_keys(array_keys($groups), array());
@@ -49,59 +44,53 @@ foreach ($sections as $id => $section) {
 }
 
 $icons = array(
-    'assessment' => 'fas fa-clipboard-check',
-    'behaviour' => 'fas fa-sliders',
-    'display' => 'fas fa-eye',
+    'signals' => 'wave-square',
+    'thresholds' => 'gauge',
+    'escalations' => 'scale-balanced',
+    'exclusions' => 'ban',
+    'relevance' => 'clock-rotate-left',
+    'reference' => 'shield-halved',
+    'enrichment' => 'puzzle-piece',
+    'context' => 'eye',
+    'galaxies' => 'crosshairs',
 );
+// Sections drawn as a second card in another's tab: the rules that
+// refuse to lean sit with the lean.
+$joins = array('escalations' => 'thresholds');
+$active = isset($joins[$open_section])
+    ? $joins[$open_section]
+    : $open_section;
 // The editor fills a tab's badge when a section in it has unsaved changes.
 $unsaved = $editable ? array('deferred' => true) : null;
 $tabs = array();
-foreach ($groups as $key => $label) {
-    if (empty($grouped[$key])) {
-        continue;
-    }
-    $cards = array();
-    $first = true;
-    foreach ($grouped[$key] as $id => $section) {
-        $pill = $count($section);
-        if ($id === 'signals' && $standing !== null) {
-            $pill = sprintf(__('%s of %s on'), $standing['signals']['enabled'],
-                $standing['signals']['configured']);
-        }
-        $cards[] = array(
-            'element' => 'AnalystProfiles/view_section',
+foreach ($grouped as $members) {
+    foreach ($members as $id => $section) {
+        $card = array(
+            'element' => 'AnalystProfiles/section_card',
             'params' => array(
                 'section' => $section,
                 'editable' => $editable,
-                'open' => $first || $opened === $id,
-                'count' => $pill,
                 'readings' => $readings,
                 'benchValue' => $value,
             ),
         );
-        $first = false;
+        if (isset($joins[$id]) && isset($tabs[$joins[$id]])) {
+            $tabs[$joins[$id]]['left'][] = $card;
+            $tabs[$joins[$id]]['count'] += $count($section);
+            continue;
+        }
+        $tabs[$id] = array(
+            'id' => $id,
+            'title' => $section['title'],
+            'icon' => 'fas fa-'
+                . (isset($icons[$id]) ? $icons[$id] : 'sliders'),
+            'count' => $count($section),
+            'badge' => $unsaved,
+            'active' => $active === $id,
+            'left' => array($card),
+        );
     }
-    $tabs[] = array(
-        'id' => $key,
-        'title' => $label,
-        'icon' => isset($icons[$key]) ? $icons[$key] : 'fas fa-list',
-        'count' => count($grouped[$key]),
-        'badge' => $unsaved,
-        'active' => $opened !== null && isset($grouped[$key][$opened]),
-        'left' => $cards,
-    );
 }
-$tabs[] = array(
-    'id' => 'document',
-    'title' => __('Document'),
-    'icon' => 'fas fa-code',
-    'badge' => $unsaved,
-    'active' => $opened === 'raw',
-    'left' => array(array(
-        'element' => 'AnalystProfiles/view_raw',
-        'params' => array('editable' => $editable, 'open' => $opened === 'raw'),
-    )),
-);
 ?>
 <?php if (!empty($loader_errors) || !empty($errors) || !empty($warnings)
     || !empty($legacy)
@@ -126,6 +115,11 @@ $tabs[] = array(
 <?php endif; ?>
 <?= $this->element('genericElementsBS5/Layout/view_layout', array(
     'data' => $profile,
-    'tabs' => $tabs,
+    'tabs' => array_values($tabs),
     'rail' => $rail,
 )) ?>
+<template id="ap-raw-modal"<?= $open_section === 'raw' ? ' data-ap-open' : '' ?>>
+    <?= $this->element('AnalystProfiles/raw_modal', array(
+        'editable' => $editable,
+    )) ?>
+</template>
