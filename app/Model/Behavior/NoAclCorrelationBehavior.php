@@ -1,11 +1,14 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('RelatedAttributeBatchTrait', 'Model/Behavior');
 
 /**
  * ACL-less correlation behaviour for end-point instances
  */
 class NoAclCorrelationBehavior extends ModelBehavior
 {
+    use RelatedAttributeBatchTrait;
+
     const TABLE_NAME = 'no_acl_correlations';
 
     const CONFIG = [
@@ -274,6 +277,20 @@ class NoAclCorrelationBehavior extends ModelBehavior
      * @param bool $includeEventData
      * @return array
      */
+    public function runGetRelatedAttributesBatch(
+        Model $Model,
+        array $user,
+        array $sgids,
+        array $attributes,
+        array $fields = [],
+        $includeEventData = false
+    ) {
+        return $this->fetchRelatedAttributesBatch(
+            $Model, $user, $sgids, $attributes, $fields,
+            $includeEventData, false
+        );
+    }
+
     public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
     {
         $correlatedAttributeIds = $Model->find('column', [
