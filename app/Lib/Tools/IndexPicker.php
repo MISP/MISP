@@ -157,7 +157,9 @@ class IndexPicker
     /**
      * @param array $user
      * @param string $term
-     * @param array $options scope (a namespace, `-` for none), predicate, limit
+     * @param array $options scope (a namespace, `-` for none), predicate,
+     *  limit, and attach, for a picker attaching tags: it offers none of the
+     *  taxonomies not enabled
      * @return array
      */
     public static function tags(array $user, $term, array $options = [])
@@ -167,6 +169,10 @@ class IndexPicker
             $Tag->createConditions($user),
             ['Tag.hide_tag' => 0, 'Tag.is_galaxy' => 0],
         ];
+        $enabled = empty($options['attach']) ? [] : $Tag->enabledTaxonomyCondition();
+        if (!empty($enabled)) {
+            $conditions[] = $enabled;
+        }
         $scope = trim((string)($options['scope'] ?? ''));
         if ($scope !== '') {
             $conditions[] = self::namespaceCondition($scope, $options['predicate'] ?? null);
@@ -310,9 +316,10 @@ class IndexPicker
      * carry no namespace. Sizes are rows in `tags`, never event counts.
      *
      * @param array $user
+     * @param bool $attach for a picker attaching tags: enabled taxonomies only
      * @return array
      */
-    public static function tagScopes(array $user)
+    public static function tagScopes(array $user, $attach = false)
     {
         $counts = self::namespaceCounts($user);
         $plan = self::plan($user);
@@ -328,10 +335,11 @@ class IndexPicker
             $t = $r['Taxonomy'];
             $ns = mb_strtolower($t['namespace']);
             $tags = $counts['namespaces'][$ns][1] ?? 0;
-            if (!$t['enabled'] && !$tags) {
+            // A taxonomy left out is not offered as a bare namespace either.
+            $covered[$ns] = true;
+            if (!$t['enabled'] && ($attach || !$tags)) {
                 continue;
             }
-            $covered[$ns] = true;
             $taxonomies[] = [
                 'namespace' => $t['namespace'],
                 'description' => $t['description'],
@@ -409,13 +417,18 @@ class IndexPicker
      *
      * @param array $user
      * @param string $namespace
+     * @param bool $attach for a picker attaching tags: null for a taxonomy not enabled
      * @return array|null
      */
-    public static function taxonomyTree(array $user, $namespace)
+    public static function taxonomyTree(array $user, $namespace, $attach = false)
     {
         $Taxonomy = ClassRegistry::init('Taxonomy');
+        $conditions = ['LOWER(Taxonomy.namespace)' => mb_strtolower(trim((string)$namespace))];
+        if ($attach) {
+            $conditions['Taxonomy.enabled'] = 1;
+        }
         $taxonomy = $Taxonomy->find('first', [
-            'conditions' => ['LOWER(Taxonomy.namespace)' => mb_strtolower(trim((string)$namespace))],
+            'conditions' => $conditions,
             'fields' => ['Taxonomy.id', 'Taxonomy.namespace', 'Taxonomy.description', 'Taxonomy.exclusive'],
             'recursive' => -1,
         ]);
