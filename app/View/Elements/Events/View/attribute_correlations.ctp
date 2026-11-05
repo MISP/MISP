@@ -33,12 +33,11 @@
                 $popover .= '<b class="black">' . h($k) . '</b>: <span class="blue">' . h($v) . '</span><br>';
             }
             $relevantId = !isset($relatedAttribute['attribute_id']) ? $relatedAttribute['Event']['id'] : $relatedAttribute['id'];
-            $link = $this->Html->link(
-                $relevantId,
-                    $withPivot ?
-                            ['controller' => 'events', 'action' => 'view', $relevantId, true, $event['Event']['id']] :
-                            ['controller' => 'events', 'action' => 'view', $relevantId],
-                ['class' => ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue']
+            $link = sprintf(
+                '<a href="%s" class="%s">%s</a>',
+                h($baseurl) . '/events/view/' . h($relevantId) . ($withPivot ? '/1/' . h($event['Event']['id']) : ''),
+                ($relatedAttribute['org_id'] == $me['org_id']) ? $linkColour : 'blue',
+                h($relevantId)
             );
             echo sprintf(
                 '<li class="no-side-padding %s" %s data-toggle="popover" data-content="%s" data-trigger="hover">%s&nbsp;</li>',
@@ -71,12 +70,10 @@
             __('Too many correlations.')
         );
     }
-    echo $this->Html->link(
-        '',
-        ['controller' => 'attributes', 'action' => 'search', 'value' => $object['value']],
-        [
-            'class' => 'fa fa-search black',
-            'title' => __('Search for value'),
-            'aria-label' => __('Search for value')
-        ]
+    $searchTitle = __('Search for value');
+    echo sprintf(
+        '<a href="%s" class="fa fa-search black" title="%s" aria-label="%s"></a>',
+        h($baseurl) . '/attributes/search/value:' . rawurlencode($object['value']),
+        $searchTitle,
+        $searchTitle
     );
