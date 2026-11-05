@@ -80,7 +80,7 @@ $idsToggle = function ($on) {
     <span role="button" class="om-ids" data-on="<?= $on ? '1' : '0' ?>"
           title="<?= $on ? __('IDS active — click to disable') : __('IDS inactive — click to enable') ?>"
           aria-label="<?= __('Toggle IDS flag') ?>">
-        <i class="fas fa-shield-halved <?= $on ? 'text-warning' : 'text-secondary' ?>" style="font-size:1.2em;"></i>
+        <i class="fas fa-shield-halved om-flag <?= $on ? 'text-warning' : 'text-secondary' ?>"></i>
     </span>
     <?php
     return ob_get_clean();
@@ -92,7 +92,7 @@ $corrToggle = function ($disabled) {
     <span role="button" class="om-corr" data-off="<?= $disabled ? '1' : '0' ?>"
           title="<?= $disabled ? __('Correlation disabled — click to enable') : __('Correlation enabled — click to disable') ?>"
           aria-label="<?= __('Toggle correlation') ?>">
-        <i class="fas <?= $disabled ? 'fa-link-slash text-secondary' : 'fa-link text-success' ?>" style="font-size:1.2em;"></i>
+        <i class="fas om-flag <?= $disabled ? 'fa-link-slash text-secondary' : 'fa-link text-success' ?>"></i>
     </span>
     <?php
     return ob_get_clean();
@@ -125,26 +125,27 @@ $tagChips = function ($tags) {
     ]);
 };
 
+// The value as the attribute indexes draw it (Fields/attribute_value), its
+// distribution and comment being editable columns of their own here.
 $valueDisplay = function ($attribute) {
-    if (($attribute['type'] ?? '') === 'link') {
-        return '<a href="' . h($attribute['value']) . '" rel="noreferrer noopener" target="_blank">' . h($attribute['value']) . '</a>';
-    }
-    return h($attribute['value']);
+    return '<div class="attr-value"><div class="attr-value-line"><p class="fw-semibold mb-0">'
+        . $this->element('Attributes/value_display', ['attribute' => $attribute])
+        . '</p></div></div>';
 };
 
 // Reusable per-attribute cells (shared by object attributes and standalone ones).
 $attrTableHead = function () use ($idsToggle) {
     ob_start(); ?>
-    <thead class="table-light">
-        <tr class="small text-muted">
+    <thead>
+        <tr>
             <th style="width:1%"></th>
             <th><?= __('Distribution') ?></th>
+            <th><?= __('Value') ?></th>
             <th><?= __('Category') ?></th>
             <th><?= __('Type') ?></th>
-            <th><?= __('Value') ?></th>
             <th class="text-center"><?= __('IDS') ?></th>
             <th class="text-center"><?= __('Correlate') ?></th>
-            <th><?= __('Comment') ?></th>
+            <th style="min-width:13rem;"><?= __('Comment') ?></th>
         </tr>
     </thead>
     <?php
@@ -376,7 +377,7 @@ if ($isAi) {
 
                     <?php if (!empty($object['Attribute'])): ?>
                     <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 ix-table">
                         <?= $attrTableHead() ?>
                         <tbody>
                         <?php foreach ($object['Attribute'] as $oa): ?>
@@ -395,14 +396,14 @@ if ($isAi) {
                                 <?php endif; ?>>
                                 <td><button type="button" class="btn btn-sm btn-light text-danger p-1 om-remove" title="<?= __('Remove from import') ?>"><i class="fas fa-trash"></i></button></td>
                                 <td><?= $distPicker('om-oa', $oa['distribution'] ?? null) ?></td>
+                                <td class="text-break"><?= $valueDisplay($oa) ?><?= $tagChips($oa['Tag'] ?? []) ?></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-1">
-                                        <?= $this->element('genericElementsBS5/Badges/category', ['category' => $oa['category'] ?? '', 'full' => false]) ?>
+                                        <?= $this->element('genericElementsBS5/Badges/category', ['category' => $oa['category'] ?? '']) ?>
                                         <?= $this->element('genericElementsBS5/Badges/object_relation', ['relation' => $oa['object_relation'] ?? '']) ?>
                                     </div>
                                 </td>
                                 <td><?= $this->element('genericElementsBS5/Badges/type', ['type' => $oa['type'] ?? '']) ?></td>
-                                <td class="font-monospace small text-break"><?= $valueDisplay($oa) ?><?= $tagChips($oa['Tag'] ?? []) ?></td>
                                 <td class="text-center"><?= $idsToggle(!empty($oa['to_ids'])) ?></td>
                                 <td class="text-center"><?= $corrToggle(!empty($oa['disable_correlation'])) ?></td>
                                 <td><input type="text" class="form-control form-control-sm om-oa-comment" value="<?= !empty($oa['comment']) ? h($oa['comment']) : '' ?>"></td>
@@ -425,7 +426,7 @@ if ($isAi) {
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 ix-table">
                 <?= $attrTableHead() ?>
                 <tbody>
                 <?php foreach ($event['Attribute'] as $attribute): ?>
@@ -444,6 +445,7 @@ if ($isAi) {
                         <?php endif; ?>>
                         <td class="ps-3"><button type="button" class="btn btn-sm btn-light text-danger p-1 om-remove" title="<?= __('Remove from import') ?>"><i class="fas fa-trash"></i></button></td>
                         <td class="pe-3"><?= $distPicker('om-attr', $attribute['distribution'] ?? null) ?></td>
+                        <td class="text-break"><?= $valueDisplay($attribute) ?><?= $tagChips($attribute['Tag'] ?? []) ?></td>
                         <td>
                             <?php if ($catIsArray): ?>
                                 <select class="form-select form-select-sm om-attr-cat-select">
@@ -462,7 +464,6 @@ if ($isAi) {
                                 <?= $this->element('genericElementsBS5/Badges/type', ['type' => $attribute['type'] ?? '']) ?>
                             <?php endif; ?>
                         </td>
-                        <td class="font-monospace small text-break"><?= $valueDisplay($attribute) ?><?= $tagChips($attribute['Tag'] ?? []) ?></td>
                         <td class="text-center"><?= $idsToggle(!empty($attribute['to_ids'])) ?></td>
                         <td class="text-center"><?= $corrToggle(!empty($attribute['disable_correlation'])) ?></td>
                         <td><input type="text" class="form-control form-control-sm om-attr-comment" placeholder="<?= h($importComment) ?>" value="<?= !empty($attribute['comment']) ? h($attribute['comment']) : '' ?>"></td>

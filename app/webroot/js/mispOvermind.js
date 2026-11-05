@@ -8649,8 +8649,16 @@ function initObjectAddForm(container, payloadEl) {
 
     /* ---- review --------------------------------------------------------- */
 
-    /* Deliberately a compact digest, not a copy of the object index's markup -
-     * the two used to be kept in step by hand and drifted. */
+    /* A piece of the review as the object index draws it: Objects/add.ctp
+     * renders the shared elements into #objReviewPieces, so the markup is
+     * theirs rather than a copy kept in step by hand. */
+    function reviewPiece(name, value) {
+        var pieces = container.querySelector('#objReviewPieces');
+        var el = pieces && pieces.content.querySelector('[data-piece="' + name + '"]');
+        if (!el) { return ''; }
+        return el.innerHTML.split('__V__').join(escapeHtml(value == null ? '' : String(value)));
+    }
+
     function buildReview() {
         var rows = savedRows().map(describeRow);
         var distEl = container.querySelector('#ObjectDistribution');
@@ -8690,28 +8698,27 @@ function initObjectAddForm(container, payloadEl) {
             + '</span>'
             + '</div>';
 
-        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-3">'
-            + '<thead class="table-light"><tr>'
-            + '<th>Value</th><th>Type</th><th>Category</th>'
-            + '<th class="text-center">IDS</th><th class="text-center">Correlate</th>'
+        /* The columns of the object index's attribute table (Objects/object_attribute_table). */
+        html += '<div class="table-responsive"><table class="table table-hover align-middle mb-3 ix-table">'
+            + '<thead><tr>'
+            + '<th>Value</th><th>Category</th><th>Type</th><th>IDS</th><th>Correlate</th>'
             + '</tr></thead><tbody>';
 
         rows.forEach(function (a) {
-            var value = distBadgeHtml(a.distribution, false)
-                + ' ' + escapeHtml(a.value || '—')
-                + (a.comment
-                    ? '<div class="text-muted fst-italic small"><i class="fa fa-comment me-1"></i>'
-                        + escapeHtml(a.comment) + '</div>'
-                    : '');
-
             html += '<tr>'
-                + '<td class="text-break">' + value + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.category) + '</td>'
-                + '<td class="text-center"><i class="fas fa-shield-halved '
-                + (a.to_ids ? 'text-warning' : 'text-secondary opacity-50') + '"></i></td>'
-                + '<td class="text-center"><i class="fas '
-                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary opacity-50')
+                + '<td class="text-break"><div class="attr-value"><div class="attr-value-line">'
+                + reviewPiece('dist-' + a.distribution)
+                + '<p class="fw-semibold mb-0">' + escapeHtml(a.value || '—') + '</p>'
+                + '</div>' + (a.comment ? reviewPiece('comment', a.comment) : '') + '</div></td>'
+                + '<td><div class="d-flex align-items-center gap-1">'
+                + reviewPiece('category', a.category)
+                + (a.relation ? reviewPiece('relation', a.relation) : '')
+                + '</div></td>'
+                + '<td>' + reviewPiece('type', a.type) + '</td>'
+                + '<td><i class="fas fa-shield-halved om-flag '
+                + (a.to_ids ? 'text-warning' : 'text-secondary') + '"></i></td>'
+                + '<td><i class="fas om-flag '
+                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary')
                 + '"></i></td>'
                 + '</tr>';
         });
