@@ -1,0 +1,331 @@
+/* The pieces of an attribute or an object, drawn once for every place that
+   shows one: index tables, cards, object tables, previews. Each block names the
+   element it styles; a page lays the pieces out, it does not restyle them. */
+
+/* The value (Fields/attribute_value): its line, then the comment and the
+   rest under it. The text wraps inside its line rather than below what leads it. */
+.attr-value {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: .8125rem;
+}
+.attr-value-line {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    min-width: 0;
+}
+.attr-value-line > p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+/* Under the value's text, past the event icon. */
+.attr-value:has(> .attr-value-line > .ev-peek) > .om-comment {
+    padding-left: calc(22px + .5rem);
+}
+
+/* A comment (Badges/comment), every record's: muted, led by its glyph, one
+   line that never widens what holds it, the title holding the rest. */
+.om-comment {
+    width: 0;
+    min-width: 100%;
+    overflow: hidden;
+    font-size: .75rem;
+    line-height: 1.35;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.om-comment > i {
+    margin-right: .25rem;
+    opacity: .7;
+}
+/* The whole content of a table column: as wide as its text, up to a cap. */
+.om-comment.is-column {
+    width: auto;
+    min-width: 0;
+    max-width: 28rem;
+}
+/* One item of an inline meta line. */
+.om-comment.is-inline {
+    display: inline-block;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    vertical-align: bottom;
+}
+
+/* The type (Badges/type): a small monospaced chip. An attribute's relation
+   in its object (Badges/object_relation) is the same chip, its colours inverted. */
+.om-type,
+.om-relation {
+    display: inline-block;
+    padding: 0 6px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+    background: var(--bs-tertiary-bg);
+    font-family: var(--bs-font-monospace);
+    font-size: .72rem;
+    line-height: 18px;
+    color: var(--bs-body-color);
+    white-space: nowrap;
+}
+.om-relation {
+    border-color: var(--bs-body-color);
+    background: var(--bs-body-color);
+    color: var(--bs-body-bg);
+}
+
+/* The category (Badges/category): muted italics. */
+.om-category {
+    font-size: .78rem;
+    font-style: italic;
+    color: var(--bs-secondary-color);
+}
+
+/* The distribution's short form (Badges/distribution): a tinted square. */
+.om-dist.is-short {
+    justify-content: center;
+    width: 24px;
+    height: 20px;
+    padding: 0;
+    border-radius: 5px;
+}
+
+/* The IDS and correlation flags' table form (Fields/ids, Fields/correlate). */
+.om-flag {
+    font-size: .95rem;
+}
+
+/* Sightings (Fields/sightings): a thumb adds one of its kind, the dots open
+   the details. */
+.sighting-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.sighting-cell > .btn {
+    --sg-tone: var(--bs-secondary-color);
+    --sg-ink: color-mix(in srgb, var(--sg-tone) 78%, var(--bs-emphasis-color));
+    --bs-btn-active-bg: color-mix(in srgb, var(--sg-tone) 26%, transparent);
+    --bs-btn-active-color: var(--sg-ink);
+    --bs-btn-active-border-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding: 0 9px 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sg-tone) 12%, transparent);
+    font-size: .74rem;
+    font-weight: 650;
+    line-height: 1;
+    color: var(--sg-ink);
+    font-variant-numeric: tabular-nums;
+    transition: background-color .12s, box-shadow .12s, color .12s;
+}
+.sighting-count.is-s { --sg-tone: var(--bs-success); }
+.sighting-count.is-f { --sg-tone: var(--bs-danger); }
+.sighting-count.is-e { --sg-tone: var(--bs-warning); }
+.sighting-count > i {
+    font-size: .68rem;
+    color: var(--sg-tone);
+}
+.sighting-count.is-zero {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--ix-line, var(--bs-border-color));
+    font-weight: 500;
+    color: var(--bs-tertiary-color);
+}
+.sighting-cell > button.btn:hover,
+.sighting-cell > button.btn:focus-visible {
+    background: color-mix(in srgb, var(--sg-tone) 20%, transparent);
+    box-shadow: none;
+    color: var(--sg-ink);
+}
+.sighting-cell > button.btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--sg-tone) 55%, transparent);
+    outline-offset: 1px;
+}
+.sighting-cell > span.btn { cursor: default; }
+.sighting-cell > .sighting-details {
+    justify-content: center;
+    width: 22px;
+    padding: 0;
+    background: transparent;
+}
+.sighting-cell > .sighting-details:hover,
+.sighting-cell > .sighting-details:focus-visible {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+}
+
+/* Analyst data (Fields/analyst_data_badges): the counts on one line; the
+   way in when there is none stays quiet until its row or card is hovered. */
+@media (hover: hover) {
+    .om-analyst-none { opacity: .45; }
+    :is(tr, .idx-card):hover .om-analyst-none,
+    .om-analyst-none:focus-visible { opacity: 1; }
+}
+
+/* An attribute's event (Attributes/event_peek): an icon at the head of its value, and
+   a popover drawn as the events index's sharing group peek. Bootstrap's sanitizer
+   drops the popover's inline styles: every tone is a class. */
+.ev-peek {
+    flex: none;
+    align-self: center;
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 20px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--bs-event) 12%, transparent);
+    color: var(--bs-event);
+    text-decoration: none;
+}
+.ev-peek:hover,
+.ev-peek:focus-visible {
+    background: color-mix(in srgb, var(--bs-event) 22%, transparent);
+}
+.ev-peek .misp-icon { width: 12px; height: 12px; }
+.ev-peek-popover {
+    --bs-popover-max-width: 340px;
+    width: 340px;
+    --bs-popover-border-radius: 10px;
+    --bs-popover-inner-border-radius: 9px;
+    --bs-popover-body-padding-x: 0;
+    --bs-popover-body-padding-y: 0;
+    font-size: .8rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 2px 6px rgba(0, 0, 0, .08);
+}
+.ev-peek-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.ev-peek-ic {
+    flex: none;
+    align-self: flex-start;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 28px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--bs-event) 12%, transparent);
+    color: var(--bs-event);
+}
+.ev-peek-ic .misp-icon { width: 16px; height: 16px; }
+.ev-peek-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.ev-peek-title b {
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+.ev-peek-title small {
+    font-size: .72rem;
+    color: var(--bs-secondary-color);
+}
+.ev-peek-id { font-family: var(--bs-font-monospace); }
+.ev-peek-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+.ev-peek-pill {
+    --evp-tone: var(--bs-secondary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 1px 7px;
+    border: 1px solid color-mix(in srgb, var(--evp-tone) 35%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--evp-tone) 7%, transparent);
+    font-size: .66rem;
+    font-weight: 650;
+    color: color-mix(in srgb, var(--evp-tone) 80%, var(--bs-emphasis-color));
+}
+.ev-peek-pill i { font-size: .6rem; }
+.ev-peek-pill.is-published { --evp-tone: var(--bs-success); }
+.ev-peek-pill.is-unpublished,
+.ev-peek-pill.is-pending { --evp-tone: var(--bs-warning); }
+.ev-peek-pill.is-pending { border-style: dashed; }
+.ev-peek-org {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.ev-peek-org .dk-logo { width: 28px; height: 28px; border-radius: 6px; }
+.ev-peek-org .dk-logo img { max-width: 28px; max-height: 28px; }
+.ev-peek-org .dk-logo.is-mono { font-size: 11px; }
+.ev-peek-org-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.ev-peek-org-text b {
+    overflow: hidden;
+    font-size: .85rem;
+    font-weight: 650;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.ev-peek-org-text small {
+    font-size: .7rem;
+    color: var(--bs-secondary-color);
+}
+.ev-peek-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 14px;
+    padding: 10px 12px 11px;
+}
+.ev-peek-fact {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.ev-peek-fact small {
+    font-size: .64rem;
+    font-weight: 650;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ev-peek-fact > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.ev-peek-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--misp-tone-gray-solid, #6c757d);
+}
+.ev-peek-dot.is-high { background: var(--misp-tone-red-solid, #dc3545); }
+.ev-peek-dot.is-medium,
+.ev-peek-dot.is-ongoing { background: var(--misp-tone-orange-solid, #fd7e14); }
+.ev-peek-dot.is-low { background: var(--misp-tone-yellow-solid, #ffc107); }
+.ev-peek-dot.is-initial { background: var(--misp-tone-blue-solid, #0d6efd); }
+.ev-peek-dot.is-completed { background: var(--misp-tone-green-solid, #198754); }

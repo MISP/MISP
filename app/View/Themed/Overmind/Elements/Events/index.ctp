@@ -113,6 +113,7 @@ $count = function ($key, $count, $setting, $iconHtml, $title) use ($col, $icon, 
     return $col($key, [
         'element' => 'event_count',
         'count' => $count,
+        'link' => true,
         'header_html' => $icon($iconHtml),
         'header_title' => $title,
         'requirement' => $offered($setting),

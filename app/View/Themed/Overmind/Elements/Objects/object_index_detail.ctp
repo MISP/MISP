@@ -12,6 +12,9 @@
  *   mayGraph           bool   may add to a workspace
  *   enrichmentEnabled  bool   Plugin.Enrichment_services_enable
  *   cortexEnabled      bool   Plugin.Cortex_services_enable
+ *   readonly           bool   for an event held elsewhere: no selection box or
+ *                             action menu, the IDS and correlation states
+ *                             without their toggles, no sightings
  *
  * Read from the view: $baseurl, $me, $extensionEvents.
  */
@@ -27,6 +30,8 @@ $uuid = (string)($object['uuid'] ?? '');
                 'mayGraph' => $mayGraph ?? false,
                 'enrichmentEnabled' => $enrichmentEnabled ?? false,
                 'cortexEnabled' => $cortexEnabled ?? false,
+                'readonly' => !empty($readonly),
+                'remote' => !empty($readonly),
             ]) ?>
             <div class="oi-card-foot">
                 <span class="oi-card-uuid">

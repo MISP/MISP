@@ -12,9 +12,9 @@ $this->Form->unlockField('TagCollection.tags');
 $this->Form->unlockField('TagCollection.galaxies');
 $browsers = [
     'tag' => [
-        'scopes' => $baseurl . '/tags/pickerScopes',
-        'source' => $baseurl . '/tags/pickerSearch',
-        'tree' => $baseurl . '/tags/pickerTree',
+        'scopes' => $baseurl . '/tags/pickerScopes?attach=1',
+        'source' => $baseurl . '/tags/pickerSearch?attach=1',
+        'tree' => $baseurl . '/tags/pickerTree?attach=1',
         'label' => __('Tags'),
         'accent' => 'var(--bs-tag)',
     ],

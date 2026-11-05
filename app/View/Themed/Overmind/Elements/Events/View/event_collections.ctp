@@ -8,10 +8,10 @@ $addUrl    = h($baseurl . '/collectionElements/addElementToCollection/Event/' . 
 $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
 ?>
 
-<div class="card shadow-sm mb-3" id="collections-card">
+<div class="card shadow-sm mb-3<?= $mayAdd ? '' : ' d-none' ?>" id="collections-card">
 
     <!-- HEADER -->
-    <div class="p-3 border-bottom">
+    <div class="p-3 border-bottom" id="<?= $uid ?>-head">
         <div class="d-flex align-items-center gap-2">
             <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center"
                  style="width:36px;height:36px;--tile:#1892B1;--tile-bg:#1892B140;">
@@ -51,7 +51,17 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
     var viewBase = <?= json_encode($viewBase) ?>;
     var countEl  = document.getElementById(uid + '-count');
     var bodyEl   = document.getElementById(uid + '-body');
+    var headEl   = document.getElementById(uid + '-head');
+    var cardEl   = bodyEl.closest('.card');
+    var mayAdd   = <?= json_encode($mayAdd) ?>;
     var eventUuid = <?= json_encode($data['Event']['uuid'] ?? '') ?>;
+
+    // Empty, the card is its header and its +; without the + it has nothing to offer.
+    function setEmpty(empty) {
+        headEl.classList.toggle('border-bottom', !empty);
+        bodyEl.classList.toggle('d-none', empty);
+        cardEl.classList.toggle('d-none', empty && !mayAdd);
+    }
 
     // The picker saves in place, so the card follows an add of this event.
     document.addEventListener('misp:collection-element-added', function (e) {
@@ -83,18 +93,10 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
                         );
                 }
 
-                if (total === 0) {
-                    bodyEl.innerHTML =
-                        '<div class="d-flex flex-column align-items-center justify-content-center text-muted py-4">'
-                        + '<i class="fas fa-folder fa-2x mb-2 opacity-50"></i>'
-                        + '<p class="mb-0 small fw-semibold">'
-                        + <?= json_encode(__('This event is not part of any collection.')) ?>
-                        + '</p>'
-                        + '</div>';
-                    return;
-                }
-
                 bodyEl.innerHTML = '';
+                setEmpty(total === 0);
+                if (total === 0) { return; }
+
                 collections.forEach(function (collection) {
                     var row = document.createElement('a');
                     row.href = viewBase + encodeURIComponent(collection.id);
@@ -128,6 +130,7 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
                     + '<i class="fas fa-exclamation-triangle me-2"></i>'
                     + <?= json_encode(__('Could not load collections.')) ?>
                     + '</div>';
+                setEmpty(false);
                 if (countEl) { countEl.textContent = ''; }
             });
     }

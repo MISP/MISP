@@ -32,7 +32,8 @@ class TagsController extends AppController
     /**
      * Visible, non-galaxy tags for an index filter picker: GET ?q=<term>.
      * Narrowed with &scope=<namespace> (`-` for none) and &predicate=,
-     * where an empty term lists the scope; &limit= up to 200.
+     * where an empty term lists the scope; &limit= up to 200. &attach=1 for
+     * a picker attaching tags, which offers none of a taxonomy not enabled.
      */
     public function pickerSearch()
     {
@@ -43,6 +44,7 @@ class TagsController extends AppController
                 'scope' => $this->request->query('scope'),
                 'predicate' => $this->request->query('predicate'),
                 'limit' => $this->request->query('limit'),
+                'attach' => !empty($this->request->query('attach')),
             ]),
             'json'
         );
@@ -50,24 +52,32 @@ class TagsController extends AppController
 
     /**
      * What an index's Tag picker can narrow to: taxonomies, namespaces
-     * without one, and the count of tags with no namespace.
+     * without one, and the count of tags with no namespace. ?attach=1 for
+     * a picker attaching tags: enabled taxonomies only.
      */
     public function pickerScopes()
     {
         $this->request->allowMethod(['get']);
         App::uses('IndexPicker', 'Tools');
-        return $this->RestResponse->viewData(IndexPicker::tagScopes($this->Auth->user()), 'json');
+        return $this->RestResponse->viewData(
+            IndexPicker::tagScopes($this->Auth->user(), !empty($this->request->query('attach'))),
+            'json'
+        );
     }
 
     /**
      * One taxonomy's predicates and entries for the Tag picker:
-     * GET ?namespace=<namespace>.
+     * GET ?namespace=<namespace>, &attach=1 for an enabled taxonomy only.
      */
     public function pickerTree()
     {
         $this->request->allowMethod(['get']);
         App::uses('IndexPicker', 'Tools');
-        $tree = IndexPicker::taxonomyTree($this->Auth->user(), (string)$this->request->query('namespace'));
+        $tree = IndexPicker::taxonomyTree(
+            $this->Auth->user(),
+            (string)$this->request->query('namespace'),
+            !empty($this->request->query('attach'))
+        );
         if ($tree === null) {
             throw new NotFoundException(__('Invalid taxonomy.'));
         }

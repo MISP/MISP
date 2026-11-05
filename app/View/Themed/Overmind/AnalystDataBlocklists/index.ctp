@@ -62,6 +62,7 @@ $fields = [
         'name' => __('Comment'),
         'sort' => 'AnalystDataBlocklist.comment',
         'data_path' => 'AnalystDataBlocklist.comment',
+        'element' => 'comment',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],

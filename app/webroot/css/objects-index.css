@@ -48,18 +48,10 @@
 .oi-expand[aria-expanded="true"] i {
     transform: rotate(90deg);
 }
+/* The comment (Badges/comment), under the name past the icon. */
 .oi-comment {
-    margin: .25rem 0 0 2.25rem;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     max-width: 40rem;
-    font-size: .75rem;
-    color: var(--bs-secondary-color);
-}
-.oi-comment i {
-    margin-right: .25rem;
-    opacity: .7;
+    margin: .25rem 0 0 2.25rem;
 }
 
 .oi-refs {
@@ -117,16 +109,56 @@
     color: var(--bs-tertiary-color);
 }
 
-.oi-table tr.oi-open > td {
-    border-bottom-color: transparent;
+/* An open object and its attributes, framed together a few pixels apart from
+   the rows around them: the frame is inset shadows, which follow the corners,
+   and the gap transparent borders. */
+.oi-table {
+    --oi-frame: var(--ix-accent);
+    --oi-open-bg: color-mix(in srgb, var(--ix-accent) 5%, var(--ix-bg));
+    --oi-open-gap: 4px;
+    --oi-open-r: .5rem;
 }
-.oi-detail > td {
-    padding: 0 .75rem .75rem 2.75rem;
+.oi-table > tbody > tr.oi-open:is(*, :hover) > td {
+    border-top: var(--oi-open-gap) solid transparent;
+    border-bottom-color: transparent;
+    background-color: var(--oi-open-bg);
+    background-clip: padding-box;
+    box-shadow: inset 0 2px 0 var(--oi-frame);
+}
+.oi-table > tbody > tr.oi-open > td:first-child {
+    border-top-left-radius: var(--oi-open-r);
+    box-shadow: inset 2px 0 0 var(--oi-frame), inset 0 2px 0 var(--oi-frame);
+}
+.oi-table > tbody > tr.oi-open > td:last-child {
+    border-top-right-radius: var(--oi-open-r);
+    box-shadow: inset -2px 0 0 var(--oi-frame), inset 0 2px 0 var(--oi-frame);
+}
+/* An extension's band stays inside the frame. */
+.oi-table > tbody > tr.oi-open.evt-extension-row > td:first-child {
+    box-shadow: inset 2px 0 0 var(--oi-frame), inset 5px 0 0 var(--extension-accent, transparent),
+        inset 0 2px 0 var(--oi-frame);
+}
+.oi-table > tbody > tr.oi-open .oi-expand {
+    color: var(--oi-frame);
 }
 /* Its own ground, under the table's hover and selection tints too: the
    attribute table it holds has rows to select. */
 .oi-table > tbody > tr.oi-detail:is(*, :hover, :focus-within, :has(.mass-select:checked)) > td {
-    background-color: var(--bs-tertiary-bg);
+    padding: 0 .5rem .5rem;
+    border-bottom: var(--oi-open-gap) solid transparent;
+    border-radius: 0 0 var(--oi-open-r) var(--oi-open-r);
+    background-color: var(--oi-open-bg);
+    background-clip: padding-box;
+    box-shadow: inset 2px 0 0 var(--oi-frame), inset -2px 0 0 var(--oi-frame), inset 0 -2px 0 var(--oi-frame);
+}
+.oi-detail .oi-card {
+    border-color: color-mix(in srgb, var(--oi-frame) 30%, var(--ix-line));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+/* The attribute table's head, told apart from the index's own. */
+.oi-detail .oi-card thead th {
+    background-color: color-mix(in srgb, var(--oi-frame) 8%, var(--ix-bg));
+    color: var(--bs-emphasis-color);
 }
 .oi-detail-box {
     min-height: 3rem;
@@ -394,17 +426,6 @@
     }
 }
 
-.oi-tile-comment {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    font-size: .75rem;
-    color: var(--bs-secondary-color);
-}
-.oi-tile-comment i {
-    margin-right: .25rem;
-    opacity: .7;
-}
 .oi-tile-facts {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
@@ -472,6 +493,19 @@
 }
 .oi-tile-analyst > .d-flex {
     flex-direction: row !important;
+}
+
+/* An open card is framed as an open row is, without the ground, which a card
+   takes once selected. */
+.idx-card:has(> .oi-tile .oi-tile-toggle[aria-expanded="true"]) {
+    --oi-frame: var(--bs-link-color, var(--bs-primary));
+    border-top-color: var(--oi-frame);
+    border-right-color: var(--oi-frame);
+    border-bottom-color: var(--oi-frame);
+    box-shadow: 0 0 0 1px var(--oi-frame) !important;
+}
+.idx-card:not(.evt-extension-row):has(> .oi-tile .oi-tile-toggle[aria-expanded="true"]) {
+    border-left-color: var(--oi-frame);
 }
 
 /* An open card takes the whole row, as the table's detail row does, and lays

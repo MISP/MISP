@@ -54,11 +54,7 @@ $modified = $timestamp > 0
         <?php endif; ?>
     </div>
 
-    <?php if (!empty($object['comment'])): ?>
-        <div class="oi-tile-comment" title="<?= h($object['comment']) ?>">
-            <i class="fas fa-comment"></i> <?= h($object['comment']) ?>
-        </div>
-    <?php endif; ?>
+    <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $object['comment'] ?? '']) ?>
 
     <dl class="oi-tile-facts">
         <?php if (!empty($row['Event'])): ?>

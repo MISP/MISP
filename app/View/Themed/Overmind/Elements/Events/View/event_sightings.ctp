@@ -5,7 +5,7 @@ $fetchUrl = $baseurl . '/events/viewEventSightings/' . $eventId;
 $advUrl   = $baseurl . '/sightings/advanced/' . $eventId . '/event';
 ?>
 
-<div class="card shadow-sm mb-3" id="sightings-card">
+<div class="card shadow-sm mb-3 d-none" id="sightings-card">
 
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
@@ -47,6 +47,7 @@ $advUrl   = $baseurl . '/sightings/advanced/' . $eventId . '/event';
         var body    = document.getElementById(uid + '-body');
         var countEl = document.getElementById(uid + '-count');
         if (!body) return;
+        var card = body.closest('.card');
         fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) {
                 if (!r.ok) throw new Error(r.status);
@@ -55,14 +56,17 @@ $advUrl   = $baseurl . '/sightings/advanced/' . $eventId . '/event';
             .then(function (html) {
                 body.innerHTML = html;
                 var root = body.querySelector('[data-sighting-total]');
-                if (root && countEl) {
-                    var total = parseInt(root.getAttribute('data-sighting-total'), 10);
+                var total = root ? parseInt(root.getAttribute('data-sighting-total'), 10) || 0 : 0;
+                // Only shown once the event has been sighted.
+                card.classList.toggle('d-none', total === 0);
+                if (countEl) {
                     countEl.textContent = total === 0 ? msgNone : msgSome.replace('%s', total);
                 }
             })
             .catch(function () {
                 body.innerHTML = '<div class="text-center text-muted py-4 small">'
                     + '<i class="fas fa-exclamation-triangle me-2"></i>' + msgFail + '</div>';
+                card.classList.remove('d-none');
                 if (countEl) countEl.textContent = '';
             });
     }

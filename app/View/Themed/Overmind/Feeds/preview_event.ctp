@@ -14,7 +14,9 @@ $previewIndexUrl = $baseurl . '/feeds/previewIndex/' . $feedId;
 $canFetch = !empty($feed['Feed']['enabled']) && !empty($isSiteAdmin);
 
 echo $this->element('genericElements/assetLoader', [
-    'js' => ['Chart.min']
+    'js' => ['event-overview', 'objects-index'],
+    // attributes-index, objects-index: the Attributes and Objects tabs.
+    'css' => ['event-overview', 'attributes-index', 'objects-index'],
 ]);
 
 $this->set('headerTitle', h($event['Event']['info'] ?? ''));
@@ -43,12 +45,9 @@ foreach ($event['objects'] ?? [] as $previewObject) {
 ?>
 
 <div class="container-fluid">
-    <div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">
-        <i class="fas fa-satellite-dish fs-4"></i>
-        <div>
-            <?= __('You are currently viewing an event from the feed %s', '<strong>' . h($feedName) . '</strong>') ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Layout/remote_notice', [
+        'message' => __('You are currently viewing an event from the feed %s', '<strong>' . h($feedName) . '</strong>'),
+    ]) ?>
 </div>
 
 <?php
@@ -59,6 +58,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
         'org' => $event['Org'] ?? [],
         'distribution' => $event['Event']['distribution'] ?? null,
         'sharingGroup' => $event['SharingGroup'] ?? [],
+        'markings' => $previewOverview['markings'] ?? [],
         'link' => false,
     ],
     'tabs' => [
@@ -67,8 +67,9 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'title' => __('General'),
             'icon' => 'fas fa-info-circle',
             'left' => [
-                ['row' => ['Servers/View/preview_tags', 'Servers/View/preview_galaxies']],
-                'Servers/View/preview_general',
+                'Events/View/overview_band',
+                ['element' => 'Events/View/overview_facts', 'params' => ['overview' => $previewOverview]],
+                ['element' => 'Events/View/overview_details', 'params' => ['activity' => false]],
             ],
             'right' => array_values(array_filter([
                 $canFetch ? 'Feeds/View/preview_actions' : null,

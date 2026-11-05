@@ -168,9 +168,8 @@ echo $this->Form->create('Attribute', [
                         <?= $this->Form->checkbox('advanced', [
                             'id'                   => 'AttributeAdvanced',
                             'checked'              => false,
-                            'disabled'             => !$advancedExtractionAvailable,
-                            'data-disabled-reason' => !$advancedExtractionAvailable
-                                ? __('Advanced extraction is not installed') : '',
+                            'disabled'             => true,
+                            'data-disabled-reason' => __('Checking whether advanced extraction is installed…'),
                             'class'                => 'form-check-input flex-shrink-0',
                             'style'                => 'margin-top:0;',
                         ]) ?>
@@ -179,11 +178,9 @@ echo $this->Form->create('Attribute', [
                                  style="font-size:.72rem; letter-spacing:.06em; line-height:1.2;">
                                 <?= __('Advanced Extraction') ?>
                             </div>
-                            <div class="text-muted"
+                            <div class="text-muted" id="advanced-desc"
                                  style="font-size:.76rem; margin-top:.2rem; line-height:1.3;">
-                                <?= $advancedExtractionAvailable
-                                    ? __('Extract embedded indicators from the sample')
-                                    : __('Advanced extraction is not installed') ?>
+                                <?= __('Checking whether advanced extraction is installed…') ?>
                             </div>
                         </div>
                         <i class="fas fa-microscope"
@@ -250,6 +247,12 @@ echo $this->Form->create('Attribute', [
 <script>
 var formZipTypeValues = <?= json_encode($isMalwareSampleCategory) ?>;
 var fileTemplateUuid  = <?= json_encode($maliciousDefault) ?>;
+var advancedStatusUrl = <?= json_encode($baseurl . '/attributes/advancedExtractionStatus') ?>;
+var advancedLabels    = <?= json_encode([
+    'available' => __('Extract embedded indicators from the sample'),
+    'missing'   => __('Advanced extraction is not installed'),
+    'failed'    => __('Could not check whether advanced extraction is installed'),
+]) ?>;
 
 (function () {
     var AMBER      = '#F59E0B';
@@ -284,12 +287,50 @@ var fileTemplateUuid  = <?= json_encode($maliciousDefault) ?>;
             }
         }
 
+        function setAdvanced(state) {
+            var advCb   = document.getElementById('AttributeAdvanced');
+            var advDesc = document.getElementById('advanced-desc');
+            var enabled = state === 'available';
+            if (advCb) {
+                advCb.disabled = !enabled;
+                if (!enabled) { advCb.checked = false; }
+                advCb.setAttribute('data-disabled-reason', enabled ? '' : advancedLabels[state]);
+            }
+            if (advDesc) { advDesc.textContent = advancedLabels[state]; }
+        }
+
+        /* The server check runs Python for seconds, so it is asked only once
+           the option shows, and its answer is kept for the page. */
+        function checkAdvanced() {
+            if (!window.mispAdvancedExtraction) {
+                window.mispAdvancedExtraction = fetch(advancedStatusUrl, {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(function (r) {
+                    if (!r.ok) { throw new Error(r.status); }
+                    return r.json();
+                }).then(function (d) {
+                    return !!(d && d.available);
+                });
+                // A failed check is asked again on the next opening.
+                window.mispAdvancedExtraction.catch(function () {
+                    window.mispAdvancedExtraction = null;
+                });
+            }
+            window.mispAdvancedExtraction.then(function (available) {
+                setAdvanced(available ? 'available' : 'missing');
+            }, function () {
+                setAdvanced('failed');
+            });
+        }
+
         function updateAdvancedVisibility() {
             var adv = document.getElementById('advanced_input');
             if (!adv) { return; }
             var isFileTemplate = tplMalEl && tplMalEl.value === fileTemplateUuid;
-            adv.style.display =
-                (malwareCb && malwareCb.checked && isFileTemplate) ? '' : 'none';
+            var shown = malwareCb && malwareCb.checked && isFileTemplate;
+            adv.style.display = shown ? '' : 'none';
+            if (shown) { checkAdvanced(); }
         }
 
         function onMalwareChange() {

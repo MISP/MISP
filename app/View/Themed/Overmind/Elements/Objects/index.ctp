@@ -594,52 +594,11 @@ $indexData = ['data' => [
     }
 
 
-    // Both views draw every object, so its two toggles move together.
-    function setObjectOpen(id, open) {
-        if (!window.ObjectsIndex) return;
-        objScope().querySelectorAll('.oi-index [data-oi-expand="' + id + '"]').forEach(function (button) {
-            window.ObjectsIndex.setOpen(button, open);
-        });
+    // The two views, an object's toggles in both, Expand / Collapse all, and
+    // the open objects kept per event for this browser tab (objects-index.js).
+    if (window.ObjectsIndex) {
+        window.ObjectsIndex.bindList(container || document, 'misp.openObjects.' + eventId);
     }
-
-    function setAllObjectsExpanded(expand) {
-        if (!window.ObjectsIndex) return;
-        objScope().querySelectorAll('.oi-index [data-oi-expand]').forEach(function (button) {
-            window.ObjectsIndex.setOpen(button, expand);
-        });
-    }
-
-    // The open objects survive a reload of the event view — a modal form
-    // (adding a note, editing an attribute) comes back through a full page
-    // load. Kept per event, for this browser tab only.
-    var _openKey = 'misp.openObjects.' + eventId;
-    function readOpenObjects() {
-        try { return JSON.parse(sessionStorage.getItem(_openKey) || '[]'); } catch (e) { return []; }
-    }
-    function writeOpenObjects(ids) {
-        try { sessionStorage.setItem(_openKey, JSON.stringify(ids)); } catch (e) {}
-    }
-    // On the fragment's own root, which an ajax reload replaces, so the
-    // listener never stacks up.
-    var listRoot = objScope().querySelector('#objectListContainer');
-    if (listRoot) {
-        listRoot.addEventListener('oi:toggle', function (e) {
-            var id = e.detail.id;
-            var ids = readOpenObjects().filter(function (x) { return x !== id; });
-            if (e.detail.open) ids.push(id);
-            writeOpenObjects(ids);
-            setObjectOpen(id, e.detail.open);
-        });
-    }
-    readOpenObjects().forEach(function (id) { setObjectOpen(id, true); });
-
-    [['.obj-expand-all', true], ['.obj-collapse-all', false]].forEach(function (pair) {
-        var btn = (container || document).querySelector(pair[0]);
-        if (!btn) return;
-        btn.addEventListener('click', function () {
-            setAllObjectsExpanded(pair[1]);
-        });
-    });
 
     // Object mass-select. Deliberately not `.item-checkbox`: that class feeds
     // the global selectedItems map, which the attribute toolbar deletes through
@@ -747,45 +706,6 @@ $indexData = ['data' => [
     };
 
     updateObjToolbar();
-
-    // View switch (list <-> cards). mispOvermind.js binds #viewList/#viewCard on
-    // DOMContentLoaded against #tableView/#cardView — neither the buttons nor
-    // those containers exist yet in a lazily loaded tab, which is why the
-    // toggle did nothing here. So this fragment owns its own, scoped to its
-    // container: the two button ids repeat in every tab's filter bar.
-    function applyObjView(mode, animate) {
-        var scope = container || document;
-        var list = scope.querySelector('#objTableView');
-        var cards = scope.querySelector('#objCardView');
-        if (!list || !cards) return;
-        var showCards = mode === 'card';
-        list.classList.toggle('d-none', showCards);
-        cards.classList.toggle('d-none', !showCards);
-        var btnList = scope.querySelector('#viewList');
-        var btnCard = scope.querySelector('#viewCard');
-        if (btnList) btnList.classList.toggle('active', !showCards);
-        if (btnCard) btnCard.classList.toggle('active', showCards);
-        if (animate && typeof animateIndexView === 'function') {
-            animateIndexView(showCards ? cards : list);
-        }
-    }
-
-    // Own storage key: 'indexViewMode' drives the scaffold indexes, and an
-    // object card is a different trade-off from an attribute card.
-    [['#viewList', 'table'], ['#viewCard', 'card']].forEach(function (pair) {
-        var btn = container ? container.querySelector(pair[0]) : null;
-        if (!btn) return;
-        var fresh = btn.cloneNode(true);
-        btn.parentNode.replaceChild(fresh, btn);
-        fresh.addEventListener('click', function () {
-            try { localStorage.setItem('objectsViewMode', pair[1]); } catch (e) {}
-            applyObjView(pair[1], true);
-        });
-    });
-
-    var _savedObjView = 'table';
-    try { _savedObjView = localStorage.getItem('objectsViewMode') || 'table'; } catch (e) {}
-    applyObjView(_savedObjView, false);
 
     (container || document).querySelectorAll('.obj-attr-actions, .obj-row-actions, .oi-refs-toggle').forEach(function (toggle) {
         bootstrap.Dropdown.getOrCreateInstance(toggle, {

@@ -20,8 +20,9 @@ $event     = $row['Event'] ?? ($event ?? null);
  */
 $readonly = !empty($field['readonly']);
 
-if ($attribute && ($event || $readonly) && isset($attribute['id'], $attribute['type'])):
-    $objectId    = h($attribute['id']);
+// Read-only, a remote row without a local id is reported too.
+if ($attribute && isset($attribute['type']) && ($readonly || ($event && isset($attribute['id'])))):
+    $objectId    = h($attribute['id'] ?? $attribute['uuid'] ?? '');
     $isNonCorrelatingType = in_array(
         $attribute['type'],
         MispAttribute::NON_CORRELATING_TYPES,
@@ -70,7 +71,7 @@ if ($attribute && ($event || $readonly) && isset($attribute['id'], $attribute['t
                 </span>
             </span>
         <?php else: ?>
-            <i class="fas <?= $icon ?> <?= $colorClass ?>" style="font-size:1.2em;"></i>
+            <i class="fas <?= $icon ?> om-flag <?= $colorClass ?>"></i>
         <?php endif; ?>
 
     </button>
@@ -97,7 +98,7 @@ if ($attribute && ($event || $readonly) && isset($attribute['id'], $attribute['t
                 </span>
             </span>
         <?php else: ?>
-            <i class="fas <?= $icon ?> <?= $colorClass ?>" style="font-size:1.2em;"></i>
+            <i class="fas <?= $icon ?> om-flag <?= $colorClass ?>"></i>
         <?php endif; ?>
     </span>
 <?php endif; ?>
