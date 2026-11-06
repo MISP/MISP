@@ -18,7 +18,7 @@
     /*
      * `assetLoader` echoes the script tag where the view runs, which is
      * above the markup this file drives — so at the moment it executes
-     * there is no `#ap-rail` to find, and a lookup here answers null.
+     * there is no `.wb-bench` to find, and a lookup here answers null.
      * Waiting for the document is the whole difference between an
      * editor and a page that shipped no JS at all.
      */
@@ -28,16 +28,59 @@
         boot();
     }
 
+    /*
+     * The full comparison opens in #mainModal. The editor posts its form,
+     * unsaved fields and benched value included, so the candidate is what
+     * is being typed; anywhere else the link's own value is the one read.
+     */
+    window.analystProfileCompare = function (url) {
+        var form = document.getElementById('ap-form');
+        if (form && form.getAttribute('data-ap-simulate')
+            && typeof openModalPostChained === 'function'
+        ) {
+            openModalPostChained(form.getAttribute('data-ap-simulate')
+                + '?full=1', new FormData(form), 'xl');
+            return;
+        }
+        if (typeof openModal === 'function') {
+            openModal(url + (url.indexOf('?') === -1 ? '?' : '&') + 'full=1',
+                'xl');
+        } else {
+            window.location.href = url;
+        }
+    };
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest
+            ? event.target.closest('a[data-ap-compare]')
+            : null;
+        if (!link) {
+            return;
+        }
+        event.preventDefault();
+        window.analystProfileCompare(link.getAttribute('href'));
+    });
+
+    // The whole document, from the template profile_sections leaves in the page.
+    window.analystProfileRaw = function () {
+        var template = document.getElementById('ap-raw-modal');
+        var modal = document.getElementById('mainModal');
+        if (!template || !modal
+            || typeof renderMainModalContent !== 'function'
+        ) {
+            return;
+        }
+        setModalSize('xl');
+        renderMainModalContent(template.innerHTML);
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+    };
+
 function boot() {
     var form = document.getElementById('ap-form');
-    var rail = document.getElementById('ap-rail');
     var bench = document.querySelector('.wb-bench');
-    if (!rail && !bench) {
+    if (!form && !bench) {
         return;
     }
 
-    var raw = document.getElementById('ap-raw');
-    var body = rail ? rail.parentNode : null;
     /*
      * The editor and the read-only viewer carry the form, so their
      * bench recomputes in place. The expanded simulator is a page with
@@ -45,51 +88,33 @@ function boot() {
      */
     var carried = document.getElementById('ap-bench-value');
     var live = !!(form && bench && carried);
+    var unsavedLabel = (form && form.getAttribute('data-ap-unsaved')) || '';
 
-    /* ------------------------------------------------------------ *
-     * One section open at a time
-     * ------------------------------------------------------------ */
-
-    function open(section) {
-        if (!rail || !body) {
-            return;
+    /*
+     * The pasted document lives in #mainModal and joins the form through
+     * its `form` attribute. A disabled field posts nothing, and `edit`
+     * prefers a pasted document over a merged section — so once the
+     * modal closes the textarea is switched off, or the next save would
+     * post the whole document beside the weights and the paste would win.
+     */
+    document.addEventListener('input', function (event) {
+        if (event.target.id === 'ap-raw') {
+            mark();
         }
-        Array.prototype.forEach.call(
-            rail.querySelectorAll('.wb-rail-item'),
-            function (item) {
-                item.classList.toggle('is-open',
-                    item.getAttribute('data-sec') === section);
+    });
+    var modal = document.getElementById('mainModal');
+    if (form && modal) {
+        modal.addEventListener('hidden.bs.modal', function () {
+            var raw = document.getElementById('ap-raw');
+            if (raw && modal.contains(raw)) {
+                raw.disabled = true;
+                mark();
             }
-        );
-        Array.prototype.forEach.call(
-            body.querySelectorAll('.wb-sec'),
-            function (pane) {
-                pane.classList.toggle('is-open',
-                    pane.getAttribute('data-sec') === section);
-            }
-        );
-        /*
-         * A disabled field posts nothing, and `edit` prefers a pasted
-         * document over a merged section — so the textarea is live
-         * only while its own pane is the one on screen. Otherwise
-         * saving a weight would post the whole stored document beside
-         * it and the paste would win.
-         */
-        if (raw) {
-            raw.disabled = section !== 'raw';
-        }
-    }
-
-    if (rail) {
-        rail.addEventListener('click', function (event) {
-            var item = event.target.closest
-                ? event.target.closest('.wb-rail-item')
-                : null;
-            if (!item || !item.getAttribute('data-sec')) {
-                return;
-            }
-            open(item.getAttribute('data-sec'));
         });
+    }
+    var rawTemplate = document.getElementById('ap-raw-modal');
+    if (rawTemplate && rawTemplate.hasAttribute('data-ap-open')) {
+        window.analystProfileRaw();
     }
 
     /* ------------------------------------------------------------ *
@@ -170,14 +195,32 @@ function boot() {
                     folds.indexOf(fold) !== -1);
             }
         );
-        if (rail) {
+        // A tab whose sections hold a change says so, since it may be out of sight.
+        if (typeof setTabBadge === 'function') {
             Array.prototype.forEach.call(
-                rail.querySelectorAll('[data-ap-dirty-mark]'),
-                function (glyph) {
-                    glyph.hidden =
-                        !dirty[glyph.getAttribute('data-ap-dirty-mark')];
+                document.querySelectorAll('.nav-view-badge[data-tab-badge]'),
+                function (badge) {
+                    var id = badge.getAttribute('data-tab-badge');
+                    var pane = document.getElementById('tab-' + id);
+                    var edited = pane && Array.prototype.some.call(
+                        pane.querySelectorAll('.wb-sec[data-sec]'),
+                        function (sec) {
+                            return dirty[sec.getAttribute('data-sec')];
+                        }
+                    );
+                    setTabBadge(id, edited ? unsavedLabel : '');
                 }
             );
+        }
+        var raw = document.getElementById('ap-raw');
+        var counter = document.querySelector('[data-ap-unsaved-count]');
+        if (counter) {
+            var total = count + (raw && !raw.disabled
+                && raw.value !== raw.defaultValue ? 1 : 0);
+            counter.textContent = total === 1
+                ? counter.getAttribute('data-one')
+                : (counter.getAttribute('data-many') || '').replace('%s', total);
+            counter.hidden = total === 0;
         }
         return count;
     }
@@ -590,14 +633,14 @@ function boot() {
     });
 
     /*
-     * A box the browser refuses sits in whatever pane it belongs to,
-     * and a closed pane is `display: none` — a control the browser
+     * A box the browser refuses sits in whatever tab it belongs to,
+     * and a tab out of sight is `display: none` — a control the browser
      * cannot report on, so it blocks the save and says nothing at all.
-     * Opening the pane first is what turns a silent refusal back into
-     * the message beside the box.
+     * Bringing the tab forward first is what turns a silent refusal
+     * back into the message beside the box.
      *
      * The first refusal only. The events arrive in tree order and the
-     * browser reports on the first of them, so opening a pane for each
+     * browser reports on the first of them, so showing a tab for each
      * would leave the last one on screen and the reported box behind
      * it. The flag clears on the next tick, which is after the whole
      * pass.
@@ -617,13 +660,15 @@ function boot() {
         if (fold) {
             fold.open = true;
         }
-        var pane = event.target.closest
-            ? event.target.closest('.wb-sec')
+        var tab = event.target.closest
+            ? event.target.closest('.tab-pane')
             : null;
-        if (!pane || pane.classList.contains('is-open')) {
-            return;
+        if (tab && !tab.classList.contains('active') && window.bootstrap) {
+            var link = document.querySelector('[href="#' + tab.id + '"]');
+            if (link) {
+                bootstrap.Tab.getOrCreateInstance(link).show();
+            }
         }
-        open(pane.getAttribute('data-sec'));
     }, true);
 
     /*
