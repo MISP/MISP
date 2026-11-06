@@ -378,6 +378,15 @@ $fields = [
                     return !empty($row['Feed']['enabled']);
                 },
             ] : null,
+            $isSiteAdmin ? [
+                'type' => 'postLink',
+                'label' => __('Cache feed'),
+                'icon' => 'bolt',
+                'url' => $baseurl . '/feeds/cacheFeeds/%id%',
+                'requirement' => function (array $row) {
+                    return !empty($row['Feed']['caching_enabled']);
+                },
+            ] : null,
             $isSiteAdmin ? [ 'type' => 'divider'] : null,
             $isSiteAdmin ? [
                 'type' => 'modal',
