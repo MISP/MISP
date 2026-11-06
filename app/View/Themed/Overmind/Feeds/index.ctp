@@ -3,6 +3,30 @@ $isSiteAdmin = $this->viewVars['isSiteAdmin'] ?? false;
 $distributionLevels = $this->viewVars['distributionLevels'] ?? [];
 
 $headerActions = [];
+if ($this->Acl->canAccess('feeds', 'searchCaches')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Search Feed Caches'),
+        'icon' => 'magnifying-glass',
+        'url' => $baseurl . '/feeds/searchCaches',
+        'primary' => true,
+    ];
+}
+if ($this->Acl->canAccess('feeds', 'compareFeeds')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Feed overlap analysis matrix'),
+        'icon' => 'table-cells',
+        'url' => $baseurl . '/feeds/compareFeeds',
+    ];
+}
+$headerActions[] = [
+    'type' => 'navigate',
+    'label' => __('Export Feed settings'),
+    'icon' => 'file-export',
+    'url' => $baseurl . '/feeds/index.json',
+    'download' => 'feed_index.json',
+];
 if ($isSiteAdmin) {
     /*
      * Instance-wide feed operations, grouped so they don't crowd the header.

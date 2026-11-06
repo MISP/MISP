@@ -8,6 +8,15 @@ $headerDescription = __('');
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
 
+if ($isSiteAdmin) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Server overlap analysis matrix'),
+        'icon' => 'table-cells',
+        'url' => $baseurl . '/servers/compareServers'
+    ];
+}
+
 if ($this->Acl->canAccess('servers', 'add')) {
     $headerActions[] = [
         'type' => 'modal',
@@ -16,7 +25,6 @@ if ($this->Acl->canAccess('servers', 'add')) {
         'url' => $baseurl . '/servers/add'
     ];
 }
-
 
 $this->set('headerTitle', $headerTitle);
 $this->set('headerDescription', $headerDescription);
