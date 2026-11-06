@@ -4,12 +4,13 @@
  *
  * `02b-proposal-c.html`'s worklist. Phase 4 built the rows and what the
  * parse did to get to them; phase 5 gives them their assessments and,
- * with them, the machine C is for — the progress tape, a mark per row,
- * the *left to do* filters, the worst-first sort, the compact table
- * view and the line saying where the marks live.
+ * with them, the machine C is for — the progress, a mark per row, the
+ * *left to do* filters, the worst-first sort, the compact table view and
+ * the line saying where the marks live, all on the count line over the
+ * table, as the other index pages put their count and their pager.
  *
  * **That chrome arrives with its subject and not before.** Until there
- * were decisions to work, a tape would have been one colour, a filter
+ * were decisions to work, a progress bar would have stood still, a filter
  * would never have subtracted a row and a second view would have drawn
  * the same thing at a different size — so phase 4 shipped none of it.
  * It is drawn now, and only for a reader whose browser can fill the
@@ -144,15 +145,60 @@ $offerExtract = !$extracted && $wordy >= 2;
          'controller' => 'values',
          'action' => 'assess',
      ))) ?>">
-    <p class="vi-prov">
-        <b><?= h($lead) ?></b>
+    <div class="ifp-row vi-work__bar">
+        <span class="ifp-count"><?= sprintf(h(__n('%s value to review',
+            '%s values to review', count($rows))), '<b>' . h(count($rows)) . '</b>') ?></span>
+        <span class="vi-prov"><?= h($lead) ?>
 <?php if ($did): ?>
-        <?= h(ucfirst(implode(', ', $did)) . '.') ?>
+            <?= h(ucfirst(implode(', ', $did)) . '.') ?>
 <?php else: ?>
-        <?= h(__('No changes were needed.')) ?>
+            <?= h(__('No changes were needed.')) ?>
 <?php endif; ?>
-        <?= h(__('Your original paste is still in the box above.')) ?>
-    </p>
+        </span>
+        <div class="vi-chrome vi-work__tools">
+            <?php
+            /*
+             * The one sentence that says where the reader is, and the only
+             * thing on this page that is announced. Every wording travels
+             * with the markup, as the prompt's verb does: a sentence built
+             * in a `.js` file is a sentence no catalogue translates.
+             */
+            ?>
+            <span class="vi-progress" data-vi-progress
+                  aria-live="polite"
+                  data-vi-filling="<?= h(__('%1$d of %2$d assessed,'
+                      . ' %3$d reviewed')) ?>"
+                  data-vi-worked="<?= h(__('All %d reviewed')) ?>"
+                  data-vi-left="<?= h(__('%1$d of %2$d reviewed, %3$d'
+                      . ' left')) ?>"
+                  data-vi-lost="<?= h(__('%d failed to load')) ?>"></span>
+            <div class="ifp-segv vi-flts" role="group" aria-label="<?= h(__('Show')) ?>">
+                <button class="ifp-segv-btn vi-flt" type="button" data-vi-f="all"
+                        aria-pressed="true"><?= h(__('All')) ?> <b></b></button>
+                <button class="ifp-segv-btn vi-flt" type="button" data-vi-f="todo"
+                        aria-pressed="false"><?= h(__('To review')) ?> <b></b></button>
+                <button class="ifp-segv-btn vi-flt" type="button" data-vi-f="opened"
+                        aria-pressed="false"><?= h(__('Opened')) ?> <b></b></button>
+                <button class="ifp-segv-btn vi-flt" type="button" data-vi-f="cleared"
+                        aria-pressed="false"><?= h(__('Dismissed')) ?> <b></b></button>
+            </div>
+<?php if ($showsAssessment): ?>
+            <button class="ifp-fbtn vi-sort" type="button" data-vi-sort
+                    aria-pressed="false">
+                <i class="fas fa-arrow-down-wide-short" aria-hidden="true"></i>
+                <span><?= h(__('Worst first')) ?></span>
+            </button>
+<?php endif; ?>
+            <div class="ifp-segv" role="group" aria-label="<?= h(__('View')) ?>">
+                <button class="ifp-segv-btn" type="button" data-vi-view="table"
+                        aria-pressed="true" title="<?= h(__('Table view')) ?>"
+                        aria-label="<?= h(__('Table view')) ?>"><i class="fas fa-list" aria-hidden="true"></i></button>
+                <button class="ifp-segv-btn" type="button" data-vi-view="cards"
+                        aria-pressed="false" title="<?= h(__('Card view')) ?>"
+                        aria-label="<?= h(__('Card view')) ?>"><i class="fas fa-th-large" aria-hidden="true"></i></button>
+            </div>
+        </div>
+    </div>
 <?php if ($extracted): ?>
 <?php
     /*
@@ -246,121 +292,34 @@ $offerExtract = !$extracted && $wordy >= 2;
         )) ?></button>
     <?= $this->Form->end() ?>
 <?php endif; ?>
-    <div class="vi-chrome">
-        <div class="vi-tapewrap">
-            <?php
-            /*
-             * The one sentence that says where the reader is. It moves
-             * twice — once as the assessments land, once as decisions
-             * are made — and it is the only thing on this page that is
-             * announced, because a batch's progress is exactly what a
-             * reader who has looked away needs told.
-             */
-            ?>
-            <?php
-            /*
-             * Every wording travels with the markup, as the prompt's
-             * verb does: a sentence built in a `.js` file is a
-             * sentence no catalogue translates.
-             */
-            ?>
-            <span class="vi-progress" data-vi-progress
-                  aria-live="polite"
-                  data-vi-filling="<?= h(__('%1$d of %2$d assessed,'
-                      . ' %3$d reviewed')) ?>"
-                  data-vi-worked="<?= h(__('All %d reviewed')) ?>"
-                  data-vi-left="<?= h(__('%1$d of %2$d reviewed, %3$d'
-                      . ' left')) ?>"
-                  data-vi-lost="<?= h(__('%d failed to load')) ?>"
-                  ></span>
-<?php if ($batched): ?>
-            <span class="vi-tape" data-vi-tape role="group"
-                  aria-label="<?= h(__('Batch progress')) ?>"></span>
-<?php endif; ?>
-        </div>
-<?php if ($batched): ?>
-        <div class="vi-legend">
-            <span><span class="vi-swatch" data-s="queued"></span><?= h(__(
-                'queued')) ?></span>
-            <span><span class="vi-swatch" data-s="flight"></span><?= h(__(
-                'being assessed')) ?></span>
-            <span><span class="vi-swatch" data-s="todo"></span><?= h(__(
-                'assessed, not yet reviewed')) ?></span>
-            <span><span class="vi-swatch" data-s="opened"></span><?= h(__(
-                'opened')) ?></span>
-            <span><span class="vi-swatch" data-s="cleared"></span><?= h(__(
-                'dismissed')) ?></span>
-        </div>
-<?php endif; ?>
-        <div class="vi-controls">
-            <span class="vi-segs" data-vi-filters>
-                <button class="vi-seg" type="button" data-vi-f="all"
-                        aria-pressed="true"><?= h(__('All')) ?> <b></b></button>
-                <button class="vi-seg" type="button" data-vi-f="todo"
-                        aria-pressed="false"><?= h(__('To review')) ?> <b></b></button>
-                <button class="vi-seg" type="button" data-vi-f="opened"
-                        aria-pressed="false"><?= h(__('Opened')) ?> <b></b></button>
-                <button class="vi-seg" type="button" data-vi-f="cleared"
-                        aria-pressed="false"><?= h(__('Dismissed')) ?> <b></b></button>
-            </span>
-<?php if ($showsAssessment): ?>
-            <span class="vi-segs">
-                <button class="vi-seg" type="button" data-vi-sort
-                        aria-pressed="false"><?= h(__('Worst first')) ?></button>
-            </span>
-<?php endif; ?>
-            <span class="vi-segs" data-vi-views>
-                <button class="vi-seg" type="button" data-vi-view="cards"
-                        aria-pressed="false"><?= h(__('Cards')) ?></button>
-                <button class="vi-seg" type="button" data-vi-view="table"
-                        aria-pressed="true"><?= h(__('Table')) ?></button>
-            </span>
-            <span class="vi-keys">
-                <span><span class="vi-kbd">j</span> <span class="vi-kbd">k</span> <?= h(__('move')) ?></span>
-                <span><span class="vi-kbd">o</span> <?= h(__('open')) ?></span>
-                <span><span class="vi-kbd">x</span> <?= h(__('dismiss')) ?></span>
-                <span><span class="vi-kbd">u</span> <?= h(__('undo')) ?></span>
-                <?php
-                /*
-                 * Printed beside the controls it qualifies rather than
-                 * in a footnote. Nothing on this page writes (§0), so
-                 * a progress model built on it lives in one browser
-                 * tab — and a reader who worked forty rows and then
-                 * lost them to a refresh was not told.
-                 */
-                ?>
-                <span class="vi-tabonly"><?= h(__('Progress is kept in'
-                    . ' this tab only; nothing is saved to MISP.')) ?></span>
-            </span>
-        </div>
-        <?php
-        /*
-         * The sort note says what the order now means, because a table
-         * a reader can no longer check line by line against their own
-         * source has stopped being the thing they pasted. Its two
-         * wordings differ in one clause — whether anything is still
-         * arriving — because a row cannot be ranked before it has an
-         * answer, and a reader watching rows jump needs telling that
-         * the ones below are not last, only unanswered.
-         */
-        ?>
-        <div class="vi-sortnote" data-vi-sortnote hidden
-             data-vi-mid="<?= h(__('Sorted by assessment: %1$d ranked'
-                 . ' so far. The %2$d still loading stay at the bottom'
-                 . ' until they are assessed.')) ?>"
-             data-vi-settled="<?= h(__('Sorted by assessment.')) ?>"
-             data-vi-back="<?= h(__('Back to paste order')) ?>"></div>
-    </div>
+    <?php
+    /*
+     * The sort note says what the order now means, because a table
+     * a reader can no longer check line by line against their own
+     * source has stopped being the thing they pasted. Its two
+     * wordings differ in one clause — whether anything is still
+     * arriving — because a row cannot be ranked before it has an
+     * answer, and a reader watching rows jump needs telling that
+     * the ones below are not last, only unanswered.
+     */
+    ?>
+    <div class="vi-sortnote" data-vi-sortnote hidden
+         data-vi-mid="<?= h(__('Sorted by assessment: %1$d ranked'
+             . ' so far. The %2$d still loading stay at the bottom'
+             . ' until they are assessed.')) ?>"
+         data-vi-settled="<?= h(__('Sorted by assessment.')) ?>"
+         data-vi-back="<?= h(__('Back to paste order')) ?>"></div>
+    <div class="card shadow-sm vi-work__card">
     <div class="vi-listwrap is-table<?= $showsAssessment ? '' : ' is-unassessed' ?>">
         <div class="vi-thead" aria-hidden="true">
             <span></span>
-            <span><?= h(__('value')) ?></span>
-            <span class="vi-c-types"><?= h(__('types')) ?></span>
-            <span class="vi-c-lean"><?= h(__('lean')) ?></span>
-            <span class="vi-c-strength"><?= h(__('signal strength')) ?></span>
-            <span class="vi-c-rel"><?= h(__('relevance')) ?></span>
-            <span class="vi-c-num vi-c-orgs"><?= h(__('orgs')) ?></span>
-            <span class="vi-c-num vi-c-sig"><?= h(__('sightings')) ?></span>
+            <span><?= h(__('Value')) ?></span>
+            <span class="vi-c-types"><?= h(__('Types')) ?></span>
+            <span class="vi-c-lean"><?= h(__('Lean')) ?></span>
+            <span class="vi-c-strength"><?= h(__('Signal strength')) ?></span>
+            <span class="vi-c-rel"><?= h(__('Relevance')) ?></span>
+            <span class="vi-c-num vi-c-orgs"><?= h(__('Orgs')) ?></span>
+            <span class="vi-c-sig"><?= h(__('Sightings')) ?></span>
             <span></span>
         </div>
         <ol class="vi-rows<?= $batched ? '' : ' vi-rows--short' ?>"
@@ -412,9 +371,13 @@ $offerExtract = !$extracted && $wordy >= 2;
                             . ' unknown.')) ?></div>
                     </div>
                     <div class="vi-cells">
-                        <span class="vi-c-val">
-                            <span class="vi-c-valtext"><?= h($row['value']) ?></span>
-                        </span>
+                        <div class="vi-c-val">
+                            <div class="attr-value">
+                                <div class="attr-value-line">
+                                    <p class="fw-semibold mb-0 vi-c-valtext"><?= h($row['value']) ?></p>
+                                </div>
+                            </div>
+                        </div>
                         <span class="vi-c-types"></span>
                         <span class="vi-c-lean"><i class="vi-bar" style="width:72px"></i></span>
                         <span class="vi-c-strength"></span>
@@ -433,7 +396,7 @@ $offerExtract = !$extracted && $wordy >= 2;
                             class="vi-pendtxt vi-pendtxt--flight"><?= h(__(
                             'assessing…')) ?></span></span>
                         <span class="vi-c-num vi-c-orgs"></span>
-                        <span class="vi-c-num vi-c-sig"></span>
+                        <span class="vi-c-sig"></span>
                         <span class="vi-c-say"><?= h(__('The assessment'
                             . ' failed to load.')) ?></span>
                     </div>
@@ -463,32 +426,73 @@ $offerExtract = !$extracted && $wordy >= 2;
         <p class="vi-empty" data-vi-empty hidden><?= h(__('Nothing'
             . ' matches this filter. Switch back to All.')) ?></p>
     </div>
+    </div>
     <?php
     /*
      * The end of the batch, and the one thing a page that writes
      * nothing can still hand over: the shortlist. It is rendered with
-     * the rows and shown when the last decision is made, so the two
-     * numbers in it are filled by the script rather than built by it.
+     * the rows and shown when the last decision is made, so its numbers
+     * are filled by the script rather than built by it.
      */
     ?>
-    <div class="vi-done" data-vi-done hidden>
-        <h3 data-vi-done-lead
-            data-vi-tpl="<?= h(__('All %d values reviewed.')) ?>"></h3>
-        <p><span data-vi-done-counts
-                 data-vi-tpl="<?= h(__('%1$d opened, %2$d dismissed.')) ?>"></span>
-            <?= h(__('This progress is not saved and is lost when you'
-                . ' close the tab. Copy the values you opened to keep'
-                . ' them.')) ?></p>
-        <div class="vi-offer">
-            <button type="button" class="vi-btn vi-btn--lead"
-                    data-vi-copy
-                    data-vi-tpl="<?= h(__('Copy the %d opened values')) ?>"></button>
-            <button type="button" class="vi-btn" data-vi-again><?= h(__(
-                'Start over')) ?></button>
-            <span class="vi-mark"><?= h(__('Or paste a new list'
-                . ' above.')) ?></span>
+    <section class="card shadow-sm vi-done" data-vi-done hidden
+             aria-labelledby="vi-done-title">
+        <div class="vi-done__main">
+            <span class="vi-done__ico" aria-hidden="true"><i class="fas fa-circle-check"></i></span>
+            <div class="vi-done__text">
+                <h3 class="vi-done__title" id="vi-done-title" data-vi-done-lead
+                    data-vi-tpl="<?= h(__('All %d values reviewed')) ?>"></h3>
+                <p class="vi-done__tally">
+                    <span class="vi-done__n is-opened">
+                        <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                        <span data-vi-done-opened
+                              data-vi-tpl="<?= h(__('%d opened')) ?>"></span>
+                    </span>
+                    <span class="vi-done__n">
+                        <i class="fas fa-xmark" aria-hidden="true"></i>
+                        <span data-vi-done-cleared
+                              data-vi-tpl="<?= h(__('%d dismissed')) ?>"></span>
+                    </span>
+                </p>
+            </div>
+            <div class="vi-done__acts">
+                <button type="button" class="btn btn-primary btn-sm vi-done__copy"
+                        data-vi-copy
+                        data-vi-tpl-one="<?= h(__('Copy the opened value')) ?>"
+                        data-vi-tpl="<?= h(__('Copy the %d opened values')) ?>"
+                        data-vi-copied="<?= h(__('Copied')) ?>">
+                    <i class="fas fa-copy" aria-hidden="true"></i>
+                    <span data-vi-copy-label></span>
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-vi-again>
+                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                    <?= h(__('Start over')) ?>
+                </button>
+            </div>
         </div>
-        <textarea class="vi-shortlist" data-vi-short hidden
+        <p class="vi-done__note">
+            <i class="fas fa-circle-info" aria-hidden="true"></i>
+            <?= h(__('This progress is not saved and is lost when you close'
+                . ' the tab. Paste a new list above to start another.')) ?>
+        </p>
+        <textarea class="vi-shortlist" data-vi-short hidden readonly rows="3"
                   aria-label="<?= h(__('The values you opened')) ?>"></textarea>
-    </div>
+    </section>
+    <?php
+    /*
+     * Nothing on this page writes (§0), so the progress lives in one
+     * browser tab — and a reader who worked forty rows and then lost
+     * them to a refresh was not told.
+     */
+    ?>
+    <p class="vi-chrome vi-work__foot">
+        <span class="vi-keys">
+            <span><kbd>j</kbd><kbd>k</kbd> <?= h(__('move')) ?></span>
+            <span><kbd>o</kbd> <?= h(__('open')) ?></span>
+            <span><kbd>x</kbd> <?= h(__('dismiss')) ?></span>
+            <span><kbd>u</kbd> <?= h(__('undo')) ?></span>
+        </span>
+        <span><?= h(__('Progress is kept in'
+            . ' this tab only; nothing is saved to MISP.')) ?></span>
+    </p>
 </div>

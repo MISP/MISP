@@ -270,7 +270,7 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
                             <?php if (!empty($tab['badge']['dot'])): ?>
                                 <span class="nav-view-badge-dot"></span>
                             <?php endif; ?>
-                            <?= h($tab['badge']['label']) ?>
+                            <?= h($badgeLabel) ?>
                         </span>
                     <?php endif; ?>
                 </a>

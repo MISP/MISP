@@ -157,10 +157,10 @@
                 group.remove();
             }
             var left = form.querySelectorAll('[data-vp-ne-row]').length;
+            // The count is the event's contents: the value and what is left of the findings
             var badge = form.querySelector('[data-vp-ne-findings] .badge');
             if (badge) {
-                badge.textContent = left;
-                badge.classList.toggle('d-none', left === 0);
+                badge.textContent = left + 1;
             }
             form.querySelector('[data-vp-ne-empty]').classList.toggle('d-none', left > 0);
             var at = indexOf(fp);

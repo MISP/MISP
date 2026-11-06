@@ -27,72 +27,46 @@
 
 #vi-prompt.vsr-on-search > .vi-prompt__field,
 #vi-prompt.vsr-on-search > .vi-prompt__side,
-#vi-prompt:not(.vsr-on-search) > .vsr-field,
-#vi-prompt:not(.vsr-on-search) > .vsr-side {
+#vi-prompt:not(.vsr-on-search) > .vsr-field {
     display: none;
 }
 
+/*
+ * The doors are the bar's first control, in the shared segmented look;
+ * a notice about them takes a line of its own under the bar.
+ */
 .vsr-doors {
-    flex: 1 0 100%;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 14px;
-    min-width: 0;
-}
-
-.vsr-seg {
-    display: inline-flex;
-    gap: 2px;
-    padding: 2px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: calc(var(--bs-border-radius) + 2px);
-    background: var(--bs-tertiary-bg);
+    display: contents;
 }
 
 .vsr-tab {
+    width: auto;
+    gap: 6px;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 4px 13px 4px 11px;
-    border: 0;
-    border-radius: var(--bs-border-radius);
-    background: transparent;
-    color: var(--bs-secondary-color);
-    font-size: 0.8rem;
+    padding: 0 12px;
+    font-size: .85rem;
     font-weight: 500;
-    line-height: 1.5;
-    cursor: pointer;
-    transition: background-color 0.12s ease, color 0.12s ease;
+    white-space: nowrap;
 }
 
 .vsr-tab i {
-    font-size: 0.74rem;
-    opacity: 0.85;
-}
-
-.vsr-tab:hover {
-    color: var(--bs-body-color);
-    background: color-mix(in srgb, var(--vsr-accent) 8%, transparent);
+    font-size: .8rem;
 }
 
 .vsr-tab[aria-selected="true"] {
     background: var(--bs-body-bg);
-    color: var(--vsr-accent);
+    color: var(--bs-primary);
     font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12),
-        inset 0 0 0 1px color-mix(in srgb, var(--vsr-accent) 40%, transparent);
-}
-
-.vsr-tab:focus-visible {
-    outline: 2px solid var(--vsr-accent);
-    outline-offset: 1px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 0 0 1px color-mix(in srgb, var(--bs-body-color) 10%, transparent);
 }
 
 .vsr-doorsay {
-    flex: 1 1 320px;
+    flex: 1 0 100%;
+    order: 10;
     min-width: 0;
     margin: 0;
+    padding: 0 2px;
     font-size: 0.78rem;
     line-height: 1.45;
     color: var(--bs-secondary-color);
@@ -130,73 +104,27 @@
  * The search field
  * ------------------------------------------------------------------ */
 
+/* The search box is the shared one; its reading takes a line under the bar. */
 .vsr-field {
-    flex: 1 1 260px;
-    min-width: 0;
-}
-
-.vsr-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-    height: 42px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    background: var(--bs-body-bg);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.vsr-box:focus-within {
-    border-color: color-mix(in srgb, var(--vsr-accent) 70%, var(--bs-border-color));
-    box-shadow: 0 0 0 0.25rem var(--vsr-ring);
-}
-
-.vsr-box__icon {
-    flex: none;
-    width: 38px;
-    text-align: center;
-    color: var(--bs-secondary-color);
-    font-size: 0.85rem;
+    display: contents;
 }
 
 .vsr-q {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 100%;
-    padding: 0 6px 0 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--bs-body-color);
     font-family: var(--bs-font-monospace);
-    font-size: 0.92rem;
+}
+
+.ifp-query .vsr-q {
+    font-size: .875rem;
 }
 
 .vsr-q::placeholder {
-    color: var(--bs-secondary-color);
-    opacity: 0.8;
+    font-family: var(--bs-body-font-family);
+    font-size: .95rem;
 }
 
-.vsr-x {
-    flex: none;
-    width: 30px;
-    height: 30px;
-    margin-right: 6px;
-    border: 0;
-    border-radius: var(--bs-border-radius-sm);
-    background: transparent;
-    color: var(--bs-secondary-color);
-    cursor: pointer;
-}
-
-.vsr-x:hover {
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-body-color);
-}
-
-.vsr-x:focus-visible {
-    outline: 2px solid var(--vsr-accent);
-    outline-offset: 0;
+.vsr-go:disabled {
+    opacity: 0.6;
+    cursor: default;
 }
 
 /* Anywhere (slower): matches inside words too, for look-alike hunting */
@@ -260,7 +188,9 @@
 }
 
 .vsr-reading {
-    margin: 7px 0 1px;
+    flex: 1 0 100%;
+    order: 11;
+    margin: 0 2px;
     font-size: 0.76rem;
     line-height: 1.4;
     color: var(--bs-secondary-color);
@@ -271,41 +201,6 @@
     color: var(--bs-body-color);
     font-size: 0.74rem;
     word-break: break-all;
-}
-
-.vsr-side {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-}
-
-.vsr-go {
-    display: inline-flex;
-    align-items: center;
-    height: 42px;
-    padding: 0 14px;
-    border: 1px solid var(--vsr-accent);
-    border-radius: var(--bs-border-radius);
-    background: var(--vsr-accent);
-    color: #fff;
-    font-size: 1rem;
-    line-height: 1;
-    white-space: nowrap;
-    cursor: pointer;
-}
-
-.vsr-go:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--vsr-accent) 86%, #000);
-}
-
-.vsr-go:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
-.vsr-go:focus-visible {
-    outline: 2px solid var(--vsr-accent);
-    outline-offset: 2px;
 }
 
 .vsr-kbd {
@@ -323,12 +218,7 @@
     line-height: 1;
 }
 
-.vsr-go .vsr-kbd {
-    border-color: currentColor;
-    background: transparent;
-    color: inherit;
-    opacity: 0.7;
-}
+
 
 /* ------------------------------------------------------------------
  * Badges — the three ways of matching
@@ -357,31 +247,112 @@
 }
 
 /* ------------------------------------------------------------------
- * The Search door's invitation
+ * The Search door's invitation: examples, and how matching works for
+ * whoever opens it
  * ------------------------------------------------------------------ */
 
 .vsr-invite {
-    padding: 16px 14px 18px;
+    padding: 12px 14px;
 }
 
-.vsr-invite__title {
-    margin: 0 0 3px;
-    font-size: 0.95rem;
+.vsr-tries {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.vsr-tries__lead {
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color);
+}
+
+.vsr-try {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 8px;
+    border: 1px solid color-mix(in srgb, var(--vsr-accent) 45%, transparent);
+    border-radius: var(--bs-border-radius-sm);
+    background: transparent;
+    color: var(--vsr-accent);
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.vsr-try code {
+    padding: 0;
+    background: none;
+    color: inherit;
     font-weight: 600;
 }
 
-.vsr-invite__lead,
-.vsr-invite__foot {
-    margin: 0;
-    max-width: 90ch;
+.vsr-try:hover {
+    background: var(--vsr-tint-strong);
+}
+
+.vsr-try:focus-visible {
+    outline: 2px solid var(--vsr-accent);
+    outline-offset: 2px;
+}
+
+.vsr-how {
+    margin-top: 10px;
     font-size: 0.8rem;
+}
+
+.vsr-how > summary {
+    display: inline-block;
+    color: var(--bs-link-color);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.vsr-how > summary:focus-visible {
+    outline: 2px solid var(--vsr-accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+.vsr-ways {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.vsr-way {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 10px;
+    max-width: 100ch;
     line-height: 1.5;
     color: var(--bs-secondary-color);
 }
 
+.vsr-way > .vsr-badge {
+    justify-self: start;
+}
+
+.vsr-way b {
+    color: var(--bs-body-color);
+    font-weight: 600;
+}
+
+.vsr-way code {
+    white-space: nowrap;
+    word-break: normal;
+}
+
 .vsr-invite__foot {
-    margin-top: 10px;
+    margin: 8px 0 0;
+    max-width: 90ch;
     font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
 }
 
 .vsr-invite code,
@@ -394,90 +365,6 @@
     color: var(--bs-body-color);
     font-size: 0.76rem;
     word-break: break-all;
-}
-
-.vsr-ways {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-    margin: 12px 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.vsr-way {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    min-width: 0;
-    padding: 12px 13px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    background: var(--bs-body-bg);
-}
-
-.vsr-way__lead {
-    font-size: 0.84rem;
-    font-weight: 600;
-}
-
-.vsr-way__body code {
-    white-space: nowrap;
-    word-break: normal;
-}
-
-.vsr-way__body {
-    flex: 1 1 auto;
-    font-size: 0.76rem;
-    line-height: 1.5;
-    color: var(--bs-secondary-color);
-}
-
-.vsr-try {
-    margin-top: 2px;
-    padding: 3px 8px;
-    border: 1px solid color-mix(in srgb, var(--vsr-accent) 55%, transparent);
-    border-radius: var(--bs-border-radius-sm);
-    background: transparent;
-    color: var(--vsr-accent);
-    font-size: 0.74rem;
-    cursor: pointer;
-}
-
-.vsr-try code {
-    padding: 0;
-    background: none;
-    color: inherit;
-    font-weight: 600;
-}
-
-.vsr-try:hover {
-    background: var(--vsr-accent);
-    color: #fff;
-}
-
-.vsr-try:focus-visible {
-    outline: 2px solid var(--vsr-accent);
-    outline-offset: 2px;
-}
-
-@media (max-width: 1400px) {
-    .vsr-ways {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@container (max-width: 760px) {
-    .vsr-ways {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-
-@media (max-width: 900px) {
-    .vsr-ways {
-        grid-template-columns: minmax(0, 1fr);
-    }
 }
 
 /* ------------------------------------------------------------------
@@ -642,13 +529,17 @@
  * The answer: matches
  * ------------------------------------------------------------------ */
 
+.vsr-res[data-vsr-results] {
+    padding: 0;
+}
+
 .vsr-head {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 8px 24px;
-    margin-bottom: 10px;
+    padding: 2px 2px 8px;
 }
 
 .vsr-what {
@@ -723,16 +614,20 @@
     margin-left: 0;
 }
 
+/* The table card, drawn as the shared `ix-table`'s. */
 .vsr-wrap {
     container-type: inline-size;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
+    margin-bottom: 1rem;
     overflow: hidden;
+    background: var(--bs-card-bg, var(--bs-body-bg));
+    border: 1px solid var(--bs-card-border-color, var(--bs-border-color));
+    border-radius: var(--bs-card-border-radius, .6rem);
+    box-shadow: var(--bs-box-shadow-sm);
 }
 
 .vsr-thead,
 .vsr-row {
-    --vsr-cols: 30px minmax(120px, 1fr) 104px 108px 86px 128px 150px;
+    --vsr-cols: 30px minmax(120px, 1fr) 150px 108px 100px 128px 150px;
     display: grid;
     grid-template-columns: var(--vsr-cols);
     gap: 0 10px;
@@ -740,11 +635,21 @@
     padding: 0 10px 0 6px;
 }
 
+.vsr-thead > span {
+    overflow: hidden;
+    font: inherit;
+    color: inherit;
+    letter-spacing: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .vsr-thead {
-    height: 26px;
-    background: var(--bs-secondary-bg);
-    border-bottom: 1px solid var(--bs-border-color);
-    font-size: 0.66rem;
+    height: 36px;
+    background: var(--bs-card-bg, var(--bs-body-bg));
+    border-bottom: 1px solid var(--bs-card-border-color, var(--bs-border-color));
+    font-size: .75rem;
+    font-weight: 600;
     color: var(--bs-secondary-color);
 }
 
@@ -756,10 +661,10 @@
 
 .vsr-row {
     position: relative;
-    min-height: 34px;
+    min-height: 38px;
     padding-top: 3px;
     padding-bottom: 3px;
-    border-bottom: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid color-mix(in srgb, var(--bs-card-border-color, var(--bs-border-color)) 70%, transparent);
 }
 
 .vsr-row:hover {
@@ -804,10 +709,8 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     color: var(--bs-body-color);
-    font-family: var(--bs-font-monospace);
-    font-size: 0.8rem;
+    font-size: .8125rem;
     font-weight: 600;
-    letter-spacing: -0.01em;
     text-decoration: none;
     border-radius: 2px;
 }
@@ -1080,7 +983,7 @@
 @container (max-width: 1000px) {
     .vsr-thead,
     .vsr-row {
-        --vsr-cols: 30px minmax(120px, 1fr) 108px 86px 128px 120px;
+        --vsr-cols: 30px minmax(120px, 1fr) 108px 100px 128px 120px;
     }
 
     .vsr-c-types {
@@ -1096,7 +999,7 @@
 @container (max-width: 760px) {
     .vsr-thead,
     .vsr-row {
-        --vsr-cols: 30px minmax(100px, 1fr) 108px 86px;
+        --vsr-cols: 30px minmax(100px, 1fr) 108px 100px;
     }
 
     .vsr-c-str,
@@ -1115,7 +1018,7 @@
 
 .vsr-wrap.is-unassessed .vsr-thead,
 .vsr-wrap.is-unassessed .vsr-row {
-    --vsr-cols: 30px minmax(120px, 1fr) 104px 150px;
+    --vsr-cols: 30px minmax(120px, 1fr) 150px 150px;
 }
 
 @container (max-width: 1000px) {

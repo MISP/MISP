@@ -1,50 +1,13 @@
 <?php
 /**
- * `/values/index` — the way in to the Value Intelligence.
+ * `/values/index` — the way in to the Value Intelligence, laid out as the
+ * other index pages are: the figures in stat cards, the box in the filter
+ * bar's card, and what it answered as a count line over a table.
  *
- * The tile row reads only snapshots and small tables, never a scan
- * that grows with the instance: see `ValueIntelligence::forTiles()`.
- *
- * The page's shape is `value-index/02b-proposal-c.html` as picked in
- * `02a-contract.md` §12 — the worklist, with A's prompt. Phase 3 wires
- * the prompt and the resolver's answers, phase 4 the rows a paste
- * becomes, phase 6 the carried-over line, phase 7 the conditions
- * strip, phase 8 the method note and phase 9 the enrichment store's
- * two numbers. The blocks that have nothing to say are absent rather
- * than drawn empty.
- *
- * **The strip is above the box and the carried-over line below it.**
- * What the strip says — whose thresholds decide the assessments —
- * is true of every answer the box will give, so a reader meets it
- * before the first one rather than after.
- *
- * **One region below the prompt, and it has one occupant.** The
- * invitation, an answer and the worklist are three things to say about
- * the same box and never two at once, so they share a container the
- * page's script can refill from `ValuesController::triage()` without
- * the paste above it moving. The clear control refills the same
- * container from the template below it, which is why the invitation
- * is an element: it is the region's empty state and the thing clear
- * puts back.
- *
- * **The tiles come before the card, not inside it.** They are
- * standing facts about the instance and the reader's organisation —
- * how many values it holds, how many are new, what is checked and
- * enriched — and they are read once on arrival and not again. That makes them part of
- * the page's introduction rather than part of the box: a reader who
- * already knows them scrolls past a row, while the same facts inside
- * the card would sit between the header and the control the page
- * exists for.
- *
- * The conditions strip stays inside the card, because what it says is
- * a rule every answer the box gives was worked under.
- *
- * **The carried-over line sits outside that region**, at the foot of
- * the card, because it is the one block on the page that is not about
- * the box: a reader who pastes a list has not stopped being the reader
- * who opened something an hour ago, and a strip the script wiped on
- * every submission would be a way back that disappears the moment it
- * is wanted.
+ * The region under the bar has one occupant at a time — the invitation,
+ * an answer or a worklist — so the page's script can refill it from
+ * `ValuesController::triage()` without the paste above it moving. The
+ * recently opened values stay under it, whatever it holds.
  *
  * @var array|null $resolution What `ValuesController::resolve()` made
  *                             of the box, or null on a plain load
@@ -55,7 +18,7 @@
  * @var array $tiles As `ValueIntelligence::forTiles()`
  */
 echo $this->element('genericElements/assetLoader', array(
-    'css' => array('value-palette', 'value-index', 'value-index-search'),
+    'css' => array('value-palette', 'index-filters', 'value-index', 'value-index-search'),
     'js' => array('value-index', 'value-index-search'),
 ));
 
@@ -65,64 +28,36 @@ $this->set('headerDescription', __(
     'Look up a value to see what MISP knows about it, or paste a list'
     . ' to triage it.'
 ));
+if ($tiles['dictionary'] !== null) {
+    $this->set('headerCount', (int)$tiles['dictionary']['total']);
+}
 ?>
-<div class="vi-page">
-    <div class="vi-tiles">
-        <?php if ($tiles['dictionary'] !== null || $tiles['dictionaryPending']): ?>
-        <?= $this->element('Values/Index/Tiles/values', array(
-            'dictionary' => $tiles['dictionary'],
-        )) ?>
-        <?php endif; ?>
-        <?php if ($tiles['dictionary'] !== null): ?>
-        <?= $this->element('Values/Index/Tiles/new_values', array(
-            'dictionary' => $tiles['dictionary'],
-        )) ?>
-        <?php endif; ?>
-        <?php if ($tiles['overCorrelating'] !== null): ?>
-        <?= $this->element('Values/Index/Tiles/over_correlating', array(
-            'overCorrelating' => $tiles['overCorrelating'],
-        )) ?>
-        <?php endif; ?>
-        <?= $this->element('Values/Index/Tiles/warninglists', array(
-            'warninglists' => $tiles['warninglists'],
-        )) ?>
-        <?= $this->element('Values/Index/Tiles/store', array(
-            'store' => $tiles['store'],
-        )) ?>
-    </div>
-    <div class="vi-app">
-        <?= $this->element('Values/Index/conditions', array(
+<div class="vi-page container-fluid">
+    <?= $this->element('Values/Index/stats', array(
+        'tiles' => $tiles,
+    )) ?>
+    <div class="ifp-card">
+        <?= $this->element('Values/Index/prompt', array(
             'inForce' => $inForce,
         )) ?>
-        <?= $this->element('Values/Index/prompt') ?>
-        <div class="vi-out" data-vi-out>
-<?php if ($triage !== null): ?>
-            <?= $this->element('Values/Index/worklist', array(
-                'triage' => $triage,
-            )) ?>
-<?php elseif ($resolution === null): ?>
-            <?= $this->element('Values/Index/invite') ?>
-<?php else: ?>
-            <?= $this->element('Values/Index/answer', array(
-                'resolution' => $resolution,
-            )) ?>
-<?php endif; ?>
-        </div>
-<?php
-/*
- * The invitation again, inert, for the clear control to put back.
- *
- * It is emitted on every load rather than only on the loads that
- * arrive with an answer: a reader who lands on the empty page, pastes
- * a list and then clears it has an answer in the region that the
- * server never rendered, and a template conditional on the *server's*
- * state would be missing for exactly that reader.
- */
-?>
-        <template data-vi-invite><?= $this->element('Values/Index/invite') ?></template>
-        <?= $this->element('Values/Index/search') ?>
-        <?= $this->element('Values/Index/recent', array(
-            'recent' => $recent,
-        )) ?>
     </div>
+    <div class="vi-out" data-vi-out>
+<?php if ($triage !== null): ?>
+        <?= $this->element('Values/Index/worklist', array(
+            'triage' => $triage,
+        )) ?>
+<?php elseif ($resolution === null): ?>
+        <?= $this->element('Values/Index/invite') ?>
+<?php else: ?>
+        <?= $this->element('Values/Index/answer', array(
+            'resolution' => $resolution,
+        )) ?>
+<?php endif; ?>
+    </div>
+    <?php // The empty region again, for the clear control to put back. ?>
+    <template data-vi-invite><?= $this->element('Values/Index/invite') ?></template>
+    <?= $this->element('Values/Index/search') ?>
+    <?= $this->element('Values/Index/recent', array(
+        'recent' => $recent,
+    )) ?>
 </div>

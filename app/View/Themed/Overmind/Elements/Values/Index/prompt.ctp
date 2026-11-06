@@ -1,11 +1,9 @@
 <?php
 /**
- * The prompt — one box, and the verb for what pressing it does.
- *
- * Direction A's, taken into C at the pick (`02a-contract.md` §12.3):
- * the live `n/100` counter, the verb that says what pressing will do,
- * and the `Enter` hint. Clear joined them later and sits on the same
- * line, because what it undoes is what the rest of the line did.
+ * The prompt — one box in the index filter bar's look, and the verb for
+ * what pressing it does: the live `n/100` counter, the verb that says
+ * what pressing will do, and Clear beside them, because what it undoes is
+ * what the rest of the line did.
  *
  * The counter and the verb are rendered at their empty-box values and
  * moved by `value-index.js` from there. A box that comes back filled
@@ -22,16 +20,14 @@
  * the whole of *the box keeps its content* (§8 G11) — a reader fixing
  * one character does not re-type the value.
  *
- * Under the box is the one question about it: whether what was pasted
- * is a list of values or a text with values in it (§11). It sits
- * there rather than beside the verb because it changes what the paste
- * *means*, not what pressing does, and a reader checks it while
- * looking at what they pasted.
+ * Beside the box is the one question about it: whether what was pasted
+ * is a list of values or a text with values in it (§11). At the end of
+ * the bar, the analyst profile its answers are worked under.
  */
 App::uses('ValueInputTool', 'Tools/ValueIntelligence');
 
 echo $this->Form->create('Value', array(
-    'class' => 'vi-prompt',
+    'class' => 'vi-prompt ifp-bar d-flex flex-wrap align-items-start',
     'id' => 'vi-prompt',
     'url' => $this->Html->url(array(
         'controller' => 'values',
@@ -48,21 +44,77 @@ echo $this->Form->create('Value', array(
     )),
 ));
 ?>
-    <div class="vi-prompt__field">
+    <?php
+    /*
+     * The filter bar's search box, holding a textarea: one line until a
+     * list is pasted, then as tall as the list (value-index.js).
+     */
+    ?>
+    <label class="vi-prompt__field ifp-query vi-query">
+        <i class="fas fa-arrow-right-to-bracket ifp-q-icon" aria-hidden="true"></i>
         <?= $this->Form->textarea('value', array(
-            'class' => 'form-control vi-ta',
-            'rows' => 3,
+            'class' => 'vi-ta',
+            'rows' => 1,
             'autofocus' => true,
             'spellcheck' => 'false',
             'autocomplete' => 'off',
             'autocapitalize' => 'off',
+            'aria-keyshortcuts' => '/',
             'data-vi-box' => '1',
-            'placeholder' => __('Paste a value, or a list of values'),
+            'placeholder' => __('Paste a value or a list of values; defanged input is refanged'),
             'aria-label' => __('Values to look up'),
         )) ?>
+        <span class="ifp-q-end">
+            <span class="vi-count" data-vi-count
+                  data-vi-cap="<?= h(ValueInputTool::CAP) ?>"
+                  aria-live="polite"><b>0</b>/<?= h(ValueInputTool::CAP) ?></span>
+            <?php
+            /*
+             * Clear. It empties the box and puts the region back to the
+             * invitation, which is the state a reload would reach without
+             * re-reading the figures and the carried-over list, none of
+             * which the reader's paste changed.
+             *
+             * **It is `hidden` until there is something to clear**, so the
+             * empty page is not offering to empty itself, and it starts
+             * that way in the markup rather than being hidden by the
+             * script: a page whose script never boots shows a button that
+             * does nothing otherwise.
+             *
+             * **It does not touch the carried-over list.** That list is
+             * this reader's history rather than this session's work, and
+             * emptying it is `value-index.md` §10's own item.
+             */
+            ?>
+            <button type="button" class="vi-wipe"
+                    data-vi-clear
+                    data-vi-ask="<?= h(__('Clear anyway?')) ?>"
+                    title="<?= h(__('Clear (Esc)')) ?>"
+                    hidden>
+                <span data-vi-clear-verb><?= h(__('Clear')) ?></span>
+            </button>
+            <button type="submit" class="ifp-q-go vi-run" data-vi-go="1" data-tour="values-run">
+                <?php
+                /*
+                 * Both wordings travel with the markup rather than living
+                 * in the script, so the verb is translated by the same
+                 * catalogue as everything else on the page.
+                 */
+                ?>
+                <span aria-hidden="true">↵</span>
+                <span data-vi-verb
+                      data-vi-one="<?= h(__('Open intelligence')) ?>"
+                      data-vi-many="<?= h(__('Look up %d values')) ?>"
+                      data-vi-find="<?= h(__('Extract values')) ?>"
+                      ><?= h(__('Open intelligence')) ?></span>
+            </button>
+            <kbd class="ifp-q-kbd" title="<?= h(__('Press / to look up')) ?>">/</kbd>
+        </span>
+    </label>
+    <div class="vi-prompt__side">
         <?php
         /*
-         * The one question about the paste, under the paste.
+         * The one question about the paste, as a toggle beside the box.
          *
          * **Off every time, and nothing remembers it**
          * (`value-index.md` §11, V20). Only the reader knows whether
@@ -80,67 +132,25 @@ echo $this->Form->create('Value', array(
          * question.
          */
         ?>
-        <label class="vi-mode">
+        <label class="ifp-fbtn vi-mode" title="<?= h(__(
+            'Use this for a pasted report or advisory. When off,'
+            . ' each line is looked up as one value.'
+        )) ?>">
             <?= $this->Form->checkbox('extract', array(
                 'value' => 1,
+                'class' => 'visually-hidden',
                 'checked' => !empty(
                     $this->request->data['Value']['extract']
                 ),
                 'data-vi-extract' => '1',
             )) ?>
-            <span class="vi-mode__say"><?= h(__(
-                'Extract values from text'
-            )) ?></span>
-            <span class="vi-mode__why"><?= h(__(
-                'Use this for a pasted report or advisory. When off,'
-                . ' each line is looked up as one value.'
-            )) ?></span>
+            <i class="fas fa-file-lines" aria-hidden="true"></i>
+            <span><?= h(__('Extract from text')) ?></span>
         </label>
     </div>
-    <div class="vi-prompt__side">
-        <?php
-        /*
-         * Clear. It empties the box and puts the region back to the
-         * invitation, which is the state a reload would reach — the
-         * difference being that a reload also throws away the tiles,
-         * the strip and the carried-over line, none of which the
-         * reader's paste changed.
-         *
-         * **It is `hidden` until there is something to clear**, so the
-         * empty page is not offering to empty itself, and it starts
-         * that way in the markup rather than being hidden by the
-         * script: a page whose script never boots shows a button that
-         * does nothing otherwise.
-         *
-         * **It does not touch the carried-over list.** That list is
-         * this reader's history rather than this session's work, and
-         * emptying it is `value-index.md` §10's own item.
-         */
-        ?>
-        <button type="button" class="vi-btn vi-btn--quiet vi-wipe"
-                data-vi-clear
-                data-vi-ask="<?= h(__('Clear anyway?')) ?>"
-                hidden>
-            <span data-vi-clear-verb><?= h(__('Clear')) ?></span>
-            <span class="vi-kbd"><?= h(__('Esc')) ?></span>
-        </button>
-        <span class="vi-count" data-vi-count
-              data-vi-cap="<?= h(ValueInputTool::CAP) ?>"
-              aria-live="polite"><b>0</b>/<?= h(ValueInputTool::CAP) ?></span>
-        <button type="submit" class="btn btn-primary vi-run" data-vi-go="1" data-tour="values-run">
-            <?php
-            /*
-             * Both wordings travel with the markup rather than living
-             * in the script, so the verb is translated by the same
-             * catalogue as everything else on the page.
-             */
-            ?>
-            <span data-vi-verb
-                  data-vi-one="<?= h(__('Open intelligence')) ?>"
-                  data-vi-many="<?= h(__('Look up %d values')) ?>"
-                  data-vi-find="<?= h(__('Extract values')) ?>"
-                  ><?= h(__('Open intelligence')) ?></span>
-            <span class="vi-kbd"><?= h(__('Enter')) ?></span>
-        </button>
+    <div class="ifp-end">
+        <?= $this->element('Values/Index/conditions', array(
+            'inForce' => $inForce,
+        )) ?>
     </div>
 <?= $this->Form->end() ?>
