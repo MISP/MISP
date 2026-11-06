@@ -757,6 +757,7 @@ class ACLComponent extends Component
         ),
         'servers' => array(
             'add' => array(),
+            'aiConnectorGuide' => array(),
             'aiDryRun' => array(),
             'dbSchemaDiagnostic' => array(),
             'dbConfiguration' => array(),

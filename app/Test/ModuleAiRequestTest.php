@@ -329,6 +329,12 @@ class ModuleAiRequestTest extends TestCase
         $this->assertNull($module->sent);
     }
 
+    public function testStatusCarriesTheLlmSettingsEvenWhenDisabled()
+    {
+        $module = $this->module(['services_enable' => false, 'openai_api_base' => 'http://gpu:11434/v1', 'model_id' => 'm:1b'], []);
+        $this->assertSame(['endpoint' => 'http://gpu:11434/v1', 'model' => 'm:1b'], $module->aiStatus()['llm']);
+    }
+
     public function testStatusUnreachableCarriesTheError()
     {
         $module = $this->module(['services_enable' => true, 'services_url' => 'http://h', 'services_port' => 1], []);
@@ -370,5 +376,23 @@ class ModuleAiRequestTest extends TestCase
         $this->assertTrue($status['reachable']);
         $this->assertFalse($status['listed']);
         $this->assertNotNull($status['error']);
+    }
+
+    // ---- splitAiGuide ----------------------------------------------------
+
+    public function testGuideSplitsIntoAnOverviewAndOneTabPerSection()
+    {
+        $guide = Module::splitAiGuide("<!--\nfor maintainers\n-->\n# Title\n\nOverview.\n\n## Docker\n\nRun it.\n\n### 1. Step\n\n## Standard install\n\nOn the host.\n");
+        $this->assertSame('Overview.', $guide['intro']);
+        $this->assertSame(['docker', 'standard-install'], array_keys($guide['sections']));
+        $this->assertSame('Standard install', $guide['sections']['standard-install']['title']);
+        $this->assertSame("Run it.\n\n### 1. Step", $guide['sections']['docker']['markdown']);
+    }
+
+    public function testGuideKeysAreGitHubAnchorsAndCodeIsNeverAHeading()
+    {
+        $guide = Module::splitAiGuide("## LLM endpoint (optional)\n\n```bash\n## not a tab\n# nor a title\n```\n");
+        $this->assertSame(['llm-endpoint-optional'], array_keys($guide['sections']));
+        $this->assertStringContainsString("## not a tab\n# nor a title", $guide['sections']['llm-endpoint-optional']['markdown']);
     }
 }
