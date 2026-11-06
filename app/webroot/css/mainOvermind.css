@@ -793,6 +793,59 @@ th .sort-icon::before {
     color: var(--bs-light);
 }
 
+/* Server form: synchronisation methods */
+.srv-sync-list {
+    border: 1px solid var(--misp-line, var(--bs-border-color));
+    border-radius: var(--bs-border-radius);
+}
+.srv-sync-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6.5rem 6.5rem;
+    column-gap: 1rem;
+    row-gap: .5rem;
+    align-items: center;
+    padding: .75rem 1rem;
+}
+.srv-sync-row + .srv-sync-row {
+    border-top: 1px solid var(--misp-line, var(--bs-border-color));
+}
+.srv-sync-what {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    min-width: 0;
+}
+.srv-sync-icon {
+    flex: 0 0 1.25rem;
+    margin-top: .2rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+}
+.srv-sync-icon.misp-icon {
+    height: 1.1rem;
+}
+.srv-sync-dir .form-check {
+    margin: 0;
+}
+.srv-sync-dir-wide {
+    grid-column: span 2;
+}
+.srv-sync-note {
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+@media (max-width: 575.98px) {
+    .srv-sync-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    .srv-sync-what {
+        grid-column: 1 / -1;
+    }
+    .srv-sync-dir {
+        padding-left: 2rem;
+    }
+}
+
 /* =======================================================
    Drag and Drop CSS
 ======================================================= */

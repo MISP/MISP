@@ -187,29 +187,99 @@ echo $this->Form->create('Server', [
                             aria-labelledby="sgHeading3"
                             data-bs-parent="#sgAccordion">
                             <div class="accordion-body">
-                                <div class="row g-2">
-                                    <?php
-                                    $syncFields = [
-                                        'push' => __('Push'),
-                                        'pull' => __('Pull'),
-                                        'push_sightings' => __('Push sightings'),
-                                        'caching_enabled' => __('Enable cache'),
-                                        'push_galaxy_clusters' => __('Push clusters'),
-                                        'pull_galaxy_clusters' => __('Pull clusters'),
-                                        'push_analyst_data' => __('Push analyst data'),
-                                        'pull_analyst_data' => __('Pull analyst data'),
-                                        'push_collections' => __('Push collections'),
-                                        'pull_collections' => __('Pull collections')
-                                    ];
-                                    foreach ($syncFields as $name => $label):
-                                    ?>
-                                        <div class="col-12 col-md-6">
-                                            <div class="form-check">
-                                                <?= $this->Form->checkbox($name, ['class' => 'form-check-input']) ?>
-                                                <?= $this->Form->label($name, $label, ['class' => 'form-check-label']) ?>
+                                <p class="text-muted mb-3">
+                                    <?= __('Choose what is exchanged with this instance, and in which direction. Push sends your data to the remote, pull fetches theirs.') ?>
+                                </p>
+                                <?php
+                                $syncRows = [
+                                    [
+                                        'icon' => 'misp-icon misp-icon-event misp-simple',
+                                        'title' => __('Events'),
+                                        'description' => __('Events with their attributes, objects and tags, filtered by the sync rules.'),
+                                        'push' => 'push',
+                                        'pull' => 'pull',
+                                    ],
+                                    [
+                                        'icon' => 'misp-icon misp-icon-sighting misp-simple',
+                                        'title' => __('Sightings'),
+                                        'description' => __('Sightings recorded on synchronised events.'),
+                                        'push' => 'push_sightings',
+                                        'pull' => null,
+                                        'pullNote' => __('With events'),
+                                        'pullNoteTitle' => __('Sightings are always pulled along with events.'),
+                                    ],
+                                    [
+                                        'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+                                        'title' => __('Galaxy clusters'),
+                                        'description' => __('Custom galaxy clusters, including those attached to synchronised events.'),
+                                        'push' => 'push_galaxy_clusters',
+                                        'pull' => 'pull_galaxy_clusters',
+                                    ],
+                                    [
+                                        'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
+                                        'title' => __('Analyst data'),
+                                        'description' => __('Notes, opinions and relationships.'),
+                                        'push' => 'push_analyst_data',
+                                        'pull' => 'pull_analyst_data',
+                                    ],
+                                    [
+                                        'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
+                                        'title' => __('Collections'),
+                                        'description' => __('Collections and their members. Skipped if the remote does not support collection sync.'),
+                                        'push' => 'push_collections',
+                                        'pull' => 'pull_collections',
+                                    ],
+                                ];
+                                $syncSwitch = function ($field, $label, $icon, $context) {
+                                    return '<div class="form-check form-switch">'
+                                        . $this->Form->checkbox($field, ['class' => 'form-check-input', 'role' => 'switch'])
+                                        . $this->Form->label(
+                                            $field,
+                                            '<i class="fas ' . $icon . ' me-1" aria-hidden="true"></i>' . h($label)
+                                                . '<span class="visually-hidden"> ' . h($context) . '</span>',
+                                            ['class' => 'form-check-label', 'escape' => false]
+                                        )
+                                        . '</div>';
+                                };
+                                ?>
+                                <div class="srv-sync-list">
+                                    <?php foreach ($syncRows as $row): ?>
+                                        <div class="srv-sync-row">
+                                            <div class="srv-sync-what">
+                                                <i class="<?= $row['icon'] ?> srv-sync-icon" aria-hidden="true"></i>
+                                                <div>
+                                                    <div class="fw-semibold"><?= h($row['title']) ?></div>
+                                                    <div class="text-muted small"><?= h($row['description']) ?></div>
+                                                </div>
                                             </div>
+                                            <?php foreach (['push' => [__('Push'), 'fa-arrow-up'], 'pull' => [__('Pull'), 'fa-arrow-down']] as $dir => [$dirLabel, $dirIcon]): ?>
+                                                <div class="srv-sync-dir">
+                                                    <?php if (!empty($row[$dir])): ?>
+                                                        <?= $syncSwitch($row[$dir], $dirLabel, $dirIcon, $row['title']) ?>
+                                                    <?php else: ?>
+                                                        <span class="srv-sync-note" title="<?= h($row[$dir . 'NoteTitle']) ?>">
+                                                            <i class="fas <?= $dirIcon ?> me-1" aria-hidden="true"></i><?= h($row[$dir . 'Note']) ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
                                         </div>
                                     <?php endforeach; ?>
+                                </div>
+
+                                <div class="srv-sync-list mt-3">
+                                    <div class="srv-sync-row">
+                                        <div class="srv-sync-what">
+                                            <i class="fas fa-database srv-sync-icon" aria-hidden="true"></i>
+                                            <div>
+                                                <div class="fw-semibold"><?= __('Cache remote values') ?></div>
+                                                <div class="text-muted small"><?= __('Keep a local copy of the remote\'s attribute values to correlate against them, without pulling its events.') ?></div>
+                                            </div>
+                                        </div>
+                                        <div class="srv-sync-dir srv-sync-dir-wide">
+                                            <?= $syncSwitch('caching_enabled', __('Enable'), 'fa-power-off', __('caching')) ?>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
