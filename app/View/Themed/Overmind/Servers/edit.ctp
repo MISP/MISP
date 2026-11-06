@@ -179,7 +179,7 @@ echo $this->Form->create('Server', [
                                     aria-expanded="false"
                                     aria-controls="sgCollapse3">
                                 <span class="badge bg-primary me-2">3</span>
-                                <?= __('Enabled synchronisation methods') ?>
+                                <?= __('What to synchronise') ?>
                             </button>
                         </h2>
                         <div id="sgCollapse3"
