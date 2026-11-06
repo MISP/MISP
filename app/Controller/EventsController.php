@@ -4806,6 +4806,103 @@ class EventsController extends AppController
     }
 
     /**
+     * The event's pictures: image attachments the user can see, loose or in
+     * an object, in creation order.
+     *
+     * @param int|string $id Event ID or UUID
+     * @return CakeResponse
+     */
+    public function viewEventPictures($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = (int)$event['Event']['id'];
+
+        $this->loadModel('MispAttribute');
+        $rows = $this->MispAttribute->fetchAttributes($user, [
+            'conditions' => [
+                'Attribute.event_id' => $eventId,
+                'Attribute.type' => 'attachment',
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => [
+                'Attribute.id', 'Attribute.uuid', 'Attribute.type',
+                'Attribute.category', 'Attribute.value', 'Attribute.comment',
+                'Attribute.timestamp', 'Attribute.distribution',
+                'Attribute.object_id',
+            ],
+            'flatten' => true,
+        ]);
+        $attributes = array_values(array_filter(
+            array_column($rows, 'Attribute'),
+            [$this->MispAttribute, 'isImage']
+        ));
+        usort($attributes, function ($a, $b) {
+            return (int)$a['id'] - (int)$b['id'];
+        });
+
+        $objectIds = array_values(array_unique(array_filter(array_map(
+            function ($attribute) {
+                return (int)$attribute['object_id'];
+            },
+            $attributes
+        ))));
+        $objects = [];
+        if (!empty($objectIds)) {
+            $objects = $this->MispAttribute->Object->find('all', [
+                'recursive' => -1,
+                'conditions' => ['Object.id' => $objectIds],
+                'fields' => ['Object.id', 'Object.name', 'Object.distribution'],
+            ]);
+            $objects = array_column(
+                array_column($objects, 'Object'),
+                null,
+                'id'
+            );
+        }
+
+        $baseurl = $this->baseurl;
+        $pictures = [];
+        foreach ($attributes as $attribute) {
+            $attributeId = (int)$attribute['id'];
+            $object = $objects[$attribute['object_id']] ?? null;
+            $pictures[] = [
+                'id' => $attributeId,
+                'filename' => $attribute['value'],
+                'comment' => $attribute['comment'],
+                'category' => $attribute['category'],
+                'distribution' => (int)($object === null
+                    ? $attribute['distribution']
+                    : $object['distribution']),
+                'timestamp' => (int)$attribute['timestamp'],
+                'object' => $object === null ? null : [
+                    'id' => (int)$object['id'],
+                    'name' => $object['name'],
+                ],
+                'src' => $baseurl . '/attributes/viewPicture/' . $attributeId,
+                'thumb' => $baseurl . '/attributes/viewPicture/'
+                    . $attributeId . '/webp',
+                'download' => $baseurl . '/attributes/download/' . $attributeId,
+                'attributeUrl' => sprintf(
+                    '%s/events/view/%d/focus:%s',
+                    $baseurl,
+                    $eventId,
+                    $attribute['uuid']
+                ),
+            ];
+        }
+
+        return $this->RestResponse->viewData($pictures, 'json');
+    }
+
+    /**
      * Returns an event-level warninglist hit summary.
      *
      * Only checks whether the user can see the event —

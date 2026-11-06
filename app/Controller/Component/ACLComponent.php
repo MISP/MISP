@@ -481,6 +481,7 @@ class ACLComponent extends Component
             'viewEventTimeline' => array('theming_enabled'),
             'viewAttachments' => array('theming_enabled'),
             'viewEventSightings' => array('theming_enabled'),
+            'viewEventPictures' => array('theming_enabled'),
             'viewRelatedEvents' => array('theming_enabled'),
             'viewWarninglistHits' => array('theming_enabled'),
             'viewEventAttributes' => array('*'),
