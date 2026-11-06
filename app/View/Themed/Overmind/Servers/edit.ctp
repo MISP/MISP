@@ -197,7 +197,9 @@ echo $this->Form->create('Server', [
                                         'push_galaxy_clusters' => __('Push clusters'),
                                         'pull_galaxy_clusters' => __('Pull clusters'),
                                         'push_analyst_data' => __('Push analyst data'),
-                                        'pull_analyst_data' => __('Pull analyst data')
+                                        'pull_analyst_data' => __('Pull analyst data'),
+                                        'push_collections' => __('Push collections'),
+                                        'pull_collections' => __('Pull collections')
                                     ];
                                     foreach ($syncFields as $name => $label):
                                     ?>

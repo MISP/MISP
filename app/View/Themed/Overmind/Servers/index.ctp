@@ -129,6 +129,15 @@ $fields = [
         'display_in' => ['table']
     ],
     [
+        'name' => __('Collections'),
+        'sort' => 'Server.push_collections',
+        'data_path' => 'Server.push_collections',
+        'element' => 'server_boolean',
+        'true' => __('Enabled'),
+        'false' => __('Disabled'),
+        'display_in' => ['table']
+    ],
+    [
         'name' => __('Cache'),
         'sort' => 'Server.caching_enabled',
         'data_path' => 'Server',
