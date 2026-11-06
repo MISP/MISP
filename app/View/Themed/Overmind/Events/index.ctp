@@ -15,6 +15,18 @@ $canPickTemplate = (
     && $this->Acl->canAccess('eventTemplates', 'instantiate')
 );
 
+if (
+    !$isSiteAdmin && $hostOrgUser
+    && Configure::read('MISP.enableEventBlocklisting') !== false
+) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Manage Event Blocklists'),
+        'icon' => 'ban',
+        'url' => $baseurl . '/eventBlocklists',
+    ];
+}
+
 if ($this->Acl->canAccess('events', 'importEvent')) {
     $headerActions[] = [
         'type' => 'modal',

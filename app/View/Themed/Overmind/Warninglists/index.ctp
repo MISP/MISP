@@ -7,6 +7,14 @@ $headerDescription = __('');
 
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
+if ($this->Acl->canAccess('warninglists', 'checkValue')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Search in Warninglists'),
+        'icon' => 'magnifying-glass',
+        'url' => $baseurl . '/warninglists/checkValue'
+    ];
+}
 if ($this->Acl->canAccess('warninglists', 'update')) {
     $headerActions[] = [
         'type' => 'action',
