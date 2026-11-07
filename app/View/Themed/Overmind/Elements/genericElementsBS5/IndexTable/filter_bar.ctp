@@ -536,14 +536,16 @@ if ($pickerMode) {
                         id="filterField"
                         type="text"
                         placeholder="<?= h($child['placeholder']) ?>"
+                        aria-label="<?= h(__('Search')) ?>"
                         value="<?= $searchVal !== null ? h(urldecode($searchVal)) : '' ?>"
                     >
                     <button
                         id="filterButton"
                         class="btn btn-primary"
                         type="button"
+                        aria-label="<?= h(__('Search')) ?>"
                     >
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-search" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>

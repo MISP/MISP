@@ -295,10 +295,26 @@ body[data-controller="users"][data-action="password_reset"] {
     background-color: var(--misp-index-check-all, orangered);
 }
 
-/* Visual focus (to improve) */
-.checkbox-index input[type="checkbox"]:focus {
-    outline: none;
-    box-shadow: none;
+/* The custom checkbox removes the browser's native appearance. */
+.checkbox-index input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+.ov-skip-link {
+    position: fixed;
+    inset-block-start: .5rem;
+    inset-inline-start: .5rem;
+    z-index: 1100;
+    padding: .5rem 1rem;
+    color: var(--bs-body-color);
+    background: var(--bs-body-bg);
+    border: 2px solid currentColor;
+    transform: translateY(calc(-100% - 1rem));
+}
+
+.ov-skip-link:focus {
+    transform: translateY(0);
 }
 
 
