@@ -1149,6 +1149,28 @@ class Feed extends AppModel
     }
 
     /**
+     * How many attributes and objects these events of a MISP feed hold, as its
+     * event preview counts them, for the preview index: a manifest carries no
+     * counts.
+     *
+     * @param array $feed
+     * @param array $events uuid => manifest timestamp
+     * @param bool $download false answers from the cache alone
+     * @return array as RemoteEventCounts::read()
+     */
+    public function previewCounts(array $feed, array $events, $download = true)
+    {
+        App::uses('RemoteEventCounts', 'Tools');
+        return RemoteEventCounts::read(
+            'misp:feed_preview_counts:' . (int)$feed['Feed']['id'],
+            $events,
+            $download ? function ($uuid) use ($feed) {
+                return $this->downloadEventFromFeed($feed, $uuid, true);
+            } : null
+        );
+    }
+
+    /**
      * @param array $feed
      * @param string $uuid
      * @return bool|string|array
@@ -2400,6 +2422,8 @@ class Feed extends AppModel
         try {
             $error_message = "Could not parse event JSON with UUID '$eventUuid' from feed";
             $data = JsonTool::decodeArray($raw_data);
+            // Parsed: a permissive caller reports this message as the event's error.
+            $error_message = null;
             if (!empty($data['Event']['protected'])) {
                 $path = $feed['Feed']['url'] . '/' . $eventUuid . '.asc';
                 $sig = $this->feedGetUri($feed, $path, $HttpSocket);
@@ -2419,7 +2443,7 @@ class Feed extends AppModel
             }
             return $data;
         } catch (Exception $e) {
-            throw new Exception($error_message, 0, $e);
+            throw new Exception($error_message ?? $e->getMessage(), 0, $e);
         }
     }
 

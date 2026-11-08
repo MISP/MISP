@@ -12,6 +12,16 @@ $attributes = array_values(array_filter(
     }
 ));
 
+// The whole event is on hand, so the tab filters it here: the Filters panel
+// lists what the event carries, the rows are those matching.
+App::uses('RemoteEventPreviewFilter', 'Tools');
+$filters = RemoteEventPreviewFilter::active(
+    $this->request->params['named'] ?? [],
+    RemoteEventPreviewFilter::ATTRIBUTE_FILTERS
+);
+$panelChildren = RemoteEventPreviewFilter::children($attributes, [], RemoteEventPreviewFilter::ATTRIBUTE_FILTERS);
+$attributes = RemoteEventPreviewFilter::attributes($attributes, $filters);
+
 /*
  * The caller loads the whole remote event — the tab counter and the
  * attribute/object split both need it, because rearrangeEventForView truncates
@@ -30,20 +40,6 @@ if ($isCapped) {
 }
 
 $taggingEnabled = (bool)Configure::read('MISP.tagging');
-$uid = 'preview-attrs-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0');
-
-// Distinct categories / types present, for the "More filters" dropdowns.
-$catSet = [];
-$typeSet = [];
-foreach ($attributes as $a) {
-    if (!empty($a['category'])) { $catSet[$a['category']] = true; }
-    if (!empty($a['type']))     { $typeSet[$a['type']] = true; }
-}
-ksort($catSet);
-ksort($typeSet);
-$catOptions  = ['' => __('All')] + array_combine(array_keys($catSet), array_keys($catSet));
-$typeOptions = ['' => __('All')] + array_combine(array_keys($typeSet), array_keys($typeSet));
-
 
 // The controller pages the preview under its own model key (Server / Feed) and
 // builds the "show every attribute" URL, both carried by $previewContext.
@@ -65,111 +61,90 @@ $viewAllUrl = array_key_exists('viewAllUrl', $ctx)
     : ($baseurl . '/servers/previewEvent/'
         . (int)($server['Server']['id'] ?? 0) . '/'
         . h($data['Event']['id'] ?? '') . '/all#tab-attributes');
+// The bar's links start from the tab's own URL, uncapped when it is.
+$tabUrl = ($ctx['attributesUrl'] ?? '') . ($showAll ? '/all' : '');
+if (!empty($viewAllUrl)) {
+    foreach ($filters as $name => $value) {
+        $viewAllUrl .= '/' . $name . ':' . rawurlencode($value);
+    }
+}
 
 
+// The attribute index's fields (Elements/Attributes/index.ctp), so the table
+// and its cards draw a remote attribute as the event's tab draws a local one,
+// with nothing to toggle or add.
 $fields = [
     [
         'name' => __('Value'),
-        'element' => 'custom',
-        'card_section' => 'title',
+        'data_path' => '',
+        'element' => 'attribute_value',
+        'remote' => true,
+        'card_section' => 'value',
         'display_in' => ['table', 'card'],
-        'function' => function ($row) {
-            $dist = $this->element('genericElementsBS5/IndexTable/Fields/distribution', [
-                'row' => $row,
-                'field' => ['data_path' => 'distribution', 'display' => 'short'],
-            ]);
-            $html = '<div class="d-flex flex-column gap-1">'
-                . '<div class="d-flex align-items-baseline gap-2 mb-0 flex-wrap">'
-                . $dist
-                . '<p class="mb-0">' . h($row['value'] ?? '') . '</p>'
-                . '</div>';
-            if (!empty($row['comment'])) {
-                $html .= '<div class="card card-link-item bg-light"><div class="card-body p-1">'
-                    . '<i class="fa fa-comment"></i> <span>' . h($row['comment']) . '</span>'
-                    . '</div></div>';
-            }
-            return $html . '</div>';
-        },
     ],
     [
         'name' => __('Category'),
         'data_path' => 'category',
         'element' => 'category',
-        'card_section' => 'attribute',
+        'card_section' => 'category',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Type'),
         'data_path' => 'type',
         'element' => 'type',
-        'card_section' => 'attribute',
+        'card_section' => 'type',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Tags'),
-        'data_path' => 'AttributeTag',
+        'data_path' => 'Tag',
         'element' => 'tag_list',
         'requirement' => $taggingEnabled,
-        'card_section' => 'tag',
+        'card_section' => 'tags',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Galaxy'),
         'data_path' => 'Galaxy',
         'element' => 'galaxy',
-        'card_section' => 'galaxy',
+        'card_section' => 'galaxies',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('IDS'),
-        'element' => 'custom',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card'],
-        'function' => function ($row) {
-            $toIds = !empty($row['to_ids']);
-            $cls   = $toIds ? 'text-warning' : 'text-secondary';
-            $title = $toIds ? __('IDS active') : __('IDS inactive');
-            return '<i class="fas fa-shield-halved ' . $cls . '" style="font-size:1.2em;" title="' . h($title) . '"></i>';
-        },
+        'data_path' => 'to_ids',
+        'element' => 'ids',
+        'readonly' => true,
+        'class' => 'text-center',
+        'display_in' => ['table'],
     ],
     [
         'name' => __('Correlate'),
-        'element' => 'custom',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card'],
-        'function' => function ($row) {
-            $disabled = !empty($row['disable_correlation']);
-            $icon     = $disabled ? 'fa-link-slash' : 'fa-link';
-            $cls      = $disabled ? 'text-secondary' : 'text-success';
-            $title    = $disabled ? __('Correlation disabled') : __('Correlation enabled');
-            return '<i class="fas ' . $icon . ' ' . $cls . '" style="font-size:1.2em;" title="' . h($title) . '"></i>';
-        },
+        'data_path' => 'disable_correlation',
+        'element' => 'correlate',
+        'readonly' => true,
+        'class' => 'text-center',
+        'display_in' => ['table'],
     ],
     [
         'name' => __('Related Events'),
         'element' => 'relatedEvents',
-        'card_section' => 'top',
+        'card_section' => 'related',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Feed hits'),
         'element' => 'feedHits',
-        'card_section' => 'meta',
+        'card_section' => 'feeds',
         'display_in' => ['table', 'card'],
-    ],
-    [
-        'name' => __('Last Modified'),
-        'data_path' => 'timestamp',
-        'element' => 'timestamp',
-        'mode' => 'modified',
-        'card_section' => 'meta',
-        'display_in' => ['card'],
     ],
     [
         'name' => __('Sightings'),
         'element' => 'sightings',
         'sightings' => ['data' => [], 'csv' => []],
-        'card_section' => 'meta',
+        'readonly' => true,
+        'card_section' => 'sightings',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -181,58 +156,44 @@ $fields = [
         'relationship_inbound_path' => 'RelationshipInbound',
         'uuid_path' => 'uuid',
         'object_type' => 'Attribute',
-        'card_section' => 'meta',
+        'card_section' => 'analyst',
         'display_in' => ['table', 'card'],
     ],
 ];
 
 
-$children = [
+$children = array_merge([
     [
         'type' => 'search',
         'button' => __('Search'),
-        'placeholder' => __('Filter by value, category, type or tag'),
+        'placeholder' => __('Filter by attribute value, UUID or comment'),
         'mode' => 'legacy',
         'name' => 'searchFor',
     ],
-    [
-        'type' => 'more_filters',
-        'label' => __('More filters'),
-        'children' => [
-            ['type' => 'dropdown', 'label' => __('Category'), 'name' => 'category', 'options' => $catOptions],
-            ['type' => 'dropdown', 'label' => __('Type'),     'name' => 'type',     'options' => $typeOptions],
-        ],
-    ],
-];
-?>
+], $panelChildren);
 
-<div id="<?= $uid ?>-scaffold">
-    <?php
-    echo $this->element('genericElementsBS5/IndexTable/scaffold', [
-        'scaffold_data' => [
-            'containerId' => $uid . '-index',
-            'data' => [
-                'data' => $attributes,
-                'fields' => $fields,
+echo $this->element('genericElementsBS5/IndexTable/scaffold', [
+    'scaffold_data' => [
+        'data' => [
+            'data' => $attributes,
+            'fields' => $fields,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxl' => 3, 'xxxxl' => 4],
+            'card_element' => 'Attributes/index_card_tile',
+            'card_params' => ['readonly' => true],
+            'skip_pagination' => true,
+            'empty_message' => empty($filters) ? __('No attributes in this event.') : __('No attribute matches these filters.'),
+            'filter_bar' => [
+                'base_url' => $tabUrl,
+                // Paging belongs to the preview request, not to this bar; the
+                // "view all" link below is the way out of the first page.
                 'skip_pagination' => true,
-                'filter_bar' => [
-                    // The rows are filtered in the page, off the bar's own controls.
-                    'picker_bar' => false,
-                    // Paging belongs to the preview request, not to this bar; the
-                    // "view all" link below is the way out of the first page.
-                    'skip_pagination' => true,
-                    'children' => $children,
-                ],
-            ]
-        ],
-        'item_url' => '/attributes'
-    ]);
-    ?>
-</div>
-
-<div id="<?= $uid ?>-noresult" class="d-none text-center text-muted py-4">
-    <i class="fas fa-search me-1"></i><?= __('No attribute matches your search') ?>
-</div>
+                'children' => $children,
+            ],
+        ]
+    ],
+    'item_url' => '/attributes'
+]);
+?>
 
 <?php if ($hasMorePages && !empty($viewAllUrl)): ?>
     <div class="text-center pb-3">
@@ -260,69 +221,4 @@ $children = [
         });
     }());
     </script>
-<?php endif; ?>
-
-<?php if (!empty($attributes)): ?>
-<script>
-(function () {
-    var uid   = <?= json_encode($uid) ?>;
-    var root  = document.getElementById(uid + '-scaffold');
-    if (!root) { return; }
-    var noResult = document.getElementById(uid + '-noresult');
-
-    // Strip the filter_bar's own navigation listeners by cloning its controls,
-    // then wire client-side filtering (all attributes are already loaded).
-    function strip(el) {
-        if (!el) { return null; }
-        var clone = el.cloneNode(true);
-        el.parentNode.replaceChild(clone, el);
-        return clone;
-    }
-    var search  = strip(root.querySelector('#filterField'));
-    var btn     = strip(root.querySelector('#filterButton'));
-    var selects = Array.prototype.map.call(root.querySelectorAll('.topbar-filter'), strip);
-
-    var rows  = root.querySelectorAll('#tableView tbody tr[data-row-id]');
-    var cards = root.querySelectorAll('#cardView .idx-card-col');
-
-    function selByName(name) {
-        for (var i = 0; i < selects.length; i++) {
-            if (selects[i] && selects[i].getAttribute('name') === name) { return selects[i]; }
-        }
-        return null;
-    }
-    var catSel  = selByName('category');
-    var typeSel = selByName('type');
-
-    function cellText(row, path) {
-        var td = row.querySelector('td[data-path="' + path + '"]');
-        return td ? td.textContent.trim() : '';
-    }
-
-    function apply() {
-        var q   = (search ? search.value : '').toLowerCase().trim();
-        var cat = catSel ? catSel.value : '';
-        var typ = typeSel ? typeSel.value : '';
-        var visible = 0;
-        rows.forEach(function (row, i) {
-            var show = (q === '' || row.textContent.toLowerCase().indexOf(q) !== -1)
-                && (cat === '' || cellText(row, 'category') === cat)
-                && (typ === '' || cellText(row, 'type') === typ);
-            row.classList.toggle('d-none', !show);
-            if (cards[i]) { cards[i].classList.toggle('d-none', !show); }
-            if (show) { visible++; }
-        });
-        if (noResult) { noResult.classList.toggle('d-none', visible !== 0); }
-    }
-
-    if (btn)    { btn.addEventListener('click', apply); }
-    if (search) {
-        search.addEventListener('input', apply);
-        search.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); apply(); }
-        });
-    }
-    selects.forEach(function (sel) { if (sel) { sel.addEventListener('change', apply); } });
-}());
-</script>
 <?php endif; ?>

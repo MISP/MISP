@@ -4132,6 +4132,27 @@ class Server extends AppModel
     }
 
     /**
+     * How many attributes and objects these events of a remote instance hold,
+     * for its preview index: the remote event index counts attributes only.
+     *
+     * @param array $server
+     * @param array $events remote event id => timestamp
+     * @param bool $download false answers from the cache alone
+     * @return array as RemoteEventCounts::read()
+     */
+    public function previewCounts(array $server, array $events, $download = true)
+    {
+        App::uses('RemoteEventCounts', 'Tools');
+        return RemoteEventCounts::read(
+            'misp:server_preview_counts:' . (int)$server['Server']['id'],
+            $events,
+            $download ? function ($eventId) use ($server) {
+                return $this->previewEvent($server, $eventId);
+            } : null
+        );
+    }
+
+    /**
      * Returns an array with the event.
      * @param array $server
      * @param int $eventId

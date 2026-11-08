@@ -1373,6 +1373,10 @@ class EventsController extends AppController
                 $events,
                 Event::INDEX_OBJECT_LIMIT
             );
+            // Overmind's attribute count links to the tab that lists them.
+            if ($this->theme === 'Overmind') {
+                $events = $this->Event->attachAttributesInObjectsOnlyToEvents($events);
+            }
         }
 
         if (in_array('correlations', $columns, true)) {
@@ -1417,11 +1421,9 @@ class EventsController extends AppController
         if (empty($events)) {
             return $events;
         }
-        App::uses('EventContextTool', 'Tools/EventOverview');
-        App::uses('EventCardTool', 'Tools/EventOverview');
+        App::uses('EventCardBatch', 'Tools/EventOverview');
         $user = $this->Auth->user();
-        $permitted = ClassRegistry::init('AnalystProfile')->pivotLabels($user, $plan)['permitted'];
-        $markingNamespaces = ValueLabelPriority::markings($profile);
+        $cards = EventCardBatch::cards($events, $user, $profile, $plan);
         $uuids = array_column(array_column($events, 'Event'), 'uuid');
 
         // Callbacks off: AnalystData::afterFind resolves orgs and child notes per row.
@@ -1459,41 +1461,8 @@ class EventsController extends AppController
             $extendedBy[$row['Event']['extends_uuid']] = (int)$row[0]['children'];
         }
 
-        App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
-        $grades = ValueTrustTool::planFor($profile)['grades'];
-        $pinned = EventCardTool::pinned($profile);
-        $pinnedExtras = array_diff($pinned, $markingNamespaces);
-
-        $contexts = [];
-        $pinnedTagNames = [];
-        foreach ($events as $k => $event) {
-            $contexts[$k] = EventContextTool::rows(
-                $event['EventTag'] ?? [],
-                $event['GalaxyCluster'] ?? [],
-                null,
-                [],
-                [],
-                $profile,
-                $permitted
-            );
-            foreach ($contexts[$k]['classification'] as $item) {
-                if ($item['kind'] === 'tag' && in_array($item['key'], $pinnedExtras, true)) {
-                    $pinnedTagNames[$item['name']] = true;
-                }
-            }
-        }
-        // Redis-cached, and bounded by the distinct pinned tags on the page.
-        $descriptions = [];
-        if ($pinnedTagNames) {
-            $Taxonomy = ClassRegistry::init('Taxonomy');
-            foreach (array_keys($pinnedTagNames) as $tagName) {
-                $descriptions[$tagName] = EventCardTool::tagDescription($Taxonomy->getTaxonomyForTag($tagName));
-            }
-        }
-
         foreach ($events as $k => $event) {
             $e = $event['Event'];
-            $context = $contexts[$k];
             $extends = null;
             if (!empty($e['extends_uuid'])) {
                 $parent = $extendedEvents[$e['extends_uuid']] ?? null;
@@ -1501,12 +1470,7 @@ class EventsController extends AppController
                     ? ['id' => (int)$parent['id'], 'info' => $parent['info'], 'uuid' => $e['extends_uuid']]
                     : ['id' => null, 'info' => null, 'uuid' => $e['extends_uuid']];
             }
-            $events[$k]['EventCard'] = [
-                'rows' => EventCardTool::rows($context, $profile),
-                'markings' => EventCardTool::markings($context, $markingNamespaces, $pinned, $descriptions),
-                'grade' => EventCardTool::grade($event['Orgc'] ?? [], $grades),
-                'state' => EventCardTool::state($e),
-                'distribution' => EventCardTool::distribution($e['distribution'], $event['SharingGroup'] ?? null),
+            $events[$k]['EventCard'] = $cards[$k] + [
                 'graphs' => $graphs[$e['uuid']] ?? [],
                 'extends' => $extends,
                 'extended_by' => $extendedBy[$e['uuid']] ?? 0,
@@ -3318,11 +3282,18 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
         $this->set('objects', $result['Object']);
+        $objectIds = array_map('intval', array_column($result['Object'], 'id'));
+        $this->set('referencesIn', empty($objectIds)
+            ? [] : $this->Event->Object->indexReferenceCounts($user, $objectIds)[1]);
         $focusId = null;
         if (!empty($options['focus'])) {
             foreach ($result['Object'] as $object) {
@@ -3496,7 +3467,11 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
@@ -4763,7 +4738,9 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+            ['fields' => [
+                'Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id',
+            ]]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -4826,6 +4803,103 @@ class EventsController extends AppController
         $this->set('attachments', $attachments);
         $this->set('event',       $event);
         $this->layout = false;
+    }
+
+    /**
+     * The event's pictures: image attachments the user can see, loose or in
+     * an object, in creation order.
+     *
+     * @param int|string $id Event ID or UUID
+     * @return CakeResponse
+     */
+    public function viewEventPictures($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = (int)$event['Event']['id'];
+
+        $this->loadModel('MispAttribute');
+        $rows = $this->MispAttribute->fetchAttributes($user, [
+            'conditions' => [
+                'Attribute.event_id' => $eventId,
+                'Attribute.type' => 'attachment',
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => [
+                'Attribute.id', 'Attribute.uuid', 'Attribute.type',
+                'Attribute.category', 'Attribute.value', 'Attribute.comment',
+                'Attribute.timestamp', 'Attribute.distribution',
+                'Attribute.object_id',
+            ],
+            'flatten' => true,
+        ]);
+        $attributes = array_values(array_filter(
+            array_column($rows, 'Attribute'),
+            [$this->MispAttribute, 'isImage']
+        ));
+        usort($attributes, function ($a, $b) {
+            return (int)$a['id'] - (int)$b['id'];
+        });
+
+        $objectIds = array_values(array_unique(array_filter(array_map(
+            function ($attribute) {
+                return (int)$attribute['object_id'];
+            },
+            $attributes
+        ))));
+        $objects = [];
+        if (!empty($objectIds)) {
+            $objects = $this->MispAttribute->Object->find('all', [
+                'recursive' => -1,
+                'conditions' => ['Object.id' => $objectIds],
+                'fields' => ['Object.id', 'Object.name', 'Object.distribution'],
+            ]);
+            $objects = array_column(
+                array_column($objects, 'Object'),
+                null,
+                'id'
+            );
+        }
+
+        $baseurl = $this->baseurl;
+        $pictures = [];
+        foreach ($attributes as $attribute) {
+            $attributeId = (int)$attribute['id'];
+            $object = $objects[$attribute['object_id']] ?? null;
+            $pictures[] = [
+                'id' => $attributeId,
+                'filename' => $attribute['value'],
+                'comment' => $attribute['comment'],
+                'category' => $attribute['category'],
+                'distribution' => (int)($object === null
+                    ? $attribute['distribution']
+                    : $object['distribution']),
+                'timestamp' => (int)$attribute['timestamp'],
+                'object' => $object === null ? null : [
+                    'id' => (int)$object['id'],
+                    'name' => $object['name'],
+                ],
+                'src' => $baseurl . '/attributes/viewPicture/' . $attributeId,
+                'thumb' => $baseurl . '/attributes/viewPicture/'
+                    . $attributeId . '/webp',
+                'download' => $baseurl . '/attributes/download/' . $attributeId,
+                'attributeUrl' => sprintf(
+                    '%s/events/view/%d/focus:%s',
+                    $baseurl,
+                    $eventId,
+                    $attribute['uuid']
+                ),
+            ];
+        }
+
+        return $this->RestResponse->viewData($pictures, 'json');
     }
 
     /**

@@ -15,6 +15,9 @@
  *                            (default true; false for a remote record whose
  *                            ids mean nothing here)
  *   $noOrgText     string    shown when there is neither organisation
+ *   $orgNote       string    plain text under the organisation's name, before
+ *                            the held / created line: the role it plays when
+ *                            that is not "creator"
  *   $inherited     array     at level 5, what the record follows:
  *                            ['distribution', 'sharingGroup', 'label', 'url'];
  *                            the card then shows that level as the effective one
@@ -104,6 +107,9 @@ $avatar = function (array $organisation) {
 };
 
 $meta = [];
+if (!empty($orgNote)) {
+    $meta[] = h($orgNote);
+}
 if (!$sameOrg && !empty($orgc['name']) && !empty($org['name'])) {
     $meta[] = __('held here by %s', $orgLink($org, 'fw-semibold text-reset'));
 }

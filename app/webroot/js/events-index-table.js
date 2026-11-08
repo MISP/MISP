@@ -1,7 +1,8 @@
 /* Overmind events index — table view: column widths and the narrow-width
    drop order, columns resized by the reader, the column chooser
    (event_index_hide_columns), the markings and lanes fitted to their cells,
-   whole-row click and selection. */
+   and row selection. The ID and the title link to the event, and so does a
+   double click on the row (index_table.ctp); a single click on it does not. */
 (function () {
     'use strict';
 
@@ -425,22 +426,7 @@
                 self.widths = {};
                 self.fit();
                 self.saveWidths();
-                return;
             }
-            var tr = e.target.closest('#tableView tr.te-row');
-            if (!tr || e.target.closest('a, button, input, label, select, .dropdown, .dropdown-menu, td.te-c-sel, td.te-c-act, .dk-chip[tabindex]')) return;
-            var sel = window.getSelection && window.getSelection();
-            if (sel && String(sel).length) return;
-            var link = $('.te-title', tr);
-            if (!link) return;
-            if (e.ctrlKey || e.metaKey) window.open(link.href, '_blank');
-            else window.location.href = link.href;
-        });
-        root.addEventListener('auxclick', function (e) {
-            if (e.button !== 1 || e.target.closest('a, button, input')) return;
-            var tr = e.target.closest('#tableView tr.te-row');
-            var link = tr && $('.te-title', tr);
-            if (link) window.open(link.href, '_blank');
         });
 
         var results = $('#index-results', root);

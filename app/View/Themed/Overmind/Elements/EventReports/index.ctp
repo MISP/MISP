@@ -23,6 +23,54 @@ foreach ($reports as $row) {
     }
 }
 
+// What a row tells of its report besides the name: an excerpt of the text,
+// its length and the MISP elements it references. Worked out once per report,
+// for the table and the card alike.
+$digest = function (array $report) {
+    $content = preg_replace('/\r\n?/', "\n", (string)($report['content'] ?? ''));
+    $elements = [];
+    if (preg_match_all('/@\[(\w+)\]\(([^)\s]+)\)/', $content, $refs, PREG_SET_ORDER)) {
+        foreach ($refs as $ref) {
+            $elements[$ref[1]][$ref[2]] = true;
+        }
+    }
+    $markup = [
+        '/^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[ \t]*$/ms' => '',
+        '/@\[\w+\]\([^)]*\)/' => '',
+        '/!\[[^\]]*\]\([^)]*\)/' => '',
+        '/\[([^\]]*)\]\([^)]*\)/' => '$1',
+        '/<[^>]*>/' => '',
+        '/^[ \t]*(?:[-*_][ \t]*){3,}$/m' => '',
+        '/^[ \t]*=+[ \t]*$/m' => '',
+        '/^[ \t|:-]*-{3,}[ \t|:-]*$/m' => '',
+        '/^[ \t]*(?:#{1,6}|>+|[-*+](?=\s)|\d+[.)](?=\s))[ \t]*/m' => '',
+        '/\*\*|~~|[*`|]/' => ' ',
+    ];
+    $text = preg_replace(array_keys($markup), $markup, $content);
+    if ($text === null) {
+        // Past PCRE's limits on a long report: the code blocks stay in.
+        $markup = array_slice($markup, 1, null, true);
+        $text = preg_replace(array_keys($markup), $markup, $content) ?? $content;
+    }
+    $text = trim(preg_replace('/\s+/u', ' ', (string)$text));
+    return [
+        'excerpt' => mb_substr($text, 0, 400),
+        'words' => $text === '' ? 0 : count(preg_split('/\s+/u', $text)),
+        'elements' => array_map('count', $elements),
+    ];
+};
+
+// The event tab lists one event's reports, which share its event and its
+// creator org; only a list spanning several events says them.
+$showOrigin = empty($eventView) || $inExtensionView;
+foreach ($reports as $i => $row) {
+    $reports[$i]['ctx'] = [
+        'digest' => $digest($row['EventReport']),
+        'reader' => !empty($eventView),
+        'origin' => $showOrigin,
+    ];
+}
+
 $fields = [
     [
         'element' => 'checkbox',
@@ -30,53 +78,64 @@ $fields = [
         'card_section' => 'selector',
     ],
     [
-        'name' => __('ID'),
-        'sort' => 'EventReport.id',
-        'data_path' => 'EventReport.id',
-        'element' => 'id',
-        'url' => $baseurl . '/event_reports/view/%id%',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'name' => __('Report'),
+        // Unprefixed: the event tab's own paging only knows the report's fields.
+        'sort' => 'name',
+        'class' => 'er-col-report',
+        'display_in' => ['table'],
+        'element' => 'custom',
+        'function' => function ($row) {
+            return $this->element('EventReports/index_report_cell', ['row' => $row]);
+        },
     ],
     [
-        'name' => __('Name'),
-        'sort' => 'EventReport.name',
-        'data_path' => 'EventReport.name',
-        'element' => 'report_value',
-        'reader' => !empty($eventView),
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
+        'name' => __('Event'),
+        'sort' => empty($eventView) ? 'Event.id' : null,
+        'class' => 'er-col-event',
+        'display_in' => ['table'],
+        'requirement' => $showOrigin,
+        'element' => 'custom',
+        'function' => function ($row) {
+            return $this->element('EventReports/index_event', ['row' => $row]);
+        },
+    ],
+    [
+        'name' => __('Creator org'),
+        'class' => 'er-col-org',
+        'display_in' => ['table'],
+        'requirement' => $showOrigin,
+        'data_path' => 'Event.Orgc',
+        'element' => 'organisation',
+    ],
+    [
+        'name' => __('Content'),
+        'class' => 'er-col-content',
+        'display_in' => ['table'],
+        'element' => 'custom',
+        'function' => function ($row) {
+            return $this->element('EventReports/index_stats', [
+                'digest' => $row['ctx']['digest'],
+            ]);
+        },
+    ],
+    [
+        'name' => __('Modified'),
+        'sort' => 'timestamp',
+        'class' => 'er-col-modified',
+        'display_in' => ['table'],
+        'element' => 'custom',
+        'function' => function ($row) {
+            return $this->element('genericElementsBS5/Badges/timestamp_pill', [
+                'record' => ['timestamp' => $row['EventReport']['timestamp']],
+            ]);
+        },
     ],
     [
         'name' => __('Preview'),
         'element' => 'report_preview',
-        'card_section' => 'body',
+        'card_section' => 'preview',
         'display_in' => ['card'],
         'requirement' => !empty($eventView),
-    ],
-    [
-        'name' => __('Event'),
-        'sort' => 'Event.id',
-        'data_path' => 'Event.id, Event.info',
-        'element' => 'event',
-        'url' => $baseurl . '/events/view/%event_id%',
-        'card_section' => 'links',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Owner Org'),
-        'sort' => 'Event.org_id',
-        'data_path' => 'Event.Org',
-        'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Last Modified'),
-        'data_path' => 'EventReport.timestamp',
-        'element' => 'datetime',
-        'card_section' => 'meta',
-        'display_in' => ['card']
     ],
     [
         'name' => __('Analyst data'),
@@ -87,14 +146,16 @@ $fields = [
         'relationship_inbound_path' => 'EventReport.RelationshipInbound',
         'uuid_path' => 'EventReport.uuid',
         'object_type' => 'EventReport',
-        'card_section' => 'meta',
+        'class' => 'er-col-analyst',
+        'card_section' => 'analyst',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'EventReport.id',
-        'card_section' => 'extra',
+        'class' => 'er-col-actions',
+        'card_section' => 'actions',
         'display_in' => ['table', 'card'],
         'actions' => [
             [
@@ -194,11 +255,18 @@ if ($aiEnabled && $hasActiveReport
     ];
 }
 
+// The event view loads the stylesheet with the page; the tab arrives later.
+if (empty($eventView)) {
+    echo $this->element('genericElements/assetLoader', ['css' => ['event-reports-index']]);
+}
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $reports,
-            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
+            'table_class' => 'er-table',
+            'card_element' => 'EventReports/index_card_tile',
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 // The event's Reports tab reloads itself and searches with `searchFor:`.
@@ -225,9 +293,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'fields' => $fields,
             'primary_id_path' => 'EventReport.id',
             'row_class_callable' => function ($row) use ($inExtensionView, $reportOrigin) {
-                return ($inExtensionView && $reportOrigin($row) !== null)
-                    ? 'evt-extension-row'
-                    : '';
+                $classes = [];
+                if (!empty($row['EventReport']['deleted'])) {
+                    $classes[] = 'er-deleted';
+                }
+                if ($inExtensionView && $reportOrigin($row) !== null) {
+                    $classes[] = 'evt-extension-row';
+                }
+                return implode(' ', $classes);
             },
             'row_style_callable' => function ($row) use ($inExtensionView, $reportOrigin) {
                 $origin = $inExtensionView ? $reportOrigin($row) : null;

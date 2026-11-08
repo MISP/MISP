@@ -1,0 +1,420 @@
+/* Reports indexes (Overmind): /event_reports/index and the event's Reports tab
+   (Elements/EventReports/index), drawn as the objects and attribute indexes
+   (objects-index.css, attributes-index.css). */
+
+.er-table thead th {
+    white-space: nowrap;
+}
+
+/* Takes the width the other columns leave, and truncates inside it. */
+.er-table td.er-col-report {
+    width: 100%;
+    max-width: 0;
+    min-width: 20rem;
+}
+.er-report {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+}
+.er-report-title {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+.er-report-name,
+.er-tile-name {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    font-size: .95rem;
+    color: var(--bs-emphasis-color);
+}
+.er-report-name > .d-flex {
+    min-width: 0;
+}
+.er-report-name > .d-flex > :is(a, p) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.er-report-excerpt {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: .78rem;
+    color: var(--bs-secondary-color);
+}
+.er-report-excerpt.is-empty,
+.er-tile-excerpt.is-empty {
+    font-style: italic;
+    color: var(--bs-tertiary-color);
+}
+
+.er-event {
+    max-width: 18rem;
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    min-width: 0;
+    text-decoration: none;
+}
+.er-event-id {
+    flex-shrink: 0;
+    font-family: var(--bs-font-monospace);
+    font-size: .78rem;
+}
+.er-event-info {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--bs-body-color);
+}
+.er-event:hover .er-event-info {
+    text-decoration: underline;
+}
+
+/* Length and references: counters in the table, a line on the card. */
+.er-stats {
+    display: inline-flex;
+    gap: .35rem;
+    white-space: nowrap;
+}
+.er-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .15rem .55rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+}
+.er-stat i {
+    font-size: .65rem;
+    opacity: .75;
+}
+.er-stat + .er-stat:not(.is-empty) {
+    color: color-mix(in srgb, var(--bs-report) 65%, var(--bs-emphasis-color));
+    background: color-mix(in srgb, var(--bs-report) 14%, transparent);
+}
+.er-stat.is-empty {
+    color: var(--bs-tertiary-color);
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--bs-border-color);
+}
+.er-stats-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .35rem;
+}
+.er-stats-sep {
+    opacity: .6;
+}
+
+.er-table td.er-col-modified {
+    white-space: nowrap;
+    font-size: .78rem;
+}
+.er-table td.er-col-modified button {
+    color: var(--bs-secondary-color) !important;
+}
+
+.er-table > tbody > tr.er-deleted > td,
+.idx-card.er-deleted .er-tile {
+    opacity: .55;
+}
+
+/* Card view, handled as the attribute indexes' cards: a coloured border on
+   hover, the accent once selected. Left alone on its left side, which an
+   extension paints. */
+.idx-card:has(> .er-tile) {
+    --er-line: var(--bs-card-border-color, var(--bs-border-color));
+    --er-hover: color-mix(in srgb, var(--bs-primary) 45%, var(--er-line));
+    transition: border-color .12s, box-shadow .12s;
+}
+.idx-card:has(> .er-tile):hover {
+    border-top-color: var(--er-hover);
+    border-right-color: var(--er-hover);
+    border-bottom-color: var(--er-hover);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .07) !important;
+}
+.idx-card:not(.evt-extension-row):has(> .er-tile):hover {
+    border-left-color: var(--er-hover);
+}
+.idx-card:has(> .er-tile .er-tile-sel input:checked) {
+    border-top-color: var(--bs-primary);
+    border-right-color: var(--bs-primary);
+    border-bottom-color: var(--bs-primary);
+    box-shadow: 0 0 0 1px var(--bs-primary) !important;
+    background: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-card-bg, var(--bs-body-bg)));
+}
+.idx-card:not(.evt-extension-row):has(> .er-tile .er-tile-sel input:checked) {
+    border-left-color: var(--bs-primary);
+}
+.er-tile {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    min-width: 0;
+}
+
+/* Head: the report icon and the distribution chip, then the name and the last
+   change over the id and the length, then the menu. */
+.er-tile-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    min-width: 0;
+}
+.er-tile-lead {
+    position: relative;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 2.25rem;
+    margin-right: -.25rem;
+}
+.er-tile-lead > .misp-icon {
+    font-size: 14px;
+}
+.er-tile-head > .ov-obj-dist {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-top: .25rem;
+    border-radius: .5rem;
+    font-size: .8rem;
+}
+.er-tile-sel {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+}
+.er-tile-sel .checkbox-actions-wrapper {
+    margin: 0;
+    background: none;
+    border-radius: 0;
+}
+.er-tile-sel .checkbox-index input[type="checkbox"] {
+    margin: 0;
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    background-color: var(--bs-body-bg);
+    border-color: color-mix(in srgb, var(--bs-body-color) 34%, transparent);
+}
+.er-tile-sel .checkbox-index input[type="checkbox"]:hover:not(:checked) {
+    border-color: var(--bs-primary);
+}
+.er-tile-sel .checkbox-index input[type="checkbox"]:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.er-tile-sel .checkbox-index input[type="checkbox"]:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary) 30%, transparent);
+}
+.er-tile-sel .checkbox-index input[type="checkbox"]::after {
+    left: 4.5px;
+    top: 1.5px;
+    width: 4.5px;
+    height: 8px;
+}
+.idx-card:hover > .er-tile .er-tile-sel,
+.idx-card:focus-within > .er-tile .er-tile-sel,
+.idx-card-grid:has(.er-tile-sel input:checked) .er-tile-sel {
+    opacity: 1;
+}
+.idx-card:hover > .er-tile .er-tile-lead > .misp-icon,
+.idx-card:focus-within > .er-tile .er-tile-lead > .misp-icon,
+.idx-card-grid:has(.er-tile-sel input:checked) .er-tile-lead > .misp-icon {
+    visibility: hidden;
+}
+
+.er-tile-title {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+.er-tile-name {
+    align-items: flex-start;
+}
+.er-tile-name > .d-flex {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.er-tile-name > .d-flex > :is(a, p) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+.er-tile-modified {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.2rem;
+    font-size: .75rem;
+    font-weight: 400;
+    white-space: nowrap;
+}
+.er-tile-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem .5rem;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.er-tile-id {
+    font-family: var(--bs-font-monospace);
+}
+
+/* The menu, at the attribute table's size and shown as its rows show it. */
+.er-tile-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    min-height: 2.25rem;
+}
+.er-tile-actions .checkbox-actions-wrapper {
+    margin: 0;
+    background: none;
+}
+.er-tile-actions .row-menu-toggle {
+    width: 26px;
+    height: 24px;
+    padding: 0 !important;
+    border: 0;
+    border-radius: 5px;
+}
+.er-tile-actions .row-menu-toggle i {
+    font-size: .9rem !important;
+}
+@media (hover: hover) {
+    .er-tile-actions .row-menu-toggle {
+        opacity: 0;
+    }
+    .idx-card:hover > .er-tile .er-tile-actions .row-menu-toggle,
+    .er-tile-actions .row-menu-toggle:focus-visible,
+    .er-tile-actions .row-menu-toggle[aria-expanded="true"] {
+        opacity: 1;
+    }
+}
+
+/* The opening of the report: rendered on the event page, plain text
+   elsewhere. */
+.er-tile-excerpt {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    margin: 0;
+    font-size: .82rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    color: var(--bs-body-color);
+}
+.er-tile-preview {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    min-width: 0;
+}
+.er-tile-preview .eo-report-snippet {
+    margin-top: 0;
+    padding: .65rem .85rem 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
+}
+.er-tile-preview .eo-report-snippet .eo-report-clamp {
+    max-height: 13rem;
+    font-size: .82rem;
+}
+.er-tile-preview .eo-report-snippet-empty {
+    margin: 0;
+}
+/* The card's foot opens the reader. */
+.er-tile-preview .eo-report-snippet-read {
+    display: none;
+}
+
+.er-tile-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .3rem .9rem;
+    margin: 0;
+    font-size: .8rem;
+}
+.er-tile-facts dt {
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    line-height: 1.6rem;
+    color: var(--bs-secondary-color);
+}
+.er-tile-facts dd {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: 1.6rem;
+    margin: 0;
+}
+.er-tile-facts .er-event {
+    max-width: 100%;
+}
+
+.er-tile-foot {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-top: auto;
+    padding-top: .6rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+.er-tile-open {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .2rem .65rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: color-mix(in srgb, var(--bs-report) 70%, var(--bs-emphasis-color));
+    background: color-mix(in srgb, var(--bs-report) 12%, transparent);
+}
+.er-tile-open:hover,
+.er-tile-open:focus-visible {
+    color: color-mix(in srgb, var(--bs-report) 70%, var(--bs-emphasis-color));
+    border-color: color-mix(in srgb, var(--bs-report) 45%, transparent);
+}
+.er-tile-open i {
+    font-size: .7rem;
+}
+.er-tile-analyst {
+    margin-left: auto;
+}
+.er-tile-analyst > .d-flex {
+    flex-direction: row !important;
+}

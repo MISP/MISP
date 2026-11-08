@@ -195,20 +195,7 @@ class AuditLogsController extends AppController
         $this->request->params['paging']['AuditLog'] = $paging;
 
         $this->set('list', $list);
-        $this->set('actions', [
-            AuditLog::ACTION_ADD => __('Add'),
-            AuditLog::ACTION_EDIT => __('Edit'),
-            AuditLog::ACTION_SOFT_DELETE => __('Soft delete'),
-            AuditLog::ACTION_DELETE => __('Delete'),
-            AuditLog::ACTION_UNDELETE => __('Undelete'),
-            AuditLog::ACTION_TAG . '||' . AuditLog::ACTION_TAG_LOCAL => __('Tag'),
-            AuditLog::ACTION_REMOVE_TAG . '||' . AuditLog::ACTION_REMOVE_TAG_LOCAL => __('Remove tag'),
-            AuditLog::ACTION_GALAXY . '||' . AuditLog::ACTION_GALAXY_LOCAL  => __('Galaxy cluster'),
-            AuditLog::ACTION_REMOVE_GALAXY . '||' . AuditLog::ACTION_REMOVE_GALAXY_LOCAL => __('Remove galaxy cluster'),
-            AuditLog::ACTION_PUBLISH => __('Publish'),
-            AuditLog::ACTION_PUBLISH_SIGHTINGS => $this->actions[AuditLog::ACTION_PUBLISH_SIGHTINGS],
-            AuditLog::ACTION_INSTANTIATE => $this->actions[AuditLog::ACTION_INSTANTIATE],
-        ]);
+        $this->set('actions', $this->__actionOptions());
         $models = $this->models;
         sort($models);
         $this->set('models', $models);
@@ -240,22 +227,7 @@ class AuditLogsController extends AppController
         $this->AuditLog->Behaviors->unload('LightPaginator');
         $list = $this->paginate();
 
-        if (!$this->_isSiteAdmin()) {
-            // Remove all user info about users from different org
-            $orgUserIds = $this->User->find('column', [
-                'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
-                'fields' => ['User.id'],
-            ]);
-            foreach ($list as $k => $item) {
-                if ($item['AuditLog']['user_id'] == 0) {
-                    continue;
-                }
-                if (!in_array($item['User']['id'], $orgUserIds)) {
-                    unset($list[$k]['User']);
-                    unset($list[$k]['AuditLog']['user_id']);
-                }
-            }
-        }
+        $list = $this->__hideForeignUsers($list);
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($list, 'json');
@@ -310,21 +282,7 @@ class AuditLogsController extends AppController
 
         $list = $this->paginate();
 
-        if (!$this->_isSiteAdmin()) {
-            $orgUserIds = $this->User->find('column', [
-                'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
-                'fields' => ['User.id'],
-            ]);
-            foreach ($list as $k => $item) {
-                if ($item['AuditLog']['user_id'] == 0) {
-                    continue;
-                }
-                if (!in_array($item['User']['id'], $orgUserIds)) {
-                    unset($list[$k]['User']);
-                    unset($list[$k]['AuditLog']['user_id']);
-                }
-            }
-        }
+        $list = $this->__hideForeignUsers($list);
 
         $curPage = isset($this->request->params['paging']['AuditLog']['page'])
             ? (int)$this->request->params['paging']['AuditLog']['page']
@@ -337,6 +295,116 @@ class AuditLogsController extends AppController
             'count'     => $totalCount,
             'limit'     => $limit,
         ], 'json');
+    }
+
+    /**
+     * The event view's History tab: the event's audit trail, filtered and
+     * drawn as the audit log index is (AuditLogs/event_history), within the
+     * part of the event the user may see.
+     *
+     * The user filters, and the user term of the search, are a site admin's:
+     * for anyone else they would tell who changed the event even where the
+     * entries hide it.
+     */
+    public function eventHistory($eventId = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->AuditLog->Event->fetchSimpleEvent($user, $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $isSiteAdmin = $this->_isSiteAdmin();
+        $filters = ['model_title', 'action', 'model', 'model_id', 'org', 'request_type', 'created'];
+        if ($isSiteAdmin) {
+            $filters[] = 'user';
+        }
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters($filters, $exception, ['fromQuery' => true]);
+
+        $this->paginate['fields'][] = 'request_type';
+        $this->paginate['conditions'] = $this->__createEventIndexConditions($event);
+        $this->paginate['conditions'][] = $this->__searchConditions($params);
+        $quickFilter = $this->IndexFilter->quickFilterTerm();
+        $quickFilterConditions = $this->IndexFilter->quickFilterConditions($quickFilter, 'AuditLog', [
+            'like' => ['model_title', 'model', 'action'],
+            'numeric' => ['model_id'],
+            'org' => 'org_id',
+        ] + ($isSiteAdmin ? ['user' => 'user_id'] : []));
+        if (!empty($quickFilterConditions)) {
+            $this->paginate['conditions']['AND'][] = $quickFilterConditions;
+        }
+
+        // One event's trail is bounded, so it gets real paging, as eventIndex does.
+        $this->AuditLog->Behaviors->unload('LightPaginator');
+        $list = $this->__hideForeignUsers($this->paginate());
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($list, 'json');
+        }
+        $list = $this->__appendModelLinks($user, $list);
+        foreach ($list as $k => $item) {
+            $list[$k]['AuditLog']['action_human'] = $this->actions[$item['AuditLog']['action']];
+        }
+
+        $models = $this->models;
+        sort($models);
+        $this->set('list', $list);
+        $this->set('event', $event);
+        $this->set('actions', $this->__actionOptions());
+        $this->set('models', $models);
+        $this->set('quickFilter', $quickFilter);
+        $this->layout = false;
+        $this->render('event_history');
+    }
+
+    /**
+     * The Action picker's options, a tag and its local twin as one.
+     *
+     * @return array
+     */
+    private function __actionOptions()
+    {
+        return [
+            AuditLog::ACTION_ADD => __('Add'),
+            AuditLog::ACTION_EDIT => __('Edit'),
+            AuditLog::ACTION_SOFT_DELETE => __('Soft delete'),
+            AuditLog::ACTION_DELETE => __('Delete'),
+            AuditLog::ACTION_UNDELETE => __('Undelete'),
+            AuditLog::ACTION_TAG . '||' . AuditLog::ACTION_TAG_LOCAL => __('Tag'),
+            AuditLog::ACTION_REMOVE_TAG . '||' . AuditLog::ACTION_REMOVE_TAG_LOCAL => __('Remove tag'),
+            AuditLog::ACTION_GALAXY . '||' . AuditLog::ACTION_GALAXY_LOCAL  => __('Galaxy cluster'),
+            AuditLog::ACTION_REMOVE_GALAXY . '||' . AuditLog::ACTION_REMOVE_GALAXY_LOCAL => __('Remove galaxy cluster'),
+            AuditLog::ACTION_PUBLISH => __('Publish'),
+            AuditLog::ACTION_PUBLISH_SIGHTINGS => $this->actions[AuditLog::ACTION_PUBLISH_SIGHTINGS],
+            AuditLog::ACTION_INSTANTIATE => $this->actions[AuditLog::ACTION_INSTANTIATE],
+        ];
+    }
+
+    /**
+     * Drops what an event's trail says of users outside the user's org; a
+     * site admin sees them all.
+     *
+     * @param array $list paginated AuditLog rows
+     * @return array
+     */
+    private function __hideForeignUsers(array $list)
+    {
+        if ($this->_isSiteAdmin()) {
+            return $list;
+        }
+        $orgUserIds = $this->User->find('column', [
+            'conditions' => ['User.org_id' => $this->Auth->user('org_id')],
+            'fields' => ['User.id'],
+        ]);
+        foreach ($list as $k => $item) {
+            if ($item['AuditLog']['user_id'] == 0) {
+                continue;
+            }
+            if (!in_array($item['User']['id'], $orgUserIds)) {
+                unset($list[$k]['User']);
+                unset($list[$k]['AuditLog']['user_id']);
+            }
+        }
+        return $list;
     }
 
     public function fullChange($id)

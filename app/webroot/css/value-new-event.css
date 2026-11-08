@@ -181,116 +181,226 @@ body.vp-ne-bar-shown {
     text-transform: uppercase;
 }
 
-.vp-ne-valuebox {
-    margin-bottom: 12px;
-    padding: 10px 14px;
-    overflow: hidden;
-    border: 1px solid var(--misp-field-line, var(--bs-border-color));
+/* The value, as the event's first attribute: what everything below hangs off. */
+.vp-ne-anchor {
+    padding: 12px 14px;
+    border: 1px solid var(--bs-border-color);
     border-radius: 0.5rem;
-    background: var(--bs-tertiary-bg);
-    font-size: 0.95rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    background: var(--bs-body-bg);
 }
 
-.vp-ne-ids {
+.vp-ne-anchor-head {
     display: flex;
     align-items: center;
     gap: 12px;
-    height: calc(1.5em + 0.75rem + 2px);
-    margin: 0;
-    padding: 0 12px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.5rem;
-    cursor: pointer;
-    user-select: none;
+    min-width: 0;
 }
 
-.vp-ne-ids .form-check-input {
+.vp-ne-node {
     flex: 0 0 auto;
-    margin-top: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--attribute, #97cc04) 18%, transparent);
+    color: var(--attribute, #97cc04);
 }
 
-.vp-ne-ids > span {
+.vp-ne-anchor-id {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     min-width: 0;
-    line-height: 1.15;
+    line-height: 1.25;
 }
 
-.vp-ne-ids-title {
-    font-size: 0.72rem;
+.vp-ne-kicker {
+    color: var(--bs-secondary-color);
+    font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
-.vp-ne-ids-sub {
+.vp-ne-anchor-val {
     overflow: hidden;
-    color: var(--bs-secondary-color);
-    font-size: 0.72rem;
+    font-size: 1.05rem;
+    font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.vp-ne-ids i {
-    color: var(--misp-check-off-icon, var(--bs-secondary-color));
+.vp-ne-anchor-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 15rem) minmax(0, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--bs-border-color);
 }
 
-.vp-ne-ids:has(.form-check-input:checked) {
+/* IDS as a switch with its word, the same on the value and on an attribute finding. */
+.vp-ne-switch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 3px 10px 3px 8px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.vp-ne-switch .form-switch {
+    min-height: 0;
+    padding-left: 2.1em;
+}
+
+.vp-ne-switch .form-check-input {
+    margin-top: 0;
+}
+
+.vp-ne-switch:has(.form-check-input:checked) {
     border-color: color-mix(in srgb, var(--bs-primary) 55%, var(--bs-border-color));
-}
-
-.vp-ne-ids:has(.form-check-input:checked) i {
     color: var(--bs-primary);
 }
 
-.vp-ne-group + .vp-ne-group {
-    margin-top: 14px;
+.vp-ne-switch-sm {
+    padding: 1px 8px 1px 6px;
+    font-size: 0.7rem;
 }
 
-.vp-ne-group-head {
+/*
+ * The findings hang off the value on one line drawn down from its icon;
+ * each one takes a tick off that line. The line stops at the last one.
+ */
+.vp-ne-tree {
+    --vp-ne-line: color-mix(in srgb, var(--bs-secondary-color) 45%, transparent);
+    margin-left: 28px;
+}
+
+.vp-ne-branch-head,
+.vp-ne-f,
+.vp-ne-empty {
+    position: relative;
+    padding-left: 22px;
+}
+
+.vp-ne-branch-head::before,
+.vp-ne-f::before,
+.vp-ne-empty::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    border-left: 2px solid var(--vp-ne-line);
+}
+
+.vp-ne-f::after,
+.vp-ne-empty::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 22px;
+    border-top: 2px solid var(--vp-ne-line);
+}
+
+.vp-ne-empty::before,
+.vp-ne-branch:last-of-type .vp-ne-f:last-child::before {
+    bottom: 50%;
+}
+
+.vp-ne-branch-head {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-    font-size: 0.8rem;
+    gap: 7px;
+    padding-top: 10px;
+    padding-bottom: 4px;
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
     font-weight: 600;
 }
 
-.vp-ne-group-head i {
+.vp-ne-branch-head .font-monospace {
+    color: var(--bs-body-color);
+}
+
+.vp-ne-branch-head i {
     color: var(--vp-e-accent, var(--bs-secondary-color));
-    font-size: 0.75rem;
+    font-size: 0.7rem;
 }
 
 .vp-ne-list {
     margin: 0;
     padding: 0;
-    overflow: hidden;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 8px;
     list-style: none;
 }
 
 .vp-ne-f {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 230px auto;
+    grid-template-columns: 10.5rem minmax(0, 1fr) auto;
     align-items: center;
-    gap: 6px 16px;
-    padding: 8px 8px 8px 12px;
+    gap: 0 10px;
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 
-.vp-ne-f + .vp-ne-f {
-    border-top: 1px solid var(--bs-border-color);
+/* The relationship sits on the tick, between the value and the object it links. */
+.vp-ne-rel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    color: var(--vp-ne-line);
 }
 
-.vp-ne-f:hover {
+.vp-ne-rel .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    border-color: color-mix(in srgb, var(--object, #b5a7a4) 60%, var(--bs-border-color));
+    border-radius: 999px;
+    font-size: 0.75rem;
+}
+
+.vp-ne-rel i {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+}
+
+/* An attribute has no relationship: the tick runs straight to it. */
+.vp-ne-rel-none::before {
+    content: "";
+    flex: 1 1 auto;
+    border-top: 2px solid var(--vp-ne-line);
+}
+
+.vp-ne-card {
+    min-width: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    background: var(--bs-body-bg);
+}
+
+.vp-ne-f:hover .vp-ne-card {
     background: var(--bs-tertiary-bg);
 }
 
-.vp-ne-f-main {
-    min-width: 0;
+.vp-ne-card-attr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 6px;
+    padding-bottom: 6px;
 }
 
 .vp-ne-f-line {
@@ -374,6 +484,7 @@ body.vp-ne-bar-shown {
 }
 
 .vp-ne-f-val {
+    flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
     font-size: 0.82rem;
@@ -381,33 +492,9 @@ body.vp-ne-bar-shown {
     white-space: nowrap;
 }
 
-.vp-ne-f-ctl .vp-ne-label {
-    margin-bottom: 2px;
-    font-size: 0.66rem;
-}
-
-.vp-ne-f-ctl-attr {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-}
-
-.vp-ne-f-ctl-attr > div {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-.vp-ne-f-ids {
-    display: flex;
-    flex-direction: column;
-    margin: 0;
-}
-
-.vp-ne-f-ids .form-switch {
-    display: flex;
-    align-items: center;
-    height: calc(1.5em + 0.5rem + 2px);
-    padding-left: 2.2em;
+.vp-ne-f-cat {
+    flex: 0 0 13rem;
+    width: 13rem;
 }
 
 .vp-ne-rm {
@@ -426,18 +513,19 @@ body.vp-ne-bar-shown {
 }
 
 .vp-ne-empty {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 14px 16px;
-    border: 1px dashed var(--bs-border-color);
-    border-radius: 8px;
+    padding-top: 10px;
+    padding-bottom: 2px;
+    padding-left: 32px;
     color: var(--bs-secondary-color);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
 }
 
-.vp-ne-empty i {
-    margin-top: 3px;
+.vp-ne-empty::before {
+    bottom: calc(50% - 4px);
+}
+
+.vp-ne-empty::after {
+    top: calc(50% + 4px);
 }
 
 /* ---------- Toast ---------- */
@@ -508,23 +596,21 @@ body.vp-ne-bar-shown {
 }
 
 @media (max-width: 991.98px) {
+    .vp-ne-anchor-fields {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .vp-ne-anchor-fields > :last-child {
+        grid-column: 1 / -1;
+    }
+
     .vp-ne-f {
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 8px 12px;
+        grid-template-columns: 7.5rem minmax(0, 1fr) auto;
     }
 
-    .vp-ne-f-line {
+    .vp-ne-f-line,
+    .vp-ne-card-attr {
         flex-wrap: wrap;
-    }
-
-    .vp-ne-f-ctl {
-        grid-column: 1;
-        max-width: 340px;
-    }
-
-    .vp-ne-rm {
-        grid-row: 1;
-        grid-column: 2;
     }
 
     .vp-ne-bar-inner {

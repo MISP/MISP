@@ -97,6 +97,59 @@ $typesText = $types
     : '';
 
 /*
+ * The value, its types and its sightings in the pieces every index
+ * draws them with (`Attributes/value_display`, `Badges/type`, the
+ * `Fields/sightings` pills), so a value reads the same here as in the
+ * attribute tables. The value is shown as its first type renders it.
+ */
+$valueHtml = $this->element('Attributes/value_display', array(
+    'attribute' => array(
+        'value' => $card['value'],
+        'type' => isset($types[0]) ? $types[0] : '',
+    ),
+    'cap' => 128,
+));
+$typeChips = '';
+foreach ($types as $type) {
+    $typeChips .= $this->element('genericElementsBS5/Badges/type', array(
+        'type' => $type,
+    ));
+}
+if ($card['types']['more']) {
+    $typeChips .= '<span class="vi-types-more">+'
+        . h($card['types']['more']) . '</span>';
+}
+// A table cell holds one line: the first type, and how many others.
+$others = count($types) - 1 + (int)$card['types']['more'];
+$cellChips = $types
+    ? $this->element('genericElementsBS5/Badges/type', array('type' => $types[0]))
+        . ($others > 0 ? '<span class="vi-types-more">+' . h($others) . '</span>' : '')
+    : '';
+$sightingCell = null;
+if ($card['sightings'] !== null) {
+    $seen = $card['sightings'];
+    $tally = array(
+        array('s', 'fas fa-thumbs-up', __('Sightings'),
+            max(0, $seen['total'] - $seen['fp'] - $seen['expiration'])),
+        array('f', 'fas fa-thumbs-down', __('False positives'), $seen['fp']),
+    );
+    if ($seen['expiration'] > 0) {
+        $tally[] = array('e', 'fas fa-clock', __('Expirations'),
+            $seen['expiration']);
+    }
+    $sightingCell = '<span class="sighting-cell" role="group" aria-label="'
+        . h(__('Sightings')) . '">';
+    foreach ($tally as list($key, $icon, $title, $n)) {
+        $sightingCell .= '<span class="btn sighting-count is-' . $key
+            . ($n === 0 ? ' is-zero' : '') . '" title="' . h($title) . '">'
+            . '<i class="' . $icon . '" aria-hidden="true"></i>'
+            . '<span>' . h(number_format($n)) . '</span></span>';
+    }
+    $sightingCell .= '</span>';
+}
+$orgs = (int)$counts['orgs'];
+
+/*
  * The signal-strength bar, five segments of a fifth each. It carries the
  * magnitude and no hue at all — a bar that took a fourth colour would
  * make the row's one coloured thing stop being the lean.
@@ -186,8 +239,8 @@ $signalText = function (array $signal) {
      data-vi-signal-strength="<?= h($signalStrength === null ? '' : $signalStrength) ?>">
     <div class="vi-l1">
         <span class="vi-val"><?= h($card['value']) ?></span>
-<?php if ($typesText !== ''): ?>
-        <span class="vi-types"><?= h($typesText) ?></span>
+<?php if ($typeChips !== ''): ?>
+        <span class="vi-types" title="<?= h($typesText) ?>"><?= $typeChips ?></span>
 <?php endif; ?>
 <?php if ($counts['occurrences'] || $counts['orgs'] || $counts['events']): ?>
         <span class="vi-counts">
@@ -308,15 +361,19 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
  */
 ?>
 <div class="vi-cells">
-    <span class="vi-c-val">
-        <span class="vi-c-valtext"><?= h($card['value']) ?></span>
+    <div class="vi-c-val">
+        <div class="attr-value">
+            <div class="attr-value-line">
+                <p class="fw-semibold mb-0 vi-c-valtext"><?= $valueHtml ?></p>
 <?php if ($warningNote !== null): ?>
-        <span class="vi-warnmark" title="<?= h($warningNote) ?>"
-              role="img" aria-label="<?= h($warningNote) ?>"
-              ><i class="fas fa-list-check" aria-hidden="true"></i></span>
+                <span class="vi-warnmark" title="<?= h($warningNote) ?>"
+                      role="img" aria-label="<?= h($warningNote) ?>"
+                      ><i class="fas fa-list-check" aria-hidden="true"></i></span>
 <?php endif; ?>
-    </span>
-    <span class="vi-c-types"><?= h($typesText) ?></span>
+            </div>
+        </div>
+    </div>
+    <span class="vi-c-types" title="<?= h($typesText) ?>"><?= $cellChips ?></span>
 <?php if ($assessed): ?>
     <span class="vi-c-lean"><?= $leanChip ?></span>
     <span class="vi-c-strength">
@@ -328,17 +385,21 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
     </span>
     <span class="vi-c-rel"><?= $relevanceCell ?></span>
 <?php endif; ?>
-    <span class="vi-c-num vi-c-orgs"><b><?= h(number_format($counts['orgs'])) ?></b></span>
-    <span class="vi-c-num vi-c-sig"><?php
+    <span class="vi-c-num vi-c-orgs"><?= $orgs > 0
+        ? '<b>' . h(number_format($orgs)) . '</b>'
+        : '<span class="vi-zero">0</span>' ?></span>
+    <span class="vi-c-sig"><?php
         /*
          * A null here is a read nobody made, never a zero. Only the
          * `hot` tier produces one, and a column printing `0` for it
          * would report an absence the engine declined to look for.
          */
-        if ($counts['sightings'] === null) {
-            echo h(__('skipped'));
+        if ($sightingCell === null) {
+            echo '<span class="vi-skip" title="' . h(__('This value is'
+                . ' over-correlating, so its sightings were not read.'))
+                . '">' . h(__('skipped')) . '</span>';
         } else {
-            echo '<b>' . h(number_format($counts['sightings'])) . '</b>';
+            echo $sightingCell;
         }
     ?></span>
 </div>

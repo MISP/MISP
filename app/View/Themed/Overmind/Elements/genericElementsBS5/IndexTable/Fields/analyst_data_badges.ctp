@@ -24,17 +24,17 @@ if ($uuid === '') {
     return;
 }
 $onclick = sprintf(
-    "event.stopPropagation(); openModal('%s/analystData/viewForObject/%s/%s');",
+    "event.preventDefault(); event.stopPropagation(); openModal('%s/analystData/viewForObject/%s/%s');",
     h($baseurl), h($objectType), h($uuid)
 );
 ?>
 <?php if ($total === 0): ?>
-    <a href="#" class="text-muted text-decoration-none" title="<?= __('View / add analyst data') ?>"
+    <a href="#" class="text-muted text-decoration-none om-analyst-none" title="<?= __('View / add analyst data') ?>"
        onclick="<?= $onclick ?>">
         <i class="fas fa-comment-slash"></i>
     </a>
 <?php else: ?>
-    <span class="d-flex flex-column align-items-start gap-1" role="button"
+    <span class="d-flex flex-wrap align-items-center gap-1" role="button"
           title="<?= __('View analyst data') ?>" style="cursor:pointer;" onclick="<?= $onclick ?>">
         <?php if ($noteCount): ?>
             <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">

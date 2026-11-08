@@ -182,6 +182,8 @@ $pending = '<div class="server-action-result srv-flat small">'
                     . $kv(__('Pull Clusters'), $flag($server['pull_galaxy_clusters']));
                 $syncRight = $kv(__('Push Analyst Data'), $flag($server['push_analyst_data']))
                     . $kv(__('Pull Analyst Data'), $flag($server['pull_analyst_data']))
+                    . $kv(__('Push Collections'), $flag($server['push_collections']))
+                    . $kv(__('Pull Collections'), $flag($server['pull_collections']))
                     . $kv(__('Push Sightings'), $flag($server['push_sightings']));
                 $syncBody = '<div class="row g-0 gx-3">'
                     . '<div class="col-12 col-sm-6">' . $syncLeft . '</div>'

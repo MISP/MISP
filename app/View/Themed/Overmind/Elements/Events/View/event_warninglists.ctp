@@ -6,7 +6,7 @@ $indexUrl = h($baseurl . '/warninglists/index');
 $attrsUrl = h($baseurl . '/events/viewAttributes/' . $eventId);
 ?>
 
-<div class="card shadow-sm mb-3" id="warninglist-card">
+<div class="card shadow-sm mb-3 d-none" id="warninglist-card">
 
     <!-- HEADER -->
     <div class="p-3 border-bottom">
@@ -50,6 +50,7 @@ $attrsUrl = h($baseurl . '/events/viewAttributes/' . $eventId);
     var bodyEl   = document.getElementById(uid + '-body');
     var countEl  = document.getElementById(uid + '-count');
     var manageEl = document.getElementById(uid + '-manage');
+    var cardEl   = bodyEl ? bodyEl.closest('.card') : null;
 
     var L_NONE   = <?= json_encode(__('No hits')) ?>;
     var L_ONE    = <?= json_encode(__('list hit')) ?>;
@@ -112,8 +113,13 @@ $attrsUrl = h($baseurl . '/events/viewAttributes/' . $eventId);
             .then(function (html) {
                 bodyEl.innerHTML = html;
                 var root = bodyEl.querySelector('[data-wl-count]');
+                var total = root
+                    ? parseInt(root.getAttribute('data-wl-count'), 10) || 0
+                    : 0;
+                // Only shown while the event hits a list.
+                cardEl.classList.toggle('d-none', total === 0);
                 if (!root) { return; }
-                setCount(parseInt(root.getAttribute('data-wl-count'), 10) || 0);
+                setCount(total);
                 setManageTarget(
                     (root.getAttribute('data-wl-ids') || '')
                         .split(',')
@@ -126,6 +132,7 @@ $attrsUrl = h($baseurl . '/events/viewAttributes/' . $eventId);
                     + '<i class="fas fa-exclamation-triangle me-2"></i>'
                     + L_FAIL
                     + '</div>';
+                cardEl.classList.remove('d-none');
                 if (countEl) { countEl.textContent = ''; }
             });
     }

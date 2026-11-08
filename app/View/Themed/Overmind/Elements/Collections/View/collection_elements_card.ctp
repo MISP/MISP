@@ -259,10 +259,12 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
                 metaLine.appendChild(el('span', '', row.sub));
             }
             if (row.desc) {
+                // The markup of Badges/comment, inline.
                 metaLine.appendChild(document.createTextNode(' \u00b7 '));
-                metaLine.appendChild(el('i', 'fas fa-comment fa-xs opacity-50 me-1'));
-                var desc = el('span', 'fst-italic', row.desc);
+                var desc = el('span', 'om-comment is-inline');
                 desc.title = row.desc;
+                desc.appendChild(el('i', 'fas fa-comment'));
+                desc.appendChild(document.createTextNode(row.desc));
                 metaLine.appendChild(desc);
             }
 

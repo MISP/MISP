@@ -1,0 +1,280 @@
+/* Attribute indexes (Overmind): the card view (Elements/Attributes/index_card_tile),
+   sized and spaced as the objects index's cards (objects-index.css), and lit,
+   selected and opened as the events index's (events-index-cards.css). */
+
+.ai-tile {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    min-width: 0;
+}
+
+/* The card: a coloured border on hover, the accent once selected. Left alone
+   on its left side, which an extension or a proposal paints. */
+.idx-card:has(> .ai-tile) {
+    --ai-line: var(--bs-card-border-color, var(--bs-border-color));
+    --ai-hover: color-mix(in srgb, var(--bs-primary) 45%, var(--ai-line));
+    transition: border-color .12s, box-shadow .12s;
+}
+.idx-card:has(> .ai-tile):hover {
+    border-top-color: var(--ai-hover);
+    border-right-color: var(--ai-hover);
+    border-bottom-color: var(--ai-hover);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .07) !important;
+}
+.idx-card:not(.evt-extension-row):not(.attr-proposal-row):has(> .ai-tile):hover {
+    border-left-color: var(--ai-hover);
+}
+.idx-card:has(> .ai-tile .item-checkbox:checked) {
+    border-top-color: var(--bs-primary);
+    border-right-color: var(--bs-primary);
+    border-bottom-color: var(--bs-primary);
+    box-shadow: 0 0 0 1px var(--bs-primary) !important;
+    background: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-card-bg, var(--bs-body-bg)));
+}
+.idx-card:not(.evt-extension-row):not(.attr-proposal-row):has(> .ai-tile .item-checkbox:checked) {
+    border-left-color: var(--bs-primary);
+}
+
+/* Head: the attribute icon and the distribution chip, then category, type and
+   last change over the value, then the menu. */
+.ai-tile-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    min-width: 0;
+}
+
+/* The attribute icon gives way to the selection box on hover, and for good
+   once any card of the grid is selected. Each card answers its own hover
+   only, not that of an object card it sits in. */
+.ai-tile-lead {
+    position: relative;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 2.25rem;
+    margin-right: -.25rem;
+}
+.ai-tile-lead > .misp-icon {
+    font-size: 14px;
+}
+/* A smaller chip than an object's, centred on the two lines beside it; the
+   event's icon takes the same slot. */
+.ai-tile-head > :is(.ov-obj-dist, .ev-peek) {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-top: .25rem;
+    border-radius: .5rem;
+    font-size: .8rem;
+}
+.ai-tile-head > .ev-peek {
+    align-self: flex-start;
+}
+.ai-tile-head > .ev-peek .misp-icon { width: 14px; height: 14px; }
+.ai-tile-sel {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+}
+.ai-tile-sel .checkbox-actions-wrapper {
+    margin: 0;
+    background: none;
+    border-radius: 0;
+}
+.ai-tile-sel .checkbox-index input[type="checkbox"] {
+    margin: 0;
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    background-color: var(--bs-body-bg);
+    border-color: color-mix(in srgb, var(--bs-body-color) 34%, transparent);
+}
+.ai-tile-sel .checkbox-index input[type="checkbox"]:hover:not(:checked) {
+    border-color: var(--bs-primary);
+}
+.ai-tile-sel .checkbox-index input[type="checkbox"]:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.ai-tile-sel .checkbox-index input[type="checkbox"]:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary) 30%, transparent);
+}
+.ai-tile-sel .checkbox-index input[type="checkbox"]::after {
+    left: 4.5px;
+    top: 1.5px;
+    width: 4.5px;
+    height: 8px;
+}
+.idx-card:hover > .ai-tile .ai-tile-sel,
+.idx-card:focus-within > .ai-tile .ai-tile-sel,
+.idx-card-grid:has(.ai-tile .item-checkbox:checked) .ai-tile-sel {
+    opacity: 1;
+}
+.idx-card:hover > .ai-tile .ai-tile-lead > .misp-icon,
+.idx-card:focus-within > .ai-tile .ai-tile-lead > .misp-icon,
+.idx-card-grid:has(.ai-tile .item-checkbox:checked) .ai-tile-lead > .misp-icon {
+    visibility: hidden;
+}
+
+/* The menu, at the attribute table's size and shown as its rows show it. */
+.ai-tile-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    min-height: 2.25rem;
+}
+.ai-tile-actions .checkbox-actions-wrapper {
+    margin: 0;
+    background: none;
+}
+.ai-tile-actions .row-menu-toggle {
+    width: 26px;
+    height: 24px;
+    padding: 0 !important;
+    border: 0;
+    border-radius: 5px;
+}
+.ai-tile-actions .row-menu-toggle i {
+    font-size: .9rem !important;
+}
+@media (hover: hover) {
+    .ai-tile-actions .row-menu-toggle {
+        opacity: 0;
+    }
+    .idx-card:hover > .ai-tile .ai-tile-actions .row-menu-toggle,
+    .ai-tile-actions .row-menu-toggle:focus-visible,
+    .ai-tile-actions .row-menu-toggle[aria-expanded="true"] {
+        opacity: 1;
+    }
+}
+.ai-tile-title {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+/* Category and type at the size the table draws them. The type's box loses
+   its vertical padding, so this line and the value's first one stand as tall
+   as the distribution chip beside them. */
+.ai-tile-kind {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    min-width: 0;
+    font-size: .8125rem;
+}
+.ai-tile-modified {
+    margin-left: auto;
+    font-size: .75rem;
+    white-space: nowrap;
+}
+.ai-tile-value {
+    min-width: 0;
+}
+/* IDS and correlation as status chips: tinted when on, dashed when off. The
+   toggles' script repaints their border and text classes, so the chips go by
+   the state attribute it keeps up to date instead. */
+.ai-tile-state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem;
+}
+.ai-tile-state .badge {
+    gap: .35rem !important;
+    padding: .1rem .5rem !important;
+    border: 1px solid transparent !important;
+    border-radius: 999px;
+    font-family: var(--bs-body-font-family);
+    font-size: .7rem !important;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+.ai-tile-state [data-to-ids="1"] .badge {
+    color: var(--bs-warning-text-emphasis) !important;
+    background: var(--bs-warning-bg-subtle) !important;
+}
+.ai-tile-state [data-disable-correlation="0"] .badge {
+    color: var(--bs-success-text-emphasis) !important;
+    background: var(--bs-success-bg-subtle) !important;
+}
+.ai-tile-state [data-to-ids="0"] .badge,
+.ai-tile-state [data-disable-correlation="1"] .badge,
+.ai-tile-state .badge.text-bg-secondary {
+    color: var(--bs-secondary-color) !important;
+    background: transparent !important;
+    border: 1px dashed var(--bs-border-color) !important;
+}
+.ai-tile-state button:hover .badge,
+.ai-tile-state button:focus-visible .badge {
+    box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 22%, transparent);
+}
+
+/* Facts */
+.ai-tile-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .3rem .9rem;
+    margin: 0;
+    font-size: .8rem;
+}
+.ai-tile-facts dt {
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    line-height: 1.6rem;
+    color: var(--bs-secondary-color);
+}
+.ai-tile-facts dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    min-width: 0;
+    min-height: 1.6rem;
+    margin: 0;
+}
+
+/* Foot */
+.ai-tile-foot {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-top: auto;
+    padding-top: .6rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+.ai-tile-analyst {
+    margin-left: auto;
+}
+
+/* Deleted and proposed attributes, as their table rows show them. */
+.idx-card.attr-deleted .ai-tile {
+    opacity: .55;
+}
+.idx-card.attr-proposal-row {
+    border-left: 3px solid var(--bs-warning);
+    background-color: rgba(245, 158, 11, .06);
+}
+
+/* The attribute table (Elements/Attributes/index): the events index ledger's
+   one-line headings and rows. The cells' pieces are attribute-elements.css'. */
+.ai-table thead th { white-space: nowrap; }
+.ai-table thead th > i { font-size: .8rem; }
+.ai-table td:is(.idx-col-tag_list, .idx-col-galaxy, .idx-col-relatedEvents, .idx-col-feedHits):not(:has(*))::before {
+    content: "—";
+    color: var(--bs-tertiary-color);
+}
+/* Only the value wraps; every other cell keeps to one line. */
+.ai-table tbody td:not(.idx-col-attribute_value) { white-space: nowrap; }
+.ai-table tbody td:not(.idx-col-attribute_value) .flex-wrap { flex-wrap: nowrap !important; }
+

@@ -173,6 +173,7 @@ $headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true
  *   'class'      whole button class, replaces the type default
  *   'id'         id of the rendered control
  *   'title'      native tooltip
+ *   'download'   file name to save the link target as (type navigate)
  *   'tab'        only shown while that view_layout tab is active
  *   'primary'    this one keeps a button when its type is grouped
  *   'standalone' never folded into its type's group
@@ -325,6 +326,7 @@ $renderHeaderAction = function (array $action, array $options = []) use (
         'class' => $class,
         'id' => $action['id'] ?? null,
         'title' => $action['title'] ?? null,
+        'download' => $action['download'] ?? null,
         'data-header-tab' => $tab,
         'onclick' => $onClick,
     ] + ($action['attributes'] ?? [])) . '>' . $icon . $label . '</a>';

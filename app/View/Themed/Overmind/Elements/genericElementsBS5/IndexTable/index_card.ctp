@@ -7,7 +7,8 @@
  * `row-cols-N` class does layout work, overriding width:100%.
  *
  * Bespoke cards: `card_element` names an element rendering custom card content.
- * Scaffold keeps .card shell for layout; element gets `row`, `k`, `data`, `sections`.
+ * Scaffold keeps .card shell for layout; element gets `row`, `k`, `data`, `sections`,
+ * plus whatever `card_params` holds.
  *
  * `meta` section pinned bottom: card-body.d-flex.flex-column > .row.flex-grow-1 > .col
  * gives full height; mt-auto on meta eats leftover space. All classes load-bearing.
@@ -169,7 +170,7 @@ if (!empty($data['row_marker_callable']) && is_callable($data['row_marker_callab
             'k' => $k,
             'data' => $data,
             'sections' => $sections,
-        ]) ?>
+        ] + ($data['card_params'] ?? [])) ?>
 
         <?php else: ?>
 

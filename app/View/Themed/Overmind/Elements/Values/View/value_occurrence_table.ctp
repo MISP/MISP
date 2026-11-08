@@ -585,6 +585,7 @@ $columns = array(
         'field' => array(
             'name' => __('Comment'),
             'data_path' => 'Attribute.comment',
+            'element' => 'comment',
             'empty' => '—',
         ),
     ),

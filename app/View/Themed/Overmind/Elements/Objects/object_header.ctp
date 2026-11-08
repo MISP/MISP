@@ -1,7 +1,7 @@
 <?php
 /**
- * The line inside an object's header button, shared by the list view's
- * accordion and the card view so the two never drift.
+ * An object's header line, shared by the rows and the cards of the objects
+ * index and of the event's Objects tab so they never drift.
  *
  * Left: distribution, then the template name (with its meta-category and
  * version) over the first attribute's value. Right: attribute count, last
@@ -9,9 +9,7 @@
  *
  * Parameters:
  *   object     array  one entry of $objects
- *   ctx        array  see $objContext in Elements/Objects/index.ctp. Only
- *                     count / deleted / firstValue / firstRelation are read, so a
- *                     caller outside the index can build a small one.
+ *   ctx        array  count / deleted / firstValue / firstRelation
  *   asideHtml  string optional raw HTML appended to the right-hand slot, for a
  *                     surface with something of its own to put there (the
  *                     enrichment review's reference count and remove button).

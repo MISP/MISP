@@ -19,12 +19,14 @@
  * @var array|null $runway The bench value's relevance, for the curve
  * @var string|null $lean The bench value's lean, which says which way
  *                        the palette's direction pair points
+ * @var bool $compact Signals on one line each, explained behind their help
  */
 $ledger = isset($ledger) ? $ledger : array();
 $benchValue = isset($benchValue) ? $benchValue : null;
 $marks = isset($marks) ? $marks : array();
 $runway = isset($runway) ? $runway : null;
 $lean = isset($lean) ? $lean : null;
+$compact = !empty($compact);
 
 $blurb = trim($section['blurb']);
 $rest = '';
@@ -46,6 +48,28 @@ foreach ($section['blocks'] as $block) {
         }
     }
 }
+
+$primer = '';
+if (!empty($section['primer'])) {
+    $primer = '<button type="button" class="sig-more" data-ap-help'
+        . ' aria-haspopup="dialog" aria-expanded="false">'
+        . '<i class="fa-solid fa-circle-question" aria-hidden="true"></i>'
+        . h($section['primer']['label']) . '</button>'
+        . '<template class="sig-help-tpl">' . $this->element(
+            'AnalystProfiles/' . $section['primer']['kind'] . '_primer',
+            array('primer' => $section['primer'])
+        ) . '</template>';
+}
+$palette = '';
+if ($section['id'] === 'signals' && $configured > 0) {
+    $palette = $available === 0
+        ? __('Every signal this instance has is already in this profile.')
+        : sprintf(__n(
+            '%s signal this instance has is not in this profile.',
+            '%s signals this instance has are not in this profile.',
+            $available
+        ), $available);
+}
 ?>
 <section class="wb-sec <?= $open ? 'is-open' : '' ?>"
          data-sec="<?= h($section['id']) ?>">
@@ -59,39 +83,18 @@ foreach ($section['blocks'] as $block) {
             </p>
             <p class="wb-blurb">
                 <?= h($blurb) ?>
-                <?php if (!empty($section['primer'])): ?>
-                    <button type="button" class="sig-more"
-                            data-ap-help aria-haspopup="dialog"
-                            aria-expanded="false">
-                        <i class="fa-solid fa-circle-question"
-                           aria-hidden="true"></i><?=
-                        h($section['primer']['label']) ?>
-                    </button>
-                    <template class="sig-help-tpl"><?=
-                        $this->element(
-                            'AnalystProfiles/'
-                                . $section['primer']['kind'] . '_primer',
-                            array('primer' => $section['primer'])
-                        ) ?></template>
+                <?php if ($primer !== ''): ?>
+                    <?= $primer ?>
                 <?php elseif ($rest !== ''): ?>
                     <a href="#" class="wb-i" onclick="return false;"
                        title="<?= h($rest) ?>">i</a>
                 <?php endif; ?>
             </p>
         </div>
-        <?php if ($section['id'] === 'signals' && $configured > 0): ?>
+        <?php if ($palette !== ''): ?>
             <div class="text-end">
                 <p class="wb-sub mt-1 mb-0" style="max-width:20rem">
-                    <?= $available === 0
-                        ? h(__('Every signal this instance has is already'
-                            . ' in this profile.'))
-                        : h(sprintf(__n(
-                            '%s signal this instance has is not in this'
-                                . ' profile.',
-                            '%s signals this instance has are not in this'
-                                . ' profile.',
-                            $available
-                        ), $available)) ?>
+                    <?= h($palette) ?>
                 </p>
             </div>
         <?php endif; ?>
@@ -120,7 +123,8 @@ foreach ($section['blocks'] as $block) {
 
     <?php
     $renderBlock = function (array $block) use (
-        $section, $editable, $ledger, $benchValue, $lean, $marks, $runway
+        $section, $editable, $ledger, $benchValue, $lean, $marks, $runway,
+        $compact
     ) {
         if ($block['kind'] === 'items') {
             return $this->element('AnalystProfiles/block_items', array(
@@ -130,6 +134,7 @@ foreach ($section['blocks'] as $block) {
                 'ledger' => $ledger,
                 'benchValue' => $benchValue,
                 'lean' => $lean,
+                'compact' => $compact,
             ));
         }
         if ($block['kind'] === 'fields') {

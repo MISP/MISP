@@ -635,12 +635,7 @@ $manyObjects = count($run['objects']) > 1;
                                     . ' actionable for detection.'
                                 )) ?>"><?= h(__('IDS')) ?></span>
                             <?php endif; ?>
-                            <?php if (!empty($attribute['comment'])): ?>
-                                <span class="vp-e-meta vp-e-el-note">
-                                    <i class="fas fa-comment"></i>
-                                    <?= h($attribute['comment']) ?>
-                                </span>
-                            <?php endif; ?>
+                            <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $attribute['comment'] ?? '', 'inline' => true]) ?>
                         </div>
                     </div>
                     <?= $actions(false, $pick) ?>
@@ -781,13 +776,7 @@ $manyObjects = count($run['objects']) > 1;
                         ) ?></span>
                     <?php endif; ?>
 
-                    <?php if (!empty($object['comment'])): ?>
-                        <span class="vp-e-obj-note"
-                              title="<?= h($object['comment']) ?>">
-                            <i class="fas fa-comment"></i>
-                            <?= h($object['comment']) ?>
-                        </span>
-                    <?php endif; ?>
+                    <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $object['comment'] ?? '', 'inline' => true]) ?>
 
                     <?php if (!empty($peek)): ?>
                         <span class="vp-e-obj-peek"><?= h(implode(
@@ -861,16 +850,10 @@ $manyObjects = count($run['objects']) > 1;
                                                 $attribute,
                                                 true
                                             ) ?>
-                                            <?php if (!empty(
-                                                $attribute['comment']
-                                            )): ?>
-                                                <div class="vp-e-meta
-                                                            vp-e-el-note">
-                                                    <?= h(
-                                                        $attribute['comment']
-                                                    ) ?>
-                                                </div>
-                                            <?php endif; ?>
+                                            <?= $this->element(
+                                                'genericElementsBS5/Badges/comment',
+                                                ['comment' => $attribute['comment'] ?? '']
+                                            ) ?>
                                         </td>
                                         <td>
                                             <?php if (!empty(

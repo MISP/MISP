@@ -486,13 +486,8 @@ html.ig-so-docked #flashOverlay {
     .row-cols-xxxxl-6 > * { flex: 0 0 auto; width: 16.66666667%; }
 }
 
-/* Object index — mass-select gutter. */
-.accordion-header.obj-header:has(> .accordion-button:not(.collapsed)) {
-    background-color: var(--bs-accordion-active-bg);
-}
-
 /* Object index — header line (Elements/Objects/object_header.ctp), shared by
-   the accordion and the card view. */
+   the objects indexes' rows and cards. */
 .ov-obj-head {
     display: flex;
     align-items: center;
@@ -796,6 +791,59 @@ th .sort-icon::before {
 .nav-pills .nav-link.active {
     background-color: var(--bs-primary);
     color: var(--bs-light);
+}
+
+/* Server form: synchronisation methods */
+.srv-sync-list {
+    border: 1px solid var(--misp-line, var(--bs-border-color));
+    border-radius: var(--bs-border-radius);
+}
+.srv-sync-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6.5rem 6.5rem;
+    column-gap: 1rem;
+    row-gap: .5rem;
+    align-items: center;
+    padding: .75rem 1rem;
+}
+.srv-sync-row + .srv-sync-row {
+    border-top: 1px solid var(--misp-line, var(--bs-border-color));
+}
+.srv-sync-what {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    min-width: 0;
+}
+.srv-sync-icon {
+    flex: 0 0 1.25rem;
+    margin-top: .2rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+}
+.srv-sync-icon.misp-icon {
+    height: 1.1rem;
+}
+.srv-sync-dir .form-check {
+    margin: 0;
+}
+.srv-sync-dir-wide {
+    grid-column: span 2;
+}
+.srv-sync-note {
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+@media (max-width: 575.98px) {
+    .srv-sync-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    .srv-sync-what {
+        grid-column: 1 / -1;
+    }
+    .srv-sync-dir {
+        padding-left: 2rem;
+    }
 }
 
 /* =======================================================
@@ -1216,14 +1264,14 @@ th .sort-icon::before {
     font-weight: 600;
 }
 .ov-view-tabs .nav-view.active::after {
-    background: var(--bs-primary);
+    background: var(--ov-view-tab-accent, var(--bs-primary));
 }
 .ov-view-tabs .nav-view i {
     font-size: .9em;
     color: var(--ov-view-tab-icon, var(--bs-secondary-color));
 }
 .ov-view-tabs .nav-view.active i {
-    color: var(--ov-view-tab-icon, var(--misp-accent));
+    color: var(--ov-view-tab-icon, var(--ov-view-tab-accent, var(--misp-accent)));
 }
 /* entity colours such as --bs-object are too dark to read on a dark band */
 [data-misp-mode="dark"] .ov-view-tabs .nav-view[style] i {
@@ -1240,8 +1288,19 @@ th .sort-icon::before {
     font-variant-numeric: tabular-nums;
 }
 .ov-view-tabs .nav-view.active .ov-tab-count {
-    background: var(--bs-primary-bg-subtle);
-    color: var(--misp-accent);
+    background: var(--ov-view-tab-accent-bg, var(--bs-primary-bg-subtle));
+    color: var(--ov-view-tab-accent, var(--misp-accent));
+}
+/* The same tabs inside a modal or a card: in the flow, edge to edge, and in
+   the colour of what they belong to through --ov-view-tab-accent(-bg). */
+.ov-view-tabs.is-inline {
+    position: static;
+    z-index: auto;
+    align-items: flex-end;
+    margin: 0;
+    padding: 0 1rem;
+    border-top: 0;
+    background: transparent;
 }
 .ov-view-tabs .nav-view-badge {
     padding: 0 7px;
@@ -1810,84 +1869,6 @@ tr.evt-extension-row td:first-child { position: relative; }
     outline-offset: 1px;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   Correlation — Related events list
-   ═══════════════════════════════════════════════════════════ */
-
-.corr-event-card {
-    border-bottom: 1px solid var(--misp-line, #f1f5f9);
-}
-
-.corr-event-card:last-child {
-    border-bottom: none;
-}
-
-.corr-event-row {
-    transition: background .12s;
-}
-
-.corr-event-row:hover {
-    background: var(--misp-surface-hover, #f8fafc);
-}
-
-/* count pill on the right of an event row - expands the attribute list */
-.corr-attr-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 9px;
-    border: 1px solid color-mix(in srgb, var(--misp-graph-accent, #428bca) 28%, transparent);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--misp-graph-accent, #428bca) 10%, transparent);
-    color: var(--misp-graph-accent-ink, #2f6c9e);
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1.45;
-    cursor: pointer;
-    transition: background .12s, border-color .12s;
-}
-
-.corr-attr-toggle:hover {
-    background: color-mix(in srgb, var(--misp-graph-accent, #428bca) 20%, transparent);
-    border-color: color-mix(in srgb, var(--misp-graph-accent, #428bca) 45%, transparent);
-}
-
-.corr-attr-toggle:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--misp-graph-accent, #428bca) 50%, transparent);
-    outline-offset: 1px;
-}
-
-.corr-attr-toggle.is-expanded {
-    background: color-mix(in srgb, var(--misp-graph-accent, #428bca) 22%, transparent);
-    border-color: color-mix(in srgb, var(--misp-graph-accent, #428bca) 50%, transparent);
-}
-
-.corr-attr-toggle-chevron {
-    font-size: 0.6rem;
-    transition: transform .16s ease;
-}
-
-.corr-attr-toggle.is-expanded .corr-attr-toggle-chevron {
-    transform: rotate(180deg);
-}
-
-/* kept visible when collapsed, so the warning is not lost with the rows */
-.corr-attr-toggle-warning {
-    font-size: 0.65rem;
-    color: var(--bs-warning, #f59e0b);
-}
-
-.corr-attr-row {
-    min-height: 1.5rem;
-}
-
-.corr-attr-row .corr-attr-value {
-    max-width: 280px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 /* the row a focus:<uuid> link opened an event's attribute or object tab on */
 .ajax-tab-content tbody > tr.ov-focus-row > * {
     background-color: rgba(var(--bs-warning-rgb), .18);
@@ -2421,9 +2402,9 @@ tr.evt-extension-row td:first-child { position: relative; }
 .ss-scope .ss-flag-deprecated { color: var(--bs-secondary-color); background: var(--bs-tertiary-bg); }
 .ss-scope .ss-dest-link { font-size: .74rem; text-decoration: none; }
 .ss-scope .ss-dest-link:hover { text-decoration: underline; }
-.ss-scope tr.ss-row-flash > td { animation: ss-flash 2.4s ease-out; }
+.ss-scope tr.ss-row-flash > td { animation: ss-flash 6s ease-out; }
 @keyframes ss-flash {
-    0%, 30% { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+    0%, 65% { background: color-mix(in srgb, var(--primary) 22%, transparent); }
     100% { background: transparent; }
 }
 .ss-scope .ss-essentials .ss-col-setting { width: 55%; }
@@ -4021,7 +4002,6 @@ tr.evt-extension-row td:first-child { position: relative; }
     top: 45vh;
 }
 
-.filter-draft-busy .log-quick-btn,
 .filter-draft-busy .filter-draft-summary button {
     pointer-events: none;
     opacity: .6;
@@ -5178,36 +5158,6 @@ tr.evt-extension-row td:first-child { position: relative; }
 
 [data-misp-mode="dark"] .ov-obj-rel-badge {
     background: rgba(var(--bs-object-rgb), .28);
-}
-
-/* "Show on map" in the header of a geolocation, gpx, uav or geojson object. */
-.ov-obj-map-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    padding: .1rem .5rem;
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius-pill);
-    background: rgba(var(--bs-success-rgb), .08);
-    color: var(--bs-body-color);
-    font-size: .72rem;
-    line-height: 1.4;
-}
-
-.ov-obj-map-btn:hover,
-.ov-obj-map-btn:focus-visible {
-    border-color: var(--bs-success);
-    background: rgba(var(--bs-success-rgb), .18);
-    color: var(--bs-body-color);
-}
-
-.ov-obj-map-btn > i {
-    font-size: .7rem;
-    color: var(--bs-success);
-}
-
-[data-misp-mode="dark"] .ov-obj-map-btn {
-    background: rgba(var(--bs-success-rgb), .22);
 }
 
 /* The map an object opens in the main modal (js/object-map.js). */

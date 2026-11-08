@@ -870,6 +870,13 @@ class NavbarHelper extends AppHelper {
                 'action' => 'categories_and_types',
                 'icon' => 'fas fa-table-list'
             ],
+            [
+                'label' => __('Terms & Conditions'),
+                'url' => $baseurl . '/users/terms',
+                'controller' => 'users',
+                'action' => 'terms',
+                'icon' => 'fas fa-file-contract'
+            ],
             ['divider' => true],
             [
                 'label' => __('Server PGP public key'),
@@ -1066,6 +1073,21 @@ class NavbarHelper extends AppHelper {
                 'action' => 'view',
                 'icon' => $user_icon
             ],
+            [
+                'label' => __('Periodic summary'),
+                'url' => $baseurl . '/users/viewPeriodicSummary/daily',
+                'controller' => 'users',
+                'action' => 'viewPeriodicSummary',
+                'icon' => 'fas fa-envelope-open-text'
+            ],
+            [
+                'label' => __('Periodic summary settings'),
+                'url' => $baseurl . '/users/notificationSettings',
+                'controller' => 'users',
+                'action' => 'notificationSettings',
+                'icon' => 'fas fa-bell'
+            ],
+            ['divider' => true],
             [
                 'label' => __('Log out'),
                 'url' => $baseurl . '/users/logout',

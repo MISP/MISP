@@ -1,7 +1,7 @@
 <?php
 /**
  * A `button` child of the filter bar. `pressed` makes a toggle: the url is
- * then where pressing it leads, on or off.
+ * then where pressing it leads, on or off. `count` follows the label.
  *
  * @var array $child
  * @var bool $nav whether index-filters.js loads the link in place
@@ -27,5 +27,5 @@
     <?php if (!empty($child['icon'])): ?>
         <i class="<?= h($child['icon']) ?>"></i>
     <?php endif; ?>
-    <?= h($child['label']) ?>
+    <?= h($child['label'] . (!empty($child['count']) ? ' (' . (int)$child['count'] . ')' : '')) ?>
 </a>

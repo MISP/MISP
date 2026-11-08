@@ -10,7 +10,9 @@
  * in a tab, the tab reloads its fragment and the browser URL is left alone.
  * Every lookup is scoped to the bar's index (`[data-ifp-scope]`), so a page
  * can hold several bars, and all wiring is delegated so swaps need no
- * rebinding.
+ * rebinding. The pickers and toggles sit in a panel the bar's Filters button
+ * opens over the results; it stays open while filters apply, a tab reload
+ * included.
  */
 (function () {
     'use strict';
@@ -112,7 +114,8 @@
             var gone = value === null || value === undefined || value === ''
                 || (Array.isArray(value) && !value.length);
             if (c.transport === 'query') {
-                if (gone) { parts.query.delete(key); } else { parts.query.set(key, [].concat(value).join('|')); }
+                // A list (a date range) in the query string: the controllers split on '||'.
+                if (gone) { parts.query.delete(key); } else { parts.query.set(key, [].concat(value).join('||')); }
             } else if (gone) {
                 delete named[key];
             } else if (Array.isArray(value)) {
@@ -125,11 +128,12 @@
         return formatIndexUrl(parts.base, { named: named, query: parts.query });
     }
 
+    // A search also runs the draft of a deferred bar: one Apply for everything.
     function searchUrl(bar) {
         var c = cfg(bar);
         var field = bar.querySelector('.ifp-query input');
         var term = field ? field.value.trim() : '';
-        var changes = {};
+        var changes = deferred(bar) ? Object.assign({}, draftOf(bar)) : {};
         if (c.searchField) { changes[c.searchField] = null; }
         if (c.idField) { changes[c.idField] = null; }
         if (term !== '') {
@@ -166,15 +170,35 @@
             var name = JSON.parse(el.getAttribute('data-ifp-picker')).name;
             if (keys.indexOf(prefix + name) !== -1) { el.hidden = true; }
         });
-        var chips = swapNode(scope, 'chips');
-        if (chips && !chips.querySelector('.ifp-chip:not([hidden])')) { chips.hidden = true; }
-        var clear = scope.querySelector('.ifp-clear');
-        if (clear) {
-            var origin = splitUrl(bar, tab.dataset.ifpOrigin);
-            var sort = splitUrl(bar, currentUrl(bar)).named;
-            ['sort', 'direction', 'limit'].forEach(function (k) { if (sort[k]) { origin.named[k] = sort[k]; } });
+        // The row under the bar and the Filters panel each hold the chips.
+        ['chips', 'win-chips'].forEach(function (key) {
+            var chips = swapNode(scope, key);
+            if (!chips || chips.querySelector('.ifp-chip:not([hidden])')) { return; }
+            var none = chips.querySelector('.ifp-chips-none');
+            if (!none) {
+                chips.hidden = true;
+                return;
+            }
+            none.hidden = false;
+            var clearLink = chips.querySelector('.ifp-clear');
+            if (clearLink) { clearLink.hidden = true; }
+        });
+        var current = splitUrl(bar, currentUrl(bar)).named;
+        var origin = splitUrl(bar, tab.dataset.ifpOrigin);
+        ['sort', 'direction', 'limit'].forEach(function (k) { if (current[k]) { origin.named[k] = current[k]; } });
+        scope.querySelectorAll('.ifp-clear').forEach(function (clear) {
             clear.setAttribute('href', formatIndexUrl(origin.base, origin));
+        });
+        var badge = swapNode(scope, 'filters-count');
+        if (badge) {
+            var left = (badge.getAttribute('data-ifp-keys') || '').split(' ').filter(function (k) {
+                return k !== '' && keys.indexOf(k) === -1;
+            }).length + (parseInt(badge.getAttribute('data-ifp-pressed'), 10) || 0);
+            badge.textContent = left;
+            badge.hidden = !left;
         }
+        syncFiltersBtn(bar);
+        syncSections(bar);
     }
 
     function applyAllTabScopes(root) {
@@ -256,7 +280,10 @@
         if (badge && nextBadge) { badge.innerHTML = nextBadge.innerHTML; }
         var field = bar.querySelector('.ifp-query input');
         var nextField = fresh.querySelector('[data-ifp-bar] .ifp-query input');
-        if (field && nextField && document.activeElement !== field) { field.value = nextField.value; }
+        if (field && nextField) {
+            field.defaultValue = nextField.defaultValue;
+            if (document.activeElement !== field) { field.value = nextField.value; }
+        }
     }
 
     function afterSwap(bar) {
@@ -268,6 +295,12 @@
         if (scope.querySelector('#viewCard') && typeof setView === 'function') {
             var mobile = typeof isMobile === 'function' && isMobile();
             setView(mobile ? 'card' : (localStorage.getItem('indexViewMode') || 'table'), false, scope);
+        }
+        syncFiltersBtn(bar);
+        syncQuery(bar);
+        if (deferred(bar)) {
+            bar.__draft = {};
+            renderDraft(bar);
         }
         clearError(bar);
     }
@@ -285,6 +318,7 @@
         var tab = tabOf(bar);
         if (tab) {
             originKeys(tab);
+            rememberPanel(bar, tab);
             var over = tab.__indexFilterOverride;
             if (over && over.reload && over.reload(url)) { return; }
             if (typeof reloadAjaxTabIndex === 'function') { reloadAjaxTabIndex(tab, url); return; }
@@ -311,6 +345,78 @@
             .finally(function () {
                 if (inFlight === controller) { inFlight = null; setBusy(bar, false); }
             });
+    }
+
+    /* ── the Filters panel and the search box ─────────────────────────── */
+
+    var openPanel = null;
+
+    function panelOf(bar) { return bar.querySelector('.ifp-panel'); }
+
+    function filtersBtnOf(bar) { return bar.querySelector('[data-ifp-filters]'); }
+
+    function browserOpen() { return !!document.querySelector('.ifb-panel:not(.is-embedded)'); }
+
+    function showPanel(bar, show) {
+        var panel = panelOf(bar);
+        if (!panel || panel.hidden === !show) { return; }
+        if (show && openPanel && openPanel !== bar && openPanel.isConnected) {
+            showPanel(openPanel, false);
+        }
+        if (!show) {
+            if (open && panel.contains(open.picker)) { closePicker(true); }
+            if (browserOpen() && window.IndexFilterBrowser) { window.IndexFilterBrowser.close(true); }
+        }
+        panel.hidden = !show;
+        var btn = filtersBtnOf(bar);
+        if (btn) { btn.setAttribute('aria-expanded', String(show)); }
+        if (show) { openPanel = bar; } else if (openPanel === bar) { openPanel = null; }
+    }
+
+    function syncFiltersBtn(bar) {
+        var btn = filtersBtnOf(bar);
+        var badge = btn && btn.querySelector('[data-ifp-swap="filters-count"]');
+        if (badge) { btn.classList.toggle('is-set', !badge.hidden); }
+    }
+
+    function syncQuery(bar) {
+        var field = bar.querySelector('.ifp-query input');
+        if (!field) { return; }
+        var box = field.closest('.ifp-query');
+        box.classList.toggle('has-value', field.value !== '');
+        box.classList.toggle('is-dirty', field.value.trim() !== field.defaultValue.trim());
+    }
+
+    // A section whose pickers the tab scope all hid goes too.
+    function syncSections(bar) {
+        var panel = panelOf(bar);
+        if (!panel) { return; }
+        panel.querySelectorAll('.ifp-sec').forEach(function (sec) {
+            sec.hidden = !Array.prototype.some.call(sec.querySelectorAll('.ifp-grid > *'), function (el) { return !el.hidden; });
+        });
+    }
+
+    // A tab reload redraws the bar: the panel and the focus come back.
+    function rememberPanel(bar, tab) {
+        var panel = panelOf(bar);
+        if (!panel || panel.hidden) {
+            delete tab.dataset.ifpPanel;
+            return;
+        }
+        var active = document.activeElement && panel.contains(document.activeElement)
+            ? document.activeElement.closest('[data-ifp-swap]') : null;
+        tab.dataset.ifpPanel = active ? swapKey(active) : (bar.__ifpLast || '');
+    }
+
+    function restorePanel(tab) {
+        var focus = tab.dataset.ifpPanel;
+        var bar = focus !== undefined ? tab.querySelector('[data-ifp-bar]') : null;
+        delete tab.dataset.ifpPanel;
+        if (!bar || !panelOf(bar)) { return; }
+        showPanel(bar, true);
+        var node = focus ? swapNode(scopeOf(bar), focus) : null;
+        var target = node && (node.matches('a, button') ? node : node.querySelector('.ifp-btn, a, button'));
+        if (target) { target.focus({ preventScroll: true }); }
     }
 
     /* ── pickers ──────────────────────────────────────────────────────── */
@@ -564,6 +670,10 @@
     function changesOf(state) {
         var root = state.root;
         var changes = {};
+        if (root.kind === 'value') {
+            changes[root.name] = state.value.trim() || null;
+            return changes;
+        }
         if (root.kind === 'time') {
             state.fields.forEach(function (f) {
                 changes[f.name] = timeValue(f);
@@ -786,7 +896,7 @@
         if (pc.suggest && pc.suggest.length && !pc.options) { html += '<div class="ifp-sug"></div>'; }
         html += '<ul class="ifp-opts ifp-res" role="listbox" aria-multiselectable="' + multi + '"></ul>';
         if (!pc.options || local) { html += '<div class="ifp-status" role="status"></div>'; }
-        var foot = draft ? S(bar, 'applyDraft') : S(bar, 'applyOnClose');
+        var foot = cfg(bar).apply === 'close' ? S(bar, 'applyOnClose') : S(bar, 'applyDraft');
         if (pc.single) { foot = ''; }
         if (pc.hint) { foot = pc.hint + (foot ? ' ' + foot : ''); }
         html += '<div class="ifp-foot"' + (foot || draft ? '' : ' hidden') + '><span>' + esc(foot) + '</span>';
@@ -845,6 +955,16 @@
             if (pressed) { pressed.focus(); }
             return;
         }
+        if (pc.kind === 'value') {
+            open.value = pc.value || '';
+            open.initial = JSON.stringify(changesOf(open));
+            pop.innerHTML = valueHtml(bar, pc);
+            placePop(pop);
+            var input = pop.querySelector('[data-ifp-value]');
+            input.focus();
+            input.select();
+            return;
+        }
         reconcile(true);
         open.initial = pc.allOf ? null : JSON.stringify(changesOf(open));
         showView();
@@ -871,7 +991,215 @@
         if (cfg(state.bar).apply === 'draft' && apply !== 'draft') { return; }
         var changes = changesOf(state);
         if (JSON.stringify(changes) === state.initial) { return; }
+        if (deferred(state.bar)) {
+            stage(state, changes);
+            return;
+        }
+        state.bar.__ifpLast = swapKey(state.picker);
         load(state.bar, urlWith(state.bar, changes), true);
+    }
+
+    // One free-text, number or date filter: its input is the whole popover.
+    function valueHtml(bar, pc) {
+        var hint = [pc.hint, S(bar, deferred(bar) ? 'keptForApply' : 'valueOnClose')].filter(Boolean).join(' ');
+        return '<div class="ifp-value"><input type="' + esc(pc.input || 'text') + '" class="form-control form-control-sm"'
+            + ' data-ifp-value autocomplete="off" spellcheck="false" value="' + esc(pc.value || '') + '"'
+            + (pc.placeholder ? ' placeholder="' + esc(pc.placeholder) + '"' : '')
+            + (pc.step ? ' step="' + esc(pc.step) + '"' : '')
+            + ' aria-label="' + esc(pc.label) + '"></div>'
+            + '<div class="ifp-foot"><span>' + esc(hint) + '</span></div>';
+    }
+
+    /* ── deferred bars: filters wait in a draft until Apply ───────────── */
+
+    function deferred(bar) { return cfg(bar).apply === 'deferred'; }
+
+    // Unprefixed key => the value it will take; null drops it.
+    function draftOf(bar) {
+        if (!bar.__draft) { bar.__draft = {}; }
+        return bar.__draft;
+    }
+
+    function D(bar, key) { return (cfg(bar).draft || {})[key] || ''; }
+
+    function plainValue(value) {
+        if (Array.isArray(value)) { return value.join('||'); }
+        return value === null || value === undefined || value === '' ? null : String(value);
+    }
+
+    // What the page shows for a filter, spelled as the bar writes it.
+    function appliedValue(bar, name) {
+        var c = cfg(bar);
+        var parts = splitUrl(bar, currentUrl(bar));
+        var key = c.prefix + name;
+        return plainValue(c.transport === 'query' ? parts.query.get(key) : parts.named[key]);
+    }
+
+    function pickerKeys(pc) {
+        if (pc.kind === 'time') {
+            var keys = [];
+            pc.fields.forEach(function (f) { keys = keys.concat([f.name], f.aliases || []); });
+            return keys;
+        }
+        return [pc.name].concat(pc.sub ? [pc.sub.name] : []);
+    }
+
+    function copy(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
+
+    function pickerState(pc) {
+        return {
+            selected: pc.selected || [],
+            sub: pc.sub ? pc.sub.selected : [],
+            fields: pc.fields ? pc.fields.map(function (f) { return f.value; }) : [],
+            value: pc.value || '',
+        };
+    }
+
+    function setPickerState(pc, s) {
+        pc.selected = copy(s.selected);
+        pc.allOf = false;
+        if (pc.sub) { pc.sub.selected = copy(s.sub); }
+        if (pc.fields) { pc.fields.forEach(function (f, i) { f.value = copy(s.fields[i]); }); }
+        pc.value = s.value;
+    }
+
+    // The state the page was drawn with, kept to undo a staged change.
+    function appliedState(picker) {
+        var pc = pickerCfg(picker);
+        if (!pc.__applied) { pc.__applied = copy(pickerState(pc)); }
+        return pc.__applied;
+    }
+
+    function timeText(pc, value) {
+        if (Array.isArray(value)) {
+            var from = value[0] && value[0] !== '0' ? String(value[0]).slice(0, 10) : '…';
+            return from + ' – ' + (value[1] ? String(value[1]).slice(0, 10) : '…');
+        }
+        var preset = (pc.presets || []).filter(function (p) { return p.value === value; })[0];
+        return preset ? (preset.title || preset.label) : String(value);
+    }
+
+    function pickerText(pc, s) {
+        if (pc.kind === 'value') { return s.value; }
+        if (pc.kind === 'time') {
+            return pc.fields.map(function (f, i) {
+                var v = s.fields[i];
+                if (v === null || v === undefined || v === '') { return null; }
+                return (pc.fields.length > 1 ? f.label + ' ' : '') + timeText(pc, v);
+            }).filter(Boolean).join(' · ');
+        }
+        return s.selected.concat(s.sub).map(function (x) { return (x.exclude ? '≠ ' : '') + x.label; }).join(', ');
+    }
+
+    function pickerCount(pc) {
+        var s = pickerState(pc);
+        if (pc.kind === 'value') { return s.value ? 1 : 0; }
+        if (pc.kind === 'time') { return s.fields.filter(function (v) { return v !== null && v !== undefined && v !== ''; }).length; }
+        return s.selected.length + s.sub.length;
+    }
+
+    function syncPickerBtn(picker) {
+        var btn = picker.querySelector('.ifp-btn');
+        var n = pickerCount(pickerCfg(picker));
+        var badge = btn.querySelector('.badge');
+        btn.classList.toggle('is-set', n > 0);
+        if (!n) {
+            if (badge) { badge.remove(); }
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'badge rounded-pill bg-primary';
+            btn.insertBefore(badge, btn.querySelector('.ifp-caret'));
+        }
+        badge.textContent = n;
+    }
+
+    function stage(state, changes) {
+        var bar = state.bar;
+        var pc = state.root;
+        var draft = draftOf(bar);
+        appliedState(state.picker);
+        Object.keys(changes).forEach(function (name) {
+            if (plainValue(changes[name]) === appliedValue(bar, name)) { delete draft[name]; } else { draft[name] = changes[name]; }
+        });
+        if (pc.kind === 'time') {
+            state.fields.forEach(function (f, i) { pc.fields[i].value = timeValue(f); });
+        } else if (pc.kind === 'value') {
+            pc.value = state.value.trim();
+        } else {
+            pc.selected = state.mainSelection;
+            pc.allOf = false;
+            if (pc.sub) { pc.sub.selected = state.subSelection; }
+        }
+        syncPickerBtn(state.picker);
+        renderDraft(bar);
+    }
+
+    // A chip's ×: an applied filter is staged for removal, a staged one undone.
+    function unstage(bar, picker) {
+        var pc = pickerCfg(picker);
+        var draft = draftOf(bar);
+        var keys = pickerKeys(pc);
+        if (keys.some(function (k) { return Object.prototype.hasOwnProperty.call(draft, k); })) {
+            keys.forEach(function (k) { delete draft[k]; });
+            setPickerState(pc, appliedState(picker));
+        } else {
+            appliedState(picker);
+            keys.forEach(function (k) { if (appliedValue(bar, k) !== null) { draft[k] = null; } });
+            setPickerState(pc, { selected: [], sub: [], fields: (pc.fields || []).map(function () { return null; }), value: '' });
+        }
+        syncPickerBtn(picker);
+        renderDraft(bar);
+    }
+
+    function draftChip(bar, label, text, state, key) {
+        var title = state === 'pending' ? D(bar, 'notApplied') : (state === 'removed' ? D(bar, 'willBeRemoved') : '');
+        return '<span class="ifp-chip' + (state === 'applied' ? '' : ' is-' + state) + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>'
+            + (state === 'pending' ? '<i class="fas fa-clock" aria-hidden="true"></i>' : '')
+            + '<span class="ifp-chip-label">' + esc(label) + '<span class="ifp-chip-op">:</span> <span class="ifp-chip-value">' + esc(text) + '</span></span>'
+            + '<button type="button" class="ifp-chip-x" data-ifp-draft-x="' + esc(key) + '" title="' + esc(D(bar, 'remove')) + '"'
+            + ' aria-label="' + esc(D(bar, 'remove') + ': ' + label) + '"><i class="fas fa-times" aria-hidden="true"></i></button></span>';
+    }
+
+    // The panel's foot: what is applied, what waits, and the one Apply.
+    function renderDraft(bar) {
+        var foot = bar.querySelector('[data-ifp-draft]');
+        if (!foot) { return; }
+        var draft = draftOf(bar);
+        var chips = '';
+        var pending = 0;
+        var anyApplied = false;
+        var field = bar.querySelector('.ifp-query input');
+        if (field) {
+            var was = field.defaultValue.trim();
+            var now = field.value.trim();
+            if (was !== '' || now !== '') {
+                var searchState = now === was ? 'applied' : (now === '' ? 'removed' : 'pending');
+                if (searchState !== 'applied') { pending++; }
+                if (was !== '') { anyApplied = true; }
+                chips += draftChip(bar, S(bar, 'search'), now || was, searchState, 'search');
+            }
+        }
+        bar.querySelectorAll('.ifp-panel [data-ifp-picker]').forEach(function (picker) {
+            if (picker.hidden) { return; }
+            var pc = pickerCfg(picker);
+            var was = pickerText(pc, appliedState(picker));
+            var now = pickerText(pc, pickerState(pc));
+            if (!was && !now) { return; }
+            var staged = pickerKeys(pc).some(function (k) { return Object.prototype.hasOwnProperty.call(draft, k); });
+            var state = !staged ? 'applied' : (now ? 'pending' : 'removed');
+            if (state !== 'applied') { pending++; }
+            if (was) { anyApplied = true; }
+            chips += draftChip(bar, pc.label, now || was, state, swapKey(picker));
+        });
+        foot.innerHTML = '<div class="ifp-chips">' + (chips || '<span class="ifp-chips-none">' + esc(D(bar, 'noFilter')) + '</span>') + '</div>'
+            + (pending ? '<span class="ifp-draft-status">' + esc(pending === 1 ? D(bar, 'pendingOne') : D(bar, 'pendingMany').replace('%s', pending)) + '</span>' : '')
+            + (anyApplied ? '<a href="' + esc(cfg(bar).clearUrl) + '" class="ifp-clear" data-ifp-nav>' + esc(D(bar, 'clearAll')) + '</a>' : '')
+            + '<button type="button" class="btn btn-sm ' + (pending ? 'btn-primary' : 'btn-outline-primary') + '" data-ifp-draft-apply'
+            + (pending ? '' : ' disabled') + '><i class="fas fa-filter me-1" aria-hidden="true"></i>' + esc(D(bar, 'apply')) + '</button>';
+        var btn = filtersBtnOf(bar);
+        if (btn) { btn.classList.toggle('has-draft', pending > 0); }
     }
 
     function setActive(row) {
@@ -917,12 +1245,55 @@
 
     document.addEventListener('click', function (event) {
         var target = event.target;
+        // Found before an open picker closes: in a deferred bar that redraws the draft.
+        var bar = barOf(target);
+        var draftX = target.closest('[data-ifp-draft-x]');
 
         // A click elsewhere closes the open picker, then still does its own job.
         if (open && !open.picker.contains(target)) { closePicker(true); }
 
-        var bar = barOf(target);
         if (!bar) { return; }
+
+        if (draftX) {
+            var draftKey = draftX.getAttribute('data-ifp-draft-x');
+            if (draftKey === 'search') {
+                var term = bar.querySelector('.ifp-query input');
+                term.value = term.value.trim() !== term.defaultValue.trim() ? term.defaultValue : '';
+                syncQuery(bar);
+                renderDraft(bar);
+            } else {
+                var staged = swapNode(scopeOf(bar), draftKey);
+                if (staged) { unstage(bar, staged); }
+            }
+            return;
+        }
+        if (target.closest('[data-ifp-draft-apply]')) {
+            load(bar, searchUrl(bar), true);
+            return;
+        }
+
+        if (target.closest('[data-ifp-filters]')) {
+            var panel = panelOf(bar);
+            if (panel) { showPanel(bar, panel.hidden); }
+            return;
+        }
+        if (target.closest('[data-ifp-search]')) {
+            load(bar, searchUrl(bar), true);
+            return;
+        }
+        if (target.closest('[data-ifp-search-clear]')) {
+            var field = bar.querySelector('.ifp-query input');
+            var applied = field.defaultValue.trim() !== '';
+            field.value = '';
+            syncQuery(bar);
+            field.focus();
+            if (deferred(bar)) {
+                renderDraft(bar);
+            } else if (applied) {
+                load(bar, searchUrl(bar), true);
+            }
+            return;
+        }
 
         var btn = target.closest('.ifp-btn');
         if (btn) {
@@ -943,6 +1314,7 @@
             var named = swapNode(scopeOf(bar), 'picker-' + opener.getAttribute('data-ifp-open'));
             if (named) {
                 event.preventDefault();
+                showPanel(bar, true);
                 named.scrollIntoView({ block: 'nearest' });
                 openPicker(named);
             }
@@ -978,11 +1350,31 @@
         }
     });
 
+    // Capture phase, like the column browser's: the click may redraw what it hit.
+    document.addEventListener('click', function (event) {
+        if (!openPanel) { return; }
+        if (!openPanel.isConnected) {
+            openPanel = null;
+            return;
+        }
+        var target = event.target;
+        var btn = filtersBtnOf(openPanel);
+        if (panelOf(openPanel).contains(target) || (btn && btn.contains(target)) || target.closest('.ifb-panel')) { return; }
+        showPanel(openPanel, false);
+    }, true);
+
     document.addEventListener('input', function (event) {
         if (open && event.target.matches('.ifp-search input')) {
             search(event.target.value.trim());
         } else if (open && event.target.matches('[data-ifp-from], [data-ifp-to]')) {
             setDay(event.target);
+        } else if (open && event.target.matches('[data-ifp-value]')) {
+            open.value = event.target.value;
+            open.dirty = true;
+        } else if (event.target.matches('.ifp-query input')) {
+            var queryBar = barOf(event.target);
+            syncQuery(queryBar);
+            if (deferred(queryBar)) { renderDraft(queryBar); }
         }
     });
 
@@ -1000,6 +1392,13 @@
             return;
         }
         if (open && open.picker.contains(event.target)) {
+            if (event.key === 'Enter' && event.target.matches('[data-ifp-value]')) {
+                event.preventDefault();
+                var valueBtn = open.picker.querySelector('.ifp-btn');
+                closePicker(true);
+                valueBtn.focus();
+                return;
+            }
             var typing = event.target.matches('input');
             if (event.key === 'ArrowRight' && !typing && open.active && open.active.querySelector('[data-ifp-drill]')) {
                 event.preventDefault();
@@ -1014,6 +1413,23 @@
                 event.preventDefault();
                 toggle(open.active.getAttribute('data-value'), false);
             }
+            return;
+        }
+        // Escape drops an unapplied search term first, then closes the panel.
+        if (event.key === 'Escape' && event.target.matches('.ifp-query input')
+            && event.target.value.trim() !== event.target.defaultValue.trim()) {
+            event.preventDefault();
+            event.target.value = event.target.defaultValue;
+            syncQuery(barOf(event.target));
+            if (deferred(barOf(event.target))) { renderDraft(barOf(event.target)); }
+            return;
+        }
+        if (event.key === 'Escape' && openPanel && openPanel.isConnected && !browserOpen()
+            && !document.querySelector('.modal.show') && !panelOf(openPanel).querySelector('.dropdown-menu.show')) {
+            event.preventDefault();
+            var filtersBtn = filtersBtnOf(openPanel);
+            showPanel(openPanel, false);
+            if (filtersBtn) { filtersBtn.focus(); }
             return;
         }
         if (event.key === 'Enter' && event.target.matches('.value-match-input')) {
@@ -1047,8 +1463,62 @@
         });
     });
 
-    document.addEventListener('misp:container-loaded', function (event) { applyAllTabScopes(event.target); });
+    function onScreen(selector) {
+        return Array.prototype.filter.call(document.querySelectorAll(selector), function (el) {
+            return el.offsetParent !== null;
+        })[0];
+    }
+
+    // `/` puts the cursor in the search of the index on screen, `f` opens or
+    // closes its Filters panel.
+    document.addEventListener('keydown', function (event) {
+        var key = event.key === 'F' ? 'f' : event.key;
+        if ((key !== '/' && key !== 'f') || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) { return; }
+        var t = event.target;
+        if (t.isContentEditable || (t.closest && t.closest('input, textarea, select')) || document.querySelector('.modal.show')) { return; }
+        if (key === '/') {
+            var field = onScreen('[data-ifp-bar] .ifp-query input');
+            if (!field) { return; }
+            event.preventDefault();
+            field.focus();
+            field.select();
+            return;
+        }
+        // A picker or the column browser open in the panel keeps its own keys.
+        var btn = openPanel && openPanel.isConnected ? filtersBtnOf(openPanel) : onScreen('[data-ifp-bar] [data-ifp-filters]');
+        if (!btn || open || browserOpen()) { return; }
+        var bar = btn.closest('[data-ifp-bar]');
+        var panel = panelOf(bar);
+        event.preventDefault();
+        showPanel(bar, panel.hidden);
+        if (panel.hidden) {
+            btn.focus();
+            return;
+        }
+        var first = Array.prototype.filter.call(panel.querySelectorAll('.ifp-quick, .ifp-btn, .ifp-vm-btn'), function (el) {
+            return el.offsetParent !== null;
+        })[0];
+        if (first) { first.focus(); }
+    });
+
+    function renderDrafts(root) {
+        (root || document).querySelectorAll('[data-ifp-bar]').forEach(function (bar) {
+            if (deferred(bar)) { renderDraft(bar); }
+        });
+    }
+
+    document.addEventListener('misp:container-loaded', function (event) {
+        applyAllTabScopes(event.target);
+        restorePanel(event.target);
+        renderDrafts(event.target);
+    });
     applyAllTabScopes(document);
+    // This script is loaded ahead of the bar it serves.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { renderDrafts(document); });
+    } else {
+        renderDrafts(document);
+    }
 
     window.IndexFilters = {
         load: function (node, url, push) { var bar = barOf(node); if (bar) { load(bar, url, push); } },

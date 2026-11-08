@@ -15,21 +15,15 @@ $this->set('intelGraphPage', ['type' => $targetType, 'uuid' => $targetUuid, 'lab
 $canCreate = $this->Acl->canAccess('workspaces', 'addNodes');
 $create = null;
 if ($canCreate) {
+    $sharingGroups = ClassRegistry::init('SharingGroup')->fetchAllAuthorised($me, 'name', 1);
+    asort($sharingGroups);
     $levels = [];
     foreach (ClassRegistry::init('Event')->distributionLevels as $level => $name) {
-        if ($level <= 4) {
-            $levels[] = [(int)$level, $name];
+        if ($level < 4 || ($level == 4 && !empty($sharingGroups))) {
+            $levels[(int)$level] = $name;
         }
     }
-    $sharingGroups = [];
-    $authorised = ClassRegistry::init('SharingGroup')->fetchAllAuthorised($me, 'name', 1);
-    asort($authorised);
-    foreach ($authorised as $id => $name) {
-        $sharingGroups[] = [(int)$id, $name];
-    }
     $create = [
-        'levels' => $levels,
-        'sharingGroups' => $sharingGroups,
         'default' => (int)(Configure::read('MISP.default_analyst_data_distribution') ?? 1),
     ];
 }
@@ -53,9 +47,9 @@ echo $this->element('genericElements/assetLoader', [
     'css' => ['intel-graph-thumbs'],
 ]);
 ?>
-<div class="card shadow-sm mb-3" data-ig-graphs-card>
+<div class="card shadow-sm mb-3<?= $canCreate ? '' : ' d-none' ?>" data-ig-graphs-card>
     <script type="application/json" data-ig-card-config><?= json_encode($config, $jsonFlags) ?></script>
-    <div class="p-3 border-bottom">
+    <div class="p-3 border-bottom" data-ig-card-head>
         <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center"
                  style="width:36px;height:36px;background:rgba(var(--bs-analystGraph-rgb),.25);">
@@ -79,36 +73,91 @@ echo $this->element('genericElements/assetLoader', [
         </div>
     </div>
 
-    <?php if ($canCreate): ?>
-        <div class="modal fade" tabindex="-1" aria-hidden="true" data-ig-card-modal>
-            <div class="modal-dialog">
-                <form class="modal-content" novalidate data-ig-card-form>
-                    <div class="modal-header">
-                        <h2 class="modal-title fs-5"><i class="misp-icon misp-icon-analyst-graph misp-simple me-2"></i><?= __('New workspace') ?></h2>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="small text-body-secondary">
-                            <?= __('On %s, the %s you are on.', '<strong>' . h($targetLabel) . '</strong>', h($config['targetName'])) ?>
-                        </p>
-                        <label class="form-label fw-semibold" data-ig-for="name"><?= __('Name') ?></label>
-                        <input type="text" class="form-control mb-3" name="name" maxlength="191" required>
-                        <label class="form-label fw-semibold" data-ig-for="description"><?= __('Description') ?></label>
-                        <textarea class="form-control mb-3" name="description" rows="2"></textarea>
-                        <label class="form-label fw-semibold" data-ig-for="distribution"><?= __('Distribution') ?></label>
-                        <select class="form-select mb-2" name="distribution"></select>
-                        <select class="form-select mb-2" name="sharing_group_id" hidden aria-label="<?= __('Sharing group') ?>"></select>
-                        <div class="form-check mt-3">
-                            <input class="form-check-input" type="checkbox" name="activate" checked>
-                            <label class="form-check-label" data-ig-for="activate"><?= __('Make it my active workspace: “Add to workspace” feeds it') ?></label>
+    <?php if ($canCreate):
+        $accent = 'analystGraph';
+        $formId = 'ig-card-' . substr($targetUuid, 0, 8);
+    ?>
+        <div class="modal fade" tabindex="-1" aria-hidden="true" aria-labelledby="<?= h($formId) ?>-title" data-ig-card-modal>
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0">
+                    <form novalidate data-required-guard data-ig-card-form>
+                        <?= $this->element('genericElementsBS5/Forms/modal_header', [
+                            'accent' => $accent,
+                            'eyebrow' => __('Workspaces'),
+                            'title' => __('New workspace'),
+                            'description' => __('It hangs off the %s you are on.', $config['targetName']),
+                            'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
+                            'titleId' => $formId . '-title',
+                        ]) ?>
+
+                        <div class="container-fluid px-4 py-4">
+                            <div class="d-flex flex-column gap-4 px-2">
+
+                                <div class="w-100 ov-form-group">
+                                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                        'accent' => $accent,
+                                        'label' => __('Name'),
+                                        'required' => true,
+                                        'for' => $formId . '-name',
+                                    ]) ?>
+                                    <input type="text" class="ov-form-line fs-5" id="<?= h($formId) ?>-name" name="name"
+                                           maxlength="191" autocomplete="off" required
+                                           placeholder="<?= __('Enter a name for this workspace…') ?>"
+                                           data-required-msg="<?= __('A workspace needs a name.') ?>">
+                                </div>
+
+                                <div class="w-100">
+                                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                        'accent' => $accent,
+                                        'label' => __('Description'),
+                                        'for' => $formId . '-description',
+                                    ]) ?>
+                                    <textarea class="form-control" id="<?= h($formId) ?>-description" name="description" rows="3"
+                                              style="border-color:var(--misp-field-line, #d8dde3);"
+                                              placeholder="<?= __('What this workspace is for') ?>"></textarea>
+                                </div>
+
+                                <div class="w-100">
+                                    <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                                        'field' => 'Workspace.distribution',
+                                        'accent' => $accent,
+                                        'levels' => $levels,
+                                        'sharingGroups' => $sharingGroups,
+                                        'value' => $create['default'],
+                                        'id' => $formId . '-distribution',
+                                        'sgId' => $formId . '-sharing-group',
+                                    ]) ?>
+                                </div>
+
+                                <div class="w-100">
+                                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                        'accent' => $accent,
+                                        'label' => __('Active workspace'),
+                                    ]) ?>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="<?= h($formId) ?>-activate" name="activate" checked>
+                                        <label class="form-check-label" for="<?= h($formId) ?>-activate"><?= __('Make it my active workspace') ?></label>
+                                    </div>
+                                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                                        'text' => __('“Add to workspace” on the pages you browse feeds one workspace at a time.'),
+                                    ]) ?>
+                                </div>
+
+                            </div>
+
+                            <div class="ov-field-error mt-3 px-2" data-ig-card-error hidden>
+                                <i class="fas fa-circle-exclamation"></i><span></span>
+                            </div>
+
+                            <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+                                'accent' => $accent,
+                                'meta' => [['label' => ucfirst($config['targetName']), 'value' => $targetLabel]],
+                                'submit' => ['label' => __('Create'), 'icon' => 'fas fa-circle-plus'],
+                            ]) ?>
                         </div>
-                        <div class="invalid-feedback d-block" data-ig-card-error></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= __('Cancel') ?></button>
-                        <button type="submit" class="btn btn-primary"><?= __('Create') ?></button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     <?php endif; ?>

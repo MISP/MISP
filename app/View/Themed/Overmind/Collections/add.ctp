@@ -83,6 +83,7 @@ echo $this->Form->create('Collection', [
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'primary',
                 'label' => __('Collection Type'),
+                'required' => true,
             ]) ?>
             <?= $this->Form->select('type', $typeOptions, [
                 'id' => 'collection-type-select',
@@ -197,6 +198,7 @@ echo $this->Form->create('Collection', [
     var TYPE_ICONS = <?= json_encode($typeIcons, JSON_FORCE_OBJECT
         | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     var NAME_REQUIRED = <?= json_encode(__('Please provide a name for the collection.')) ?>;
+    var TYPE_REQUIRED = <?= json_encode(__('Please choose a type for the collection.')) ?>;
 
     function renderType(data, escape, compact) {
         if (!data.value) {
@@ -243,45 +245,68 @@ echo $this->Form->create('Collection', [
         refreshCounter();
     }
 
-    /* Block the submit only when the name is actually empty */
+    /* Block the submit while the name or the type is empty: the model refuses
+       both, and a refused save leaves the modal. */
     var form = document.getElementById('collectionForm');
+    // The field's own edge turns red; `restore` is its colour once filled.
+    var showError = function (id, edge, prop, anchor, text) {
+        edge.style.setProperty(prop, 'var(--misp-tone-red-solid, #dc3545)', 'important');
+        if (document.getElementById(id)) {
+            return;
+        }
+        var msg = document.createElement('div');
+        msg.id = id;
+        msg.className = 'text-danger d-flex align-items-center gap-1';
+        msg.style.fontSize = '.75rem';
+        msg.style.marginTop = '.35rem';
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-circle-exclamation';
+        msg.appendChild(icon);
+        msg.appendChild(document.createTextNode(text));
+        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
+    };
+    var clearError = function (id, edge, prop, restore) {
+        if (restore) {
+            edge.style.setProperty(prop, restore, 'important');
+        } else {
+            edge.style.removeProperty(prop);
+        }
+        var msg = document.getElementById(id);
+        if (msg) { msg.remove(); }
+    };
+    var typeEdge = function () {
+        return typeEl.tomselect ? typeEl.tomselect.control : typeEl;
+    };
+    var typeAnchor = function () {
+        return typeEl.tomselect ? typeEl.tomselect.wrapper : typeEl;
+    };
+
     if (form && nameEl) {
-        var errorId = 'collectionNameError';
-
-        var showError = function () {
-            nameEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
-            if (!document.getElementById(errorId)) {
-                var msg = document.createElement('div');
-                msg.id = errorId;
-                msg.className = 'text-danger d-flex align-items-center gap-1';
-                msg.style.fontSize = '.75rem';
-                msg.style.marginTop = '.35rem';
-                var icon = document.createElement('i');
-                icon.className = 'fas fa-circle-exclamation';
-                msg.appendChild(icon);
-                msg.appendChild(document.createTextNode(NAME_REQUIRED));
-                nameEl.parentNode.insertBefore(msg, nameEl.nextSibling);
-            }
-        };
-
-        var clearError = function () {
-            nameEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
-            var msg = document.getElementById(errorId);
-            if (msg) { msg.remove(); }
-        };
-
         form.addEventListener('submit', function (e) {
+            var firstEmpty = null;
             if (!nameEl.value.trim()) {
+                showError('collectionNameError', nameEl, 'border-bottom-color', nameEl, NAME_REQUIRED);
+                firstEmpty = nameEl;
+            }
+            if (typeEl && !typeEl.value) {
+                showError('collectionTypeError', typeEdge(), 'border-color', typeAnchor(), TYPE_REQUIRED);
+                firstEmpty = firstEmpty || (typeEl.tomselect ? typeEl.tomselect.control_input : typeEl);
+            }
+            if (firstEmpty) {
                 e.preventDefault();
                 e.stopPropagation();
-                showError();
-                nameEl.focus();
+                firstEmpty.focus();
             }
         });
 
         nameEl.addEventListener('input', function () {
-            if (nameEl.value.trim()) { clearError(); }
+            if (nameEl.value.trim()) { clearError('collectionNameError', nameEl, 'border-bottom-color', 'var(--misp-field-line, #d8dde3)'); }
         });
+        if (typeEl) {
+            typeEl.addEventListener('change', function () {
+                if (typeEl.value) { clearError('collectionTypeError', typeEdge(), 'border-color'); }
+            });
+        }
     }
 })();
 </script>

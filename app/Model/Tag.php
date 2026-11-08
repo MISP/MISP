@@ -791,9 +791,10 @@ class Tag extends AppModel
     }
 
     /**
-     * The "All Tags" category of the BS5 tag picker: the same universe as
-     * getAllTagsForSelect(), but shaped as a list carrying the colour, which
-     * the picker needs to draw a tag exactly like Badges/tag.ctp does.
+     * The "All Tags" category of the BS5 tag picker: the tags of
+     * getAllTagsForSelect() less those of the taxonomies not enabled, shaped
+     * as a list carrying the colour, which the picker needs to draw a tag
+     * exactly like Badges/tag.ctp does.
      *
      * @param array $user
      * @return array [['id' => int, 'name' => string, 'colour' => string], ...]
@@ -804,6 +805,10 @@ class Tag extends AppModel
         $conditions['Tag.is_galaxy'] = 0;
         $conditions['Tag.hide_tag'] = 0;
         $conditions['Tag.local_only'] = 0;
+        $enabled = $this->enabledTaxonomyCondition();
+        if (!empty($enabled)) {
+            $conditions[] = $enabled;
+        }
 
         $tags = $this->find('all', [
             'conditions' => $conditions,
@@ -815,6 +820,29 @@ class Tag extends AppModel
         return array_map(function (array $tag) {
             return $this->pickerTagEntry($tag['Tag']);
         }, $tags);
+    }
+
+    /**
+     * Leaves out the tags of the taxonomies not enabled, which the tag
+     * pickers do not offer to attach.
+     *
+     * @return array a find() condition, empty when every taxonomy is enabled
+     */
+    public function enabledTaxonomyCondition()
+    {
+        $namespaces = ClassRegistry::init('Taxonomy')->disabledNamespaces();
+        if (empty($namespaces)) {
+            return [];
+        }
+        // Raw: CakePHP reads a ':' in a condition key as a placeholder.
+        $db = $this->getDataSource();
+        $list = implode(', ', array_map(function ($namespace) use ($db) {
+            return $db->value($namespace, 'string');
+        }, $namespaces));
+        return ['OR' => [
+            'Tag.name NOT LIKE' => '_%:%',
+            "LOWER(TRIM(SUBSTRING_INDEX(Tag.name, ':', 1))) NOT IN ($list)",
+        ]];
     }
 
     /**

@@ -19,6 +19,8 @@
  * @var array|null $ledger Signal id => contribution, when a value is
  *                         on the bench
  * @var string|null $benchValue
+ * @var bool $compact One line per row: the description moves into the
+ *                    title of its help button
  */
 App::uses('AnalystProfileFormTool', 'Tools/AnalystProfile');
 App::uses('ValueLean', 'Tools/ValueIntelligence');
@@ -26,6 +28,7 @@ App::uses('ValueLean', 'Tools/ValueIntelligence');
 $ledger = isset($ledger) ? $ledger : array();
 $benchValue = isset($benchValue) ? $benchValue : null;
 $lean = isset($lean) ? $lean : null;
+$compact = !empty($compact);
 /*
  * Which way the direction pair points on this table. `--vp-dir-with`
  * means *with the lean*, so on a benign record the row that agrees
@@ -228,6 +231,7 @@ $columns = $isSignals ? 5 : 3;
                     <?php endif; ?>
                 </td>
                 <td>
+                    <?php if ($compact): ?><div class="ap-sig"><?php endif; ?>
                     <div class="wb-name"><?= h($item['title']) ?></div>
                     <?php if ($item['title'] !== $item['id']): ?>
                         <div class="wb-id wb-name-id"><?=
@@ -255,14 +259,22 @@ $columns = $isSignals ? 5 : 3;
                     <?php if (!empty($item['description'])
                         || $help !== null): ?>
                         <div class="wb-sub">
-                            <?= h((string)$item['description']) ?>
+                            <?php if (!$compact): ?>
+                                <?= h((string)$item['description']) ?>
+                            <?php elseif ($help === null): ?>
+                                <span class="wb-i" title="<?= h(
+                                    (string)$item['description']) ?>">i</span>
+                            <?php endif; ?>
                             <?php if ($help !== null): ?>
                                 <button type="button" class="sig-more"
                                         data-ap-help aria-haspopup="dialog"
-                                        aria-expanded="false">
+                                        aria-expanded="false"<?= $compact
+                                            ? ' title="' . h((string)$item['description'])
+                                                . '" aria-label="' . h(__('How it works')) . '"'
+                                            : '' ?>>
                                     <i class="fa-solid fa-circle-question"
                                        aria-hidden="true"></i><?=
-                                    h(__('How it works')) ?>
+                                    $compact ? '' : h(__('How it works')) ?>
                                 </button>
                                 <template class="sig-help-tpl"><?=
                                     $this->element('AnalystProfiles/item_help',
@@ -334,6 +346,7 @@ $columns = $isSignals ? 5 : 3;
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
+                    <?php if ($compact): ?></div><?php endif; ?>
                 </td>
                 <?php if ($isSignals): ?>
                     <td>

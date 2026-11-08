@@ -90,6 +90,24 @@ function capToasts(stack) {
     for (let i = TOAST_MAX; i < live.length; i++) dismissToast(live[i]);
 }
 
+/*
+ * A modal URL that refuses to open answers with its toasts only: they go to
+ * the stack and the modal stays closed.
+ */
+function showToastsOnly(html) {
+    const stack = toastStack();
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const toasts = Array.from(tpl.content.children);
+    if (!stack || !toasts.length || !toasts.every(el => el.matches('.ov-toast'))) {
+        return false;
+    }
+    stack.prepend(...toasts);
+    toasts.forEach(armToast);
+    capToasts(stack);
+    return true;
+}
+
 /*******************************
  * Size the shared #mainModal dialog.
  *
@@ -191,6 +209,9 @@ function openModal(url, size = 'xl') {
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
         .then(html => {
+            if (showToastsOnly(html)) {
+                return;
+            }
             const container = document.getElementById('mainModalBody');
             container.innerHTML = html;
             container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {
@@ -967,6 +988,8 @@ function setView(view, save = true, scope = document) {
         viewCard?.classList.remove('active');
         viewList?.classList.add('active');
     }
+    viewList?.setAttribute('aria-pressed', String(view !== 'card'));
+    viewCard?.setAttribute('aria-pressed', String(view === 'card'));
 
     if (save) localStorage.setItem('indexViewMode', view);
 }
@@ -3147,7 +3170,7 @@ function initSharingGroupForm(container) {
  * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter, .om-lazy-popover';
+    var LAZY_POPOVERS = '.role-perm-counter, .om-lazy-popover';
 
     function lazyPopover(e) {
         /*
@@ -3331,29 +3354,10 @@ function openSelectedSightings() {
 (function installSightingActions() {
     document.addEventListener('click', function (e) {
         if (!e.target.closest) return;
-        var more = e.target.closest('.sighting-more');
-        if (more) {
-            e.preventDefault();
-            bootstrap.Dropdown.getOrCreateInstance(more, {
-                popperConfig: { strategy: 'fixed' }
-            }).toggle();
-            return;
-        }
-
         var details = e.target.closest('[data-sighting-details]');
         if (details) {
             e.preventDefault();
-            var pop = bootstrap.Popover.getInstance(details);
-            if (pop) pop.hide();
             openSightingDetails(details.dataset.sightingDetails);
-            return;
-        }
-
-        var onValue = e.target.closest('[data-sighting-value]');
-        if (onValue) {
-            e.preventDefault();
-            openModal(baseurl + '/sightings/quickAdd/' + onValue.dataset.sightingValue
-                + '/' + onValue.dataset.type + '/1', 'md');
             return;
         }
 
@@ -3370,9 +3374,13 @@ function openSelectedSightings() {
                     showToast(data.errors || data.message || 'Could not add the sighting.', 'danger');
                     return;
                 }
-                var countEl = document.querySelector('#sightings_' + attrId
-                    + ' .sighting-' + (type === '0' ? 's' : 'f'));
-                if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                // The attribute may be on the page twice, as a table row and as a card.
+                document.querySelectorAll('.sighting-add[data-attribute-id="' + attrId + '"][data-type="' + type + '"]')
+                    .forEach(function (add) {
+                        var countEl = add.querySelector('.sighting-' + (type === '0' ? 's' : 'f'));
+                        if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                        add.classList.remove('is-zero');
+                    });
                 showToast(data.success || 'Sighting added.', 'success');
                 notifySightingChange({ attributeId: attrId, type: type });
             })
@@ -3382,14 +3390,6 @@ function openSelectedSightings() {
             .finally(function () {
                 btn.disabled = false;
             });
-    });
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        var details = e.target.closest && e.target.closest('.sighting-counts[data-sighting-details]');
-        if (!details) return;
-        e.preventDefault();
-        details.click();
     });
 })();
 
@@ -5471,8 +5471,22 @@ function formTypeChanged(idPrefix) {
     if (!typeEl) { return; }
     var isNonCorr = (typeof non_correlating_types !== 'undefined')
         && non_correlating_types.indexOf(typeEl.value) !== -1;
-    var corrEl = document.getElementById(idPrefix + 'DisableCorrelation');
-    if (corrEl) { corrEl.disabled = isNonCorr; }
+    var corrEl = document.getElementById(idPrefix + 'Correlate');
+    if (!corrEl || corrEl.disabled === isNonCorr) { return; }
+    // Show such a type unticked, and give the user's choice back afterwards.
+    if (isNonCorr) {
+        corrEl.dataset.wasChecked = corrEl.checked ? '1' : '';
+        corrEl.checked = false;
+    } else {
+        corrEl.checked = corrEl.dataset.wasChecked === '1';
+    }
+    corrEl.disabled = isNonCorr;
+    // The unticked fallback would disable correlation: post 0 as before.
+    var fallback = document.getElementById(idPrefix + 'Correlate_');
+    if (fallback) { fallback.value = isNonCorr ? '0' : '1'; }
+    var card = corrEl.closest('label');
+    if (card) { card.title = isNonCorr ? corrEl.dataset.lockedTitle : ''; }
+    corrEl.dispatchEvent(new Event('change'));
 }
 
 function checkNoticeList(type) {
@@ -5669,11 +5683,11 @@ function initAttributeForm(currentDist, isEdit) {
             on:  { border: ON_YELLOW, color: ON_YELLOW, iconClass: null },
             off: { border: OFF_LINE, color: OFF_ICON, iconClass: null }
         },
-        AttributeDisableCorrelation: {
+        AttributeCorrelate: {
             card: 'card-correl', icon: 'icon-correl',
-            on:  { border: OFF_LINE, color: OFF_ICON,
-                   iconClass: 'fas fa-link-slash' },
-            off: { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' }
+            on:  { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' },
+            off: { border: OFF_LINE, color: OFF_ICON,
+                   iconClass: 'fas fa-link-slash' }
         }
     };
 
@@ -5733,8 +5747,8 @@ function initAttributeForm(currentDist, isEdit) {
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
         typeEl.value = nextVal;
-        /* An attribute inside an object has its type fixed by the template, so
-         * refilling the list must not hand it back. */
+        /* A type the server locked (object template, attachment) must stay
+         * disabled: the Security token leaves disabled fields out. */
         var locked = typeEl.dataset.locked === '1';
         typeEl.disabled = locked;
 
@@ -6980,13 +6994,11 @@ function formatIndexUrl(base, parts) {
  * The code snippets provided here create a *draft* using pills: \
  * his will be executed via a single button using Ajax, refreshing the container 
  *
- * Two bars share this engine — Elements/Logs/filter_card.ctp (the log
- * indexes) and genericElementsBS5/IndexTable/filter_bar.ctp (a scaffolded
- * index that declares a `more_filters` control). They agree on the
- * interaction and disagree on everything around it: where a filter lives in
- * the URL, what counts as a scope worth keeping, whether an ajax tab wraps
- * the whole thing. So every URL decision is the caller's, handed in as
- * `buildUrl` / `clearAll` / `reload`.
+ * Its one caller is genericElementsBS5/IndexTable/filter_bar.ctp, for a bar
+ * that opts out of pickers and declares a `more_filters` control; a picker
+ * bar defers its filters through index-filters.js instead (`apply` set to
+ * `deferred`, the log indexes). Every URL decision stays the caller's, handed
+ * in as `buildUrl` / `clearAll` / `reload`.
  */
 
 /**
@@ -7379,103 +7391,6 @@ function initIndexFilterDraft(root, opts) {
 window.initIndexFilterDraft = initIndexFilterDraft;
 
 /* --------------------------------------------------------------------------
- * Adapter: the log indexes' filter card
- * --------------------------------------------------------------------------
- * Its configuration (base URL, applied filters, field labels) is rendered
- * next to it as a JSON <script>; see Elements/Logs/filter_card.ctp.
- */
-function initLogFilterCard(root) {
-    if (!root) { return; }
-    const configEl = root.querySelector('.log-filter-config');
-    if (!configEl) { return; }
-    const cfg = JSON.parse(configEl.textContent);
-    const quickEl = root.querySelector('.log-quick-filter');
-
-    // TomSelect copies the select's classes onto its wrapper, so
-    // `.filter-draft-input` alone matches two nodes per control.
-    function inputs() {
-        return Array.prototype.slice.call(
-            root.querySelectorAll('select.filter-draft-input, input.filter-draft-input'));
-    }
-
-    /*
-     * Filters go in the query string, paginator parameters stay named URL
-     * segments. A named segment cannot carry a '/' — `url:%2Fevents` reaches
-     * the access log controller with the value dropped — and the free-text
-     * search of a URL column is exactly where slashes turn up.
-     */
-    function buildUrl() {
-        const query = new URLSearchParams();
-        const quick = quickEl ? (quickEl.value || '').trim() : '';
-        if (quick !== '') { query.set(cfg.quickName, quick); }
-        inputs().forEach(function (el) {
-            const value = (el.value || '').trim();
-            if (value !== '') { query.set(el.getAttribute('name'), value); }
-        });
-        return formatIndexUrl(cfg.base, { named: cfg.preserved, query: query });
-    }
-
-    /**
-     * Read a URL back into the card. Applying round-trips to itself, but the
-     * back button and the pagination/sort links do not: they hand over a URL
-     * this card did not build, and its inputs, its chips and the paginator
-     * parameters it carries across all have to follow.
-     */
-    function syncFromUrl(url) {
-        const parts = parseIndexUrl(url, cfg.base);
-        // `page` is deliberately not carried across: a new filter starts over.
-        cfg.preserved = {};
-        ['sort', 'direction', 'limit'].forEach(function (key) {
-            if (parts.named[key] !== undefined) { cfg.preserved[key] = parts.named[key]; }
-        });
-
-        // A filter may still arrive as a named segment, from an older link.
-        inputs().forEach(function (el) {
-            const name = el.getAttribute('name');
-            const value = parts.query.get(name) || parts.named[name] || '';
-            if (el.tomselect) { el.tomselect.setValue(value, true); } else { el.value = value; }
-        });
-        if (quickEl) {
-            quickEl.value = parts.query.get(cfg.quickName) || parts.named[cfg.quickName] || '';
-        }
-    }
-
-    if (typeof initTomSelect === 'function') { initTomSelect(root); }
-
-    const draft = initIndexFilterDraft(root, {
-        base: cfg.base,
-        inputs: inputs,
-        nameOf: function (el) { return el.getAttribute('name'); },
-        labelOf: function (name) {
-            return (cfg.fields[name] && cfg.fields[name].label) || name;
-        },
-        displayOf: function (name, value) {
-            const options = cfg.fields[name] && cfg.fields[name].options;
-            return (options && options[value]) || value;
-        },
-        quickEl: quickEl,
-        quickLabel: cfg.strings.searchLabel,
-        applied: cfg.applied,
-        appliedQuick: cfg.appliedQuick,
-        countEl: root.querySelector('.filter-draft-count'),
-        summaryEl: root.querySelector('.filter-draft-summary'),
-        results: cfg.results,
-        swap: ['#headerCountBadge', '.log-filter-pager'],
-        rootLinks: ['.log-filter-pager a[href]'],
-        resultLinks: ['.pagination a[href]', 'thead a[href]'],
-        buildUrl: buildUrl,
-        syncFromUrl: syncFromUrl,
-        strings: cfg.strings,
-    });
-
-    // The magnifier next to the search box applies too — it is the only
-    // control left in reach when the advanced panel is folded away.
-    const quickBtn = root.querySelector('.log-quick-btn');
-    if (quickBtn && draft) { quickBtn.addEventListener('click', draft.apply); }
-}
-window.initLogFilterCard = initLogFilterCard;
-
-/* --------------------------------------------------------------------------
  * Adapter: the scaffold's index filter bar
  * --------------------------------------------------------------------------
  * genericElementsBS5/IndexTable/filter_bar.ctp calls this whenever it renders
@@ -7699,10 +7614,6 @@ function initScaffoldFilterDraft(bar, cfg) {
     });
 }
 window.initScaffoldFilterDraft = initScaffoldFilterDraft;
-
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);
-});
 
 /*******************************
  *  Collapsed report preview   *
@@ -8738,8 +8649,16 @@ function initObjectAddForm(container, payloadEl) {
 
     /* ---- review --------------------------------------------------------- */
 
-    /* Deliberately a compact digest, not a copy of the object index's markup -
-     * the two used to be kept in step by hand and drifted. */
+    /* A piece of the review as the object index draws it: Objects/add.ctp
+     * renders the shared elements into #objReviewPieces, so the markup is
+     * theirs rather than a copy kept in step by hand. */
+    function reviewPiece(name, value) {
+        var pieces = container.querySelector('#objReviewPieces');
+        var el = pieces && pieces.content.querySelector('[data-piece="' + name + '"]');
+        if (!el) { return ''; }
+        return el.innerHTML.split('__V__').join(escapeHtml(value == null ? '' : String(value)));
+    }
+
     function buildReview() {
         var rows = savedRows().map(describeRow);
         var distEl = container.querySelector('#ObjectDistribution');
@@ -8779,28 +8698,27 @@ function initObjectAddForm(container, payloadEl) {
             + '</span>'
             + '</div>';
 
-        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-3">'
-            + '<thead class="table-light"><tr>'
-            + '<th>Value</th><th>Type</th><th>Category</th>'
-            + '<th class="text-center">IDS</th><th class="text-center">Correlate</th>'
+        /* The columns of the object index's attribute table (Objects/object_attribute_table). */
+        html += '<div class="table-responsive"><table class="table table-hover align-middle mb-3 ix-table">'
+            + '<thead><tr>'
+            + '<th>Value</th><th>Category</th><th>Type</th><th>IDS</th><th>Correlate</th>'
             + '</tr></thead><tbody>';
 
         rows.forEach(function (a) {
-            var value = distBadgeHtml(a.distribution, false)
-                + ' ' + escapeHtml(a.value || '—')
-                + (a.comment
-                    ? '<div class="text-muted fst-italic small"><i class="fa fa-comment me-1"></i>'
-                        + escapeHtml(a.comment) + '</div>'
-                    : '');
-
             html += '<tr>'
-                + '<td class="text-break">' + value + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.category) + '</td>'
-                + '<td class="text-center"><i class="fas fa-shield-halved '
-                + (a.to_ids ? 'text-warning' : 'text-secondary opacity-50') + '"></i></td>'
-                + '<td class="text-center"><i class="fas '
-                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary opacity-50')
+                + '<td class="text-break"><div class="attr-value"><div class="attr-value-line">'
+                + reviewPiece('dist-' + a.distribution)
+                + '<p class="fw-semibold mb-0">' + escapeHtml(a.value || '—') + '</p>'
+                + '</div>' + (a.comment ? reviewPiece('comment', a.comment) : '') + '</div></td>'
+                + '<td><div class="d-flex align-items-center gap-1">'
+                + reviewPiece('category', a.category)
+                + (a.relation ? reviewPiece('relation', a.relation) : '')
+                + '</div></td>'
+                + '<td>' + reviewPiece('type', a.type) + '</td>'
+                + '<td><i class="fas fa-shield-halved om-flag '
+                + (a.to_ids ? 'text-warning' : 'text-secondary') + '"></i></td>'
+                + '<td><i class="fas om-flag '
+                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary')
                 + '"></i></td>'
                 + '</tr>';
         });

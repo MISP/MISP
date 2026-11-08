@@ -1,5 +1,7 @@
 <?php
 $event = $data['Event'] ?? [];
+// Changes are read from this instance's own copy of the event.
+$activity = $activity ?? true;
 $firstPublished = (int)($event['first_publication'] ?? 0);
 $lastPublished = (int)($event['publish_timestamp'] ?? 0);
 $analysisStops = [
@@ -18,7 +20,9 @@ $threatStops = [
 <div class="card shadow-sm mb-3 eo-card eo-details" data-tour="event-general">
     <button type="button" class="eo-details-toggle collapsed" data-bs-toggle="collapse" data-bs-target="#eo-details" aria-expanded="false" aria-controls="eo-details">
         <i class="fas fa-chevron-right eo-chevron"></i><?= __('Details') ?>
-        <span class="eo-muted small ms-2"><?= __('Analysis, threat level, correlation, protection, publication, changes') ?></span>
+        <span class="eo-muted small ms-2"><?= $activity
+            ? __('Analysis, threat level, correlation, protection, publication, changes')
+            : __('Analysis, threat level, correlation, protection, publication') ?></span>
     </button>
     <div class="collapse" id="eo-details">
         <div class="eo-details-body">
@@ -80,9 +84,11 @@ $threatStops = [
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-                <div class="col-12 eo-details-activity" data-eo-fragment-lazy="<?= h($baseurl . '/events/viewEventActivity/' . (int)($event['id'] ?? 0)) ?>">
-                    <div class="text-center text-muted py-3"><div class="misp-loader misp-loader-sm" role="status"></div></div>
-                </div>
+                <?php if ($activity): ?>
+                    <div class="col-12 eo-details-activity" data-eo-fragment-lazy="<?= h($baseurl . '/events/viewEventActivity/' . (int)($event['id'] ?? 0)) ?>">
+                        <div class="text-center text-muted py-3"><div class="misp-loader misp-loader-sm" role="status"></div></div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

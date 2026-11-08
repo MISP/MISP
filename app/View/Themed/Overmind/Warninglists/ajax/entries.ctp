@@ -26,6 +26,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 [
                     'name' => __('Comment'),
                     'data_path' => 'WarninglistEntry.comment',
+                    'element' => 'comment',
                     'card_section' => 'extra',
                     'display_in' => ['table', 'card'],
                 ],

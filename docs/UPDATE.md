@@ -5,15 +5,15 @@ It is **very strongly recommended** to upgrade MISP via the web interface. This 
 
 # Point release updates
 !!! notice
-    In general, updating MISP between point releases (for example 2.4.50 -> 2.4.53) happens with one of the following two options (both are to be executed as root).
+    In general, updating MISP between point releases (for example 3.0.1 -> 3.0.3) happens with one of the following two options (both are to be executed as root).
 
 ## Option 1
 
-To update to the latest commit from the 2.4 branch simply pull the latest commit
+To update to the latest commit from the 3.0_wip branch simply pull the latest commit
 ```bash
 cd /var/www/MISP
 # Replace www-data with whoever is your webserver user (apache/httpd)
-sudo -u www-data git pull --no-recurse-submodules origin 2.4
+sudo -u www-data git pull --no-recurse-submodules origin 3.0_wip
 sudo -u www-data git submodule sync
 sudo -u www-data git submodule update --init --recursive
 ```
@@ -31,7 +31,7 @@ git submodule update --init --recursive
 
 # Upgrades from minor version to another
 !!! notice
-    If you would like to upgrade from a minor version to another, look at the Upgrade MISP guides instead (such as [2.3.xyz -> 2.4.xyz](archive/old-2_3to2_4-UPGRADE.md))
+    If you would like to upgrade from a minor version to another, look at the Upgrade MISP guides instead (such as [2.5 -> 3.0](UPGRADE.md))
 
 !!! warning
     If for any reason something goes wrong with the above instructions, walk through the following manual upgrade
@@ -44,7 +44,7 @@ cd /var/www/MISP
 git fetch --no-recurse-submodules
 git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
-# example: git checkout tags/v2.4.XY
+# example: git checkout tags/v3.0.XY
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 ```

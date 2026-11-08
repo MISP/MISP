@@ -6,7 +6,9 @@
  *   - on edit it must be posted back untouched, because edit() JSON-decodes
  *     whatever arrives and copies it over the saved workflow — dropping the
  *     field would wipe the graph.
- * The graph is built in the editor, never here.
+ * The graph is built in the editor, never here. The editor saves through this
+ * form with the graph written into `data`, so it is a concealed textarea: a
+ * hidden input would have its value locked in the form token.
  */
 $edit = $this->request->params['action'] === 'edit';
 
@@ -67,7 +69,7 @@ echo $this->Form->create('Workflow', [
                     </div>
                 <?php endif; ?>
 
-                <?= $this->Form->hidden('data') ?>
+                <?= $this->Form->textarea('data', ['class' => 'd-none']) ?>
 
                 <!-- ACTIONS -->
                 <div class="d-flex justify-content-end gap-3">

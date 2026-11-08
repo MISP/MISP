@@ -8,6 +8,14 @@ $headerDescription = __('');
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
 
+if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('List Cluster Blocklists'),
+        'icon' => 'ban',
+        'url' => $baseurl . '/galaxy_cluster_blocklists/index'
+    ];
+}
 if ($isSiteAdmin) {
     $headerActions[] = [
         'type' => 'action',

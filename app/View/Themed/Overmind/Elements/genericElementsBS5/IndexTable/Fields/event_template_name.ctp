@@ -48,14 +48,7 @@ if (!empty($field['url']) && !empty($template['id'])) {
         </p>
     </div>
 
-    <!-- Description: compact, single-line, truncated (full text on hover) -->
-    <?php if (empty($field['hide_description']) && !empty($template['description'])):
-        $desc = trim($template['description']);
-    ?>
-        <div class="text-muted fst-italic text-truncate mt-1"
-             style="font-size:.8em; max-width:900px;"
-             title="<?= h($desc) ?>">
-            <i class="fa fa-comment opacity-50 me-1"></i><?= h($desc) ?>
-        </div>
+    <?php if (empty($field['hide_description'])): ?>
+        <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $template['description'] ?? '']) ?>
     <?php endif; ?>
 </div>

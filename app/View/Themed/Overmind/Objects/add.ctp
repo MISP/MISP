@@ -571,6 +571,16 @@ if (!empty($groupSource)) {
                             <?= __('Use "Review" above to check the object before submitting.') ?>
                         </div>
                     </div>
+                    <?php /* The review's pieces, drawn by the elements the object index uses; __V__ is the value. */ ?>
+                    <template id="objReviewPieces">
+                        <span data-piece="type"><?= $this->element('genericElementsBS5/Badges/type', ['type' => '__V__']) ?></span>
+                        <span data-piece="category"><?= $this->element('genericElementsBS5/Badges/category', ['category' => '__V__']) ?></span>
+                        <span data-piece="relation"><?= $this->element('genericElementsBS5/Badges/object_relation', ['relation' => '__V__']) ?></span>
+                        <span data-piece="comment"><?= $this->element('genericElementsBS5/Badges/comment', ['comment' => '__V__']) ?></span>
+                        <?php foreach (range(0, 5) as $level): ?>
+                            <span data-piece="dist-<?= $level ?>"><?= $this->element('genericElementsBS5/Badges/distribution', ['distribution' => $level, 'full' => false]) ?></span>
+                        <?php endforeach; ?>
+                    </template>
                     <div class="d-flex justify-content-start">
                         <button type="button" class="btn btn-outline-secondary btn-sm" id="objPrevBtn3">
                             <i class="fas fa-chevron-up me-1"></i><?= __('Back to the object') ?>

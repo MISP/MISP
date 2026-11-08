@@ -67,7 +67,23 @@ $tone = function (array $cfg, $role) use ($toneHues) {
 
 <div data-attachment-count="<?= count($attachments) ?>">
 
-<?php if (empty($attachments)): ?>
+<?php if (empty($attachments) && $this->Acl->canModifyEvent($event)):
+    $uploadUrl = $baseurl . '/attributes/add_attachment/' . (int)$event['Event']['id'];
+?>
+
+    <div class="eo-prompt" style="--eo-prompt:#F59E0B;" data-attachment-empty>
+        <div class="eo-prompt-text">
+            <div class="eo-prompt-title"><?= __('No attachment yet') ?></div>
+            <p><?= __('Keep the files behind this event with it: malware samples, screenshots, the documents the intelligence came from.') ?></p>
+        </div>
+        <a href="<?= h($uploadUrl) ?>" class="btn btn-sm text-light "
+           style="background:#F59E0B; border-color:#F59E0B;"
+           onclick="event.preventDefault(); openModal('<?= h($uploadUrl) ?>');">
+            <i class="fas fa-upload me-1"></i><?= __('Upload') ?>
+        </a>
+    </div>
+
+<?php elseif (empty($attachments)): ?>
 
     <div class="d-flex flex-column align-items-center justify-content-center text-muted py-4" data-attachment-empty>
         <i class="fas fa-paperclip fa-2x mb-2 opacity-50"></i>
@@ -121,11 +137,7 @@ $tone = function (array $cfg, $role) use ($toneHues) {
                         <span class="font-monospace" title="<?= h($hash) ?>"><?= h(substr($hash, 0, 12)) ?>…</span>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($att['comment'])): ?>
-                    <div class="eo-file-comment" title="<?= h($att['comment']) ?>">
-                        <i class="fas fa-comment"></i><?= h($att['comment']) ?>
-                    </div>
-                <?php endif; ?>
+                <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $att['comment'] ?? '', 'class' => 'eo-file-comment']) ?>
             </div>
 
             <?= $this->element('genericElementsBS5/Badges/distribution', [

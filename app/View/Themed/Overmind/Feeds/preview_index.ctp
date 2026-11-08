@@ -1,11 +1,15 @@
 <?php
-
+/*
+ * The events a MISP feed's manifest lists, drawn as the events index draws its
+ * own (the event_* field elements, events-index-table.css): FeedsController
+ * hands each one over with its EventCard. A remote event has no local id, so
+ * its title and actions go by uuid, and it has no publish state. A manifest
+ * carries no counts either: the ones not cached yet are read from the feed
+ * after the page is drawn (FeedsController::previewIndexCounts(), through
+ * preview-index-counts.js).
+ */
 $feedId = (int)$feed['Feed']['id'];
-$feedName = !empty($feed['Feed']['provider'])
-    ? sprintf('%s (%s)', $feed['Feed']['name'], $feed['Feed']['provider'])
-    : $feed['Feed']['name'];
 
-$previewBase = $baseurl . '/feeds/previewIndex/' . $feedId;
 $eventViewURL = $baseurl . '/feeds/previewEvent/' . $feedId . '/%id%';
 // One and the same endpoint for a single row and for the toolbar selection: it
 // renders the confirmation modal on GET and fetches on POST.
@@ -14,6 +18,10 @@ $eventFetchURL = $baseurl . $massFetchURL . '/%id%';
 
 // Fetching is only possible on an enabled feed, and only by a site admin.
 $canFetch = !empty($feed['Feed']['enabled']) && !empty($isSiteAdmin);
+
+$feedName = !empty($feed['Feed']['provider'])
+    ? sprintf('%s (%s)', $feed['Feed']['name'], $feed['Feed']['provider'])
+    : $feed['Feed']['name'];
 
 $this->set('headerTitle', h($feed['Feed']['name']));
 $this->set('headerDescription', __('Feed event index preview'));
@@ -26,16 +34,34 @@ $this->set('headerActions', [
     ]
 ]);
 
-/*
- * The manifest rows are flat and keyed by uuid; nest them under `Event` and
- * carry the key in as `Event.uuid` so the row actions have an id to build on.
- */
-$previewEvents = [];
-foreach ($events as $uuid => $manifestEvent) {
-    $manifestEvent['uuid'] = $uuid;
-    $manifestEvent['distribution'] = $feed['Feed']['distribution'];
-    $previewEvents[$uuid] = ['Event' => $manifestEvent];
-}
+// The events index's column helpers (Elements/Events/index.ctp).
+$col = function ($key, array $field, $class = '') {
+    $class = trim('te-c-' . $key . ' ' . $class);
+    return $field + [
+        'class' => $class,
+        'header_class' => $class,
+        'display_in' => ['table'],
+    ];
+};
+$tagging = (bool)Configure::read('MISP.tagging');
+$lane = function ($key, $lane, $title = null) use ($col, $tagging) {
+    return $col($key, [
+        'element' => 'event_lane',
+        'lane' => $lane,
+        'requirement' => $tagging,
+        'header_html' => '<span class="te-lanecap"' . ($title ? ' title="' . h($title) . '"' : '') . '>'
+            . $this->EventIndex->laneIcon($lane) . '<span>' . h($this->EventIndex->laneLabel($lane)) . '</span></span>',
+    ], 'te-lane');
+};
+$count = function ($key, $count, $iconHtml, $title) use ($col) {
+    return $col($key, [
+        'element' => 'event_count',
+        'count' => $count,
+        'pending' => true,
+        'header_html' => '<span class="te-hicon">' . $iconHtml . '</span>',
+        'header_title' => $title,
+    ], 'te-num');
+};
 
 $fields = [
     [
@@ -43,64 +69,53 @@ $fields = [
         'data_path' => 'Event.uuid',
         'requirement' => $canFetch,
         'card_section' => 'selector',
+        'class' => 'te-c-sel',
+        'header_class' => 'te-c-sel',
     ],
-    [
-        'name' => __('Info'),
+    $col('title', [
+        'name' => __('Title'),
         'sort' => 'info',
-        'data_path' => 'Event',
-        'element' => 'event_info',
-        // The manifest carries no published state
-        'published_path' => null,
-        'card_section' => 'title',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Distribution'),
-        'data_path' => 'Event.distribution',
-        'element' => 'distribution',
-        'card_section' => 'top',
-        'display_in' => ['card']
-    ],
-    [
-        'name' => __('Creator Org'),
-        'data_path' => 'Event.Orgc',
-        'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Tags'),
-        'requirement' => Configure::read('MISP.tagging'),
-        'data_path' => 'Event.Tag',
-        'element' => 'tag_list',
-        'plan' => $labelPlan ?? null,
-        'card_section' => 'tag',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Created'),
+        'element' => 'event_title',
+        'url' => $baseurl . '/feeds/previewEvent/' . $feedId . '/%uuid%',
+    ]),
+    $col('orgc', [
+        'header_html' => '<span class="te-long">' . h(__('Creator org')) . '</span><span class="te-short">' . h(__('Creator')) . '</span>',
+        'element' => 'event_orgc',
+    ]),
+    $col('mk', [
+        'name' => __('Markings'),
+        'header_title' => __('Markings your analyst profile pins'),
+        'element' => 'event_markings',
+        'requirement' => $tagging,
+    ]),
+    $lane('attrib', 'attribution'),
+    $lane('behav', 'behaviour', __('ATT&CK techniques, then mitigations')),
+    $lane('classif', 'classification', __('Other clusters, then tags')),
+    $count('attrs', 'attributes', '<i class="misp-icon misp-icon-attribute misp-simple text-attribute"></i>', __('Attributes')),
+    $count('objs', 'objects', '<i class="misp-icon misp-icon-object misp-simple text-object"></i>', __('Objects')),
+    $col('dist', [
+        'element' => 'event_distribution',
+        'header_html' => '<span class="te-hicon"><i class="fas fa-share-nodes"></i></span>',
+        'header_title' => __('Distribution the fetched events get'),
+    ]),
+    $col('date', [
+        'name' => __('Date'),
+        'header_title' => __('Event date'),
         'sort' => 'date',
-        'data_path' => 'Event.date',
-        'element' => 'datetime',
-        'mode' => 'created',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Last Modified'),
+        'element' => 'event_date',
+    ]),
+    $col('changed', [
+        'name' => __('Changed'),
+        'header_title' => __('Last change'),
         'sort' => 'timestamp',
-        'data_path' => 'Event.timestamp',
-        'element' => 'datetime',
-        'mode' => 'modified',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
-    ],
+        'element' => 'event_changed',
+    ]),
     [
-        'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Event.uuid',
-        'card_section' => 'extra',
-        'display_in' => ['table', 'card'],
+        'class' => 'te-c-act',
+        'header_class' => 'te-c-act',
+        'display_in' => ['table'],
         'actions' => array_values(array_filter([
             [
                 'type' => 'navigate',
@@ -118,104 +133,70 @@ $fields = [
         ]))
     ],
 ];
-?>
 
-<div class="container-fluid">
+$filterBar = [
+    // The bar's URLs are <item_url>/<action>: the preview's, positional feed id included.
+    'action' => 'previewIndex/' . $feedId,
+    'view_switch' => false,
+    'children' => [[
+        'type' => 'search',
+        'mode' => 'legacy',
+        'name' => 'searchall',
+        'chip_label' => __('Search'),
+        'placeholder' => __('Search by title, organisation, tag or UUID'),
+    ]],
+];
+if ($canFetch) {
+    $filterBar['fetch'] = true;
+    $filterBar['fetch_url'] = $massFetchURL;
+}
 
-    <!-- "You are looking at remote data" indicator kept from the legacy preview -->
-    <div class="alert alert-warning d-flex align-items-center gap-2 shadow-sm" role="alert">
-        <i class="fas fa-satellite-dish fs-4"></i>
-        <div>
-            <?= __('You are currently viewing the event index of the feed %s', '<strong>' . h($feedName) . '</strong>') ?>
-        </div>
-    </div>
+$tableConfig = [
+    'hidden' => [],
+    'saved' => null,
+    'defaults' => [],
+    'graded' => !empty(array_filter(array_map(function ($event) {
+        return $event['EventCard']['grade'] ?? null;
+    }, $events))),
+];
 
-    <!-- Search (previewIndex is scoped by a positional feed id, not by named args) -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <div class="flex-grow-1" style="max-width: 600px">
-                    <div class="input-group">
-                        <input
-                            class="form-control"
-                            id="previewSearchField"
-                            type="text"
-                            placeholder="<?= __('Enter value to search') ?>"
-                            value="<?= h($this->request->params['named']['searchall'] ?? '') ?>">
-                        <button id="previewSearchButton" class="btn btn-primary" type="button">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['org-tile', 'events-index-cards', 'events-index-table'],
+    'js' => ['events-index-cards', 'events-index-table', 'preview-index-counts'],
+]);
 
-            <?php if (!empty($this->request->params['named']['searchall'])): ?>
-                <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
-                    <strong class="me-1"><?= __('Active filters') ?>:</strong>
-                    <span class="badge bg-primary">
-                        <?= __('Searchall') ?>: <?= h($this->request->params['named']['searchall']) ?>
-                    </span>
-                    <a href="<?= h($previewBase) ?>" class="btn btn-sm btn-outline-danger ms-auto">
-                        <i class="fas fa-times"></i>
-                        <?= __('Clear all') ?>
-                    </a>
-                </div>
-            <?php endif; ?>
+echo '<div class="container-fluid">' . $this->element('genericElementsBS5/Layout/remote_notice', [
+    'message' => __('You are currently viewing the event index of the feed %s', '<strong>' . h($feedName) . '</strong>'),
+]) . '</div>';
 
-            <?php if ($canFetch): ?>
-                <?php
-                /*
-                 * The mass-action toolbar is rendered directly rather than through
-                 * filter_bar: this index is scoped by a positional feed id, so the
-                 * filter bar's URL building (which targets /feeds/index/...) does
-                 * not apply here.
-                 */
-                echo $this->element('genericElementsBS5/IndexTable/multi_select_toolbar', [
-                    'filter_bar' => ['fetch' => true, 'fetch_url' => $massFetchURL],
-                    'item_url' => '/feeds',
-                ]);
-                ?>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <?php
-    echo $this->element('genericElementsBS5/IndexTable/scaffold', [
-        'scaffold_data' => [
-            'data' => [
-                'data' => $previewEvents,
-                'fields' => $fields,
-                'primary_id_path' => 'Event.uuid',
-                'row_dblclick_url' => $eventViewURL,
-                // Positional feed id plus the named filter, so paging keeps both.
-                'paginatorOptions' => [
-                    'url' => array_merge([$feedId], $this->request->params['named'])
-                ],
-            ]
-        ],
-        'item_url' => '/feeds'
-    ]);
-    ?>
-</div>
-
-<script>
-(function () {
-    var previewBase = <?= json_encode($previewBase) ?>;
-    var field  = document.getElementById('previewSearchField');
-    var button = document.getElementById('previewSearchButton');
-
-    function runSearch() {
-        var value = field.value.trim();
-        window.location.href = value === ''
-            ? previewBase
-            : previewBase + '/searchall:' + encodeURIComponent(value);
-    }
-
-    if (button) { button.addEventListener('click', runSearch); }
-    if (field) {
-        field.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); runSearch(); }
-        });
-    }
-}());
-</script>
+printf(
+    '<style class="te-colstyle"></style><div class="dk-index te-index" data-te="%s" data-counts-url="%s" data-counts-failed="%s">',
+    h(json_encode($tableConfig)),
+    h($baseurl . '/feeds/previewIndexCounts/' . $feedId),
+    h(__('This event could not be read from the feed'))
+);
+echo $this->element('genericElementsBS5/IndexTable/scaffold', [
+    'scaffold_data' => [
+        'data' => [
+            'data' => $events,
+            'filter_bar' => $filterBar,
+            'fields' => $fields,
+            'primary_id_path' => 'Event.uuid',
+            'row_dblclick_url' => $eventViewURL,
+            'table_class' => 'te-table',
+            'row_class_callable' => function ($row) {
+                return 'te-row';
+            },
+            // The manifest timestamp keys a row's cached counts.
+            'row_data_callable' => function ($row) {
+                return ['ts' => (int)($row['Event']['timestamp'] ?? 0)];
+            },
+            // Positional feed id plus the named filter, so paging keeps both.
+            'paginatorOptions' => [
+                'url' => array_merge([$feedId], $this->request->params['named'])
+            ],
+        ]
+    ],
+    'item_url' => '/feeds'
+]);
+echo '</div>';

@@ -1,0 +1,294 @@
+/* Event view, Correlation tab (Elements/Events/View/event_correlation_graph):
+   laid out as an index - the filter bar, the graph, then the correlated events
+   as a table whose rows open on the attributes they share. The bar and its
+   panel wear the index filter bars' classes (index-filters.css). */
+
+.corr-index {
+    display: flex;
+    flex-direction: column;
+}
+
+/* The panel: display switches and the limit, then the IOCs and the events
+   side by side. */
+.corr-quicks {
+    align-items: center;
+}
+.corr-quick {
+    cursor: pointer;
+    user-select: none;
+}
+.corr-quick:has(input:checked) {
+    border-color: color-mix(in srgb, var(--bs-primary) 55%, var(--bs-border-color));
+}
+.corr-quick:has(input:checked) .ifp-switch {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.corr-quick:has(input:checked) .ifp-switch::after {
+    background: #fff;
+    transform: translate(.9em, -50%);
+}
+.corr-quick:has(input:focus-visible) {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+.corr-quick:has(input:disabled) {
+    cursor: default;
+}
+.corr-limit {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 0 auto;
+    font-size: .85rem;
+    color: var(--bs-body-color);
+}
+.corr-limit input {
+    width: 6.5rem;
+}
+.corr-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 16px 24px;
+}
+/* Side by side, not stacked as the bars' sections are. */
+.corr-panel-grid > .ifp-sec + .ifp-sec {
+    margin-top: 0;
+}
+.corr-sec .ifp-sec-label .badge:empty {
+    display: none;
+}
+.corr-facet-label {
+    margin-bottom: 4px;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.corr-hint {
+    margin-top: 6px;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+/* The panel's chips flow with the graph's own (focus, period). */
+.corr-chips-filters {
+    display: contents;
+}
+
+.corr-row-note {
+    font-size: .8rem;
+    color: var(--bs-secondary-color);
+}
+.corr-row-note:empty {
+    display: none;
+}
+
+/* The graph's and the list's cards share one head. */
+.corr-card-head {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.corr-card-icon {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: .6rem;
+    font-size: 1rem;
+}
+.corr-events-icon {
+    color: var(--bs-correlation);
+    background: color-mix(in srgb, var(--bs-correlation) 14%, transparent);
+}
+.corr-card-title {
+    font-size: .95rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--bs-emphasis-color);
+}
+.corr-card-sub {
+    margin-top: .15rem;
+    font-size: .8rem;
+    color: var(--bs-secondary-color);
+}
+/* The period strip's title and hint, which the strip itself leaves out. */
+.corr-overview-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .15rem .75rem;
+}
+.corr-overview-head[hidden] {
+    display: none;
+}
+.corr-overview-head strong {
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+.corr-card-head > .sankey-overview-key {
+    flex-shrink: 0;
+    font-size: .76rem;
+    color: var(--bs-secondary-color);
+}
+.corr-card-head > .sankey-overview-key[hidden] {
+    display: none;
+}
+.sankey-overview .tl-ov-head:empty {
+    display: none;
+}
+
+/* Correlated events */
+.corr-table thead th {
+    white-space: nowrap;
+}
+.corr-table th.corr-col-expand,
+.corr-table td.corr-col-expand {
+    width: 1%;
+    padding-right: 0;
+}
+/* Takes the width the other columns leave, and truncates inside it. */
+.corr-table td.corr-col-info {
+    width: 100%;
+    max-width: 0;
+    min-width: 20rem;
+}
+.corr-table > tbody > tr.corr-row {
+    cursor: pointer;
+}
+.corr-table > tbody > tr.corr-row.is-open > td {
+    border-bottom-color: transparent;
+}
+.corr-event {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+}
+.corr-event-title {
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+.corr-event-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: .9rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--bs-emphasis-color);
+}
+.corr-event-name:hover {
+    text-decoration: underline;
+}
+.corr-event-id {
+    font-family: var(--bs-font-monospace);
+    font-size: .72rem;
+    color: var(--bs-secondary-color);
+}
+.corr-org {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+}
+.corr-org > i {
+    color: var(--bs-secondary-color);
+}
+.corr-table td.corr-col-date {
+    white-space: nowrap;
+    font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-secondary-color);
+}
+.corr-none {
+    color: var(--bs-tertiary-color);
+}
+.corr-table > tbody > tr.corr-empty > td {
+    padding: 1.25rem;
+    text-align: center;
+    font-size: .85rem;
+    font-style: italic;
+    color: var(--bs-secondary-color);
+}
+
+/* The count opens the row, as the objects index's attribute count does. */
+.corr-count {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .2rem .6rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-primary-text-emphasis);
+    background: var(--bs-primary-bg-subtle);
+}
+.corr-count:hover,
+.corr-count:focus-visible,
+.corr-row.is-open .corr-count {
+    border-color: color-mix(in srgb, var(--bs-primary) 45%, transparent);
+}
+.corr-count-warning {
+    font-size: .68rem;
+    color: var(--bs-warning);
+}
+
+/* A row's attributes, on the ground of the objects index's detail rows. */
+.corr-table > tbody > tr.corr-detail > td {
+    padding: 0 .75rem .75rem 2.75rem;
+}
+.corr-table > tbody > tr.corr-detail:is(*, :hover, :focus-within) > td {
+    background-color: var(--bs-tertiary-bg);
+}
+.corr-detail-box {
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-body-bg);
+}
+.corr-attr-table {
+    font-size: .8rem;
+}
+.corr-attr-table td.corr-attr-value {
+    width: 100%;
+    max-width: 0;
+    min-width: 16rem;
+}
+.corr-attr-value a {
+    font-family: var(--bs-font-monospace);
+    font-size: .8rem;
+    overflow-wrap: anywhere;
+    color: var(--bs-body-color);
+    text-decoration: none;
+}
+.corr-attr-value a:hover {
+    text-decoration: underline;
+}
+.corr-attr-table p.border {
+    font-size: .75rem;
+    white-space: nowrap;
+}
+.corr-object {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    white-space: nowrap;
+}
+.corr-object > i,
+.corr-ids-off {
+    color: var(--bs-tertiary-color);
+}
+/* A graph node picked: the other values of the event step back. */
+.corr-attr-row.is-faded {
+    opacity: .3;
+}
