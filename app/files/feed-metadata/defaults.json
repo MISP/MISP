@@ -2649,5 +2649,83 @@
       "delete_local_file": false,
       "lookup_visible": true
     }
+  },
+    {
+    "Feed": {
+      "name": "CTI Forecast: public IP feed",
+      "provider": "ctiforecast.com",
+      "url": "https://ctiforecast.com/feeds/public/ip.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"/ctiforecast\\\\.com/i\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "CTI Forecast: public Domain feed",
+      "provider": "ctiforecast.com",
+      "url": "https://ctiforecast.com/feeds/public/domain.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"/ctiforecast\\\\.com/i\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "name": "CTI Forecast: public SHA-256 feed",
+      "provider": "ctiforecast.com",
+      "url": "https://ctiforecast.com/feeds/public/sha256.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"/ctiforecast\\\\.com/i\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "hide_tag": false
+    }
   }
 ]
