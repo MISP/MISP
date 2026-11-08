@@ -6779,6 +6779,19 @@ class EventsController extends AppController
         }
     }
 
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        App::uses('ComplexEventQueryTool', 'Tools');
+        $tool = new ComplexEventQueryTool($this->Event->Attribute, $this->Auth->user(), ComplexQueryTool::limitsFromConfig());
+        return $this->RestResponse->viewData(
+            $tool->discovery('events', '/events/restSearch', Event::REST_SEARCH_ORDER_FIELDS, 'Event'),
+            'json'
+        );
+    }
+
     public function restSearchExport($id = null, $returnFormat = null)
     {
         if ($returnFormat === null) {

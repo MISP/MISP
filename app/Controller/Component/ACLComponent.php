@@ -437,6 +437,7 @@ class ACLComponent extends Component
             'pushEventToZMQ' => array('perm_publish_zmq'),
             'pushEventToKafka' => array('perm_publish_kafka'),
             'pushProposals' => array('perm_sync'),
+            'queryDescribe' => array('perm_complex_query'),
             'queryEnrichment' => array('perm_add'),
             'recorrelateEvent' => [],
             'removePivot' => array('*'),

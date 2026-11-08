@@ -36,27 +36,28 @@ class ComplexQueryTool
      * handler: legacy set_filter_* method building a string field's fragment
      * nullable: column that negation must also match when it is NULL
      * selective: counts as a selective sibling for the tag plan choice
+     * level: what the field is matched against (event, attribute, object)
      */
     const FIELDS = [
-        'id' => ['kind' => 'int', 'column' => 'Attribute.id'],
-        'event_id' => ['kind' => 'int', 'column' => 'Attribute.event_id'],
-        'object_id' => ['kind' => 'int', 'column' => 'Attribute.object_id'],
-        'distribution' => ['kind' => 'int', 'column' => 'Attribute.distribution'],
-        'timestamp' => ['kind' => 'time', 'column' => 'Attribute.timestamp', 'selective' => true],
-        'event_timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp'],
-        'publish_timestamp' => ['kind' => 'time', 'column' => 'Event.publish_timestamp'],
-        'threat_level_id' => ['kind' => 'int', 'column' => 'Event.threat_level_id'],
-        'to_ids' => ['kind' => 'bool', 'column' => 'Attribute.to_ids', 'selective' => true],
-        'published' => ['kind' => 'bool', 'column' => 'Event.published'],
-        'uuid' => ['kind' => 'string', 'column' => 'Attribute.uuid', 'ops' => self::EXACT_STRING_OPS, 'selective' => true],
-        'type' => ['kind' => 'string', 'handler' => 'set_filter_type', 'selective' => true],
-        'category' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'selective' => true],
-        'object_relation' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'nullable' => 'Attribute.object_relation', 'selective' => true],
-        'comment' => ['kind' => 'string', 'handler' => 'set_filter_comment', 'nullable' => 'Attribute.comment'],
-        'eventinfo' => ['kind' => 'string', 'handler' => 'set_filter_eventinfo'],
-        'value' => ['kind' => 'string', 'handler' => 'set_filter_value', 'selective' => true],
-        'tags' => ['kind' => 'string', 'handler' => 'set_filter_tags'],
-        'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => self::EXACT_STRING_OPS],
+        'id' => ['kind' => 'int', 'column' => 'Attribute.id', 'level' => ['attribute']],
+        'event_id' => ['kind' => 'int', 'column' => 'Attribute.event_id', 'level' => ['attribute']],
+        'object_id' => ['kind' => 'int', 'column' => 'Attribute.object_id', 'level' => ['attribute']],
+        'distribution' => ['kind' => 'int', 'column' => 'Attribute.distribution', 'level' => ['attribute']],
+        'timestamp' => ['kind' => 'time', 'column' => 'Attribute.timestamp', 'selective' => true, 'level' => ['attribute']],
+        'event_timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp', 'level' => ['event']],
+        'publish_timestamp' => ['kind' => 'time', 'column' => 'Event.publish_timestamp', 'level' => ['event']],
+        'threat_level_id' => ['kind' => 'int', 'column' => 'Event.threat_level_id', 'level' => ['event']],
+        'to_ids' => ['kind' => 'bool', 'column' => 'Attribute.to_ids', 'selective' => true, 'level' => ['attribute']],
+        'published' => ['kind' => 'bool', 'column' => 'Event.published', 'level' => ['event']],
+        'uuid' => ['kind' => 'string', 'column' => 'Attribute.uuid', 'ops' => self::EXACT_STRING_OPS, 'selective' => true, 'level' => ['attribute']],
+        'type' => ['kind' => 'string', 'handler' => 'set_filter_type', 'selective' => true, 'level' => ['attribute']],
+        'category' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'selective' => true, 'level' => ['attribute']],
+        'object_relation' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'nullable' => 'Attribute.object_relation', 'selective' => true, 'level' => ['attribute']],
+        'comment' => ['kind' => 'string', 'handler' => 'set_filter_comment', 'nullable' => 'Attribute.comment', 'level' => ['attribute']],
+        'eventinfo' => ['kind' => 'string', 'handler' => 'set_filter_eventinfo', 'level' => ['event']],
+        'value' => ['kind' => 'string', 'handler' => 'set_filter_value', 'selective' => true, 'level' => ['attribute']],
+        'tags' => ['kind' => 'string', 'handler' => 'set_filter_tags', 'level' => ['attribute', 'event']],
+        'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => self::EXACT_STRING_OPS, 'level' => ['event']],
     ];
 
     protected $model;
@@ -194,9 +195,38 @@ class ComplexQueryTool
             $fields[$name] = [
                 'type' => $def['kind'] === 'time' ? 'timestamp' : ($def['kind'] === 'string' ? 'string' : $def['kind']),
                 'operators' => self::operatorsFor($def),
+                'level' => $def['level'] ?? [],
             ];
         }
         return ['fields' => $fields, 'limits' => $this->limits];
+    }
+
+    /**
+     * The response of a scope's queryDescribe endpoint.
+     *
+     * @param string $table
+     * @param string $endpoint
+     * @param array $orderFields model => sortable fields, as for validateOrder()
+     * @param string $defaultModel the model whose sortable fields are named without it
+     * @return array
+     */
+    public function discovery($table, $endpoint, array $orderFields, $defaultModel)
+    {
+        $description = $this->describe();
+        $sortable = [];
+        foreach ($orderFields as $model => $names) {
+            foreach ($names as $name) {
+                $sortable[] = $model === $defaultModel ? $name : "$model.$name";
+            }
+        }
+        return [
+            'tables' => [$table => [
+                'endpoint' => $endpoint,
+                'fields' => $description['fields'],
+                'sortable' => $sortable,
+            ]],
+            'limits' => $description['limits'],
+        ];
     }
 
     private static function operatorsFor(array $def)

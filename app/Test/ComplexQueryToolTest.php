@@ -278,7 +278,20 @@ class ComplexQueryToolTest extends TestCase
         $d = $this->tool()->describe();
         $this->assertSame(array_keys(ComplexQueryTool::FIELDS), array_keys($d['fields']));
         $this->assertSame(['=', '!='], $d['fields']['to_ids']['operators']);
+        $this->assertSame(['attribute'], $d['fields']['type']['level']);
+        $this->assertSame(['event'], $d['fields']['published']['level']);
+        $this->assertSame(['attribute', 'event'], $d['fields']['tags']['level']);
         $this->assertSame(5, $d['limits']['max_depth']);
+    }
+
+    public function testDiscoveryNamesTheTableAndItsSortableFields(): void
+    {
+        $d = $this->tool()->discovery('attributes', '/attributes/restSearch', ['Attribute' => ['id', 'type'], 'Event' => ['publish_timestamp']], 'Attribute');
+        $this->assertSame(['attributes'], array_keys($d['tables']));
+        $this->assertSame('/attributes/restSearch', $d['tables']['attributes']['endpoint']);
+        $this->assertSame(['id', 'type', 'Event.publish_timestamp'], $d['tables']['attributes']['sortable']);
+        $this->assertSame($this->tool()->describe()['fields'], $d['tables']['attributes']['fields']);
+        $this->assertSame(1024, $d['limits']['max_value_length']);
     }
 
     public function testInjectedRegistryReplacesTheAttributeFields(): void

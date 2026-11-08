@@ -2015,7 +2015,8 @@ class AppController extends Controller
         }
         $complexQuery = null;
         if (isset($filters['query'])) {
-            if (empty($this->Auth->user('Role')['perm_complex_query'])) {
+            $role = $this->Auth->user('Role');
+            if (empty($role['perm_complex_query']) && empty($role['perm_site_admin'])) {
                 throw new ForbiddenException(__('You do not have the permission to use complex queries.'));
             }
             // _harvestParameters lets the query string and URL params override the body

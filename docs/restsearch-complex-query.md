@@ -13,8 +13,8 @@ Requests without `query` behave exactly as before.
   HTTP 400. Other endpoints that take restSearch filters, such as the
   `filters` of `/sightings/add`, reject a `query` with HTTP 400 as well.
 - The user's role needs the **Complex query** permission
-  (`perm_complex_query`, off for every role by default). Without it the
-  request is answered with HTTP 403.
+  (`perm_complex_query`, off for every role by default), unless the user is
+  a site admin. Without it the request is answered with HTTP 403.
 - `query` can be combined with the legacy filters. The result is
   `ACL AND legacy filters AND query`: the tree can only narrow what the user
   is allowed to see anyway, never widen it.
@@ -160,14 +160,19 @@ Missing permission is not part of this format: it is a plain HTTP 403.
 ## Discovery
 
 `GET /attributes/queryDescribe` (API only) returns the fields, their types and
-operators, the sortable fields and the limits in effect:
+operators, the sortable fields and the limits in effect. A field's `level`
+says what it is matched against: the attribute itself, its event, or both
+(`tags`).
 
 ```json
 {
   "tables": {
     "attributes": {
       "endpoint": "/attributes/restSearch",
-      "fields": {"id": {"type": "int", "operators": ["=", "!=", ">", "<", ">=", "<=", "IN", "NOT IN"]}},
+      "fields": {
+        "id": {"type": "int", "operators": ["=", "!=", ">", "<", ">=", "<=", "IN", "NOT IN"], "level": ["attribute"]},
+        "published": {"type": "bool", "operators": ["=", "!="], "level": ["event"]}
+      },
       "sortable": ["id", "event_id", "...", "Event.publish_timestamp"]
     }
   },

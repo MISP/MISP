@@ -14,33 +14,34 @@ class ComplexEventQueryTool extends ComplexQueryTool
     const NEGATIONS = ['!=', 'NOT IN'];
 
     /**
-     * level: attribute | object, a field matched against the event's elements
+     * A field whose level names attributes or objects is matched against the
+     * event's elements (see isElementField()).
      */
     const FIELDS = [
-        'id' => ['kind' => 'int', 'column' => 'Event.id'],
-        'event_id' => ['kind' => 'int', 'column' => 'Event.id'],
-        'uuid' => ['kind' => 'string', 'column' => 'Event.uuid', 'ops' => self::EXACT_STRING_OPS],
-        'distribution' => ['kind' => 'int', 'column' => 'Event.distribution'],
-        'analysis' => ['kind' => 'int', 'column' => 'Event.analysis'],
-        'threat_level_id' => ['kind' => 'int', 'column' => 'Event.threat_level_id'],
-        'org_id' => ['kind' => 'int', 'column' => 'Event.org_id'],
-        'orgc_id' => ['kind' => 'int', 'column' => 'Event.orgc_id'],
-        'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => self::EXACT_STRING_OPS],
-        'eventinfo' => ['kind' => 'string', 'handler' => 'set_filter_eventinfo'],
-        'date' => ['kind' => 'date', 'column' => 'Event.date'],
-        'timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp'],
-        'event_timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp'],
-        'publish_timestamp' => ['kind' => 'time', 'column' => 'Event.publish_timestamp'],
-        'published' => ['kind' => 'bool', 'column' => 'Event.published'],
-        'tags' => ['kind' => 'string', 'level' => 'attribute'],
-        'type' => ['kind' => 'string', 'handler' => 'set_filter_type', 'level' => 'attribute', 'ops' => self::POSITIVE_STRING_OPS],
-        'category' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'level' => 'attribute', 'ops' => self::POSITIVE_STRING_OPS],
-        'object_relation' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'level' => 'attribute', 'ops' => self::POSITIVE_STRING_OPS],
-        'comment' => ['kind' => 'string', 'handler' => 'set_filter_comment', 'level' => 'attribute', 'ops' => self::POSITIVE_STRING_OPS],
-        'value' => ['kind' => 'string', 'handler' => 'set_filter_value', 'level' => 'attribute', 'ops' => self::POSITIVE_STRING_OPS],
-        'to_ids' => ['kind' => 'bool', 'column' => 'Attribute.to_ids', 'level' => 'attribute', 'ops' => ['=']],
-        'object_name' => ['kind' => 'string', 'column' => 'Object.name', 'level' => 'object', 'ops' => ['=', 'IN']],
-        'object_template_uuid' => ['kind' => 'string', 'column' => 'Object.template_uuid', 'level' => 'object', 'ops' => ['=', 'IN']],
+        'id' => ['kind' => 'int', 'column' => 'Event.id', 'level' => ['event']],
+        'event_id' => ['kind' => 'int', 'column' => 'Event.id', 'level' => ['event']],
+        'uuid' => ['kind' => 'string', 'column' => 'Event.uuid', 'ops' => self::EXACT_STRING_OPS, 'level' => ['event']],
+        'distribution' => ['kind' => 'int', 'column' => 'Event.distribution', 'level' => ['event']],
+        'analysis' => ['kind' => 'int', 'column' => 'Event.analysis', 'level' => ['event']],
+        'threat_level_id' => ['kind' => 'int', 'column' => 'Event.threat_level_id', 'level' => ['event']],
+        'org_id' => ['kind' => 'int', 'column' => 'Event.org_id', 'level' => ['event']],
+        'orgc_id' => ['kind' => 'int', 'column' => 'Event.orgc_id', 'level' => ['event']],
+        'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => self::EXACT_STRING_OPS, 'level' => ['event']],
+        'eventinfo' => ['kind' => 'string', 'handler' => 'set_filter_eventinfo', 'level' => ['event']],
+        'date' => ['kind' => 'date', 'column' => 'Event.date', 'level' => ['event']],
+        'timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp', 'level' => ['event']],
+        'event_timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp', 'level' => ['event']],
+        'publish_timestamp' => ['kind' => 'time', 'column' => 'Event.publish_timestamp', 'level' => ['event']],
+        'published' => ['kind' => 'bool', 'column' => 'Event.published', 'level' => ['event']],
+        'tags' => ['kind' => 'string', 'level' => ['event', 'attribute']],
+        'type' => ['kind' => 'string', 'handler' => 'set_filter_type', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'category' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'object_relation' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'comment' => ['kind' => 'string', 'handler' => 'set_filter_comment', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'value' => ['kind' => 'string', 'handler' => 'set_filter_value', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'to_ids' => ['kind' => 'bool', 'column' => 'Attribute.to_ids', 'ops' => ['='], 'level' => ['attribute']],
+        'object_name' => ['kind' => 'string', 'column' => 'Object.name', 'ops' => ['=', 'IN'], 'level' => ['object']],
+        'object_template_uuid' => ['kind' => 'string', 'column' => 'Object.template_uuid', 'ops' => ['=', 'IN'], 'level' => ['object']],
     ];
 
     private $user;
@@ -100,7 +101,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
             $this->checkNegations($node[1], "$path.NOT", false, true);
             return;
         }
-        if (!isset($this->fields[$node[1]]['level'])) {
+        if (!self::isElementField($this->fields[$node[1]])) {
             return;
         }
         if ($negated) {
@@ -112,7 +113,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
 
     protected function operatorMessage(array $def, $op)
     {
-        if (isset($def['level']) && in_array($op, self::NEGATIONS, true)) {
+        if (self::isElementField($def) && in_array($op, self::NEGATIONS, true)) {
             return 'attribute and object fields cannot be negated when searching events';
         }
         return parent::operatorMessage($def, $op);
@@ -146,10 +147,15 @@ class ComplexEventQueryTool extends ComplexQueryTool
             }, $values);
         }
         $fragment = parent::buildLeaf($field, $op, $values, $path, false);
-        if ($fragment === null || !isset($def['level'])) {
+        if ($fragment === null || !self::isElementField($def)) {
             return $fragment;
         }
-        return $this->visibleElements($def['level'] === 'object' ? $this->model->Object : $this->model, $fragment);
+        return $this->visibleElements($def['level'] === ['object'] ? $this->model->Object : $this->model, $fragment);
+    }
+
+    private static function isElementField(array $def)
+    {
+        return $def['level'] !== ['event'];
     }
 
     /**

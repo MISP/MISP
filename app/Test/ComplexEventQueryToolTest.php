@@ -281,5 +281,11 @@ class ComplexEventQueryToolTest extends TestCase
         $this->assertSame(['=', 'IN', 'LIKE'], $d['fields']['type']['operators']);
         $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE'], $d['fields']['tags']['operators']);
         $this->assertArrayNotHasKey('info', $d['fields']);
+        $this->assertSame(['event'], $d['fields']['eventinfo']['level']);
+        $this->assertSame(['event', 'attribute'], $d['fields']['tags']['level']);
+        $this->assertSame(['attribute'], $d['fields']['value']['level']);
+        $this->assertSame(['object'], $d['fields']['object_name']['level']);
+        $sortable = $this->tool()->discovery('events', '/events/restSearch', ['Event' => ['id', 'info']], 'Event')['tables']['events']['sortable'];
+        $this->assertSame(['id', 'info'], $sortable);
     }
 }

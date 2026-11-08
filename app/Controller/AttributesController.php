@@ -2777,22 +2777,11 @@ class AttributesController extends AppController
             throw new MethodNotAllowedException(__('This action is only available via the API.'));
         }
         App::uses('ComplexQueryTool', 'Tools');
-        $description = (new ComplexQueryTool($this->MispAttribute, ComplexQueryTool::limitsFromConfig()))->describe();
-        $sortable = [];
-        foreach (MispAttribute::REST_SEARCH_ORDER_FIELDS as $model => $fields) {
-            foreach ($fields as $field) {
-                $sortable[] = $model === 'Attribute' ? $field : "$model.$field";
-            }
-        }
-        $table = [
-            'endpoint' => '/attributes/restSearch',
-            'fields' => $description['fields'],
-            'sortable' => $sortable,
-        ];
-        return $this->RestResponse->viewData([
-            'tables' => ['attributes' => $table],
-            'limits' => $description['limits'],
-        ], 'json');
+        $tool = new ComplexQueryTool($this->MispAttribute, ComplexQueryTool::limitsFromConfig());
+        return $this->RestResponse->viewData(
+            $tool->discovery('attributes', '/attributes/restSearch', MispAttribute::REST_SEARCH_ORDER_FIELDS, 'Attribute'),
+            'json'
+        );
     }
 
     public function describeTypes()

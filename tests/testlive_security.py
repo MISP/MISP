@@ -2017,5 +2017,283 @@ class TestComplexQueryAcl(unittest.TestCase):
         self.assertEqual(self.api(self.plain_user_key, "GET", "attributes/queryDescribe")[0], 403)
 
 
+class TestComplexEventQueryAcl(unittest.TestCase):
+    """The `query` tree of /events/restSearch must select events only through what the user can see."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqe" + random()
+        cls.created = {"events": [], "tags": set(), "users": [], "roles": [], "sgs": [], "keys": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQE Org " + random(), "local": True})["Organisation"]
+        me = cls.admin_api("GET", "users/view/me")["Organisation"]
+        cls.admin_org_id, admin_org_uuid = int(me["id"]), me["uuid"]
+        roles = {
+            "flagged": {"permission": "1", "perm_auth": 1, "perm_complex_query": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQE {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            keys[name] = cls.__make_user(role["id"])
+        cls.user_key, cls.plain_user_key, cls.site_admin_key = keys["flagged"], keys["plain"], keys["site_admin"]
+
+        # a sharing group the test org is not a member of
+        sg = cls.admin_api("POST", "sharingGroups/add", {
+            "SharingGroup": {"name": "MQE SG " + random(), "releasability": "test", "description": "test", "active": 1,
+                             "organisation_uuid": admin_org_uuid, "roaming": 0},
+            "Organisation": [{"uuid": admin_org_uuid, "extend": True}]})
+        cls.sg_id = sg["SharingGroup"]["id"]
+        cls.created["sgs"].append(cls.sg_id)
+
+        cls.tag_vis, cls.tag_hid, cls.tag_evt = (f"{cls.marker}:{t}" for t in ("vis", "hid", "evt"))
+        # E1 visible, E2 visible with hidden elements, E3 not visible, E4 owned by the test org
+        cls.e1 = cls.__make_event("e1", 3, [("a1", 5, cls.tag_vis), ("a2", 3, None)], event_tag=cls.tag_evt)
+        cls.e2 = cls.__make_event("e2", 3, [("v1", 5, None), ("h1", 0, cls.tag_hid), ("h2", 4, None)], hidden_object="oa")
+        cls.e3 = cls.__make_event("e3", 0, [("x1", 5, cls.tag_vis)], event_tag=cls.tag_evt)
+        cls.e4 = cls.__make_event("e4", 0, [("p1", 0, None)], token=cls.user_key)
+        cls.all_events = [cls.e1, cls.e2, cls.e3, cls.e4]
+        cls.visible = {cls.e1: {cls.__value("e1-a1"), cls.__value("e1-a2")}, cls.e2: {cls.__value("e2-v1")},
+                       cls.e4: {cls.__value("e4-p1")}}
+        cls.hidden_values = {cls.__value(n) for n in ("e2-h1", "e2-h2", "e2-oa", "e3-x1")}
+
+    @classmethod
+    def tearDownClass(cls):
+        for kind, path in (("events", "events/delete/{}"), ("tags", "tags/delete/{}"), ("keys", "authKeys/delete/{}"),
+                           ("users", "admin/users/delete/{}"), ("sgs", "sharingGroups/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqe{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __value(cls, name: str) -> str:
+        return f"{cls.marker}-{name}.example.com"
+
+    @classmethod
+    def __make_event(cls, name: str, distribution: int, attributes, event_tag=None, hidden_object=None, token=None) -> int:
+        def attribute(n, d, tag=None, **extra):
+            return {"type": "domain", "category": "Network activity", "value": cls.__value(f"{name}-{n}"), "distribution": d,
+                    **({"sharing_group_id": cls.sg_id} if d == 4 else {}), **({"Tag": [{"name": tag}]} if tag else {}), **extra}
+        event = {"info": f"{cls.marker} {name}", "distribution": distribution, "threat_level_id": 4, "analysis": 0,
+                 "Attribute": [attribute(n, d, tag) for n, d, tag in attributes]}
+        if event_tag:
+            event["Tag"] = [{"name": event_tag}]
+        if hidden_object:
+            event["Object"] = [{"name": "domain-ip", "meta-category": "network", "distribution": 0,
+                                "template_uuid": "43b3b146-77eb-4931-b4cc-b66c60f28734", "template_version": "9",
+                                "Attribute": [attribute(hidden_object, 5, object_relation="domain")]}]
+        status, data = cls.api(token or key, "POST", "events/add", {"Event": event})
+        assert status == 200, (status, str(data)[:300])
+        event_id = data["Event"]["id"]
+        cls.created["events"].append(event_id)
+        for tag in data["Event"].get("Tag", []) + [t for a in data["Event"].get("Attribute", []) for t in a.get("Tag", [])]:
+            if tag["name"].startswith(cls.marker):
+                cls.created["tags"].add(tag["id"])
+        cls.admin_api("POST", f"events/publish/{event_id}/disable_background_processing:1")
+        return int(event_id)
+
+    def __search(self, query, token=None, extra=None, method="POST"):
+        body = {"returnFormat": "json", "query": query}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "events/restSearch", body)
+        events = None
+        if status == 200 and isinstance(data, dict):
+            events = {}
+            for e in data["response"]:
+                attributes = e["Event"].get("Attribute", []) + [a for o in e["Event"].get("Object", []) for a in o.get("Attribute", [])]
+                events[int(e["Event"]["id"])] = {a["value"] for a in attributes}
+        return status, events, data
+
+    def __anchored(self, tree):
+        return {"AND": [{"id": {"IN": self.all_events}}, tree]}
+
+    def assertNoHiddenData(self, events, msg=None):
+        self.assertNotIn(self.e3, events, msg)
+        self.assertEqual(set().union(*events.values()) & self.hidden_values, set(), msg)
+
+    def test_fixture_is_discriminating(self):
+        status, events, _ = self.__search({"id": {"IN": self.all_events}}, token=key)
+        self.assertEqual(status, 200)
+        self.assertEqual(set(events), set(self.all_events))
+        self.assertTrue(self.hidden_values <= set().union(*events.values()))
+        # the user sees E1, E2 without its hidden elements, and its own E4
+        status, events, _ = self.__search({"id": {"IN": self.all_events}})
+        self.assertEqual((status, events), (200, self.visible))
+        # without the visibility restriction the hidden attribute would select E2
+        status, events, _ = self.__search({"value": self.__value("e2-h1")}, token=key)
+        self.assertEqual(status, 200)
+        self.assertEqual(set(events), {self.e2})
+
+    def test_element_leaves_count_only_visible_elements(self):
+        cases = {
+            "visible value": ({"value": self.__value("e2-v1")}, {self.e2}),
+            "hidden value": ({"value": self.__value("e2-h1")}, set()),
+            "sharing group value": ({"value": self.__value("e2-h2")}, set()),
+            "attribute in a hidden object": ({"value": self.__value("e2-oa")}, set()),
+            "hidden value prefix": ({"value": {"LIKE": f"{self.marker}-e2-h%"}}, set()),
+            "hidden values in": ({"value": {"IN": sorted(self.hidden_values)}}, set()),
+            "tag of a hidden attribute": ({"tags": self.tag_hid}, set()),
+            "hidden object name": ({"AND": [{"id": self.e2}, {"object_name": "domain-ip"}]}, set()),
+            "visible attribute tag": ({"tags": self.tag_vis}, {self.e1}),
+            "own org private attribute": ({"value": self.__value("e4-p1")}, {self.e4}),
+            "hidden or visible": ({"OR": [{"value": self.__value("e2-h1")}, {"value": self.__value("e2-v1")}]}, {self.e2}),
+        }
+        for name, (tree, expected) in cases.items():
+            with self.subTest(name):
+                status, events, _ = self.__search(tree)
+                self.assertEqual(status, 200)
+                self.assertEqual(set(events), expected)
+                self.assertNoHiddenData(events)
+
+    def test_match_all_queries_never_return_hidden_data(self):
+        trees = {
+            "tautology": {"OR": [{"id": {">": 0}}, {"NOT": {"id": {">": 0}}}]},
+            "double negation": {"NOT": {"NOT": {"eventinfo": {"LIKE": f"{self.marker}%"}}}},
+            "or with element leaves": {"OR": [{"value": {"LIKE": f"{self.marker}%"}}, {"id": {">": 0}}]},
+            "every distribution": {"distribution": {"IN": [0, 1, 2, 3, 4, 5]}},
+            "negated distribution": {"distribution": {"NOT IN": [9]}},
+            "any date": {"date": {">=": "1970-01-02"}},
+        }
+        for name, tree in trees.items():
+            with self.subTest(name):
+                status, events, _ = self.__search(self.__anchored(tree))
+                self.assertEqual((status, events), (200, self.visible))
+
+    def test_acl_cannot_be_overridden_through_the_query(self):
+        attempts = {
+            "hidden event": {"id": self.e3},
+            "hidden or visible event": {"OR": [{"id": self.e3}, {"id": self.e1}]},
+            "admin org": self.__anchored({"org_id": self.admin_org_id}),
+            "creator org": self.__anchored({"orgc_id": self.admin_org_id}),
+            "org-only distribution": self.__anchored({"distribution": 0}),
+            "not the visible ones": self.__anchored({"NOT": {"id": {"IN": [self.e1, self.e2, self.e4]}}}),
+        }
+        for name, tree in attempts.items():
+            with self.subTest(name):
+                status, events, _ = self.__search(tree)
+                self.assertEqual(status, 200)
+                self.assertNoHiddenData(events)
+        tree = self.__anchored({"OR": [{"id": {">": 0}}, {"NOT": {"id": {">": 0}}}]})
+        for extra in ({"eventid": [self.e3]}, {"sharinggroup": [self.sg_id]}, {"org": "ADMIN"}, {"published": [0, 1]},
+                      {"distribution": [0, 1, 2, 3, 4, 5]}, {"includeAllTags": 1}, {"deleted": [0, 1]}):
+            with self.subTest(extra):
+                status, events, _ = self.__search(tree, extra=extra)
+                self.assertIn(status, (200, 400, 403))
+                if status == 200:
+                    self.assertNoHiddenData(events)
+
+    def test_negated_tags(self):
+        status, events, _ = self.__search(self.__anchored({"tags": {"!=": self.tag_vis}}))
+        self.assertEqual((status, events), (200, {**self.visible, self.e1: {self.__value("e1-a2")}}))
+        status, events, _ = self.__search(self.__anchored({"tags": {"NOT IN": [self.tag_evt]}}))
+        self.assertEqual(status, 200)
+        self.assertEqual(set(events), {self.e2, self.e4})
+        rejected = {
+            "negated tag under or": ({"OR": [{"id": self.e1}, {"tags": {"!=": self.tag_vis}}]}, "bad_shape"),
+            "tag under not": ({"NOT": {"tags": self.tag_vis}}, "bad_shape"),
+            "attribute field under not": ({"NOT": {"AND": [{"id": self.e1}, {"type": "domain"}]}}, "bad_shape"),
+            "negated attribute field": ({"type": {"!=": "domain"}}, "unknown_operator"),
+        }
+        for name, (tree, code) in rejected.items():
+            with self.subTest(name):
+                status, events, data = self.__search(tree)
+                self.assertEqual((status, events), (400, None))
+                self.assertEqual(data["errors"][0]["code"], code)
+
+    def test_malformed_queries_return_no_data(self):
+        bad = {
+            "string": "id=1", "list": [{"id": 1}], "empty": {}, "unknown field": {"nope": 1}, "renamed field": {"info": "x"},
+            "acl field": {"sharing_group_id": self.sg_id}, "wrong type": {"id": "1"}, "impossible date": {"date": "2026-02-30"},
+            "relative date in hours": {"date": "7h"}, "object like": {"object_name": {"LIKE": "domain%"}},
+            "too deep": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"id": 1}}}}}}},
+        }
+        for name, tree in bad.items():
+            with self.subTest(name):
+                status, events, data = self.__search(tree)
+                self.assertEqual((status, events), (400, None), data)
+                self.assertNotIn("response", data)
+        for token in (self.plain_user_key, "x" * 40):
+            with self.subTest(token[:4]):
+                status, events, _ = self.__search({"id": self.e1}, token=token)
+                self.assertEqual((status, events), (403, None))
+
+    def test_site_admins_need_no_permission_flag(self):
+        status, events, _ = self.__search({"value": self.__value("e2-h1")}, token=self.site_admin_key)
+        self.assertEqual(status, 200)
+        self.assertEqual(set(events), {self.e2})
+        self.assertEqual(self.api(self.site_admin_key, "GET", "events/queryDescribe")[0], 200)
+
+    def test_query_is_only_accepted_in_a_post_body(self):
+        status, _ = self.api(self.user_key, "GET", f"events/restSearch?returnFormat=json&query[id]={self.e1}")
+        self.assertEqual(status, 400)
+        for path in (f"events/restSearch?query[id]={self.e3}", "events/restSearch/query:x"):
+            with self.subTest(path):
+                status, data = self.api(self.user_key, "POST", path, {"returnFormat": "json", "query": {"id": self.e1}})
+                self.assertEqual(status, 400)
+                self.assertNotIn("response", data)
+
+    def test_unknown_order_fields_are_rejected(self):
+        tree = {"id": self.e1}
+        for order in ("nope", "Attribute.id", "id up", "eventinfo"):
+            with self.subTest(order):
+                status, events, data = self.__search(tree, extra={"order": order})
+                self.assertEqual((status, events), (400, None), data)
+        for order in ("timestamp desc", "Event.id", "info"):
+            with self.subTest(order):
+                status, events, _ = self.__search(tree, extra={"order": order})
+                self.assertEqual(status, 200)
+                self.assertEqual(set(events), {self.e1})
+
+    def test_error_responses_do_not_echo_the_input(self):
+        needle = "ZZ_ECHO_" + random()
+        for tree in ({needle: 1}, {"id": needle}, {"date": needle}, {"AND": [{"id": 1}, {"tags": {needle: needle}}]}):
+            status, _, data = self.__search(tree)
+            self.assertEqual(status, 400)
+            self.assertNotIn(needle, json.dumps(data))
+
+    def test_discovery_endpoint(self):
+        status, data = self.api(self.user_key, "GET", "events/queryDescribe")
+        self.assertEqual(status, 200)
+        table = data["tables"]["events"]
+        self.assertEqual(table["endpoint"], "/events/restSearch")
+        self.assertEqual(table["fields"]["tags"]["level"], ["event", "attribute"])
+        self.assertEqual(table["fields"]["value"]["operators"], ["=", "IN", "LIKE"])
+        self.assertIn("eventinfo", table["fields"])
+        self.assertIn("info", table["sortable"])
+        self.assertEqual(self.api(self.plain_user_key, "GET", "events/queryDescribe")[0], 403)
+
+
 if __name__ == '__main__':
     unittest.main()
