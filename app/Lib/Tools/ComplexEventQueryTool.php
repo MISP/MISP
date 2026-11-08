@@ -176,21 +176,44 @@ class ComplexEventQueryTool extends ComplexQueryTool
             }
             return ['NOT' => $eventTagged];
         }
+        // Driven by the tag rows, one primary key probe each (driven by the attributes, MariaDB
+        // walked every attribute of every visible event); the redundant id correlation keeps it
+        // from materialising every visible attribute
         $AttributeTag = $this->model->AttributeTag;
-        $attributeTagged = $this->subquery($AttributeTag, 'attribute_id', [$AttributeTag->alias . '.tag_id' => $tagIds], $this->model->alias . '.id');
-        return ['OR' => [$eventTagged, $this->visibleElements($this->model, $attributeTagged)]];
+        $attribute = $this->model->alias;
+        $visibleAttribute = $this->subquery($this->model, 'id', $this->visibleElementConditions(
+            $this->model, ["$attribute.id = {$AttributeTag->alias}.attribute_id"]
+        ), $AttributeTag->alias . '.attribute_id');
+        $attributeTagged = $this->subquery($AttributeTag, 'event_id', [
+            $AttributeTag->alias . '.tag_id' => $tagIds,
+            $visibleAttribute,
+        ], 'Event.id');
+        return ['OR' => [$eventTagged, $attributeTagged]];
     }
 
     /**
      * Events holding a non-deleted element that matches and that the user
-     * can see, by the rules of MispAttribute::buildConditions(). The outer
-     * query has already checked that the event itself is visible.
+     * can see. The outer query has already checked that the event itself is
+     * visible.
      *
      * @param object $model the Attribute or the Object model
      * @param array $conditions on the element
      * @return array
      */
     private function visibleElements($model, array $conditions)
+    {
+        return $this->subquery($model, 'event_id', $this->visibleElementConditions($model, $conditions), 'Event.id');
+    }
+
+    /**
+     * The element is not deleted, matches, and the user can see it by the
+     * rules of MispAttribute::buildConditions().
+     *
+     * @param object $model the Attribute or the Object model
+     * @param array $conditions on the element
+     * @return array
+     */
+    private function visibleElementConditions($model, array $conditions)
     {
         $alias = $model->alias;
         $conditions = [$alias . '.deleted' => 0, $conditions];
@@ -208,7 +231,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
                 ['AND' => $rules],
             ]];
         }
-        return $this->subquery($model, 'event_id', $conditions, 'Event.id');
+        return $conditions;
     }
 
     private function distributionRules($alias)

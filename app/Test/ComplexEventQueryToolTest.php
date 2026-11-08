@@ -134,6 +134,20 @@ class ComplexEventQueryToolTest extends TestCase
         return ["$alias.event_id IN (OwnEvent.id AS OwnEvent)" => ['OwnEvent.org_id' => 9]];
     }
 
+    private static function visibleAttribute(): array
+    {
+        return ['OR' => [
+            self::ownEvent('Attribute'),
+            ['AND' => [
+                self::distribution('Attribute'),
+                ['OR' => [
+                    'Attribute.object_id' => 0,
+                    ['Attribute.object_id IN (Object.id AS Object)' => self::distribution('Object')],
+                ]],
+            ]],
+        ]];
+    }
+
     public function testEventLeavesAreNative(): void
     {
         $c = $this->tool()->conditions(['AND' => [
@@ -173,16 +187,7 @@ class ComplexEventQueryToolTest extends TestCase
         $this->assertSame(['Event.id IN (Attribute.event_id AS Attribute)' => [
             'Attribute.deleted' => 0,
             ['stub:set_filter_type:type' => ['btc']],
-            ['OR' => [
-                self::ownEvent('Attribute'),
-                ['AND' => [
-                    self::distribution('Attribute'),
-                    ['OR' => [
-                        'Attribute.object_id' => 0,
-                        ['Attribute.object_id IN (Object.id AS Object)' => self::distribution('Object')],
-                    ]],
-                ]],
-            ]],
+            self::visibleAttribute(),
         ]], $c);
         $this->assertSame(['Event.id IN (Attribute.event_id AS Attribute)' => [
             'Attribute.deleted' => 0,
@@ -203,20 +208,27 @@ class ComplexEventQueryToolTest extends TestCase
     public function testTags(): void
     {
         $eventTagged = ['Event.id IN (EventTag.event_id AS EventTag)' => ['EventTag.tag_id' => [7]]];
+        $attributeTagged = function (array $visibility) {
+            return ['Event.id IN (AttributeTag.event_id AS AttributeTag)' => [
+                'AttributeTag.tag_id' => [7],
+                ['AttributeTag.attribute_id IN (Attribute.id AS Attribute)' => array_merge([
+                    'Attribute.deleted' => 0,
+                    ['Attribute.id = AttributeTag.attribute_id'],
+                ], $visibility)],
+            ]];
+        };
+        $this->assertSame(
+            ['OR' => [$eventTagged, $attributeTagged([self::visibleAttribute()])]],
+            $this->tool()->conditions(['tags' => 'x'])
+        );
         $tool = $this->tool(self::SITE_ADMIN);
-        $this->assertSame(['OR' => [
-            $eventTagged,
-            ['Event.id IN (Attribute.event_id AS Attribute)' => [
-                'Attribute.deleted' => 0,
-                ['Attribute.id IN (AttributeTag.attribute_id AS AttributeTag)' => ['AttributeTag.tag_id' => [7]]],
-            ]],
-        ]], $tool->conditions(['tags' => ['LIKE' => 'tlp:%']]));
+        $this->assertSame(['OR' => [$eventTagged, $attributeTagged([])]], $tool->conditions(['tags' => ['LIKE' => 'tlp:%']]));
         $this->assertSame([], $tool->blockedTagIds());
 
         $c = $tool->conditions(['AND' => [['type' => 'btc'], ['tags' => ['NOT IN' => ['a', 'b']]], ['tags' => ['!=' => 'c']]]]);
         $this->assertSame(['NOT' => $eventTagged], $c['AND'][1]);
         $this->assertSame([7], $tool->blockedTagIds());
-        $this->assertSame([['tlp:%'], ['a', 'b'], ['c']], $this->model->AttributeTag->Tag->lookups);
+        $this->assertSame([['x'], ['tlp:%'], ['a', 'b'], ['c']], $this->model->AttributeTag->Tag->lookups);
 
         $this->model->AttributeTag->Tag->ids = [-1];
         $this->assertSame(
