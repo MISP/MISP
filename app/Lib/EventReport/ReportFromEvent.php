@@ -57,7 +57,7 @@
                 'eventid' => $this->__options['event_id'],
             ];
             $filters = array_merge($filters, $this->__options['conditions']);
-            $conditions = $this->__eventModel->Object->buildFilterConditions($filters);
+            $conditions = $this->__eventModel->Object->buildFilterConditions($this->__user, $filters);
             $options['conditions'] = $conditions;
             $this->objects = $this->__eventModel->Object->fetchObjects($this->__user, $options);
         }

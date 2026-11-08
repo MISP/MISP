@@ -1362,17 +1362,16 @@ class MispAttribute extends AppModel
             $inPosList = implode(',', $posIds);
 
             if ($options['scope'] === 'Event') {
+                $attributeTagged = $this->Event->visibleAttributeTagSubquery(
+                    $options['user'], $posIds
+                )[0];
                 $conditions['AND'][] =
                     "(Event.id IN (
                         SELECT et.event_id
                         FROM event_tags et
                         WHERE et.tag_id IN ({$inPosList})
                     )
-                    OR Event.id IN (
-                        SELECT at.event_id
-                        FROM attribute_tags at
-                        WHERE at.tag_id IN ({$inPosList})
-                    ))";
+                    OR {$attributeTagged})";
             } elseif ($attributeSelective) {
                 // Selective mode: correlated EXISTS
                 // probes are cheap when the outer scan
@@ -3583,7 +3582,8 @@ class MispAttribute extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Attribute'
+                            'context' => 'Attribute',
+                            'user' => $user
                         );
                         $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                     }

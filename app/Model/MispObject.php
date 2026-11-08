@@ -140,7 +140,7 @@ class MispObject extends AppModel
         $this->_schema['distribution']['default'] = Configure::read('MISP.default_object_distribution') ?? 5;
     }
 
-    public function buildFilterConditions(&$params)
+    public function buildFilterConditions(array $user, &$params)
     {
         $conditions = [];
         if (isset($params['wildcard'])) {
@@ -206,17 +206,18 @@ class MispObject extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Object'
+                            'context' => 'Object',
+                            'user' => $user
                         );
                         if ($scope === 'Attribute') {
                             $subQueryOptions = array(
                                 'fields' => ['Attribute.object_id'],
                                 'group' => 'Attribute.object_id',
                                 'recursive' => -1,
-                                'conditions' => array(
+                                'conditions' => $this->Event->visibleElementConditions($user, 'Attribute', array(
                                     'Attribute.object_id NOT' => 0,
                                     $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options)
-                                )
+                                ))
                             );
                             $conditions['AND'][] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id');
                         } else {
@@ -1874,7 +1875,7 @@ class MispObject extends AppModel
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
-        $conditions = $this->buildFilterConditions($filters);
+        $conditions = $this->buildFilterConditions($user, $filters);
         // Same rules as fetchAttributes(); fetchObjects() itself keeps
         // returning soft-deleted objects to its other callers
         if (isset($filters['deleted']) && $filters['deleted'] === 'only') {
