@@ -219,7 +219,9 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'UserSetting',
+        'UserSetting' => array(
+            'dependent' => true
+        ),
         'UserLoginProfile'
         // 'AuthKey' - readd once the initial update storm is over
     );

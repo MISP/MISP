@@ -1214,5 +1214,42 @@ class UserDeleteRemovesAuthKeys(unittest.TestCase):
         self.assertEqual([], self._keys_of(self.user.id), 'the deleted user kept its keys')
 
 
+class UserDeleteRemovesSettings(unittest.TestCase):
+    """Deleting a user deletes its settings, which would otherwise pass to a user given its id."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.org = make_org(cls.admin, 'regression user settings org')
+        cls.user = make_user(cls.admin, cls.org.id, cls.role_id)
+        cls.user_deleted = False
+
+    @classmethod
+    def tearDownClass(cls):
+        if not cls.user_deleted:
+            cls.admin.delete_user(cls.user)
+        for setting_id in getattr(cls, 'setting_ids', []):
+            cls.admin._prepare_request('POST', 'userSettings/delete/%s' % setting_id)
+        cls.admin.delete_organisation(cls.org)
+
+    def _settings_of(self, user_id):
+        response = self.admin._prepare_request('GET', 'userSettings/index/user_id:%s' % user_id)
+        return [int(s['UserSetting']['id']) for s in response.json()
+                if int(s['UserSetting']['user_id']) == int(user_id)]
+
+    def test_deleting_a_user_deletes_its_settings(self):
+        # A dict value reaches MISP as "b'...'" when PyMISP has orjson.
+        homepage = json.dumps({'path': '/events/index'})
+        check_response(self.admin.set_user_setting('homepage', homepage, self.user))
+        type(self).setting_ids = self._settings_of(self.user.id)
+        self.assertEqual(1, len(self.setting_ids), 'the user holds no setting, so the test proves nothing')
+        check_response(self.admin.delete_user(self.user))
+        type(self).user_deleted = True
+        self.assertEqual([], self._settings_of(self.user.id), 'the deleted user kept its settings')
+
+
 if __name__ == '__main__':
     unittest.main()
