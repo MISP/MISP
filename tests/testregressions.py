@@ -1047,5 +1047,124 @@ class EventCorrelationsAcl(unittest.TestCase):
         self.assertTrue(own, 'the outsider lost the correlations of its own event')
 
 
+class EventDelegationSharingGroupAcl(unittest.TestCase):
+    """A delegation request only names a sharing group its requester is authorised for.
+
+    delegateEvent stored whatever sharing_group_id was submitted with distribution 4, without
+    checking it. The delegation view then showed that group's name to the requester, so the
+    name of any sharing group on the instance, including ones the requester's organisation is
+    not in, could be read by guessing ids. An unauthorised or malformed id now answers like a
+    missing group and stores nothing.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add', 'perm_delegate')
+        cls.requester_org = make_org(cls.admin, 'regression delegation requester org')
+        cls.recipient_org = make_org(cls.admin, 'regression delegation recipient org')
+        cls.created_orgs = [cls.requester_org, cls.recipient_org]
+        cls.requester_user = make_user(cls.admin, cls.requester_org.id, cls.role_id)
+        cls.created_users = [cls.requester_user]
+        cls.requester = PyMISP(url, cls.requester_user.authkey)
+        cls.requester.global_pythonify = True
+        cls.sharing_groups = []
+        token = random()
+
+        def group(name, orgs):
+            made = send(cls.admin, 'POST', 'sharingGroups/add', data={
+                'name': 'regression delegation %s %s' % (name, token), 'releasability': 'x',
+                'roaming': False,
+                'SharingGroupOrg': [{'Organisation': {'uuid': o.uuid, 'name': o.name}, 'extend': False}
+                                    for o in orgs]})
+            cls.sharing_groups.append(int(made['SharingGroup']['id']))
+            return made['SharingGroup']
+
+        cls.hidden = group('hidden', [cls.recipient_org])
+        cls.own = group('own', cls.created_orgs)
+        event = MISPEvent()
+        event.info = 'regression delegation %s' % token
+        event.distribution = 0
+        cls.event = check_response(cls.requester.add_event(event))
+        cls.extra_uuids = []
+
+    @classmethod
+    def tearDownClass(cls):
+        uuids = [cls.event.uuid] + cls.extra_uuids
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+        for sg_id in cls.sharing_groups:
+            send(cls.admin, 'POST', 'sharingGroups/delete/%d' % sg_id, check_errors=False)
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False):
+            row = row.get('EventBlocklist', row)
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+
+    def _delegate(self, connector, event_id, **fields):
+        data = dict({'org_id': int(self.recipient_org.id)}, **fields)
+        response = connector._prepare_request(
+            'POST', 'eventDelegations/delegateEvent/%s' % event_id, data=data)
+        body = response.json()
+        if response.status_code == 200:
+            self.addCleanup(connector._prepare_request, 'POST',
+                            'eventDelegations/deleteDelegation/%s' % body['EventDelegation']['id'])
+        return response.status_code, body
+
+    def _revoke(self, body):
+        if 'EventDelegation' in body:
+            self.requester._prepare_request(
+                'POST', 'eventDelegations/deleteDelegation/%s' % body['EventDelegation']['id'])
+
+    def _issued(self):
+        response = self.requester._prepare_request('GET', 'eventDelegations/index/context:issued')
+        return [d for d in response.json() if int(d['EventDelegation']['event_id']) == int(self.event.id)]
+
+    def test_unauthorised_or_malformed_sharing_group_is_refused(self):
+        gone_status, gone = self._delegate(self.requester, self.event.id, distribution=4,
+                                           sharing_group_id=2147483646)
+        self._revoke(gone)
+        for what, value in (('id', int(self.hidden['id'])), ('uuid', self.hidden['uuid']),
+                            ('id with a suffix', '%sabc' % self.hidden['id'])):
+            status, body = self._delegate(self.requester, self.event.id, distribution=4,
+                                          sharing_group_id=value)
+            issued = self._issued()
+            self._revoke(body)
+            self.assertEqual(404, status, 'a sharing group the requester is not in was accepted by %s' % what)
+            for field in ('name', 'message'):
+                self.assertEqual(gone[field], body[field],
+                                 'an unauthorised sharing group is told apart from a missing one (%s)' % what)
+            self.assertEqual([], issued, 'a delegation was stored for the %s' % what)
+        self.assertEqual(404, gone_status, gone)
+
+    def test_own_sharing_group_is_kept_and_ignored_unless_distribution_4(self):
+        status, body = self._delegate(self.requester, self.event.id, distribution=4,
+                                      sharing_group_id=int(self.own['id']))
+        self.assertEqual(200, status, body)
+        self.assertEqual(int(self.own['id']), int(body['EventDelegation']['sharing_group_id']))
+        self.assertEqual(int(self.own['id']), int(self._issued()[0]['EventDelegation']['sharing_group_id']))
+        self.requester._prepare_request(
+            'POST', 'eventDelegations/deleteDelegation/%s' % body['EventDelegation']['id'])
+        status, body = self._delegate(self.requester, self.event.id, distribution=1,
+                                      sharing_group_id=int(self.own['id']))
+        self.assertEqual(200, status, body)
+        self.assertEqual(0, int(body['EventDelegation']['sharing_group_id']))
+
+    def test_site_admin_may_name_any_sharing_group(self):
+        event = MISPEvent()
+        event.info = 'regression delegation admin %s' % random()
+        event.distribution = 0
+        event = check_response(self.admin.add_event(event))
+        self.extra_uuids.append(event.uuid)
+        try:
+            status, body = self._delegate(self.admin, event.id, distribution=4,
+                                          sharing_group_id=int(self.hidden['id']))
+            self.assertEqual(200, status, body)
+            self.assertEqual(int(self.hidden['id']), int(body['EventDelegation']['sharing_group_id']))
+        finally:
+            self.doCleanups()
+            self.admin.delete_event(event)
+
+
 if __name__ == '__main__':
     unittest.main()
