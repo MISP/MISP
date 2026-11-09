@@ -1062,7 +1062,7 @@ function multiSelectExportEvents() {
             selected.push(temp);
         }
     });
-    openGenericModal(baseurl + "/events/restSearchExport/" + JSON.stringify(selected))
+    openGenericModalPost(baseurl + "/events/restSearchExport", {eventid: JSON.stringify(selected)});
 }
 
 function multiSelectToggleFeeds(on, cache) {
@@ -1356,6 +1356,7 @@ function openGenericModalPost(url, body) {
     $.ajax({
         data: body,
         type: "post",
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         url: url,
         success: function (data) {
             $('#genericModal').remove();

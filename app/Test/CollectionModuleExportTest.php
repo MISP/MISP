@@ -31,11 +31,19 @@ if (!class_exists('ClassRegistry', false)) {
     }
 }
 if (!class_exists('Configure', false)) {
-    class Configure { public static function read($key) { return null; } }
+    class Configure {
+        private static $values = [];
+        public static function read($key) { return self::$values[$key] ?? null; }
+        public static function write($key, $value) { self::$values[$key] = $value; }
+    }
 }
 if (!function_exists('__')) {
     function __($text, ...$args) { return $args ? vsprintf($text, $args) : $text; }
 }
+if (!class_exists('MethodNotAllowedException', false)) { class MethodNotAllowedException extends RuntimeException {} }
+if (!class_exists('BackgroundJobsTool', false)) { class BackgroundJobsTool { const CACHE_QUEUE = 'cache', CMD_EVENT = 'event'; } }
+require_once __DIR__ . '/../Lib/Tools/ModuleFeedExportTool.php';
+require_once __DIR__ . '/../Model/Job.php';
 require_once __DIR__ . '/../Controller/EventsController.php';
 require_once __DIR__ . '/../Model/Event.php';
 require_once __DIR__ . '/../Lib/Tools/JSONConverterTool.php';
@@ -43,6 +51,7 @@ require_once __DIR__ . '/../Lib/Tools/JSONConverterTool.php';
 class CollectionExportTestModule
 {
     public $allowed = true;
+    public $feed = false;
     public $sources = ['event', 'event-collection'];
     public $reply;
     public $payload;
@@ -54,7 +63,7 @@ class CollectionExportTestModule
         $this->user = $user;
         if (!$this->allowed || $name !== 'misp_feed') { return 'Disabled or restricted'; }
         return ['name' => $name, 'meta' => ['module-type' => ['export'], 'name' => 'MISP Feed Export',
-            'require_standard_format' => true, 'fetch_options' => ['includeAttachments' => true, 'eventid' => [999]]],
+            'collection_export' => $this->feed ? 'misp-feed-v1' : null, 'require_standard_format' => true, 'fetch_options' => ['includeAttachments' => true, 'eventid' => [999]]],
             'mispattributes' => ['inputSource' => $this->sources, 'responseType' => 'application/zip', 'outputFileExtension' => 'zip']];
     }
     public function getEnabledModules($user, $type, $family)
@@ -62,19 +71,22 @@ class CollectionExportTestModule
         return $this->listing ?? ['modules' => [$this->getEnabledModule('misp_feed', 'Export', $user),
             ['name' => 'single', 'meta' => ['name' => 'Single event'], 'mispattributes' => ['inputSource' => ['event']]]]];
     }
-    public function queryModuleServer($payload, $hover, $family) { $this->payload = $payload; return $this->reply; }
+    public function queryModuleServer($payload, $hover, $family, $throw = false) { $this->payload = $payload; return $this->reply; }
 }
 
 #[AllowDynamicProperties]
 class CollectionExportTestEvent extends Event
 {
     public $fetches = [];
+    public $rows;
     public $exports = [];
-    public function __construct() {}
+    public $background;
+    public function __construct() { $this->background = new CollectionExportTestBackgroundJobs(); }
+    public function getBackgroundJobsTool(): BackgroundJobsTool { return $this->background; }
     public function fetchEvent($user, $options = [], $useCache = false)
     {
         $this->fetches[] = [$user, $options];
-        return [['Event' => ['uuid' => '11111111-1111-4111-8111-111111111111', 'info' => 'Selected event'],
+        return $this->rows ?? [['Event' => ['uuid' => '11111111-1111-4111-8111-111111111111', 'info' => 'Selected event'],
             'Orgc' => ['uuid' => '22222222-2222-4222-8222-222222222222', 'name' => 'Creator'],
             'Attribute' => []]];
     }
@@ -90,6 +102,11 @@ class CollectionExportTestResponse
     public $content;
     public $mime;
     public $filename;
+    public $code;
+    public $filePath;
+    public function statusCode($code) { $this->code = $code; }
+    public function header($name, $value) {}
+    public function file($path, $options = []) { $this->filePath = $path; }
     public function body($value) { $this->content = $value; }
     public function type($value) { $this->mime = $value; }
     public function download($value) { $this->filename = $value; }
@@ -99,6 +116,8 @@ class CollectionExportTestResponse
 class CollectionExportTestController extends EventsController
 {
     public $values = [];
+    public $tool;
+    public $rest = false;
     public function __construct($module)
     {
         $this->Module = $module;
@@ -106,11 +125,40 @@ class CollectionExportTestController extends EventsController
         $this->Event = new CollectionExportTestEvent();
         $this->Auth = new class { public function user() { return ['id' => 7, 'org_id' => 2]; } };
         $this->response = new CollectionExportTestResponse();
+        $this->request = new class {
+            public $post = false;
+            public $data = [];
+            public $base = '';
+            public function is($type) { return $type === 'post' && $this->post; }
+        };
+        $this->Job = new CollectionExportTestJob();
     }
+    protected function moduleFeedTool() { return $this->tool; }
+    public function _isRest() { return $this->rest; }
+    public function redirect($url, $status = null, $exit = true) { return $url; }
     public function loadModel($modelClass = null, $id = null) { return true; }
     public function set($one, $two = null) { $this->values[$one] = $two; }
     public function render($view = null, $layout = null) { return null; }
     protected function _jsonDecode($dataToDecode) { return json_decode($dataToDecode, true); }
+}
+
+class CollectionExportTestBackgroundJobs extends BackgroundJobsTool
+{
+    public $calls = [];
+    public function __construct() {}
+    public function enqueue(string $queue, string $command, array $args = [], $trackStatus = null,
+        int $jobId = null, array $metadata = []): string
+    {
+        $this->calls[] = [$queue, $command, $args];
+        return 'queued';
+    }
+}
+
+class CollectionExportTestJob
+{
+    public function createJob($user, $queue, $type, $input, $message) { return 101; }
+    public function saveStatus($id, $success, $message) {}
+    public function find($type, $options) { return []; }
 }
 
 class CollectionModuleExportTest extends TestCase
@@ -164,7 +212,7 @@ class CollectionModuleExportTest extends TestCase
     }
     public static function invalidSelections(): array
     {
-        return [[null], ['[]'], ['{}'], ['[0]'], ['[true]'], ['[[1]]'], ['["1 OR 1=1"]'], ['{"id":1}'], ['not-json']];
+        return [[null], ['[]'], ['{}'], ['[0]'], ['[true]'], ['[[1]]'], ['["1 OR 1=1"]'], ['{"id":1}'], ['not-json'], ['["11111111-1111-4111-8111-111111111111"]']];
     }
 
     /** @dataProvider unavailableModules */
@@ -198,6 +246,112 @@ class CollectionModuleExportTest extends TestCase
         }
     }
     public static function errorReplies(): array { return [[false], [['error' => 'No events pass filters']], [[]], [['data' => []]], [['data' => 'bad%base64']]]; }
+
+    public function testBackgroundFeedSubmissionDoesNotFetchOrSerializeEvents()
+    {
+        Configure::write('MISP.background_jobs', true);
+        $module = new CollectionExportTestModule(); $module->feed = true;
+        $controller = new CollectionExportTestController($module);
+        $root = sys_get_temp_dir() . '/feed-queue-' . bin2hex(random_bytes(8));
+        $controller->tool = new ModuleFeedExportTool($root);
+        $controller->rest = true;
+        $controller->request->post = true;
+        $selection = range(1, 5000);
+        $controller->request->data = ['Event' => ['eventid' => json_encode($selection), 'returnFormat' => 'module_misp_feed']];
+        try {
+            $response = $controller->restSearchExport();
+            $this->assertSame(202, $response->code);
+            $this->assertSame('queued', json_decode($response->content, true)['status']);
+            $this->assertSame([], $controller->Event->fetches);
+            $this->assertNull($module->payload);
+            $this->assertSame([['cache', 'event', ['exportModuleFeed', 7, 101]]], $controller->Event->background->calls);
+            $this->assertSame($selection, $controller->tool->request(101)['selection']);
+        } finally {
+            foreach (glob($root . '/101/*') ?: [] as $file) { unlink($file); }
+            rmdir($root . '/101'); rmdir($root);
+            Configure::write('MISP.background_jobs', false);
+        }
+    }
+
+    public function testLargeSelectionDialogAcceptsPostBodyInsteadOfLongUrl()
+    {
+        $controller = new CollectionExportTestController(new CollectionExportTestModule());
+        $controller->request->post = true;
+        $controller->request->data = ['eventid' => range(1, 5000)];
+        $controller->restSearchExport();
+        $this->assertCount(5000, $controller->values['idList']);
+        $this->assertSame([], $controller->Event->fetches);
+    }
+
+    public function testFeedQueueRequiresPostAndBackgroundWorkers()
+    {
+        $module = new CollectionExportTestModule(); $module->feed = true;
+        $controller = new CollectionExportTestController($module);
+        foreach ([false, true] as $post) {
+            $controller->request->post = $post;
+            try {
+                $controller->restSearchExport('[1,2]', 'module_misp_feed');
+                $this->fail('Feed submission must not fall back to synchronous generation.');
+            } catch (MethodNotAllowedException $e) { $this->assertSame([], $controller->Event->fetches); }
+        }
+    }
+
+    public function testWorkerRequestsOnlyOneSelectedEventPerModuleCall()
+    {
+        $module = new CollectionExportTestModule();
+        $controller = new CollectionExportTestController($module);
+        $controller->Event->Module = $module;
+        $desc = $module->getEnabledModule('misp_feed', 'Export', ['id' => 7]);
+        $controller->Event->exportFeedPart(['id' => 7], $desc, 123);
+        $this->assertSame(123, $controller->Event->fetches[0][1]['eventid']);
+        $this->assertTrue($module->payload['feed_chunk']);
+        $this->assertCount(1, $module->payload['data']);
+    }
+
+    public function testFeedTransportPreservesAssociationLocalFlags()
+    {
+        $module = new CollectionExportTestModule();
+        $controller = new CollectionExportTestController($module);
+        $controller->Event->Module = $module;
+        $controller->Event->rows = [['Event' => ['uuid' => '11111111-1111-4111-8111-111111111111'],
+            'EventTag' => [['local' => true, 'Tag' => ['name' => 'local-event']]],
+            'Attribute' => [['AttributeTag' => [['local' => true, 'Tag' => ['name' => 'local-attribute']]]]]]];
+        $desc = $module->getEnabledModule('misp_feed', 'Export', ['id' => 7]);
+        $desc['meta']['require_standard_format'] = false;
+        $controller->Event->exportFeedPart(['id' => 7], $desc, 1);
+        $this->assertTrue($module->payload['data'][0]['EventTag'][0]['local']);
+        $this->assertTrue($module->payload['data'][0]['Attribute'][0]['AttributeTag'][0]['local']);
+    }
+
+    public function testProgressIsSmallAndDownloadUsesFileStreaming()
+    {
+        $path = getenv('MISP_FEED_TEST_PART');
+        if (!$path) { $this->markTestSkipped('Set MISP_FEED_TEST_PART for native part integration.'); }
+        $module = new CollectionExportTestModule();
+        $controller = new CollectionExportTestController($module);
+        $root = sys_get_temp_dir() . '/feed-download-' . bin2hex(random_bytes(8));
+        $controller->tool = new ModuleFeedExportTool($root);
+        $controller->tool->create(102, ['id' => 7], 'misp_feed', [1]);
+        try {
+            $controller->tool->generate(102, function () use ($controller, $path) {
+                $status = $controller->moduleExportStatus(102);
+                $this->assertSame('running', json_decode($status->content, true)['status']);
+                $this->assertLessThan(4096, strlen($status->content));
+                return json_decode(file_get_contents($path), true);
+            });
+            $controller->response = new CollectionExportTestResponse();
+            $download = $controller->downloadModuleExport(102);
+            $this->assertFileExists($download->filePath);
+            $this->assertNull($download->content);
+            $this->assertSame('application/zip', $download->mime);
+            $controller->Auth = new class { public function user() { return ['id' => 8]; } };
+            try { $controller->downloadModuleExport(102); $this->fail('Another user must not download this feed'); }
+            catch (RuntimeException $e) { $this->assertStringContainsString('not found', $e->getMessage()); }
+        } finally {
+            foreach (glob($root . '/102/*') ?: [] as $file) { unlink($file); }
+            rmdir($root . '/102'); rmdir($root);
+        }
+    }
 
     public function testPythonGeneratedFeedArchiveSurvivesTheControllerByteForByte()
     {
