@@ -2187,28 +2187,25 @@ class Event extends AppModel
         );
         foreach ($attributeConditions as $attributeCondition) {
             $subQueryOptions = array(
-                'conditions' => $attributeCondition,
+                'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', $attributeCondition),
                 'fields' => array('event_id')
             );
             $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
         }
-        $tagScopes = array('Event', 'Attribute');
-        $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $tagIds = $this->AttributeTag->Tag->find('column', array(
+        $tagIds = $this->EventTag->Tag->find('column', array(
             'recursive' => -1,
             'conditions' => array('Tag.name LIKE' => $params['wildcard']),
             'fields' => array('Tag.id')
         ));
         if (!empty($tagIds)) {
-            foreach ($tagScopes as $tagScope) {
-                $subQueryOptions = array(
-                    'conditions' => array(
-                        'tag_id' => $tagIds,
-                    ),
-                    'fields' => array('event_id')
-                );
-                $tempConditions[] = $this->subQueryGenerator($this->{$tagScope . 'Tag'}, $subQueryOptions, 'Event.id');
-            }
+            $subQueryOptions = array(
+                'conditions' => array(
+                    'tag_id' => $tagIds,
+                ),
+                'fields' => array('event_id')
+            );
+            $tempConditions[] = $this->subQueryGenerator($this->EventTag, $subQueryOptions, 'Event.id');
+            $tempConditions[] = $this->visibleAttributeTagSubquery($options['user'], $tagIds);
         }
         return $tempConditions;
     }
@@ -2278,7 +2275,8 @@ class Event extends AppModel
                 'filter' => 'wildcard',
                 'scope' => 'Event',
                 'pop' => false,
-                'context' => 'Event'
+                'context' => 'Event',
+                'user' => $user
             );
             $conditions['AND'][] = array('OR' => $this->set_filter_wildcard($params, $temp, $options));
         } else {
@@ -2331,7 +2329,8 @@ class Event extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Event'
+                            'context' => 'Event',
+                            'user' => $user
                         );
                         if (!empty($simple_param_scoped[$param]['skip_neg'])) {
                             $options['skip_neg'] = true;
@@ -2343,7 +2342,7 @@ class Event extends AppModel
                             $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $options);
                             if (!empty($temp)) {
                                 $subQueryOptions = array(
-                                    'conditions' => $temp,
+                                    'conditions' => $this->visibleElementConditions($user, $this->{$scope}->alias, $temp),
                                     'fields' => array(
                                         'event_id'
                                     )
@@ -2361,7 +2360,8 @@ class Event extends AppModel
                     'filter' => 'value',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Event'
+                    'context' => 'Event',
+                    'user' => $user
                 );
                 $conditions = $this->set_filter_value($params, $conditions, $options);
             }
@@ -2370,7 +2370,8 @@ class Event extends AppModel
                     'filter' => 'value_cidr',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Event'
+                    'context' => 'Event',
+                    'user' => $user
                 );
                 $conditions = $this->set_filter_value_cidr($params, $conditions, $options);
             }
@@ -2379,7 +2380,8 @@ class Event extends AppModel
                     'filter' => 'value_search',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Event'
+                    'context' => 'Event',
+                    'user' => $user
                 );
                 $conditions = $this->set_filter_value_search($params, $conditions, $options);
             }
@@ -6851,7 +6853,11 @@ class Event extends AppModel
                 $params['uuid'] = $this->convert_filters($params['uuid']);
                 if (!empty($params['uuid']['OR'])) {
                     $subQueryOptions = array(
-                        'conditions' => array('Attribute.uuid' => $params['uuid']['OR']),
+                        'conditions' => $this->visibleElementConditions(
+                            $options['user'],
+                            'Attribute',
+                            array('Attribute.uuid' => $params['uuid']['OR'])
+                        ),
                         'fields' => array('event_id')
                     );
                     $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -6864,7 +6870,11 @@ class Event extends AppModel
                 }
                 if (!empty($params['uuid']['NOT'])) {
                     $subQueryOptions = array(
-                        'conditions' => array('Attribute.uuid' => $params['uuid']['NOT']),
+                        'conditions' => $this->visibleElementConditions(
+                            $options['user'],
+                            'Attribute',
+                            array('Attribute.uuid' => $params['uuid']['NOT'])
+                        ),
                         'fields' => array('event_id')
                     );
                     $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -7327,7 +7337,7 @@ class Event extends AppModel
             case 'OR':
             case 'NOT':
                 $subquery_options = [
-                  'conditions' => $scope + $match($values),
+                  'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', $scope + $match($values)),
                   'fields' => [
                     $field,
                   ],
@@ -7351,7 +7361,7 @@ class Event extends AppModel
             case 'AND':
                 foreach ($values as $v) {
                     $subquery_options = [
-                      'conditions' => $scope + $match([$v]),
+                      'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', $scope + $match([$v])),
                       'fields' => [
                         $field,
                       ],
@@ -7367,6 +7377,114 @@ class Event extends AppModel
         }
 
         return $conditions;
+    }
+
+    /**
+     * Narrows a subquery on attributes or objects to the elements the user can
+     * see, by the rules of MispAttribute::buildConditions(). The outer query
+     * has already checked that the event holding them is visible.
+     *
+     * @param array $user
+     * @param string $alias Attribute or Object
+     * @param array $conditions on the element
+     * @return array
+     */
+    public function visibleElementConditions(array $user, $alias, array $conditions)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return $conditions;
+        }
+        $sgIds = $this->SharingGroup->authorizedIds($user);
+        $rules = [$this->elementDistributionRules($alias, $sgIds)];
+        if ($alias === 'Attribute') {
+            $rules[] = ['OR' => [
+                'Attribute.object_id' => 0,
+                $this->subQueryGenerator($this->Object, [
+                    'fields' => ['Object.id'],
+                    'conditions' => $this->elementDistributionRules('Object', $sgIds),
+                ], 'Attribute.object_id'),
+            ]];
+        }
+        // fetchEvent() hands soft-deleted elements to sync users that ask
+        if (!$user['Role']['perm_sync']) {
+            $rules[] = [$alias . '.deleted' => 0];
+        }
+        $ownEvents = $this->subQueryGenerator($this, [
+            'alias' => 'OwnEvent',
+            'fields' => ['OwnEvent.id'],
+            'conditions' => ['OwnEvent.org_id' => $user['org_id']],
+        ], $alias . '.event_id');
+        return [$conditions, ['OR' => [$ownEvents, ['AND' => $rules]]]];
+    }
+
+    /**
+     * Events holding an attribute that the user can see and that carries one
+     * of the tags.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array
+     */
+    public function visibleAttributeTagSubquery(array $user, array $tagIds)
+    {
+        return $this->subQueryGenerator($this->Attribute->AttributeTag, [
+            'fields' => ['AttributeTag.event_id'],
+            'conditions' => $this->visibleAttributeTagConditions($user, $tagIds),
+        ], 'Event.id');
+    }
+
+    /**
+     * Ids of the events holding an attribute that the user can see and that
+     * carries one of the tags.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array
+     */
+    public function visibleAttributeTagEventIds(array $user, array $tagIds)
+    {
+        return $this->Attribute->AttributeTag->find('column', [
+            'fields' => ['AttributeTag.event_id'],
+            'conditions' => $this->visibleAttributeTagConditions($user, $tagIds),
+            'unique' => true,
+        ]);
+    }
+
+    /**
+     * @param array $user
+     * @param array $tagIds
+     * @return array conditions on AttributeTag
+     */
+    private function visibleAttributeTagConditions(array $user, array $tagIds)
+    {
+        $conditions = ['AttributeTag.tag_id' => $tagIds];
+        if (!$user['Role']['perm_site_admin']) {
+            // Driven by the tag rows, one primary key probe each: driven by the
+            // attributes, MariaDB walked every attribute of every visible event
+            $conditions[] = $this->subQueryGenerator($this->Attribute, [
+                'fields' => ['Attribute.id'],
+                'conditions' => $this->visibleElementConditions(
+                    $user, 'Attribute', ['Attribute.id = AttributeTag.attribute_id']
+                ),
+            ], 'AttributeTag.attribute_id');
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param string $alias
+     * @param array $sgIds
+     * @return array
+     */
+    private function elementDistributionRules($alias, array $sgIds)
+    {
+        return ['OR' => [
+            $alias . '.distribution' => [1, 2, 3, 5],
+            'AND' => [
+                $alias . '.distribution' => 4,
+                $alias . '.sharing_group_id' => $sgIds,
+            ],
+        ]];
     }
 
     /**

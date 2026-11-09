@@ -378,6 +378,7 @@ class AttributesController extends AppController
                 'scope' => $scope,
                 'pop' => $pop,
                 'context' => 'Attribute',
+                'user' => $this->Auth->user(),
             ]);
         }
         return $conditions;

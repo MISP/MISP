@@ -169,7 +169,7 @@ class MispObject extends AppModel
         return self::$hasLiveObjectIndex ? 'idx_event_deleted_name' : null;
     }
 
-    public function buildFilterConditions(&$params)
+    public function buildFilterConditions(array $user, &$params)
     {
         $conditions = [];
         if (isset($params['wildcard'])) {
@@ -239,17 +239,18 @@ class MispObject extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Object'
+                            'context' => 'Object',
+                            'user' => $user
                         );
                         if ($scope === 'Attribute') {
                             $subQueryOptions = array(
                                 'fields' => ['Attribute.object_id'],
                                 'group' => 'Attribute.object_id',
                                 'recursive' => -1,
-                                'conditions' => array(
+                                'conditions' => $this->Event->visibleElementConditions($user, 'Attribute', array(
                                     'Attribute.object_id NOT' => 0,
                                     $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options)
-                                )
+                                ))
                             );
                             $conditions['AND'][] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id');
                         } else {
@@ -265,7 +266,8 @@ class MispObject extends AppModel
                     'filter' => 'value',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Object'
+                    'context' => 'Object',
+                    'user' => $user
                 );
                 $conditions = $this->Event->set_filter_value($params, $conditions, $options);
             }
@@ -274,7 +276,8 @@ class MispObject extends AppModel
                     'filter' => 'value_cidr',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Object'
+                    'context' => 'Object',
+                    'user' => $user
                 );
                 $conditions = $this->Event->set_filter_value_cidr($params, $conditions, $options);
             }
@@ -283,7 +286,8 @@ class MispObject extends AppModel
                     'filter' => 'value_search',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Object'
+                    'context' => 'Object',
+                    'user' => $user
                 );
                 $conditions = $this->Event->set_filter_value_search($params, $conditions, $options);
             }
@@ -2407,7 +2411,7 @@ class MispObject extends AppModel
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
-        $conditions = $this->buildFilterConditions($filters);
+        $conditions = $this->buildFilterConditions($user, $filters);
         $blockedTagIds = [];
         if ($complexQuery !== null) {
             App::uses('ComplexObjectQueryTool', 'Tools');

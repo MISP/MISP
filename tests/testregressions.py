@@ -15,6 +15,7 @@ import sys
 import json
 import time
 import uuid as uuidlib
+from urllib.parse import quote
 import unittest
 import warnings
 
@@ -723,6 +724,172 @@ class SoftDeletedReportsAcl(unittest.TestCase):
         self.assertEqual(200, self._view(self.owner, 'gone').status_code)
         self.assertEqual([self.report_ids['gone']], self._index(self.owner, 'deleted'))
         self.assertEqual(sorted(self.report_ids.values()), self._index(self.owner, 'all'))
+
+
+class EventSearchAttributeAcl(unittest.TestCase):
+    """Event and object searches select on the attributes the user can see.
+
+    events/restSearch and objects/restSearch selected an event (or object) through attribute
+    and object subqueries that carried neither the attribute ACL nor the deleted scope, so
+    whether it came back told a user who could see the event what its organisation-only,
+    sharing-group, soft-deleted or organisation-only-object elements held: value (also as a
+    prefix, one character at a time), searchall, tags and type, and value with NOT in reverse.
+    The event index's tag, galaxy and quick filters did the same with the tags of hidden
+    attributes.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.owner_org = make_org(cls.admin, 'regression event search owner org')
+        cls.outsider_org = make_org(cls.admin, 'regression event search outsider org')
+        cls.created_orgs = [cls.owner_org, cls.outsider_org]
+        cls.owner_user = make_user(cls.admin, cls.owner_org.id, cls.role_id)
+        cls.outsider_user = make_user(cls.admin, cls.outsider_org.id, cls.role_id)
+        cls.created_users = [cls.owner_user, cls.outsider_user]
+        cls.owner = PyMISP(url, cls.owner_user.authkey)
+        cls.owner.global_pythonify = True
+        cls.outsider = PyMISP(url, cls.outsider_user.authkey)
+        cls.outsider.global_pythonify = True
+        cls.tag_id = cls.cluster_tag_id = cls.galaxy = None
+        cls._seed()
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+        if cls.tag_id:
+            send(cls.admin, 'POST', 'tags/delete/%d' % cls.tag_id, check_errors=False)
+
+    @classmethod
+    def _seed(cls):
+        """A community event of the owner org holding a shared attribute, an organisation-only
+        tagged one, a soft-deleted one, a shared object with a shared and an
+        organisation-only attribute, and an organisation-only object holding a shared one."""
+        event = MISPEvent()
+        event.info = 'regression event search acl %s' % random()
+        event.distribution = 1        # community, so the outsider can open it
+        cls.event = check_response(cls.owner.add_event(event))
+        cls.event_id = int(cls.event.id)
+
+        cls.values = {name: '%s-%s' % (name, random())
+                      for name in ('kept', 'hidden', 'gone', 'objkept', 'objhidden', 'inobj')}
+        cls.values['inobj'] += '.example.com'
+        cls.tag = 'regression-hidden-%s' % random()
+        tag = send(cls.admin, 'POST', 'tags/add', data={'name': cls.tag})
+        cls.tag_id = int(tag['Tag']['id'] if 'Tag' in tag else tag['id'])
+
+        def attribute(name, distribution):
+            return check_response(cls.owner.add_attribute(
+                cls.event.id, {'type': 'text', 'value': cls.values[name],
+                               'distribution': distribution}))
+
+        attribute('kept', 5)
+        hidden = attribute('hidden', 0)
+        send(cls.admin, 'POST', 'tags/attachTagToObject',
+             data={'uuid': hidden.uuid, 'tag': cls.tag})
+        cls._attach_cluster_tag(hidden)
+        gone = attribute('gone', 5)
+        check_response(cls.owner.delete_attribute(int(gone.id)))
+
+        shared = MISPObject('file')
+        shared.distribution = 5
+        shared.add_attribute('filename', value=cls.values['objkept'], distribution=5)
+        shared.add_attribute('filename', value=cls.values['objhidden'], distribution=0)
+        shared = check_response(cls.owner.add_object(cls.event.id, shared))
+        cls.object_id = int(shared.id)
+
+        private = MISPObject('domain-ip')
+        private.distribution = 0
+        private.add_attribute('domain', value=cls.values['inobj'], distribution=5)
+        check_response(cls.owner.add_object(cls.event.id, private))
+
+    @classmethod
+    def _attach_cluster_tag(cls, attribute):
+        for galaxy in send(cls.admin, 'GET', 'galaxies/index'):
+            galaxy = galaxy['Galaxy']
+            clusters = send(cls.admin, 'GET', 'galaxy_clusters/index/%s' % galaxy['id'])
+            if clusters:
+                break
+        else:
+            return
+        cluster_tag = clusters[0]['GalaxyCluster']['tag_name']
+        known = {t['name']: int(t['id']) for t in send(cls.admin, 'GET', 'tags/index')['Tag']}
+        send(cls.admin, 'POST', 'tags/attachTagToObject',
+             data={'uuid': attribute.uuid, 'tag': cluster_tag})
+        if cluster_tag not in known:
+            cls.cluster_tag_id = int(next(t['id'] for t in send(cls.admin, 'GET', 'tags/index')['Tag']
+                                          if t['name'] == cluster_tag))
+        cls.galaxy = galaxy['name']
+
+    def _events(self, connector, **filters):
+        data = dict(filters, eventid=self.event_id, returnFormat='json', metadata=True)
+        response = connector._prepare_request('POST', 'events/restSearch', data=data)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return [int(e['Event']['id']) for e in response.json()['response']]
+
+    def _objects(self, connector, name):
+        data = {'eventid': self.event_id, 'value': self.values[name], 'returnFormat': 'json'}
+        response = connector._prepare_request('POST', 'objects/restSearch', data=data)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return [int(o['Object']['id']) for o in response.json()['response']]
+
+    def test_outsider_matches_only_the_elements_it_sees(self):
+        v = self.values
+        self.assertIn(self.event_id, self._events(self.outsider, value=v['kept']),
+                      'the outsider cannot search the event at all, so the test proves nothing')
+        probes = {
+            "an organisation-only attribute's value": {'value': v['hidden']},
+            "the prefix of an organisation-only attribute's value": {'value': v['hidden'][:8] + '%'},
+            "an organisation-only attribute's value through searchall": {'searchall': v['hidden']},
+            "a tag carried only by an organisation-only attribute": {'tags': [self.tag]},
+            "a soft-deleted attribute's value": {'value': v['gone']},
+            "the attribute value of an organisation-only object": {'value': v['inobj']},
+        }
+        for what, filters in probes.items():
+            self.assertNotIn(self.event_id, self._events(self.outsider, **filters),
+                             'the outsider selected the event through %s' % what)
+        self.assertIn(self.event_id, self._events(self.outsider, value={'NOT': [v['hidden']]}),
+                      "an organisation-only attribute's value excluded the event through NOT")
+
+    def test_outsider_object_search_matches_only_visible_attributes(self):
+        self.assertIn(self.object_id, self._objects(self.outsider, 'objkept'),
+                      'the outsider cannot search the object at all, so the test proves nothing')
+        self.assertNotIn(self.object_id, self._objects(self.outsider, 'objhidden'),
+                         "an organisation-only attribute's value selected the object")
+
+    def _indexed(self, connector, galaxy=None, **filters):
+        path = 'events/index' + ('/searchgalaxy:' + quote(galaxy, safe='') if galaxy else '')
+        data = dict(filters, eventid=self.event_id)
+        response = connector._prepare_request('POST', path, data=data)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return [int(e['id']) for e in response.json()]
+
+    def test_outsider_event_index_matches_only_visible_tags(self):
+        if not self.galaxy:
+            self.skipTest('no galaxy cluster is loaded')
+        self.assertIn(self.event_id, self._indexed(self.outsider),
+                      'the outsider cannot list the event at all, so the test proves nothing')
+        probes = {
+            'the tag filter': {'tags': [self.tag]},
+            'the quick filter': {'all': self.tag},
+            'the galaxy filter': {'galaxy': self.galaxy},
+        }
+        for what, filters in probes.items():
+            self.assertNotIn(self.event_id, self._indexed(self.outsider, **filters),
+                             "the outsider selected the event through an organisation-only attribute's tag in %s" % what)
+        self.assertIn(self.event_id, self._indexed(self.outsider, galaxy='!' + self.galaxy),
+                      "an organisation-only attribute's tag excluded the event through the galaxy block")
+        self.assertIn(self.event_id, self._indexed(self.owner, tags=[self.tag]))
+
+    def test_owner_and_site_admin_keep_their_matches(self):
+        v = self.values
+        self.assertIn(self.event_id, self._events(self.owner, value=v['hidden']))
+        self.assertIn(self.event_id, self._events(self.owner, tags=[self.tag]))
+        self.assertIn(self.event_id, self._events(self.admin, value=v['hidden']))
+        self.assertIn(self.event_id, self._events(self.admin, value=v['gone']))
 
 
 if __name__ == '__main__':

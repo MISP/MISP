@@ -451,7 +451,7 @@ class AttributeValueFilterDbTest extends TestCase
     private function objectIds(array $params, array $objects)
     {
         $object = $this->attribute->Event->Object;
-        $conditions = $object->buildFilterConditions($params);
+        $conditions = $object->buildFilterConditions($this->user, $params);
         $found = $object->fetchObjects($this->user, [
             'conditions' => ['AND' => [['Object.id' => $objects], $conditions]],
             'metadata' => 1,
