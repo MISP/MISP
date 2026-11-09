@@ -775,7 +775,8 @@ class EventSearchAttributeAcl(unittest.TestCase):
         cls.event_id = int(cls.event.id)
 
         cls.values = {name: '%s-%s' % (name, random())
-                      for name in ('kept', 'hidden', 'gone', 'objkept', 'objhidden', 'inobj')}
+                      for name in ('kept', 'hidden', 'gone', 'objkept', 'objhidden', 'objcomment',
+                                   'inobj')}
         cls.values['inobj'] += '.example.com'
         cls.tag = 'regression-hidden-%s' % random()
         tag = send(cls.admin, 'POST', 'tags/add', data={'name': cls.tag})
@@ -797,9 +798,15 @@ class EventSearchAttributeAcl(unittest.TestCase):
         shared = MISPObject('file')
         shared.distribution = 5
         shared.add_attribute('filename', value=cls.values['objkept'], distribution=5)
-        shared.add_attribute('filename', value=cls.values['objhidden'], distribution=0)
+        shared.add_attribute('filename', value=cls.values['objhidden'], distribution=0,
+                             comment=cls.values['objcomment'])
         shared = check_response(cls.owner.add_object(cls.event.id, shared))
         cls.object_id = int(shared.id)
+        objhidden = next(a for a in shared.Attribute if a.value == cls.values['objhidden'])
+        attached = send(cls.admin, 'POST', 'tags/attachTagToObject',
+                        data={'uuid': objhidden.uuid, 'tag': cls.tag})
+        if not attached.get('saved'):
+            raise Exception('the tag was not attached to the hidden object attribute: %s' % attached)
 
         private = MISPObject('domain-ip')
         private.distribution = 0
@@ -836,6 +843,14 @@ class EventSearchAttributeAcl(unittest.TestCase):
         self.assertEqual(200, response.status_code, response.text[:300])
         return [int(o['Object']['id']) for o in response.json()['response']]
 
+    def _objects_searchall(self, connector, pattern):
+        # searchall is not whitelisted in the body of objects/restSearch, only in the query string
+        data = {'eventid': self.event_id, 'returnFormat': 'json'}
+        response = connector._prepare_request(
+            'POST', 'objects/restSearch?searchall=%s' % quote(pattern, safe=''), data=data)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return [int(o['Object']['id']) for o in response.json()['response']]
+
     def test_outsider_matches_only_the_elements_it_sees(self):
         v = self.values
         self.assertIn(self.event_id, self._events(self.outsider, value=v['kept']),
@@ -859,6 +874,25 @@ class EventSearchAttributeAcl(unittest.TestCase):
                       'the outsider cannot search the object at all, so the test proves nothing')
         self.assertNotIn(self.object_id, self._objects(self.outsider, 'objhidden'),
                          "an organisation-only attribute's value selected the object")
+
+    def test_outsider_object_searchall_matches_only_visible_attributes(self):
+        v = self.values
+        self.assertIn(self.object_id, self._objects_searchall(self.outsider, v['objkept']),
+                      'the outsider cannot search the object through searchall, so the test '
+                      'proves nothing')
+        probes = {
+            "an organisation-only attribute's value": v['objhidden'],
+            "the prefix of an organisation-only attribute's value": v['objhidden'][:8] + '%',
+            "an organisation-only attribute's comment": v['objcomment'],
+            "a tag carried only by an organisation-only attribute": self.tag,
+        }
+        for what, pattern in probes.items():
+            with self.subTest(what):
+                self.assertNotIn(self.object_id, self._objects_searchall(self.outsider, pattern),
+                                 'the outsider selected the object through searchall on %s' % what)
+        for who, connector in (('owner', self.owner), ('admin', self.admin)):
+            with self.subTest(who):
+                self.assertIn(self.object_id, self._objects_searchall(connector, v['objhidden']))
 
     def _indexed(self, connector, galaxy=None, **filters):
         path = 'events/index' + ('/searchgalaxy:' + quote(galaxy, safe='') if galaxy else '')
