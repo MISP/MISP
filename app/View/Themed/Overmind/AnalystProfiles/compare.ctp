@@ -29,7 +29,6 @@ echo $this->element('genericElementsBS5/Forms/modal_header', array(
     'accent' => 'primary',
     'bleed' => true,
     'align' => 'between',
-    'hint' => __('It computes; it writes nothing.'),
     'cancel' => array('label' => __('Close'), 'icon' => 'fas fa-xmark'),
     'submit' => false,
 )) ?>

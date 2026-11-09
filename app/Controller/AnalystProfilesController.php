@@ -635,14 +635,24 @@ class AnalystProfilesController extends AppController
         $user = $this->Auth->user();
         $profile = $this->__profileOr404($user, $id);
         $this->__setRail($user, $profile);
-        return $this->__payload(
-            $this->__board($user, $profile, false),
-            'view'
-        );
+        $board = $this->__board($user, $profile, false);
+        // The board alone, redrawn after an inline save, and the About modal.
+        $fragment = $this->request->is('ajax') && !$this->_isRest()
+            && isset($this->request->query['fragment'])
+            ? (string)$this->request->query['fragment']
+            : '';
+        if ($fragment === 'board' || $fragment === 'about') {
+            $this->layout = false;
+            $this->set($board);
+            return $this->render($fragment);
+        }
+        return $this->__payload($board, 'view');
     }
 
     /**
-     * The per-section editor. GET describes the form; POST applies it.
+     * The inline editor's endpoint. An ajax GET answers one section with
+     * its inputs, which the view swaps in a parameter at a time; any
+     * other browser GET goes back to the view. POST applies the change.
      *
      * Three ways in, and they are deliberately different shapes:
      *
@@ -669,13 +679,20 @@ class AnalystProfilesController extends AppController
                 . ' the copy.'
             ));
         }
-        // Set before any render: a refused save draws the editor again.
+        // Set before any render: a refused paste draws the view again.
         $this->__setRail($user, $profile);
         if (!$this->request->is(array('post', 'put'))) {
-            return $this->__payload(
-                $this->__board($user, $profile, true),
-                'edit'
-            );
+            if ($this->_isRest()) {
+                return $this->__payload($this->__board($user, $profile, true));
+            }
+            if ($this->request->is('ajax')) {
+                $this->layout = false;
+                $this->set($this->__board($user, $profile, true));
+                return $this->render('edit_fragment');
+            }
+            return $this->redirect(array('action' => 'view', $row['id'],
+                '?' => array_intersect_key($this->request->query,
+                    array_flip(array('value', 'section')))));
         }
 
         $posted = isset($this->request->data['AnalystProfile'])
@@ -688,7 +705,7 @@ class AnalystProfilesController extends AppController
         if (array_key_exists('parameters_json', $posted)) {
             $parsed = $form->parse($posted['parameters_json']);
             if (empty($parsed['ok'])) {
-                $board = $this->__board($user, $profile, true);
+                $board = $this->__board($user, $profile, false);
                 $board['raw'] = $posted['parameters_json'];
                 $board['parse'] = array(
                     'error' => $parsed['error'],
@@ -699,7 +716,7 @@ class AnalystProfilesController extends AppController
                 $board['open_section'] = 'raw';
                 return $this->__refuse(array($parsed['error']), array(
                     'parse' => $board['parse'],
-                ), array('view' => 'edit', 'vars' => $board));
+                ), array('view' => 'view', 'vars' => $board));
             }
             $parameters = $parsed['parameters'];
         } elseif (isset($posted['parameters'])
@@ -712,15 +729,15 @@ class AnalystProfilesController extends AppController
 
         $checked = $form->validate($parameters);
         if (!empty($checked['errors'])) {
-            $candidate = $profile;
-            $candidate['AnalystProfile']['parameters'] = $parameters;
+            $board = $this->__board($user, $profile, false);
+            if (array_key_exists('parameters_json', $posted)) {
+                $board['raw'] = $posted['parameters_json'];
+                $board['open_section'] = 'raw';
+            }
             return $this->__refuse($checked['errors'], array(
                 'warnings' => $checked['warnings'],
                 'bands' => $form->bandStrip($parameters),
-            ), array(
-                'view' => 'edit',
-                'vars' => $this->__board($user, $candidate, true),
-            ));
+            ), array('view' => 'view', 'vars' => $board));
         }
 
         $save = array('id' => $row['id']);
@@ -769,9 +786,9 @@ class AnalystProfilesController extends AppController
                     . ' revision did not move.'),
             // Back to the profile, still read against the value the edit was judged on.
             array('action' => 'view', $row['id'],
-                '?' => $benched === null
-                    ? array()
-                    : array('value' => $benched))
+                '?' => ($benched === null ? array() : array('value' => $benched))
+                    + (array_key_exists('parameters_json', $posted)
+                        ? array('section' => 'raw') : array()))
         );
     }
 
@@ -1748,6 +1765,7 @@ class AnalystProfilesController extends AppController
         $builds = 0;
         $rows = array();
         $detail = null;
+        $verdict = null;
         foreach ($values as $index => $value) {
             $scored = $this->__scorePair($engine, $user, $value, $inForce,
                 $candidate, $builds);
@@ -1761,6 +1779,8 @@ class AnalystProfilesController extends AppController
                     $scored['before'],
                     $scored['after']
                 );
+                // The value's own reading under this profile, drawn as the value page draws it.
+                $verdict = $scored['after'];
             }
         }
         return array(
@@ -1776,6 +1796,7 @@ class AnalystProfilesController extends AppController
             'values' => $values,
             'focus' => $focus,
             'detail' => $detail,
+            'verdict' => $verdict,
             /*
              * The dates the benched value's axis is built on, for the
              * same table the value page's Lifetime card draws. Only for
@@ -2320,13 +2341,17 @@ class AnalystProfilesController extends AppController
      */
     private function __sources(array $user, array $parameters)
     {
+        $taxonomies = $this->__enabledTaxonomies(true);
+        $namespaces = array_keys($taxonomies);
         return array(
             'attribute_types' => $this->__attributeTypes(),
             'orgs' => $this->__gradedOrgs($parameters),
             'warninglists' => $this->__warninglistNames(),
             'modules' => $this->__moduleCatalogue($user),
-            'taxonomies' => $this->__enabledTaxonomies(),
+            'taxonomies' => array_combine($namespaces, $namespaces),
+            'taxonomy_facts' => $taxonomies,
             'galaxies' => $this->__enabledGalaxies(),
+            'galaxy_facts' => $this->__enabledGalaxies(true),
         );
     }
 
@@ -2341,21 +2366,29 @@ class AnalystProfilesController extends AppController
      * offers what is implemented and the document keeps what is
      * storable.
      *
-     * @return array namespace => namespace
+     * @param bool $facts The id and description instead of the
+     *                    namespace, for the lists that draw them
+     * @return array namespace => namespace, or namespace => facts
      */
-    private function __enabledTaxonomies()
+    private function __enabledTaxonomies($facts = false)
     {
         $this->loadModel('Taxonomy');
         $rows = $this->Taxonomy->find('all', array(
             'conditions' => array('Taxonomy.enabled' => 1),
-            'fields' => array('Taxonomy.namespace'),
+            'fields' => array('Taxonomy.id', 'Taxonomy.namespace',
+                'Taxonomy.description'),
             'recursive' => -1,
             'order' => array('Taxonomy.namespace ASC'),
         ));
         $out = array();
         foreach ($rows as $row) {
             $namespace = mb_strtolower($row['Taxonomy']['namespace']);
-            $out[$namespace] = $namespace;
+            $out[$namespace] = $facts
+                ? array(
+                    'id' => (int)$row['Taxonomy']['id'],
+                    'description' => (string)$row['Taxonomy']['description'],
+                )
+                : $namespace;
         }
         return $out;
     }
@@ -2367,23 +2400,33 @@ class AnalystProfilesController extends AppController
      * tag and the one a priority list holds; the name is how this
      * instance spells it, and it is what the row shows.
      *
-     * @return array type => name
+     * @param bool $facts The id, publisher, icon and description instead
+     *                    of the name, for the list that draws them
+     * @return array type => name, or type => facts
      */
-    private function __enabledGalaxies()
+    private function __enabledGalaxies($facts = false)
     {
         $this->loadModel('Galaxy');
         $rows = $this->Galaxy->find('all', array(
             'conditions' => array('Galaxy.enabled' => 1),
-            'fields' => array('Galaxy.type', 'Galaxy.name'),
+            'fields' => array('Galaxy.id', 'Galaxy.type', 'Galaxy.name',
+                'Galaxy.namespace', 'Galaxy.icon', 'Galaxy.description'),
             'recursive' => -1,
             'order' => array('Galaxy.name ASC'),
         ));
         $out = array();
         foreach ($rows as $row) {
             $type = mb_strtolower($row['Galaxy']['type']);
-            $out[$type] = empty($row['Galaxy']['name'])
-                ? $type
-                : $row['Galaxy']['name'];
+            $out[$type] = $facts
+                ? array(
+                    'id' => (int)$row['Galaxy']['id'],
+                    'namespace' => (string)$row['Galaxy']['namespace'],
+                    'icon' => (string)$row['Galaxy']['icon'],
+                    'description' => (string)$row['Galaxy']['description'],
+                )
+                : (empty($row['Galaxy']['name'])
+                    ? $type
+                    : $row['Galaxy']['name']);
         }
         return $out;
     }

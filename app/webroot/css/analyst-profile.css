@@ -449,7 +449,7 @@ input.num[type="number"]::-webkit-inner-spin-button {
     background: var(--bs-secondary-bg);
     border: 1px solid var(--bs-border-color);
 }
-.wb-strip:has(.wb-mark) { margin-top: 1.05rem; }
+.wb-strip:has(.wb-mark) { margin-top: 1.5rem; }
 .wb-strip.sm { height: 18px; }
 .seg {
     position: absolute;
@@ -955,43 +955,211 @@ a.ap-hop-a:hover { text-decoration: underline; }
 }
 
 /* ==================================================================
- * The profile view and editor: a card per section tab, and rail cards.
+ * The profile on the server settings frame (view.ctp): mainOvermind.css
+ * draws the layout and the section list, this file a card per block and
+ * the parameter a click edits in place.
  * ================================================================== */
-.ap-tab-card {
+.ap-set .ap-pane > .wb-sec + .wb-sec { margin-top: 1.75rem; }
+/* A block, not `.card`'s flex column: the Edit button floats beside its head. */
+.ap-blk {
+    display: block;
     margin-bottom: 1rem;
-    padding: 1rem 1.1rem 1.25rem;
+    padding: 1rem 1.1rem;
 }
+.ap-blk-edit { float: right; margin: 0 0 .5rem 1rem; }
 
-.ap-vcard,
-.ap-rcard { margin-bottom: 1rem; overflow: hidden; }
-.ap-vcard-b { padding: .75rem 1rem 1rem; }
-.ap-rcard-h {
+.ap-unit { cursor: pointer; }
+tr.ap-unit:hover > td,
+.wb-field.ap-unit:hover {
+    background: color-mix(in srgb, var(--bs-primary) 5%, transparent);
+}
+.ap-unit:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.ap-unit.is-loading { opacity: .55; cursor: progress; }
+tr.ap-unit-editing > td,
+tr.ap-unit-bar > td {
+    background: color-mix(in srgb, var(--bs-primary) 7%, transparent);
+}
+tr.ap-unit-bar > td { border-top: 0; padding-top: .1rem; }
+.wb-field.ap-unit-editing {
+    background: color-mix(in srgb, var(--bs-primary) 7%, transparent);
+    box-shadow: inset 3px 0 0 var(--bs-primary);
+}
+.wb-block.ap-unit-editing { box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-primary) 45%, transparent); }
+div.ap-unit-bar { margin-top: .6rem; }
+.ap-unit-bar-inline { display: inline-flex; gap: .25rem; margin-left: .35rem; }
+.ap-unit-bar-inline .btn { padding: .1rem .45rem; }
+.wb-field > .ap-unit-msg { display: block; margin-top: .35rem; }
+.ap-unit-bar-in {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem .6rem;
+}
+.ap-unit-msg {
+    flex: 1 1 12rem;
+    min-width: 0;
+    font-size: .8125rem;
+    color: var(--bs-danger-text-emphasis);
+}
+.ap-unit-keys { font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-flash { animation: ss-flash 6s ease-out; }
+
+/* The value under assessment, above the sections. */
+.ap-vbar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1.25rem;
+    margin-bottom: 1rem;
+    padding: .6rem .75rem;
+}
+.ap-vbar-form {
     display: flex;
     align-items: center;
-    gap: .75rem;
-    padding: .85rem 1rem;
-    border-bottom: 1px solid var(--bs-border-color);
+    gap: .5rem;
+    flex: 1 1 15rem;
+    min-width: 0;
 }
-.ap-vcard-ico {
-    flex: none;
+.ap-vbar-q { flex: 1 1 auto; min-width: 0; }
+.ap-vbar-form > .btn { flex: none; white-space: nowrap; }
+.ap-vbar-read {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem 1.1rem;
+    flex: 2 1 26rem;
+    min-width: 0;
+}
+.ap-vbar-ax { display: inline-flex; align-items: baseline; gap: .35rem; }
+.ap-vbar-ax .k {
+    font-size: .6875rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+/* The box, and under it what to do with the value tried. */
+.ap-vbar-side {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    flex: 1 1 17rem;
+    min-width: 0;
+}
+.ap-vbar-side > .ap-vbar-form { flex: none; }
+.ap-vbar-acts { display: flex; flex-wrap: wrap; gap: .35rem .4rem; }
+.ap-vbar-acts > .ap-vbar-act { max-width: 100%; }
+.ap-vbar-act {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: .5rem;
-    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
-    color: var(--bs-primary);
+    gap: .4rem;
+    min-width: 0;
+    padding: .15rem .6rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    font-size: .6875rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color .12s, background-color .12s, color .12s;
 }
-.ap-rcard-t { margin: 0; font-size: 1.0625rem; font-weight: 700; }
-.ap-raw {
-    margin: 0;
-    padding: 1rem;
-    max-height: 40rem;
-    overflow: auto;
-    font-size: .75rem;
+.ap-vbar-act > i { font-size: .625rem; color: var(--bs-primary); }
+/* The value pinned, named in its button; a long one is cut, the title has it whole. */
+.ap-vbar-v {
+    overflow: hidden;
+    max-width: 14rem;
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-weight: 600;
+    text-overflow: ellipsis;
+}
+.ap-vbar-act:hover,
+.ap-vbar-act:focus-visible {
+    border-color: var(--bs-primary);
+    background: color-mix(in srgb, var(--bs-primary) 8%, var(--bs-body-bg));
+    color: var(--bs-primary-text-emphasis);
+}
+.ap-vbar-act.is-pinned {
+    border-color: color-mix(in srgb, var(--bs-primary) 50%, transparent);
+    background: color-mix(in srgb, var(--bs-primary) 12%, var(--bs-body-bg));
+    color: var(--bs-primary-text-emphasis);
+}
+
+.ap-readonly {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .75rem;
+    margin-bottom: 1rem;
+    padding: .55rem .85rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
     background: var(--bs-tertiary-bg);
+    font-size: .875rem;
 }
+.ap-readonly .btn { margin-left: auto; }
+
+#ssSearchModal .ap-search-v {
+    flex: none;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: .75rem var(--bs-font-monospace);
+    color: var(--bs-secondary-color);
+}
+
+.ap-vcard { margin-bottom: 1rem; overflow: hidden; }
+.ap-vcard-b { padding: .75rem 1rem 1rem; }
+/* The whole document, read until a double-click opens it. */
+.ap-raw-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin-left: .5rem;
+    padding: .05rem .55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+    color: var(--bs-primary-text-emphasis, var(--bs-primary));
+    font-size: .75rem;
+    font-weight: 600;
+}
+.ap-raw-hint[hidden] { display: none; }
+.ap-raw-acts { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ap-raw-acts[hidden] { display: none; }
+.ap-raw-doc { padding: 1rem 1.1rem; }
+/* As tall as the section list beside it (analyst-profile-settings.js sets the
+ * height); the document scrolls inside the box rather than the page. */
+.ap-raw-doc.is-fitted { display: flex; flex-direction: column; }
+.ap-raw-doc.is-fitted > .ov-json {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.ap-raw-doc.is-fitted .ov-json-box { flex: 1 1 0; min-height: 12rem; }
+.ap-raw-doc.is-fitted .ov-json-input { min-height: 0; height: 100%; resize: none; }
+.ap-raw-editing { display: none; }
+.ap-raw-doc.is-editing { border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--bs-border-color)); }
+.ap-raw-doc.is-editing .ap-raw-editing {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0 0 .75rem;
+    padding: .45rem .75rem;
+    border-radius: var(--bs-border-radius);
+    background: color-mix(in srgb, var(--bs-warning) 14%, transparent);
+    color: var(--bs-warning-text-emphasis);
+    font-size: .8125rem;
+}
+.ap-raw-doc:not(.is-editing) [data-json-format] { display: none; }
+.ap-raw-doc.is-editable:not(.is-editing) [data-json-box] { cursor: pointer; }
+.ap-raw-doc.is-editable:not(.is-editing) [data-json-box]:hover {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-primary) 35%, transparent);
+}
+.ap-raw-doc.is-editable:not(.is-editing) .ov-json-input { cursor: inherit; }
 
 /* A signal on one line: name, tags and help, its id under it. */
 .ap-sig {
@@ -1006,116 +1174,296 @@ a.ap-hop-a:hover { text-decoration: underline; }
 .ap-sig > .wb-sub { order: 4; margin: 0; }
 .ap-sig > .wb-name-id { order: 5; flex-basis: 100%; }
 
-.ap-rcard-b { padding: .75rem 1rem 1rem; }
-.ap-rcard .wb-bench { border-left: 0; background: none; }
-.ap-rcard .wb-bench-inner { position: static; padding: .75rem 1rem 1rem; }
-.ap-scores-standing { margin-bottom: .6rem; }
-.ap-scores {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: .15rem;
+/* ==================================================================
+ * The full comparison, in #mainModal or on the simulate page: the value
+ * first, then the two profiles, then one card per question. In force is
+ * violet and the candidate the primary colour all the way down; what
+ * the candidate changes is amber.
+ * ================================================================== */
+.ap-compare {
+    --ap-was: var(--bs-purple, #6f42c1);
+    --ap-now: var(--bs-primary);
+    --ap-chg: var(--bs-warning);
 }
-.ap-score {
+.ap-cmp-value {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: .6rem;
-    padding: .4rem .5rem;
-    border-radius: var(--bs-border-radius);
-    font-size: .875rem;
+    gap: .75rem 1.5rem;
+    margin-bottom: 1rem;
+    padding: .9rem 1.1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-tertiary-bg);
 }
-.ap-score.is-win { background: color-mix(in srgb, var(--bs-primary) 8%, transparent); }
-.ap-score.is-win .ap-hop-n { background: var(--bs-primary); color: #fff; }
-/* The scope keeps its name whole; a long profile name gives way. */
-.ap-score-l { flex: none; white-space: nowrap; }
-.ap-score-a {
-    flex: 1 1 auto;
+.ap-cmp-value-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .75rem;
+    flex: 1 1 20rem;
     min-width: 0;
-    text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: .8125rem;
+}
+.ap-cmp-value-k {
+    flex-basis: 100%;
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
     color: var(--bs-secondary-color);
 }
-a.ap-score-a { font-weight: 600; color: var(--bs-link-color); text-decoration: none; }
-a.ap-score-a:hover { text-decoration: underline; }
-.ap-score-a.is-here { font-weight: 700; color: var(--bs-primary-text-emphasis); }
-.ap-score-a.is-warn { color: var(--vp-conflict-ink, var(--vp-conflict)); }
-.ap-score-a.is-none { font-style: italic; }
-.ap-score-note { margin: .5rem 0 0; font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-cmp-value-v {
+    min-width: 0;
+    font: 700 1.6rem/1.2 var(--bs-font-monospace);
+    overflow-wrap: anywhere;
+}
+.ap-cmp-value-none { font-size: 1rem; font-style: italic; color: var(--bs-secondary-color); }
+.ap-cmp-value .bench-pick { flex: 1 1 18rem; min-width: 0; margin: 0; }
 
-/* The full comparison, in #mainModal or on the simulate page. */
 .ap-compare-sides {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: stretch;
     gap: .75rem;
-    margin-bottom: .75rem;
+    margin-bottom: 1rem;
+}
+.ap-compare-vs {
+    align-self: center;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+@media (max-width: 767.98px) {
+    .ap-compare-sides { grid-template-columns: minmax(0, 1fr); }
+    .ap-compare-vs { display: none; }
 }
 .ap-side {
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
-    gap: .75rem;
-    padding: .75rem 1rem;
-    border: 1px solid var(--bs-border-color);
+    gap: .4rem;
+    min-width: 0;
+    padding: .7rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--ap-was) 35%, var(--bs-border-color));
+    border-top: 3px solid var(--ap-was);
     border-radius: var(--bs-border-radius-lg);
+    background: color-mix(in srgb, var(--ap-was) 5%, transparent);
 }
-.ap-side.is-candidate {
-    border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--bs-border-color));
-    background: color-mix(in srgb, var(--bs-primary) 6%, transparent);
+.ap-side.is-now {
+    border-color: color-mix(in srgb, var(--ap-now) 35%, var(--bs-border-color));
+    border-top-color: var(--ap-now);
+    background: color-mix(in srgb, var(--ap-now) 5%, transparent);
 }
 .ap-side-t { display: flex; flex-direction: column; min-width: 0; }
 .ap-side-t span { font-size: .8125rem; color: var(--bs-secondary-color); }
-.ap-compare-note { margin: 0 0 .75rem; font-size: .8125rem; color: var(--bs-secondary-color); }
+.ap-compare-note { margin: 0; font-size: .75rem; color: var(--bs-secondary-color); }
 .wb-bench.ap-compare-bench { border-left: 0; background: none; }
 .ap-compare-bench .wb-bench-inner { position: static; padding: 0; }
 
-/* The editor says so above its tabs, on one line. */
-.ap-editing {
+.ap-key {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .1rem .55rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.ap-key.is-was { color: var(--ap-was); background: color-mix(in srgb, var(--ap-was) 12%, transparent); }
+.ap-key.is-now { color: var(--ap-now); background: color-mix(in srgb, var(--ap-now) 12%, transparent); }
+.ap-key-dot {
+    flex: none;
+    display: inline-block;
+    width: .55rem;
+    height: .55rem;
+    border-radius: 50%;
+    background: var(--ap-was);
+}
+.is-now > .ap-key-dot { background: var(--ap-now); }
+.ap-compare .ap-was { color: var(--ap-was); }
+.ap-compare .ap-now { color: var(--ap-now); font-weight: 700; }
+
+/* One card per question the comparison answers. */
+.ap-cmp-card {
+    margin-bottom: 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-body-bg);
+    overflow: hidden;
+}
+.ap-cmp-card-h {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: .25rem .6rem;
-    margin-bottom: .75rem;
-    padding: .3rem .75rem;
-    border: 1px solid var(--bs-warning-border-subtle);
-    border-radius: var(--bs-border-radius);
-    background: var(--bs-warning-bg-subtle);
-    color: var(--bs-warning-text-emphasis);
-    font-size: .8125rem;
-}
-.ap-editing-t { flex: 1 1 20rem; min-width: 0; }
-
-/* The editor's rail never leaves: the bench answers every change. */
-@media (min-width: 992px) {
-    .ap-edit > .container-fluid > .row > .col-lg-3 {
-        position: sticky;
-        top: .5rem;
-        align-self: flex-start;
-        max-height: calc(100vh - 1rem);
-        overflow-y: auto;
-    }
-}
-
-/* The rail's About card: a label over each fact. */
-.ap-about {
-    margin: 0;
-    padding: .5rem 1rem .75rem;
-}
-.ap-about > div {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: .4rem 0;
-    border-bottom: 1px solid var(--bs-border-color-translucent);
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
     font-size: .875rem;
 }
-.ap-about > div:last-child { border-bottom: 0; }
-.ap-about dt { font-weight: 400; color: var(--bs-secondary-color); }
-.ap-about dd { margin: 0; font-weight: 600; text-align: right; }
-.ap-about-sub { font-weight: 400; color: var(--bs-secondary-color); }
+.ap-cmp-card-t { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+.ap-cmp-card-aside { font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-cmp-card-b { padding: 1rem; }
+.ap-cmp-card-f { padding: .75rem 1rem; border-top: 1px solid var(--bs-border-color); }
+
+.ap-cmp-verdict .ap-cmp-card-t { font-weight: 400; }
+.ap-cmp-verdict.is-changed { border-color: color-mix(in srgb, var(--ap-chg) 60%, var(--bs-border-color)); }
+.ap-cmp-verdict.is-changed > .ap-cmp-card-h {
+    border-bottom-color: color-mix(in srgb, var(--ap-chg) 50%, transparent);
+    background: color-mix(in srgb, var(--ap-chg) 16%, transparent);
+}
+.ap-cmp-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: .75rem;
+}
+.ap-cmp-tile {
+    min-width: 0;
+    padding: .7rem .85rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+}
+.ap-cmp-tile.is-changed {
+    border-color: color-mix(in srgb, var(--ap-chg) 65%, transparent);
+    background: color-mix(in srgb, var(--ap-chg) 7%, transparent);
+    box-shadow: inset 3px 0 0 var(--ap-chg);
+}
+.ap-cmp-tile-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .45rem;
+}
+.ap-cmp-tile-h .k {
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ap-cmp-flag {
+    padding: .05rem .5rem;
+    border-radius: 999px;
+    font-size: .6875rem;
+    font-weight: 700;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+}
+.is-changed .ap-cmp-flag,
+td .ap-cmp-flag {
+    background: color-mix(in srgb, var(--ap-chg) 32%, transparent);
+    color: var(--bs-warning-text-emphasis);
+}
+.ap-cmp-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .2rem .45rem;
+    padding: .15rem 0;
+}
+.ap-cmp-line .who { flex: 0 0 4.4rem; font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-cmp-line b { font-size: 1rem; }
+.ap-cmp-line.is-was b { color: var(--ap-was); }
+.ap-cmp-line.is-now b { color: var(--ap-now); }
+.ap-cmp-line.is-now > .ap-key-dot { background: var(--ap-now); }
+.ap-cmp-hint { margin-top: .3rem; font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-delta {
+    display: inline-block;
+    padding: 0 .4rem;
+    border-radius: .3rem;
+    font-size: .8125rem;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--ap-chg) 24%, transparent);
+}
+
+/* The band strip: one mark per profile, the in-force label on the left. */
+.ap-compare .wb-mark { width: 3px; background: var(--ap-now); }
+.ap-compare .wb-mark b { color: var(--ap-now); transform: translateX(.25rem); }
+.ap-compare .wb-mark.ghost { background: var(--ap-was); opacity: 1; }
+.ap-compare .wb-mark.ghost b { color: var(--ap-was); transform: translateX(calc(-100% - .25rem)); }
+.ap-cmp-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem 1.1rem;
+    margin-top: .4rem;
+    font-size: .8125rem;
+}
+.ap-cmp-legend > span { display: inline-flex; align-items: center; gap: .35rem; }
+.ap-cmp-legend .is-was b { color: var(--ap-was); }
+.ap-cmp-legend .is-now b { color: var(--ap-now); }
+
+/* The ledger: a bar per profile for each row, on one scale. */
+.ap-cmp-tbl tr.is-hot > td { background: color-mix(in srgb, var(--ap-chg) 9%, transparent); }
+.ap-cmp-tbl tr.is-hot > td:first-child { box-shadow: inset 3px 0 0 var(--ap-chg); }
+.ap-cmp-tbl tfoot td { border-top: 2px solid var(--bs-border-color); font-weight: 700; }
+.ap-dbar { display: flex; flex-direction: column; gap: 3px; min-width: 4rem; }
+.ap-dbar-r {
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bs-tertiary-bg);
+    overflow: hidden;
+}
+.ap-dbar-r.is-was { color: var(--ap-was); }
+.ap-dbar-r.is-now { color: var(--ap-now); }
+.ap-dbar-r > span { display: block; height: 100%; border-radius: 3px; background: currentColor; }
+.ap-dbar-r.is-neg > span {
+    background: repeating-linear-gradient(135deg, currentColor 0 3px,
+        color-mix(in srgb, currentColor 35%, transparent) 3px 6px);
+}
+.ap-cmp-calm {
+    margin-bottom: .5rem;
+    padding: .55rem .85rem;
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-tertiary-bg);
+    font-size: .875rem;
+}
+.ap-cmp-still { margin-top: .5rem; }
+.ap-cmp-still > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .3rem 0;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+    list-style: none;
+}
+.ap-cmp-still > summary::-webkit-details-marker { display: none; }
+.ap-cmp-still > summary .fa-chevron-right { font-size: .7rem; transition: transform .15s ease; }
+.ap-cmp-still[open] > summary .fa-chevron-right { transform: rotate(90deg); }
+
+/* The About modal: where the profile stands, then its facts. */
+.ap-about-h {
+    margin: 1.1rem 0 .35rem;
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ap-hop-a.is-here { font-weight: 700; color: var(--bs-primary); }
+.ap-about-note { margin: 0; font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-about-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: .5rem;
+    margin: 0;
+}
+.ap-about-facts > div {
+    padding: .5rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+.ap-about-facts dt { font-size: .75rem; font-weight: 400; color: var(--bs-secondary-color); }
+.ap-about-facts dd { margin: .1rem 0 0; font-size: .875rem; font-weight: 600; }
+.ap-about-sub { font-weight: 400; font-size: .8125rem; color: var(--bs-secondary-color); }
+.ap-about-desc { max-width: 75ch; margin: 0; font-size: .9375rem; white-space: pre-line; }
 
 /* The name is the way into a profile, so `View` is not a button.
  * Underline on hover only: six underlined names down a column read as
@@ -1235,23 +1583,38 @@ a.ap-score-a:hover { text-decoration: underline; }
     gap: 1rem;
     flex-wrap: wrap;
 }
+/* A setting per row, as on the server settings page: the question and its
+ * help on the left, the answer on the right. */
 .wb-fields {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: .55rem .9rem;
-    margin: .2rem 0 .3rem;
+    display: flex;
+    flex-direction: column;
+    margin: .4rem 0 0;
 }
+.wb-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .3rem 1.5rem;
+    padding: .65rem .75rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+.wb-field:first-child { border-top: 0; }
+.wb-field-k { min-width: 0; }
 .wb-field label {
     display: block;
-    font: 600 .6875rem/1.5 var(--bs-font-sans-serif, system-ui);
-    color: var(--bs-secondary-color);
+    font: 600 .875rem/1.4 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-body-color);
 }
+/* As wide as its row: a sentence breaks where the value starts, not at a measure of its own. */
 .wb-field .help {
-    font-size: .6875rem;
+    margin: .15rem 0 0;
+    font-size: .8125rem;
     line-height: 1.45;
     color: var(--bs-secondary-color);
-    margin: .15rem 0 0;
 }
+.wb-field > .wb-inline { justify-content: flex-end; }
+.wb-field > .wb-inline > .num { font-size: 1.0625rem; font-weight: 700; }
+.wb-field > .ap-unit-msg { grid-column: 1 / -1; }
 .wb-inline { display: flex; align-items: center; gap: .4rem; }
 
 /*
@@ -1260,7 +1623,7 @@ a.ap-score-a:hover { text-decoration: underline; }
  * question and the unit stays the answer's scale.
  */
 .wb-unit {
-    font-size: .6875rem;
+    font-size: .8125rem;
     color: var(--bs-secondary-color);
     white-space: nowrap;
 }
@@ -1282,6 +1645,8 @@ a.ap-score-a:hover { text-decoration: underline; }
     text-decoration: none;
     vertical-align: -1px;
 }
+.wb-i { cursor: pointer; }
+.wb-i-more { margin-left: .35rem; }
 .wb-i:hover, .wb-i:focus {
     color: var(--bs-body-color);
     border-color: var(--bs-secondary-color);
@@ -1516,6 +1881,8 @@ a.ap-score-a:hover { text-decoration: underline; }
     align-items: flex-start;
 }
 .ttl-buckets { flex: 1 1 40rem; min-width: 0; }
+.ttl-fields { flex: 1 1 30rem; min-width: 0; }
+.ttl-grid > .ttl-curve { margin-top: .4rem; }
 .ttl-def td, .ttl-def .fw-semibold { color: var(--bs-secondary-color); }
 /* The column head says `days`, so the box only has to hold the number. */
 .ap-map-key-field .form-control { max-width: 5rem; }
@@ -1686,10 +2053,10 @@ a.ap-score-a:hover { text-decoration: underline; }
     border: 0;
     background: transparent;
     color: var(--bs-secondary-color);
-    font-size: .875rem;
+    font-size: .9375rem;
     line-height: 1;
-    padding: .1rem .3rem;
-    border-radius: .25rem;
+    padding: .35rem .45rem;
+    border-radius: .3rem;
 }
 .wb-drop:hover {
     color: var(--vp-mal-ink);
@@ -1870,8 +2237,115 @@ a.ap-score-a:hover { text-decoration: underline; }
  * that says what the state *does* was cut off at `ticked — the sa`.
  */
 .mod-row .wb-id { flex: 0 0 10.5rem; }
-.mod-row .form-select { flex: 0 1 22rem; max-width: 22rem; }
 .mod-row.is-off { opacity: .6; }
+
+/*
+ * A type's state is one segment per choice, the choice in its tone:
+ * four labelled buttons say what a select hid behind a click. The
+ * row-wide setter uses the same segments as buttons (field.ctp).
+ */
+.mod-seg { display: inline-flex; flex: none; }
+.mod-seg-b {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}
+.mod-seg-b + .mod-seg-b { margin-left: -1px; }
+.mod-seg-in {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.mod-seg-face {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    min-width: 6.5rem;
+    height: 1.75rem;
+    padding: 0 .6rem;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color .12s, border-color .12s, color .12s;
+}
+.mod-seg-face > i { font-size: .6875rem; }
+/* The name keeps the width it has in bold, so choosing one moves nothing. */
+.mod-seg-t { display: inline-grid; }
+.mod-seg-t::after {
+    content: attr(data-t);
+    grid-area: 1 / 1;
+    height: 0;
+    font-weight: 700;
+    visibility: hidden;
+}
+.mod-seg-t > span { grid-area: 1 / 1; }
+.mod-seg-b:first-child > .mod-seg-face {
+    border-radius: var(--bs-border-radius) 0 0 var(--bs-border-radius);
+}
+.mod-seg-b:last-child > .mod-seg-face {
+    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
+}
+.mod-seg-b:hover > .mod-seg-face {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+}
+.mod-seg-b.t-force   { --tone: var(--bs-primary); --tone-ink: var(--bs-primary-text-emphasis); }
+.mod-seg-b.t-missing { --tone: var(--vp-mal); --tone-ink: var(--vp-mal-ink); }
+.mod-seg-b.t-over    { --tone: var(--vp-conflict); --tone-ink: var(--vp-conflict-ink); }
+.mod-seg-b.t-custom  { --tone: var(--bs-primary); --tone-ink: var(--bs-primary-text-emphasis); }
+.mod-seg-b.t-plain   { --tone: var(--bs-secondary-color); --tone-ink: var(--bs-emphasis-color); }
+.mod-seg-in:checked + .mod-seg-face,
+.mod-seg-b[aria-pressed="true"] > .mod-seg-face {
+    z-index: 1;
+    border-color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 14%, var(--bs-body-bg));
+    color: var(--tone-ink, var(--tone));
+    font-weight: 700;
+}
+.mod-seg-in:focus-visible + .mod-seg-face,
+.mod-seg-b:focus-visible > .mod-seg-face {
+    z-index: 2;
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+.mod-seg-b:focus-visible { outline: 0; }
+/* A choice stored here but not run by this build. */
+.mod-seg-b.is-inert > .mod-seg-face { border-style: dashed; }
+/* A type whose choice is not the stored one yet. */
+.mod-row.is-edited::after {
+    content: "";
+    flex: none;
+    width: .4rem;
+    height: .4rem;
+    border-radius: 50%;
+    background: var(--vp-conflict);
+}
+.mod-bulk-sum {
+    font-size: .75rem;
+    line-height: 1.35;
+    color: var(--bs-secondary-color);
+}
+.mod-bulk-sum > span { white-space: nowrap; }
+@media (max-width: 1299.98px) {
+    .mod-seg-face { min-width: 0; padding: 0 .5rem; }
+}
+/* Short of room, a segment keeps its icon; its title still says it. */
+@media (max-width: 1199.98px) {
+    .mod-seg-face { min-width: 2.25rem; }
+    .mod-seg-t { display: none; }
+}
 
 /*
  * The row-wide setter sits above the names it writes and is separated
@@ -1930,95 +2404,201 @@ a.ap-score-a:hover { text-decoration: underline; }
 .bench-dates .vp-dates-tbl td:last-child { width: 28%; }
 
 /* ---- the ordered list ---- */
-/* The fifth block kind, and the first whose order is the setting. It
-   is drawn as a list rather than as a table because a table's columns
-   promise that each row says several things; this one says its
-   position, and the position is a number down the left. */
+/* The fifth block kind, and the first whose order is the setting: tiles
+   in the order the Overview draws them, five to a row as it does, so a
+   tile past the cap starts a row of its own. */
 .ap-order-list {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .5rem;
     margin: .6rem 0 0;
     padding: 0;
     list-style: none;
-    counter-reset: none;
 }
-
+@container wb (max-width: 900px) {
+    .ap-order-list { grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
+}
 .ap-order-row {
+    position: relative;
     display: flex;
     align-items: flex-start;
-    gap: .6rem;
-    padding: .45rem .1rem;
-    border-bottom: 1px solid var(--bs-border-color);
+    gap: .5rem;
+    min-width: 0;
+    padding: .55rem .5rem .55rem .6rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
 }
-
-.ap-order-row:last-child {
-    border-bottom: 0;
-}
-
-/* The rank, and it is the reason this block exists. Fixed width so the
-   labels line up whether the list has three rows or twelve. */
+/* The rank, and it is the reason this block exists. */
 .ap-order-rank {
-    flex: 0 0 1.4rem;
-    color: var(--bs-secondary-color);
-    font: 700 .8rem/1.5 var(--bs-font-monospace, monospace);
-    text-align: right;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    color: var(--bs-primary);
+    font: 700 .6875rem/1 var(--bs-font-sans-serif, system-ui);
+    font-variant-numeric: tabular-nums;
 }
-
 .ap-order-body {
     display: flex;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     flex-direction: column;
-    gap: .1rem;
+    gap: .15rem;
     min-width: 0;
 }
-
-/* Why a ranked shape will not draw. Not a warning colour: ranking
-   something nothing emits yet is a legitimate thing to do - it is how
-   a profile says what it wants the day a module lands - so this is a
-   note rather than a complaint. */
+.ap-order-body .fw-semibold { font-size: .8125rem; line-height: 1.3; }
+.ap-order-body .wb-sub {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+/* Why a ranked shape will not draw. A note rather than a complaint:
+   ranking something nothing emits yet is how a profile says what it
+   wants the day a module lands. */
 .ap-order-note {
     color: var(--bs-secondary-color);
-    font-size: .7rem;
+    font-size: .6875rem;
     font-style: italic;
 }
-
-/* A row that cannot draw at all on this instance. Dimmed rather than
-   removed: it is still in the document, and it will draw again
-   wherever its renderer is installed. */
-.ap-order-row.is-dim .fw-semibold {
-    color: var(--bs-secondary-color);
-}
-
-/* Past the fifth. The strip holds five, so a sixth entry only matters
-   when something above it is not drawn - which is a real thing to
-   declare and a thing worth seeing at a glance. */
+/* A tile that cannot draw at all on this instance, kept in the document. */
+.ap-order-row.is-dim .fw-semibold { color: var(--bs-secondary-color); }
+/* Past the fifth: only drawn when something above it is not. */
+.ap-order-row.is-past-cap { border-style: dashed; background: var(--bs-tertiary-bg); }
 .ap-order-row.is-past-cap .ap-order-rank {
-    opacity: .45;
-}
-
-.ap-order-moves {
-    display: flex;
-    flex: 0 0 auto;
-    gap: 0;
-}
-
-.ap-order-moves .btn {
-    padding: 0 .3rem;
+    background: var(--bs-secondary-bg);
     color: var(--bs-secondary-color);
-    font-size: .9rem;
-    line-height: 1.3;
-    text-decoration: none;
+}
+.ap-order-row.is-new {
+    border-style: dashed;
+    border-color: var(--bs-primary);
+    background: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-body-bg));
+}
+.ap-order-row .wb-drop { flex: none; margin: -.15rem -.1rem 0 0; }
+.wb-block[data-ap-live]:not(.is-editing) .ap-order-row .wb-drop { display: none; }
+.wb-block.is-editing .ap-order.is-sortable .ap-order-row { cursor: grab; }
+.wb-block.is-editing .ap-order.is-sortable .ap-order-row::before {
+    content: '\f58e';
+    flex: none;
+    align-self: center;
+    font: 900 .6875rem/1 'Font Awesome 7 Free', 'Font Awesome 5 Free';
+    color: var(--bs-secondary-color);
+}
+.wb-block.is-editing .ap-order.is-sortable .ap-order-row:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+.ap-order.is-sortable .ap-order-row.is-dragging { opacity: .4; cursor: grabbing; }
+.ap-order-cap { margin-top: .45rem; }
+.ap-order-add { margin-top: .6rem; }
+
+/* ---- a module's types, read: one chip per type, marked with its state ---- */
+.mod-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.mod-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .1rem .5rem;
+    border: 1px solid color-mix(in srgb, var(--tone, var(--vp-unknown)) 35%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tone, var(--vp-unknown)) 9%, var(--bs-body-bg));
+    color: var(--tone-ink, var(--tone, var(--vp-unknown)));
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.mod-chip > i { font-size: .625rem; }
+.mod-chip .wb-id { font-size: .75rem; color: var(--bs-body-color); }
+.mod-chip.t-force   { --tone: var(--bs-primary); }
+.mod-chip.t-missing { --tone: var(--vp-mal); --tone-ink: var(--vp-mal-ink); }
+.mod-chip.t-over    { --tone: var(--vp-conflict); --tone-ink: var(--vp-conflict-ink); }
+.mod-chip.t-custom  { --tone: var(--bs-primary); }
+.mod-chip.t-plain   {
+    --tone: var(--bs-secondary-color);
+    background: var(--bs-body-bg);
+    border-style: dashed;
+}
+.mod-chip.t-plain .wb-id { color: var(--bs-secondary-color); }
+.mod-chip.is-gone { opacity: .7; }
+.mod-chip .pill { font-size: .625rem; }
+/* A module's description: two lines, the rest in its title. */
+.ap-map.is-states .wb-tbl td:first-child > .wb-sub:not(.ap-map-missing) {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-.ap-order-moves .btn:hover {
-    color: var(--bs-body-color);
+/*
+ * A map's table: its column names on a band of their own, and each group
+ * a section bar, toned by what the group says about its rows.
+ */
+.ap-map:not(.is-chips) > .wb-tbl > thead th {
+    padding: .5rem .6rem;
+    border-bottom: 2px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+    font: 700 .6875rem/1.4 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .06em;
+    color: var(--bs-emphasis-color, var(--bs-body-color));
+}
+.ap-map:not(.is-chips) > .wb-tbl > thead th:first-child { border-top-left-radius: var(--bs-border-radius); }
+.ap-map:not(.is-chips) > .wb-tbl > thead th:last-child { border-top-right-radius: var(--bs-border-radius); }
+.ap-map:not(.is-chips) .wb-tbl tr.ap-map-grp > td {
+    --grp: var(--bs-secondary-color);
+    padding: 1.1rem .6rem .45rem;
+    border-bottom: 2px solid color-mix(in srgb, var(--grp) 45%, var(--bs-border-color));
+    background: none;
+    font: 700 .75rem/1.4 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .05em;
+    color: var(--grp);
+}
+.ap-map:not(.is-chips) .wb-tbl tbody > tr.ap-map-grp:first-child > td { padding-top: .6rem; }
+.ap-map:not(.is-chips) .wb-tbl tr.ap-map-grp.t-ok > td { --grp: var(--vp-ben-ink, var(--bs-success)); }
+.ap-map:not(.is-chips) .wb-tbl tr.ap-map-grp.t-warn > td { --grp: var(--vp-conflict-ink, var(--bs-warning)); }
+.ap-map:not(.is-chips) .wb-tbl tr.ap-map-grp .ap-map-grp-ico {
+    margin-right: .45rem;
+    font-size: .8125rem;
+    color: var(--grp);
+}
+.ap-map:not(.is-chips) .wb-tbl tr.ap-map-grp .ap-map-grp-n {
+    margin-left: .35rem;
+    padding: .05rem .5rem;
+    background: var(--grp);
+    color: var(--bs-body-bg);
+    font-size: .6875rem;
+}
+.ap-map:not(.is-chips) .wb-tbl tr.ap-map-grp .ap-map-grp-note {
+    margin-left: .35rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
 }
 
-.ap-order-cap {
-    margin-top: .45rem;
+/* A legend that fits on a line: each choice's chip, its effect, and the
+   rest behind its `i`. */
+.ap-legend.is-inline { padding: .5rem .7rem; }
+.ap-legend-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: .75rem;
 }
-
-.ap-order-add {
-    margin-top: .6rem;
-}
+.ap-legend-list > li { display: inline-flex; align-items: center; gap: .4rem; }
+.ap-legend.is-inline .ap-legend-does { display: inline; margin: 0; color: var(--bs-secondary-color); }
 
 /* ---- "How it works": the signal help popovers ---- */
 .sig-more {
@@ -2335,7 +2915,9 @@ a.ap-score-a:hover { text-decoration: underline; }
 
 /* ---- section rhythm ---- */
 .wb-sec-head { margin-bottom: 1rem; }
-.wb-sec-head .wb-blurb { margin-bottom: 0; }
+.wb-sec-head .wb-blurb { margin-bottom: 0; max-width: none; }
+/* A card's blurb is one sentence, the rest behind its `i`: it runs the card's width. */
+.wb-block .wb-blurb { max-width: none; }
 .wb-h.wb-sec-title { font-size: 1rem; margin-bottom: .25rem; }
 .wb-h.wb-bh { font-size: .875rem; margin: 0 0 .2rem; }
 .wb-block + .wb-block {
@@ -2357,14 +2939,20 @@ a.ap-score-a:hover { text-decoration: underline; }
     display: flex;
     align-items: center;
     gap: .45rem;
-    margin: 0 0 .25rem;
+    margin: 0;
     font: 600 .8125rem/1.4 var(--bs-font-sans-serif, system-ui);
     color: var(--bs-primary-text-emphasis, var(--bs-primary));
+    cursor: pointer;
+    list-style: none;
 }
+.wb-guide-h::-webkit-details-marker { display: none; }
 .wb-guide-h .fa-solid { font-size: .75rem; }
+.wb-guide-caret { margin-left: auto; transition: transform .15s ease; }
+details.wb-guide:not([open]) { padding-block: .5rem; }
+details.wb-guide:not([open]) .wb-guide-caret { transform: rotate(-90deg); }
+details.wb-guide[open] > .wb-guide-h { margin-bottom: .25rem; }
 .wb-guide-intro {
     margin: 0 0 .7rem;
-    max-width: 72ch;
     font-size: .75rem;
     line-height: 1.5;
     color: var(--bs-secondary-color);
@@ -2394,7 +2982,7 @@ a.ap-score-a:hover { text-decoration: underline; }
 
 /* Settings most profiles never move, folded under a readout of them. */
 .wb-fold {
-    margin-top: 1.5rem;
+    margin: 0 0 1rem;
     border: 1px solid var(--bs-border-color);
     border-radius: .5rem;
     background: var(--bs-body-bg);
@@ -2454,15 +3042,117 @@ a.ap-score-a:hover { text-decoration: underline; }
 .wb-fold.is-edited:not([open]) .wb-fold-sum { display: none; }
 .wb-fold-body { padding: 1rem .9rem 1.1rem; }
 
-/* Many short settings of one kind, such as one per grade. */
+/* Many short settings of one kind, such as one per grade: small tiles. */
 .wb-fields.is-dense {
-    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-    gap: .5rem .75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    gap: .5rem;
+}
+.wb-fields.is-dense .wb-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .2rem;
+    padding: .5rem .65rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
 }
 .wb-fields.is-dense .wb-field label {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.wb-fields.is-dense .wb-field > .wb-inline { justify-content: flex-start; }
+.wb-fields.is-dense .wb-field > .wb-inline > .num { font-size: .875rem; }
+
+/* The lean's share, between contested and leans. */
+.ap-lean { margin: .5rem .75rem .25rem; }
+.ap-lean-bar {
+    position: relative;
+    display: flex;
+    height: 1.9rem;
+    margin-top: 1.4rem;
+    border-radius: var(--bs-border-radius);
+    overflow: visible;
+}
+.ap-lean-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+    font-size: .75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ap-lean-zone.is-split {
+    border-radius: var(--bs-border-radius) 0 0 var(--bs-border-radius);
+    background: repeating-linear-gradient(135deg,
+        color-mix(in srgb, var(--vp-conflict) 22%, transparent) 0 6px,
+        color-mix(in srgb, var(--vp-conflict) 12%, transparent) 6px 12px);
+    color: var(--vp-conflict-ink, var(--vp-conflict));
+}
+.ap-lean-zone.is-lean {
+    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
+    background: color-mix(in srgb, var(--bs-primary) 16%, transparent);
+    color: var(--bs-primary-text-emphasis, var(--bs-primary));
+}
+.ap-lean-mark {
+    position: absolute;
+    top: -.35rem;
+    bottom: -.35rem;
+    width: 3px;
+    margin-left: -1.5px;
+    border-radius: 2px;
+    background: var(--bs-body-color);
+}
+.ap-lean-mark b {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: .15rem;
+    font: 700 .8125rem/1 var(--bs-font-monospace);
+    white-space: nowrap;
+}
+.ap-lean-scale {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: .3rem;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+}
+.ap-lean-eg {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .3rem .5rem;
+    margin: .6rem 0 0;
+    font-size: .8125rem;
+}
+.ap-lean-eg .k {
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ap-lean-n {
+    padding: .05rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    color: var(--bs-secondary-color);
+}
+.ap-lean-n b { color: var(--bs-body-color); }
+
+/* The parts of a folded card: dividers, not cards inside a card. */
+.wb-fold-body > .ap-blk-part + .ap-blk-part {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bs-border-color);
 }
 
 /* ---- empty states and the add row ---- */
@@ -2496,29 +3186,188 @@ a.ap-score-a:hover { text-decoration: underline; }
 }
 .ap-map-add > label .fa-solid { font-size: .625rem; }
 
-/*
- * A map whose rows carry one possible value is a set, drawn as chips.
- * The table markup stays so the add and remove controls work unchanged;
- * the one-option select still posts, it is just not shown.
- */
-.ap-map.is-chips .wb-tbl,
-.ap-map.is-chips .wb-tbl tbody {
+/* The search's own column, which other maps lay out inline. */
+.ap-map-find { display: contents; }
+.ap-map-add-help { margin: 0; font-size: .75rem; line-height: 1.45; color: var(--bs-secondary-color); }
+.ap-map-copy { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
+/* A shortcut that fills the list, drawn as an action rather than a link. */
+.ap-copy-btn {
     display: flex;
-    flex-wrap: wrap;
-    gap: .4rem;
+    width: 100%;
+    align-items: center;
+    gap: .55rem;
+    padding: .35rem .5rem .35rem .4rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .8125rem;
+    font-weight: 600;
+    text-align: left;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
 }
-.ap-map.is-chips .wb-tbl { margin-top: .35rem; }
-.ap-map.is-chips .wb-tbl[hidden] { display: none; }
-.ap-map.is-chips .wb-tbl thead { display: none; }
-.ap-map.is-chips .wb-tbl tr {
+.ap-copy-btn:hover:not(:disabled) {
+    border-color: var(--bs-primary);
+    background: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-body-bg));
+}
+.ap-copy-ico {
+    flex: none;
     display: inline-flex;
     align-items: center;
-    gap: .15rem;
-    max-width: 100%;
-    padding: .2rem .2rem .2rem .6rem;
-    border: 1px solid var(--bs-border-color);
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
     border-radius: .45rem;
+    background: color-mix(in srgb, var(--bs-primary) 14%, transparent);
+    color: var(--bs-primary);
+}
+.ap-copy-n {
+    margin-left: auto;
+    min-width: 1.4rem;
+    padding: .05rem .45rem;
+    border-radius: 999px;
+    background: var(--bs-primary);
+    color: #fff;
+    font-size: .75rem;
+    text-align: center;
+}
+.ap-copy-btn:disabled { opacity: .6; cursor: default; box-shadow: none; }
+.ap-copy-btn:disabled .ap-copy-ico { background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); }
+.ap-copy-btn:disabled .ap-copy-n { background: var(--bs-secondary-bg); color: var(--bs-secondary-color); }
+.ap-pick-head {
+    padding: .4rem .65rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+/* A list edited where it is read: a toolbar above the entries, finding
+ * on the left and the shortcut on the right, and a bar under them once
+ * something changed. */
+.wb-block[data-ap-live] .ap-map-add {
+    align-items: flex-start;
+    gap: .75rem 1.5rem;
+    margin: .6rem 0 .9rem;
+    padding: .75rem .9rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
     background: var(--bs-tertiary-bg);
+}
+.wb-block[data-ap-live] .ap-map-find {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    flex: 1 1 26rem;
+    min-width: 0;
+}
+.ap-map-find > label {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin: 0;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+.wb-block[data-ap-live] .ap-map-find > label { font-size: .8125rem; color: var(--bs-body-color); }
+.wb-block[data-ap-live] .ap-map-find .ap-pick { max-width: none; }
+.wb-block[data-ap-live] .ap-map-find .ap-pick > input { max-width: none; font-size: .875rem; padding: .4rem .7rem; }
+.wb-block[data-ap-live] .ap-map-copy { flex: 0 0 auto; align-items: stretch; }
+.wb-block[data-ap-live] .ap-map-copy .ap-map-add-help { white-space: nowrap; }
+
+/* Its own search and the Edit switch, top right; what changes the list
+ * shows only while editing. */
+.ap-live-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+}
+.ap-live-head-t { flex: 1 1 14rem; min-width: 0; }
+.ap-live-head-t .wb-blurb { margin-bottom: .35rem; }
+.ap-live-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+.ap-live-filter { position: relative; flex: 0 1 16rem; width: 16rem; min-width: 0; margin: 0; }
+.ap-live-tools > .ap-live-bar { margin: 0; }
+.ap-live-tools .ap-unit-bar-in { flex-wrap: nowrap; }
+.ap-live-tools .ap-unit-msg:empty { display: none; }
+.ap-live-filter > i {
+    position: absolute;
+    top: 50%;
+    left: .65rem;
+    transform: translateY(-50%);
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+    pointer-events: none;
+}
+.ap-live-filter > input { padding-left: 1.9rem; }
+.ap-live-tools .btn { flex: none; }
+.wb-block[data-ap-live]:not(.is-editing) .ap-map-add,
+.wb-block[data-ap-live]:not(.is-editing) .ap-map .wb-tbl .r { display: none; }
+/* A live state map reads as chips; Edit swaps in the controls. */
+.wb-block[data-ap-live]:not(.is-editing) .mod-states > .mod-row,
+.wb-block[data-ap-live]:not(.is-editing) .mod-states > .mod-more { display: none !important; }
+.wb-block[data-ap-live].is-editing .mod-states > .mod-chips { display: none; }
+.ap-map.is-states .ap-legend { margin: .6rem 0 .1rem; }
+.ap-map-add-h {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: .875rem;
+    font-weight: 700;
+}
+.ap-map-new { flex-basis: 100%; min-width: 0; }
+.ap-map-new-h {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: .25rem 0 0;
+    font: 700 .6875rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--bs-primary-text-emphasis, var(--bs-primary));
+}
+.ap-map-new-h .ap-map-grp-n { background: var(--bs-primary); color: #fff; letter-spacing: 0; }
+.wb-block[data-ap-live]:has(.ap-live-bar:not([hidden])) {
+    border-color: color-mix(in srgb, var(--bs-warning) 70%, var(--bs-border-color));
+}
+.ap-live-bar .ap-unit-keys { font-weight: 600; color: var(--bs-warning-text-emphasis); }
+
+/*
+ * A map whose rows carry one possible value is a set, drawn as tiles of
+ * one width, under a heading per group when its entries name one. The
+ * table markup stays so the add and remove controls work unchanged;
+ * the one-option select still posts, it is just not shown.
+ */
+.ap-map.is-chips .wb-tbl { display: block; margin-top: .5rem; }
+.ap-map.is-chips .wb-tbl[hidden] { display: none; }
+.ap-map.is-chips .wb-tbl thead { display: none; }
+.ap-map.is-chips .wb-tbl tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: .5rem;
+}
+.ap-map.is-chips .wb-tbl tr {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    min-width: 0;
+    padding: .45rem .45rem .45rem .7rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
 }
 .ap-map.is-chips .wb-tbl tr:hover { border-color: var(--bs-secondary-color); }
 .ap-map.is-chips .wb-tbl td {
@@ -2526,17 +3375,314 @@ a.ap-score-a:hover { text-decoration: underline; }
     border: 0;
     min-width: 0;
 }
+/* The name takes what the remove button leaves, however long its description. */
+.ap-map.is-chips .wb-tbl td:first-child { flex: 1 1 0; }
 .ap-map.is-chips .wb-tbl td .fw-semibold {
-    font-size: .75rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .8125rem;
     line-height: 1.35;
 }
 .ap-map.is-chips .wb-tbl td .wb-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-family: var(--bs-font-monospace, ui-monospace, monospace);
-    font-size: .625rem;
+    font-size: .6875rem;
     line-height: 1.3;
 }
+.ap-map.is-chips .wb-tbl td:has(.ap-map-ico) .wb-sub { padding-left: 1.5rem; }
 .ap-map.is-chips .wb-tbl td:nth-child(2) { display: none; }
-.ap-map.is-chips .wb-tbl tr.is-off { border-style: dashed; }
+.ap-map.is-chips .wb-tbl tr.is-off { border-style: dashed; background: var(--bs-tertiary-bg); }
+.ap-map.is-chips .wb-tbl tr.is-off .wb-sub { white-space: normal; }
+/* The name opens the entry's own page, from anywhere on its tile. */
+.ap-map-link { color: inherit; text-decoration: none; }
+.ap-map-link:hover { color: var(--bs-link-color); }
+.ap-map.is-chips .ap-map-link::after { content: ""; position: absolute; inset: 0; }
+.ap-map.is-chips .wb-drop { position: relative; z-index: 1; }
+.ap-map-ico {
+    flex: none;
+    width: 1rem;
+    text-align: center;
+    color: var(--galaxy, var(--bs-primary));
+}
+.ap-map.is-chips .wb-tbl tr.ap-map-grp {
+    grid-column: 1 / -1;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+/* Room above a heading only once tiles come before it: an empty group ahead is hidden, not first. */
+.ap-map.is-chips .wb-tbl tr:not(.ap-map-grp) ~ tr.ap-map-grp { padding-top: .6rem; }
+/* Picked and not saved yet: at the top, under their own heading. */
+.ap-map.is-chips .wb-tbl tr.is-new {
+    border-style: dashed;
+    border-color: var(--bs-primary);
+    background: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-body-bg));
+}
+.ap-map.is-chips .wb-tbl tr.ap-map-new > td { color: var(--bs-primary-text-emphasis, var(--bs-primary)); }
+.ap-map.is-chips .wb-tbl tr.ap-map-new .ap-map-grp-n { background: var(--bs-primary); color: #fff; }
+.ap-map.is-chips .wb-tbl tr.ap-map-grp > td {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    background: none;
+    font: 700 .6875rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ap-map-grp-n {
+    padding: 0 .45rem;
+    border-radius: 999px;
+    background: var(--bs-tertiary-bg);
+    font-size: .6875rem;
+    letter-spacing: 0;
+}
+/* A heading that says what its group does, beside its name. */
+.ap-map-grp-ico { font-size: .6875rem; color: var(--bs-primary); }
+.ap-map-grp-note {
+    font-weight: 400;
+    font-size: .75rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.ap-map-grp-note::before { content: "·"; margin-right: .45rem; }
+
+/* A description or a note under a short name, in the text face rather than the key's. */
+.ap-map.is-chips .wb-tbl td .ap-map-desc,
+.ap-map.is-chips .wb-tbl td .ap-map-missing { font-family: inherit; }
+
+/* Tiles whose value is a choice: the choice shows, under the name, while editing. */
+.ap-map.is-chips.has-choice .wb-tbl tr { flex-wrap: wrap; }
+.wb-block.is-editing .ap-map.is-chips.has-choice .wb-tbl td:nth-child(2),
+.ap-map.is-chips.has-choice [data-ap-new-table] td:nth-child(2) {
+    display: block;
+    flex: 1 0 100%;
+    order: 3;
+    position: relative;
+    z-index: 1;
+    margin-top: .35rem;
+}
+.ap-map.is-chips .wb-tbl tr.is-moved {
+    border-style: dashed;
+    border-color: var(--bs-warning);
+}
+
+/* A list whose order is what it says counts its tiles. */
+.ap-map.is-numbered .wb-tbl:not([data-ap-new-table]) tbody { counter-reset: ap-rank; }
+.ap-map.is-numbered .wb-tbl:not([data-ap-new-table]) tr[data-ap-key] { counter-increment: ap-rank; }
+.ap-map.is-numbered .wb-tbl:not([data-ap-new-table]) tr[data-ap-key] .fw-semibold::before {
+    content: counter(ap-rank);
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    color: var(--bs-primary);
+    font-size: .6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.ap-map.is-numbered .wb-tbl:not([data-ap-new-table]) tr[data-ap-key] .wb-sub { padding-left: 1.75rem; }
+
+/* An ordered list being edited: a tile is held and dragged, or moved with the arrows. */
+.wb-block.is-editing .ap-map.is-sortable .wb-tbl tr[data-ap-key] { cursor: grab; }
+.wb-block.is-editing .ap-map.is-sortable .wb-tbl tr[data-ap-key]::before {
+    content: '\f58e';
+    flex: none;
+    margin-right: .15rem;
+    font: 900 .6875rem/1 'Font Awesome 7 Free', 'Font Awesome 5 Free';
+    color: var(--bs-secondary-color);
+}
+.wb-block.is-editing .ap-map.is-sortable .ap-map-link { pointer-events: none; }
+.wb-block.is-editing .ap-map.is-sortable .wb-tbl tr[data-ap-key]:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+.ap-map.is-sortable .wb-tbl tr.is-dragging { opacity: .4; cursor: grabbing; }
+
+/* What a picked key is about, when its name is only a short one. */
+.ap-pick-desc {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+}
+
+/* A setting that is on or off: a switch that names its state, saved when flipped. */
+.wb-switch { display: inline-flex; align-items: center; gap: .6rem; }
+.wb-switch > .form-check { margin: 0; min-height: 0; }
+.wb-switch .form-check-input { width: 2.5em; height: 1.35em; margin-top: 0; cursor: pointer; }
+.wb-field .wb-switch-t,
+.wb-switch-t {
+    display: inline;
+    margin: 0;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+}
+.wb-switch:has(.form-check-input:checked) .wb-switch-t { color: var(--bs-primary); }
+.wb-switch .form-check-input:disabled { opacity: .6; cursor: progress; }
+.ap-assess {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.75rem;
+}
+.ap-assess-main {
+    flex: 1 1 22rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+}
+.ap-assess .wb-bh { margin: 0; }
+.ap-assess .ap-assess-unit { display: block; padding: 0; border: 0; }
+/* The switch first, then the sentence that says what it does. */
+.ap-assess .wb-switch { flex-direction: row-reverse; gap: .75rem; }
+.ap-assess .wb-switch .form-check-input { width: 2.75em; height: 1.5em; }
+.ap-assess .wb-switch-t,
+.ap-assess .wb-switch:has(.form-check-input:checked) .wb-switch-t,
+.ap-assess-state {
+    font-size: .9375rem;
+    font-weight: 700;
+    color: var(--bs-body-color);
+}
+.ap-assess.is-off .wb-switch-t,
+.ap-assess.is-off .ap-assess-state { color: var(--bs-secondary-color); }
+.ap-assess-state { display: flex; align-items: center; gap: .5rem; margin: 0; }
+.ap-assess-state > i { color: var(--bs-primary); }
+.ap-assess.is-off .ap-assess-state > i { color: var(--bs-secondary-color); }
+.ap-assess-say {
+    max-width: 62ch;
+    margin: 0;
+    font-size: .8125rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+}
+.ap-assess:not(.is-off) .is-off-only,
+.ap-assess.is-off .is-on-only { display: none !important; }
+
+/* The hover card the switch governs, as a reader of this profile sees it. */
+.ap-assess-card {
+    flex: 0 1 28rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    margin: 0;
+    padding: .75rem .85rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-tertiary-bg);
+}
+.ap-assess-card > figcaption {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .75rem;
+}
+.ap-assess-v {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .8125rem;
+    font-weight: 600;
+}
+.ap-assess-eyebrow {
+    margin-left: auto;
+    font-size: .625rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+}
+.ap-assess-reads {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+}
+.ap-assess-read {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    padding: .4rem .55rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+}
+.ap-assess-read .k { font-size: .6875rem; color: var(--bs-secondary-color); }
+.ap-assess-read b {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem;
+    font-size: .8125rem;
+    line-height: 1.35;
+}
+.ap-assess-read.is-lean {
+    border-color: color-mix(in srgb, var(--ap-lean) 40%, transparent);
+    background: color-mix(in srgb, var(--ap-lean) 9%, var(--bs-body-bg));
+}
+.ap-assess-read.is-lean b { flex-wrap: nowrap; color: var(--ap-lean-ink); }
+.ap-assess-read.is-lean b > i { flex: none; font-size: .75rem; }
+.ap-assess-read.is-blank { border-style: dashed; }
+.ap-assess-read .hint { font-size: .75rem; line-height: 1.35; color: var(--bs-body-color); }
+.ap-assess-none {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: .9rem .75rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.ap-assess-foot { margin: 0; font-size: .6875rem; line-height: 1.45; color: var(--bs-secondary-color); }
+
+/* What the set leaves out, behind a click. */
+.ap-map-others { margin-top: .9rem; }
+.ap-map-others > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+    list-style: none;
+}
+.ap-map-others > summary::-webkit-details-marker { display: none; }
+.ap-map-others > summary .fa-chevron-right { font-size: .7rem; transition: transform .15s ease; }
+.ap-map-others[open] > summary .fa-chevron-right { transform: rotate(90deg); }
+.ap-map-others-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin: .5rem 0 0;
+}
+.ap-map-others-list > span {
+    padding: .1rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
 
 /* ---- enrichment: one module per row, its types underneath ---- */
 .mod-row .wb-id {
@@ -2545,8 +3691,13 @@ a.ap-score-a:hover { text-decoration: underline; }
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.mod-row .form-select { flex: 1 1 auto; max-width: 15rem; }
-.mod-bulk .wb-id { font-style: normal; color: var(--bs-secondary-color); }
+.mod-row { gap: .75rem; }
+.mod-bulk .wb-id {
+    font-family: var(--bs-body-font-family);
+    font-style: normal;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+}
 
 /* ==================================================================
  * The enrichment card, kept in the modal the index's enrichment
@@ -2903,3 +4054,847 @@ a.ap-score-a:hover { text-decoration: underline; }
     .ap-activity-table td { padding-left: .35rem; padding-right: .35rem; }
     .ap-activity-table thead th { white-space: normal; vertical-align: bottom; }
 }
+
+/*
+ * How long a module's answer is reused: what happens to it, step by
+ * step, and under the steps a slider from an hour to a day with Custom
+ * past its end.
+ */
+.ap-reuse { display: flex; flex-direction: column; gap: .9rem; margin-top: .6rem; }
+.ap-reuse-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+@container wb (max-width: 720px) {
+    .ap-reuse-steps { grid-template-columns: minmax(0, 1fr); }
+}
+.ap-reuse-steps > li {
+    display: flex;
+    gap: .6rem;
+    min-width: 0;
+    padding: .7rem .8rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-body-bg);
+}
+.ap-reuse-steps > li.is-kept {
+    border-color: color-mix(in srgb, var(--bs-primary) 35%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 5%, var(--bs-body-bg));
+}
+.ap-reuse-steps > li.is-end { border-style: dashed; background: var(--bs-tertiary-bg); }
+.ap-reuse-n {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+}
+.ap-reuse-steps > li.is-end .ap-reuse-n { background: var(--bs-secondary-bg); color: var(--bs-secondary-color); }
+.ap-reuse-t { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.ap-reuse-t > b { font-size: .8125rem; line-height: 1.35; }
+.ap-reuse-steps > li.is-end .ap-reuse-t > b { color: var(--bs-secondary-color); }
+.ap-reuse-t > span { font-size: .75rem; line-height: 1.45; color: var(--bs-secondary-color); }
+
+/* The slider and its Custom. */
+.ap-reuse .ap-reuse-unit {
+    display: block;
+    padding: .75rem .9rem .6rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-tertiary-bg);
+}
+.ap-reuse-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.ap-reuse .ap-reuse-head > label { display: inline; margin: 0; font-size: .8125rem; }
+.ap-reuse-value { font-size: 1.0625rem; font-weight: 700; color: var(--bs-primary); white-space: nowrap; }
+.ap-reuse-row { display: flex; align-items: flex-start; gap: 1rem; margin-top: .5rem; }
+.ap-reuse-track { flex: 1 1 auto; min-width: 0; }
+.ap-reuse-range {
+    --fill: calc(9px + (100% - 18px) * var(--ratio, 0));
+    display: block;
+    width: 100%;
+    height: 18px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.ap-reuse-range::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--bs-primary) var(--fill), var(--bs-secondary-bg) var(--fill));
+}
+.ap-reuse-range::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--bs-primary) var(--fill), var(--bs-secondary-bg) var(--fill));
+}
+.ap-reuse-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -6px;
+    border: 3px solid var(--bs-primary);
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+}
+.ap-reuse-range::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 3px solid var(--bs-primary);
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+}
+.ap-reuse-range:focus-visible { outline: none; }
+.ap-reuse-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--bs-primary) 30%, transparent); }
+.ap-reuse-ticks { position: relative; height: 1.1rem; margin-top: .3rem; }
+.ap-reuse-ticks > span {
+    position: absolute;
+    left: calc(9px + (100% - 18px) * var(--at));
+    transform: translateX(-50%);
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+/* Custom: the slider steps back, the box takes over. */
+.ap-reuse.is-custom .ap-reuse-track { opacity: .45; }
+.ap-reuse-more {
+    flex: none;
+    padding: .2rem .8rem;
+    border: 1px dashed var(--bs-secondary-color);
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+.ap-reuse-more:hover { border-color: var(--bs-primary); color: var(--bs-primary); }
+.ap-reuse-more[aria-pressed="true"] {
+    border-style: solid;
+    border-color: var(--bs-primary);
+    background: color-mix(in srgb, var(--bs-primary) 12%, var(--bs-body-bg));
+    color: var(--bs-primary-text-emphasis, var(--bs-primary));
+}
+.ap-reuse-custom { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; margin-top: .5rem; }
+.ap-reuse-custom[hidden] { display: none; }
+.ap-reuse .ap-reuse-custom > label { display: inline; margin: 0; font-size: .75rem; font-weight: 600; color: var(--bs-secondary-color); }
+.ap-reuse-custom > input { width: 6.5rem; }
+.ap-reuse.is-saving .ap-reuse-unit { opacity: .6; pointer-events: none; }
+.ap-reuse-foot {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.ap-reuse-foot > i { font-size: .625rem; color: var(--bs-primary); }
+
+/* ==================================================================
+ * Relevance: lifetimes on one time scale (lifetime_ruler.ctp)
+ * ================================================================== */
+/* A map with a drawing of its own is read as the drawing; Edit shows its table. */
+.wb-block:not(.is-editing) .ap-map.has-read-view > .wb-tbl,
+.wb-block:not(.is-editing) .ap-map.has-read-view > .wb-empty { display: none; }
+.wb-block.is-editing .ap-read-view { display: none; }
+
+.ap-life { display: flex; flex-direction: column; margin-top: .5rem; }
+.ap-life-rows { margin: 0; padding: 0; list-style: none; }
+.ap-life-row {
+    display: grid;
+    grid-template-columns: 11rem minmax(14rem, 1.15fr) minmax(0, 1fr);
+    align-items: center;
+    gap: .4rem 1.25rem;
+    padding: .6rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.ap-life-head {
+    padding: .5rem .6rem;
+    border-bottom: 2px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;
+    background: var(--bs-tertiary-bg);
+    font: 700 .6875rem/1.4 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-emphasis-color, var(--bs-body-color));
+}
+.ap-life-scale { position: relative; height: 1.4em; }
+.ap-life-scale > span {
+    position: absolute;
+    left: var(--at);
+    transform: translateX(-50%);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+}
+.ap-life-name { display: flex; flex-direction: column; gap: .05rem; min-width: 0; }
+.ap-life-name > b {
+    overflow: hidden;
+    font-size: .875rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-life-name > b.wb-id { font-size: .8125rem; }
+.ap-life-days { font-size: .8125rem; font-weight: 600; }
+.ap-life-days > span { font-weight: 400; color: var(--bs-secondary-color); }
+.ap-life-aging { font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-life-track {
+    position: relative;
+    height: .75rem;
+    border-radius: 999px;
+    background: var(--bs-tertiary-bg);
+}
+.ap-life-grid {
+    position: absolute;
+    top: -.3rem;
+    bottom: -.3rem;
+    width: 1px;
+    background: var(--bs-border-color);
+}
+.ap-life-cur,
+.ap-life-age {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+}
+.ap-life-cur {
+    left: 0;
+    border-radius: 999px 0 0 999px;
+    background: var(--bs-primary);
+}
+.ap-life-age {
+    border-radius: 0 999px 999px 0;
+    background: color-mix(in srgb, var(--vp-conflict) 75%, var(--bs-body-bg));
+}
+/* Where its bucket would have ended it. */
+.ap-life-was {
+    position: absolute;
+    top: -.3rem;
+    bottom: -.3rem;
+    border-left: 2px dashed var(--bs-secondary-color);
+}
+.ap-life-row.is-default .ap-life-name > b { color: var(--bs-secondary-color); }
+.ap-life-row.is-default .ap-life-cur {
+    background: color-mix(in srgb, var(--bs-primary) 55%, var(--bs-body-bg));
+}
+.ap-life-types {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    min-width: 0;
+}
+.ap-life-instead { font-size: .8125rem; font-weight: 600; }
+.ap-life-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.1rem;
+    margin: .6rem 0 0;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.ap-life-key > span { display: inline-flex; align-items: center; gap: .4rem; }
+.ap-life-sw { display: inline-block; width: .9rem; height: .5rem; border-radius: 999px; }
+.ap-life-sw.is-cur { background: var(--bs-primary); }
+.ap-life-sw.is-age { background: color-mix(in srgb, var(--vp-conflict) 75%, var(--bs-body-bg)); }
+.ap-life-sw.is-was {
+    width: 0;
+    height: .8rem;
+    border-radius: 0;
+    border-left: 2px dashed var(--bs-secondary-color);
+}
+@media (max-width: 767.98px) {
+    .ap-life-row { grid-template-columns: 8rem minmax(0, 1fr); }
+    .ap-life-types { grid-column: 1 / -1; }
+    .ap-life-head > span:last-child { display: none; }
+}
+
+/* A setting's choice is read as words, and what its number does beside it. */
+.wb-field > .wb-inline > .wb-id {
+    font-family: var(--bs-body-font-family);
+    font-size: .875rem;
+    font-weight: 600;
+}
+.wb-reading { font-size: .8125rem; color: var(--bs-secondary-color); }
+.wb-reading::before { content: "· "; }
+
+/* ==================================================================
+ * Exclusions: a rule per row (exclusion_rules.ctp)
+ * ================================================================== */
+.ap-rules { margin: .5rem 0 0; padding: 0; list-style: none; }
+.ap-rule {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1.5fr) minmax(16rem, 1fr);
+    align-items: start;
+    gap: .5rem 1.25rem;
+    padding: .85rem .6rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+.ap-rule:first-child { border-top: 0; }
+.ap-rule-sw { padding-top: .1rem; }
+.ap-rule-sw .wb-field { display: block; padding: 0; border: 0; }
+.ap-rule-h {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem .6rem;
+    margin: 0;
+}
+.ap-rule-h .wb-name { font-size: .9375rem; }
+.ap-rule-layer {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .05rem .55rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+.ap-rule-layer > i { font-size: .625rem; }
+.ap-rule-layer > b { font-weight: 600; color: var(--bs-body-color); }
+.ap-rule-desc {
+    margin: .25rem 0 0;
+    font-size: .8125rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+}
+.ap-rule-desc .sig-more { margin-left: .25rem; }
+.ap-rule-sets { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.ap-rule-set {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .3rem .75rem;
+    min-height: 2rem;
+    padding: .3rem .65rem;
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-tertiary-bg);
+    font-size: .8125rem;
+}
+.ap-rule-k { flex: 1 1 9rem; margin-right: auto; color: var(--bs-secondary-color); }
+.ap-rule-v { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---- a setting changed where it is read (inline_value.ctp) ---- */
+.ap-set-v {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    min-height: 1.75rem;
+    padding: 0 .5rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    font: inherit;
+    font-size: .875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-body-color);
+    text-align: left;
+    cursor: text;
+}
+.ap-set-v > i { font-size: .625rem; color: var(--bs-secondary-color); }
+.ap-set-u { font-weight: 400; color: var(--bs-secondary-color); }
+.ap-set-v:hover { border-style: solid; border-color: var(--bs-primary); }
+.ap-set-v:hover > i { color: var(--bs-primary); }
+.ap-set-in { display: inline-flex; align-items: center; gap: .25rem; }
+.ap-set-in[hidden] { display: none; }
+.ap-set-in .form-control { width: 6.5rem; text-align: right; }
+.ap-set-in .form-select { width: auto; min-width: 8rem; }
+.ap-set-in .wb-unit { margin: 0 .2rem; }
+.ap-set-in .btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+}
+[data-ap-set].is-open {
+    background: color-mix(in srgb, var(--bs-primary) 9%, var(--bs-body-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bs-primary) 40%, transparent);
+}
+[data-ap-set].is-open .ap-set-v,
+[data-ap-set].is-open .ap-set-saved,
+[data-ap-set].is-open .wb-reading { display: none; }
+.ap-set-saved {
+    display: none;
+    align-items: center;
+    gap: .3rem;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--vp-ben-ink, var(--bs-success));
+    white-space: nowrap;
+}
+.ap-set-saved > i { font-size: .625rem; }
+[data-ap-set].is-saved .ap-set-saved { display: inline-flex; }
+.ap-rule-none {
+    padding: .35rem 0;
+    font-size: .75rem;
+    font-style: italic;
+    color: var(--bs-secondary-color);
+}
+.ap-rule.is-off .ap-rule-body,
+.ap-rule.is-off .ap-rule-sets { opacity: .55; }
+.ap-rules-sum { font-size: .8125rem; font-weight: 600; color: var(--bs-secondary-color); white-space: nowrap; }
+@media (max-width: 991.98px) {
+    .ap-rule { grid-template-columns: 3rem minmax(0, 1fr); }
+    .ap-rule-sets { grid-column: 2; }
+}
+
+/* ==================================================================
+ * Sources & reputation: grades (grade_scale.ctp, grade headings)
+ * ================================================================== */
+/* A grade's letter, toned by what its multiplier does. */
+.ap-map-grp-badge,
+.ap-grade-badge {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    padding: 0 .3rem;
+    margin-right: .45rem;
+    border-radius: .3rem;
+    background: var(--bs-tertiary-bg);
+    box-shadow: inset 0 0 0 1px var(--bs-border-color);
+    font: 700 .75rem/1 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: 0;
+    color: var(--bs-body-color);
+    vertical-align: middle;
+}
+.t-up > td > .ap-map-grp-badge,
+.ap-grade.t-up .ap-grade-badge {
+    background: color-mix(in srgb, var(--bs-primary) 16%, var(--bs-body-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bs-primary) 45%, transparent);
+    color: var(--bs-primary-text-emphasis);
+}
+.t-down > td > .ap-map-grp-badge,
+.ap-grade.t-down .ap-grade-badge {
+    background: color-mix(in srgb, var(--vp-conflict) 20%, var(--bs-body-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vp-conflict) 50%, transparent);
+    color: var(--vp-conflict-ink);
+}
+.t-zero > td > .ap-map-grp-badge,
+.ap-grade.t-zero .ap-grade-badge {
+    background: color-mix(in srgb, var(--vp-mal) 14%, var(--bs-body-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vp-mal) 45%, transparent);
+    color: var(--vp-mal-ink);
+}
+
+.ap-grades {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .6rem;
+    margin: .7rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+.ap-grade {
+    --tone: var(--bs-secondary-color);
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: .65rem .75rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+}
+.ap-grade.t-up { --tone: var(--bs-primary); }
+.ap-grade.t-down { --tone: var(--vp-conflict); }
+.ap-grade.t-zero { --tone: var(--vp-mal); }
+.ap-grade-h { display: flex; align-items: center; min-height: 1.6rem; }
+.ap-grade-m {
+    min-width: 0;
+    margin: 0;
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+.ap-grade-bar {
+    position: relative;
+    height: .35rem;
+    border-radius: 999px;
+    background: var(--bs-tertiary-bg);
+}
+.ap-grade-bar > i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    background: var(--tone);
+}
+/* Face value, ×1.00, on every bar. */
+.ap-grade-bar > b {
+    position: absolute;
+    top: -.2rem;
+    bottom: -.2rem;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--bs-body-color);
+    opacity: .55;
+}
+.ap-grade-v { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.ap-grade-x { font-weight: 700; color: var(--bs-secondary-color); }
+.ap-grade-v > b { font-variant-numeric: tabular-nums; }
+.ap-grade .ap-set-in .form-control { width: 5rem; }
+.ap-grade-was { font-size: .75rem; color: var(--bs-secondary-color); }
+.ap-grade.is-changed { border-color: color-mix(in srgb, var(--vp-conflict) 55%, var(--bs-border-color)); }
+.ap-grades-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.2rem;
+    margin: .6rem 0 0;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.ap-grades-key > span { display: inline-flex; align-items: center; gap: .4rem; }
+.ap-grade-sw { width: 2px; height: .8rem; border-radius: 1px; background: var(--bs-body-color); opacity: .55; }
+@media (max-width: 991.98px) {
+    .ap-grades { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* A legend drawn as one card per value (warninglist categories). */
+.ap-legend.is-cards { margin: .5rem 0 1rem; padding: 0; border: 0; background: none; }
+.ap-legend-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem;
+}
+.ap-legend-card {
+    --tone: var(--bs-secondary-color);
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .7rem .85rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+}
+.ap-legend-card.t-missing { --tone: var(--vp-mal-ink); }
+.ap-legend-card.t-over { --tone: var(--vp-conflict-ink); }
+.ap-legend-card-h {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0;
+    font-size: .875rem;
+    font-weight: 700;
+}
+.ap-legend-card-h > i { color: var(--tone); }
+.ap-legend-card-m { margin: 0; font-size: .8125rem; line-height: 1.45; }
+.ap-legend-card-e {
+    margin: 0;
+    padding-top: .4rem;
+    border-top: 1px dashed var(--bs-border-color);
+    font-size: .75rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+}
+.ap-legend-card-e > span {
+    margin-right: .4rem;
+    padding: 0 .35rem;
+    border-radius: .25rem;
+    background: var(--bs-tertiary-bg);
+    font-weight: 700;
+    color: var(--bs-body-color);
+}
+@media (max-width: 991.98px) {
+    .ap-legend-cards { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ==================================================================
+ * Thresholds: a tile per band (band_board.ctp), caps per grade
+ * ================================================================== */
+.ap-bands {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .6rem;
+    margin-top: .9rem;
+}
+.ap-band {
+    --band: var(--vp-unknown);
+    --mix: 20%;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .7rem .8rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+}
+.ap-band.is-medium { --band: var(--vp-conflict); --mix: 30%; }
+.ap-band.is-high { --band: var(--vp-mal); --mix: 26%; }
+.ap-band-h {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0;
+    font-size: .875rem;
+    font-weight: 700;
+}
+/* The swatch is the strip's own segment colour. */
+.ap-band-sw {
+    flex: none;
+    width: .8rem;
+    height: .8rem;
+    border-radius: .2rem;
+    background: color-mix(in srgb, var(--band) var(--mix), transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--band) 45%, transparent);
+}
+.ap-band-r {
+    margin: 0 0 .15rem;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-secondary-color);
+}
+.ap-band-set {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin: 0 -.45rem;
+    padding: .25rem .45rem;
+    border-radius: var(--bs-border-radius);
+}
+.ap-band-k { margin: 0; font-size: .8125rem; color: var(--bs-secondary-color); }
+.ap-band-note { font-style: italic; }
+@media (max-width: 991.98px) {
+    .ap-bands { grid-template-columns: minmax(0, 1fr); }
+}
+
+.ap-grades.is-caps .ap-grade-x { font-size: .8125rem; font-weight: 400; }
+
+/* ---- rules headed by group, settings split by map, a contribution column (signals) ---- */
+/* A group opens on a band of its own, so the eye finds where one ends and the next begins. */
+.ap-rules-grp {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .55rem;
+    margin-top: 1.75rem;
+    padding: .55rem .75rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-tertiary-bg);
+    font: 700 .8125rem/1.4 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-emphasis-color, var(--bs-body-color));
+}
+.ap-rules-grp:first-child { margin-top: 0; }
+.ap-rules-grp > i {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: .4rem;
+    background: color-mix(in srgb, var(--bs-primary) 15%, var(--bs-body-bg));
+    font-size: .75rem;
+    color: var(--bs-primary-text-emphasis);
+}
+.ap-rules-grp > .ap-map-grp-n { background: var(--bs-body-bg); }
+.ap-rules-grp-note {
+    font-size: .8125rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--bs-secondary-color);
+}
+.ap-rules-grp-note::before { content: "· "; }
+.ap-rules-grp + .ap-rule { border-top: 0; }
+/* Many settings: under the description, full width, a line per map they write. */
+.ap-rules.is-tuned .ap-rule { grid-template-columns: 3rem minmax(0, 1fr); }
+.ap-rules.is-tuned.is-scored .ap-rule { grid-template-columns: 3rem minmax(0, 1fr) 5.5rem; }
+.ap-rules.is-tuned .ap-rule-sets { grid-column: 2; grid-row: 2; gap: .4rem; }
+.ap-rules.is-tuned .ap-rule-contrib { grid-column: 3; grid-row: 1; }
+.ap-rule-map {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    align-items: start;
+    gap: .6rem;
+}
+.ap-rule-map-sets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: .35rem;
+}
+.ap-rule-sub {
+    margin: 0;
+    padding-top: .55rem;
+    font: 700 .625rem/1.4 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ap-rules.is-tuned .ap-rule-set { min-height: 1.9rem; padding: .2rem .55rem; }
+.ap-rules.is-scored:not(.is-tuned) .ap-rule {
+    grid-template-columns: 3rem minmax(0, 1.5fr) minmax(16rem, 1fr) 5.5rem;
+}
+.ap-rule-contrib { padding-top: .1rem; text-align: right; }
+.ap-rule-contrib .num { font-size: 1rem; }
+.ap-rule-contrib.is-weighs {
+    --vp-dir-with: var(--vp-weighs-carries);
+    --vp-dir-against: var(--vp-weighs-lacks);
+    --vp-dir-with-ink: var(--vp-weighs-carries);
+    --vp-dir-against-ink: var(--vp-weighs-lacks);
+}
+@media (max-width: 991.98px) {
+    .ap-rules.is-scored .ap-rule { grid-template-columns: 3rem minmax(0, 1fr) 5rem; }
+    .ap-rules.is-scored .ap-rule-sets { grid-column: 2; }
+    .ap-rule-map { grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+    .ap-rule-sub { padding-top: 0; }
+}
+
+/* ==================================================================
+ * What a section moves: one badge per axis (axis_badges.ctp), in the
+ * value pages' palette — the lean's two readings, the relevance teal,
+ * signal strength with no hue of its own, and "no score" drawn apart.
+ * ================================================================== */
+.ap-axes {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem;
+    margin-left: .5rem;
+    vertical-align: 2px;
+}
+.ap-axis {
+    --ax: var(--bs-secondary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .1rem .55rem .1rem .45rem;
+    border: 1px solid color-mix(in srgb, var(--ax) 38%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ax) 8%, var(--bs-body-bg));
+    font: 600 .6875rem/1.45 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .01em;
+    color: var(--ax-ink, var(--ax));
+    white-space: nowrap;
+    cursor: help;
+}
+.ap-axis > i { font-size: .625rem; }
+/* The lean: the two readings it chooses between, side by side. */
+.ap-axis.is-lean { --ax: var(--bs-body-color); }
+.ap-axis-split {
+    flex: none;
+    width: .7rem;
+    height: .7rem;
+    border-radius: 50%;
+    background: linear-gradient(90deg, var(--vp-mal) 50%, var(--vp-ben) 50%);
+}
+/* Signal strength is a magnitude: body ink and a weight, no hue. */
+.ap-axis.is-signal-strength {
+    --ax: var(--bs-emphasis-color, var(--bs-body-color));
+    background: var(--bs-tertiary-bg);
+}
+.ap-axis.is-relevance { --ax: var(--vp-rel-current, #0e7490); }
+[data-misp-mode="dark"] .ap-axis.is-relevance { --ax: var(--vp-rel-current, #67e8f9); }
+.ap-axis.is-trust { --ax: var(--bs-secondary-color); --ax-ink: var(--bs-body-color); }
+/* Reaching no score at all. */
+.ap-axis.is-context,
+.ap-axis.is-display {
+    border-style: dashed;
+    background: transparent;
+}
+
+/* ---- the try bar's readings: the value page's axes, drawn small ---- */
+.ap-vbar-axes { flex: 1 1 31rem; min-width: 0; }
+/* Read beside the value it describes. */
+.ap-vbar:has(.ap-vbar-axes) .ap-vbar-read { flex: 3 1 40rem; flex-wrap: nowrap; }
+.ap-vbar-axes .vp-ax {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+}
+/* The lean is the headline, beside the cells rather than above them: its rule runs under it. */
+.ap-vbar-axes .vp-ax-lean {
+    flex: 0 0 auto;
+    padding-bottom: 4px;
+    border-bottom: 3px solid var(--vp-ax-lean);
+    font-size: 14px;
+    line-height: 18px;
+}
+.ap-vbar-axes .vp-ax-lean-quiet {
+    border-bottom: 1px dashed color-mix(in srgb, var(--vp-ax-lean) 70%, transparent);
+}
+.ap-vbar-axes .vp-ax-lean-rule { display: none; }
+.ap-vbar-axes .vp-ax-cells {
+    flex: 1 1 auto;
+    min-width: 0;
+    column-gap: 16px;
+}
+.ap-vbar-axes .vp-ax-cells > .vp-ax-cell + .vp-ax-cell::before { left: -8px; }
+.ap-vbar-axes .vp-ax-name { font-size: 9px; line-height: 11px; }
+.ap-vbar-axes .vp-ax-fig { margin-top: 1px; font-size: 16px; line-height: 19px; }
+.ap-vbar-axes .vp-ax-glyph { height: 9px; margin-top: 2px; }
+.ap-vbar-axes .vp-ax-track { top: 2px; height: 4px; }
+.ap-vbar-axes .vp-ax-read { margin-top: 2px; }
+.ap-vbar-axes .vp-ax-notes { display: none; }
+
+/* Nothing to read on the value tried: said once, with what each axis lacks. */
+.ap-vbar-none {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+    padding: .45rem .8rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-tertiary-bg);
+}
+.ap-vbar-none-ico {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    box-shadow: inset 0 0 0 1px var(--bs-border-color);
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+.ap-vbar-none-t { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.ap-vbar-none-t > b {
+    overflow: hidden;
+    font-size: .875rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-vbar-none-facts { display: flex; flex-wrap: wrap; gap: .35rem; }
+.ap-vbar-none-facts > span {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .05rem .5rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    font-size: .6875rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    cursor: help;
+}
+.ap-vbar-none-facts > span > i { font-size: .625rem; }
+.ap-vbar-none-facts .ap-axis-split { width: .6rem; height: .6rem; opacity: .5; }

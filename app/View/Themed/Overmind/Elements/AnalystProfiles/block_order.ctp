@@ -1,7 +1,7 @@
 <?php
 /**
  * An ordered list: the visualisations this profile wants promoted,
- * best first.
+ * best first, as tiles in the order the Overview draws them.
  *
  * The fifth block kind, and the first whose **order is the setting**.
  * A map's rows can be drawn in any order without changing what the
@@ -10,11 +10,9 @@
  * position is the input's index. Reordering renumbers the inputs and
  * nothing else moves.
  *
- * **Up and down rather than drag.** Two buttons work with a keyboard,
- * work on a phone, need no library, and say what they do; a drag
- * handle is none of those and would be the only one on the page. The
- * list is at most a dozen rows, which is the length where buttons stop
- * being tedious and start being precise.
+ * A `live` list is edited where it is read: Edit shows the remove
+ * buttons and the frame that adds one, and a tile is dragged into
+ * place or moved with the arrow keys (analyst-profile-settings.js).
  *
  * Like a map, it **replaces** on save rather than merging: a row the
  * analyst removed posts nothing and a merge cannot tell that from a
@@ -30,18 +28,68 @@ App::uses('AnalystProfileFormTool', 'Tools/AnalystProfile');
 $entries = $block['entries'];
 $cap = isset($block['cap']) ? (int)$block['cap'] : 0;
 $name = AnalystProfileFormTool::fieldName($block['path']);
+$live = !empty($block['live']);
 $canAdd = $editable && !empty($block['add']['options']);
+$descriptions = $block['add']['descriptions'] ?? array();
 ?>
-<?= $this->element('AnalystProfiles/block_head', array('block' => $block)) ?>
-<div class="ap-order" data-ap-order
+<?php if ($live): ?>
+    <div class="ap-live-head">
+        <div class="ap-live-head-t"><?= $this->element('AnalystProfiles/block_head', array('block' => $block)) ?></div>
+        <div class="ap-live-tools">
+            <?php if ($editable): ?>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-ap-live-edit>
+                    <i class="fas fa-pen me-1" aria-hidden="true"></i><span><?= h(__('Edit')) ?></span>
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php else: ?>
+    <?= $this->element('AnalystProfiles/block_head', array('block' => $block)) ?>
+<?php endif; ?>
+<div class="ap-order<?= $live ? ' is-sortable' : '' ?>" data-ap-order
      data-ap-order-name="<?= h($name) ?>"
-     data-ap-order-cap="<?= h($cap) ?>">
+     data-ap-order-cap="<?= h($cap) ?>"
+     data-ap-order-remove-label="<?= h(__('Stop ranking it')) ?>">
 
     <?php if ($editable): ?>
         <input type="hidden"
                name="<?= h(AnalystProfileFormTool::fieldName(
                    $block['path'], array('__present'))) ?>"
                value="1">
+    <?php endif; ?>
+
+    <?php if ($canAdd): ?>
+        <div class="ap-order-add ap-map-add" data-ap-order-add>
+            <?php if (!empty($block['add']['title'])): ?>
+                <p class="ap-map-add-h"><?= h($block['add']['title']) ?></p>
+            <?php endif; ?>
+            <div class="ap-map-find">
+                <label for="<?= h(AnalystProfileFormTool::fieldId(
+                    $block['path'], array('add'))) ?>"<?= $live ? ' class="visually-hidden"' : '' ?>>
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                    <?= h($block['add']['label']) ?>
+                </label>
+                <?php // The page swaps it for the search box the other lists use. ?>
+                <select class="form-select form-select-sm"
+                        id="<?= h(AnalystProfileFormTool::fieldId(
+                            $block['path'], array('add'))) ?>"
+                        data-ap-order-pick
+                        data-ap-add-filter="1"
+                        data-ap-pick-placeholder="<?= h($block['add']['placeholder'] ?? '') ?>"
+                        data-ap-pick-head="<?= h($block['add']['pick_head'] ?? '') ?>"
+                        data-ap-pick-none="<?= h($block['add']['pick_none'] ?? __('no match')) ?>"
+                        data-ap-pick-hint="<?= h(__('every visualisation is already ranked')) ?>">
+                    <option value=""><?= h(__('pick one…')) ?></option>
+                    <?php foreach ($block['add']['options'] as $key => $label): ?>
+                        <option value="<?= h($key) ?>"<?= empty($descriptions[$key]) ? ''
+                            : ' data-desc="' . h($descriptions[$key]) . '"' ?>><?= h($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if (!empty($block['add']['help'])): ?>
+                    <p class="ap-map-add-help"><?= h($block['add']['help']) ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
     <?php endif; ?>
 
     <div class="wb-empty" data-ap-order-empty
@@ -59,9 +107,7 @@ $canAdd = $editable && !empty($block['add']['options']);
             /*
              * Both marks are drawn here as well as by the page, so
              * the first paint is already right: the script renumbers
-             * after a move, and a class only it knew about would mean
-             * a ranking of seven looked like a ranking of seven equals
-             * until somebody dragged something.
+             * after a move.
              */
             $classes = 'ap-order-row';
             if ($entry['standing'] !== 'ok') {
@@ -73,7 +119,8 @@ $canAdd = $editable && !empty($block['add']['options']);
             ?>
             <li class="<?= h($classes) ?>"
                 data-ap-order-row
-                data-ap-key="<?= h($entry['key']) ?>">
+                data-ap-key="<?= h($entry['key']) ?>"<?= $entry['description'] === null ? ''
+                    : ' title="' . h($entry['description']) . '"' ?>>
                 <?php
                 /*
                  * The position is carried by the index and the value
@@ -100,32 +147,11 @@ $canAdd = $editable && !empty($block['add']['options']);
                     <?php endif; ?>
                 </span>
                 <?php if ($editable): ?>
-                    <span class="ap-order-moves">
-                        <button type="button"
-                                class="btn btn-sm btn-link"
-                                data-ap-order-up
-                                title="<?= h(__('Move up')) ?>"
-                                aria-label="<?= h(sprintf(
-                                    __('Move %s up'),
-                                    $entry['label']
-                                )) ?>">&uarr;</button>
-                        <button type="button"
-                                class="btn btn-sm btn-link"
-                                data-ap-order-down
-                                title="<?= h(__('Move down')) ?>"
-                                aria-label="<?= h(sprintf(
-                                    __('Move %s down'),
-                                    $entry['label']
-                                )) ?>">&darr;</button>
-                        <button type="button"
-                                class="btn btn-sm btn-link"
-                                data-ap-order-remove
-                                title="<?= h(__('Remove')) ?>"
-                                aria-label="<?= h(sprintf(
-                                    __('Stop ranking %s'),
-                                    $entry['label']
-                                )) ?>">&times;</button>
-                    </span>
+                    <button type="button" class="wb-drop" data-ap-order-remove
+                            title="<?= h(__('Stop ranking it')) ?>"
+                            aria-label="<?= h(sprintf(__('Stop ranking %s'), $entry['label'])) ?>">
+                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                    </button>
                 <?php endif; ?>
             </li>
         <?php endforeach; ?>
@@ -136,36 +162,11 @@ $canAdd = $editable && !empty($block['add']['options']);
         /*
          * Said only once the ranking is long enough for it to be true
          * of this document. A note about the sixth entry on a profile
-         * with two of them is noise, and the one thing an editor's
-         * notes must stay is worth reading.
+         * with two of them is noise.
          */
         ?>
         <p class="wb-sub ap-order-cap" data-ap-order-capnote
            <?= count($entries) > $cap ? '' : 'hidden' ?>><?=
             h($block['cap_note']) ?></p>
-    <?php endif; ?>
-
-    <?php if ($canAdd): ?>
-        <div class="ap-order-add ap-map-add" data-ap-order-add
-             data-ap-order-options="<?= h(json_encode(
-                 $block['add']['options'])) ?>">
-            <label for="<?= h(AnalystProfileFormTool::fieldId(
-                $block['path'], array('add'))) ?>">
-                <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                <?= h($block['add']['label']) ?>
-            </label>
-            <select class="form-select form-select-sm"
-                    id="<?= h(AnalystProfileFormTool::fieldId(
-                        $block['path'], array('add'))) ?>"
-                    data-ap-order-pick
-                    style="max-width:16rem">
-                <option value=""><?= h(__('pick one…')) ?></option>
-                <?php foreach ($block['add']['options']
-                    as $key => $label): ?>
-                    <option value="<?= h($key) ?>"><?=
-                        h($label) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
     <?php endif; ?>
 </div>
