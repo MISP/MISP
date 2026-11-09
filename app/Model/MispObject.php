@@ -1186,6 +1186,10 @@ class MispObject extends AppModel
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
+                    if (!empty($options['blockedAttributeTags']) && array_intersect(array_column($attribute['AttributeTag'] ?? [], 'tag_id'), $options['blockedAttributeTags'])) {
+                        unset($results[$key]['Attribute'][$key2]);
+                        continue;
+                    }
                     if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute)) {
                         unset($results[$key]['Attribute'][$key2]);
                         continue;
@@ -2357,8 +2361,15 @@ class MispObject extends AppModel
         );
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    /**
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
     {
+        // other callers pass filters straight from the request
+        if (isset($filters['query'])) {
+            throw new BadRequestException(__('The query parameter is only accepted by the restSearch endpoints.'));
+        }
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -2397,6 +2408,17 @@ class MispObject extends AppModel
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($filters);
+        $blockedTagIds = [];
+        if ($complexQuery !== null) {
+            App::uses('ComplexObjectQueryTool', 'Tools');
+            $tool = new ComplexObjectQueryTool($this->Attribute, $user, ComplexQueryTool::limitsFromConfig());
+            if (!empty($filters['order'])) {
+                // objects cannot be sorted
+                $tool->validateOrder($filters['order'], []);
+            }
+            $conditions['AND'][] = $tool->conditions($complexQuery);
+            $blockedTagIds = $tool->blockedTagIds();
+        }
         // Same rules as fetchAttributes(); fetchObjects() itself keeps
         // returning soft-deleted objects to its other callers
         if (isset($filters['deleted']) && $filters['deleted'] === 'only') {
@@ -2453,6 +2475,9 @@ class MispObject extends AppModel
         }
         if (!empty($filters['metadata'])) {
             $params['metadata'] = $filters['metadata'];
+        }
+        if (!empty($blockedTagIds)) {
+            $params['blockedAttributeTags'] = $blockedTagIds;
         }
         if ($paramsOnly) {
             return $params;

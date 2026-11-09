@@ -203,7 +203,9 @@ class RestSearchComponent extends Component
             'includeSightingdb',
             'object_name',
             'object_template_uuid',
-            'object_template_version'
+            'object_template_version',
+            'order',
+            'query'
         ],
         'Sighting' => [
             'context',

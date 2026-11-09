@@ -661,6 +661,7 @@ class ACLComponent extends Component
             'index' => array('*'),
             'indexCard' => array('*'),
             'orphanedObjectDiagnostics' => array(),
+            'queryDescribe' => array('perm_complex_query'),
             'editField' => array('perm_add'),
             'fetchEditForm' => array('perm_add'),
             'fetchViewValue' => array('*'),

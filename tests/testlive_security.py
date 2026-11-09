@@ -2236,7 +2236,7 @@ class TestComplexEventQueryAcl(unittest.TestCase):
         bad = {
             "string": "id=1", "list": [{"id": 1}], "empty": {}, "unknown field": {"nope": 1}, "renamed field": {"info": "x"},
             "acl field": {"sharing_group_id": self.sg_id}, "wrong type": {"id": "1"}, "impossible date": {"date": "2026-02-30"},
-            "relative date in hours": {"date": "7h"}, "object like": {"object_name": {"LIKE": "domain%"}},
+            "relative date in hours": {"date": "7h"}, "template like": {"object_template_uuid": {"LIKE": "%a"}},
             "too deep": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"id": 1}}}}}}},
         }
         for name, tree in bad.items():
@@ -2293,6 +2293,366 @@ class TestComplexEventQueryAcl(unittest.TestCase):
         self.assertIn("eventinfo", table["fields"])
         self.assertIn("info", table["sortable"])
         self.assertEqual(self.api(self.plain_user_key, "GET", "events/queryDescribe")[0], 403)
+
+class TestComplexObjectQueryAcl(unittest.TestCase):
+    """The `query` tree of /objects/restSearch must select objects and attributes only through what the user can see."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqo" + random()
+        cls.created = {"events": [], "tags": set(), "users": [], "roles": [], "sgs": [], "keys": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQO Org " + random(), "local": True})["Organisation"]
+        me = cls.admin_api("GET", "users/view/me")["Organisation"]
+        cls.admin_org_id, admin_org_uuid = int(me["id"]), me["uuid"]
+        roles = {
+            "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQO {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            keys[name] = cls.__make_user(role["id"])
+        cls.user_key, cls.plain_user_key, cls.site_admin_key = keys["flagged"], keys["plain"], keys["site_admin"]
+
+        # a sharing group the test org is not a member of
+        sg = cls.admin_api("POST", "sharingGroups/add", {
+            "SharingGroup": {"name": "MQO SG " + random(), "releasability": "test", "description": "test", "active": 1,
+                             "organisation_uuid": admin_org_uuid, "roaming": 0},
+            "Organisation": [{"uuid": admin_org_uuid, "extend": True}]})
+        cls.sg_id = sg["SharingGroup"]["id"]
+        cls.created["sgs"].append(cls.sg_id)
+
+        cls.tag_vis, cls.tag_hid, cls.tag_evt = (f"{cls.marker}:{t}" for t in ("vis", "hid", "evt"))
+        # (name, distribution, attributes (name, distribution, tag))
+        cls.e1, cls.o1 = cls.__make_event("e1", 3, [("o1", 5, [("a", 5, None)])], event_tag=cls.tag_evt)
+        e2 = cls.__make_event("e2", 3, [("o2a", 5, [("vis", 5, cls.tag_vis), ("hid", 0, cls.tag_hid), ("sg", 4, None)]), ("o2b", 0, [("b", 5, None)])])
+        cls.e2, cls.o2a, cls.o2b = e2[0], e2[1][0], e2[1][1]
+        cls.e3, cls.o3 = cls.__make_event("e3", 0, [("o3", 5, [("x", 5, None)])])
+        cls.e4, cls.o4 = cls.__make_event("e4", 0, [("o4", 5, [("p", 0, None)])], token=cls.user_key)
+        cls.all_events = [cls.e1, cls.e2, cls.e3, cls.e4]
+        cls.visible = {cls.o1: {cls.__value("o1-a")}, cls.o2a: {cls.__value("o2a-vis")}, cls.o4: {cls.__value("o4-p")}}
+        cls.hidden_values = {cls.__value(n) for n in ("o2a-hid", "o2a-sg", "o2b-b", "o3-x")}
+
+    @classmethod
+    def tearDownClass(cls):
+        for kind, path in (("events", "events/delete/{}"), ("tags", "tags/delete/{}"), ("keys", "authKeys/delete/{}"),
+                           ("users", "admin/users/delete/{}"), ("sgs", "sharingGroups/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqo{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __value(cls, name: str) -> str:
+        return f"{cls.marker}-{name}.example.com"
+
+    @classmethod
+    def __comment(cls, name: str) -> str:
+        return f"{cls.marker}-c-{name}"
+
+    @classmethod
+    def __make_event(cls, name: str, distribution: int, objects, event_tag=None, token=None):
+        """Returns (event id, id of the object) for one object, or (event id, [object ids]) for several."""
+        def attribute(obj, n, d, tag):
+            return {"type": "domain", "category": "Network activity", "object_relation": "domain", "distribution": d,
+                    "value": cls.__value(f"{obj}-{n}"), "comment": cls.__comment(f"{obj}-{n}"),
+                    **({"sharing_group_id": cls.sg_id} if d == 4 else {}), **({"Tag": [{"name": tag}]} if tag else {})}
+        uuids = {obj: str(uuid.uuid4()) for obj, _, _ in objects}
+        event = {"info": f"{cls.marker} {name}", "distribution": distribution, "threat_level_id": 4, "analysis": 0,
+                 "Object": [{"name": "domain-ip", "meta-category": "network", "distribution": d, "uuid": uuids[obj],
+                             "template_uuid": "43b3b146-77eb-4931-b4cc-b66c60f28734", "template_version": "9",
+                             "Attribute": [attribute(obj, n, ad, tag) for n, ad, tag in attrs]} for obj, d, attrs in objects]}
+        if event_tag:
+            event["Tag"] = [{"name": event_tag}]
+        status, data = cls.api(token or key, "POST", "events/add", {"Event": event})
+        assert status == 200, (status, str(data)[:300])
+        event_id = data["Event"]["id"]
+        cls.created["events"].append(event_id)
+        found = data["Event"].get("Tag", []) + [t for o in data["Event"].get("Object", []) for a in o.get("Attribute", [])
+                                                 for t in a.get("Tag", [])]
+        for tag in found:
+            if tag["name"].startswith(cls.marker):
+                cls.created["tags"].add(tag["id"])
+        cls.admin_api("POST", f"events/publish/{event_id}/disable_background_processing:1")
+        ids = {o["uuid"]: int(o["id"]) for o in data["Event"]["Object"]}
+        result = [ids[uuids[obj]] for obj, _, _ in objects]
+        return (int(event_id), result[0]) if len(result) == 1 else (int(event_id), result)
+
+    def __search(self, query, token=None, extra=None, method="POST"):
+        """Returns (status, {object id: [attribute values]} or None, raw data)."""
+        body = {"returnFormat": "json", "query": query}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "objects/restSearch", body)
+        objects = None
+        if status == 200 and isinstance(data, dict):
+            objects = {int(o["Object"]["id"]): [a["value"] for a in o["Object"].get("Attribute", [])] for o in data["response"]}
+        return status, objects, data
+
+    def __anchored(self, tree):
+        return {"AND": [{"event_id": {"IN": self.all_events}}, tree]}
+
+    def __values(self, objects):
+        return {i: set(v) for i, v in objects.items()}
+
+    def assertNoHiddenData(self, objects, msg=None):
+        self.assertNotIn(self.o2b, objects, msg)
+        self.assertNotIn(self.o3, objects, msg)
+        self.assertEqual({v for vals in objects.values() for v in vals} & self.hidden_values, set(), msg)
+
+    def test_fixture_is_discriminating(self):
+        status, objects, _ = self.__search({"event_id": {"IN": self.all_events}}, token=key)
+        self.assertEqual(status, 200)
+        self.assertEqual(set(objects), {self.o1, self.o2a, self.o2b, self.o3, self.o4})
+        self.assertTrue(self.hidden_values <= {v for vals in objects.values() for v in vals})
+        status, objects, _ = self.__search({"event_id": {"IN": self.all_events}})
+        self.assertEqual(status, 200)
+        self.assertEqual(self.__values(objects), self.visible)
+
+    def test_baseline(self):
+        cases = {
+            "object field": ({"AND": [{"event_id": {"IN": self.all_events}}, {"object_name": "domain-ip"}]}, set(self.visible)),
+            "object id": ({"id": self.o1}, {self.o1}),
+            "attribute leaf": ({"value": self.__value("o2a-vis")}, {self.o2a}),
+            "attribute like": ({"value": {"LIKE": f"{self.marker}-o2a-vis%"}}, {self.o2a}),
+            "type and relation": (self.__anchored({"AND": [{"type": "domain"}, {"object_relation": "domain"}]}), set(self.visible)),
+            "comment": ({"comment": self.__comment("o1-a")}, {self.o1}),
+        }
+        for name, (tree, expected) in cases.items():
+            with self.subTest(name):
+                status, objects, data = self.__search(tree)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(set(objects), expected)
+                self.assertNoHiddenData(objects)
+        status, objects, _ = self.__search({"id": self.o2a})
+        self.assertEqual((status, self.__values(objects)), (200, {self.o2a: {self.__value("o2a-vis")}}))
+        status, data = self.api(self.user_key, "POST", "objects/restSearch", {
+            "returnFormat": "json", "metadata": True, "query": {"id": self.o2a}})
+        self.assertEqual(status, 200)
+        self.assertEqual([o["Object"]["id"] for o in data["response"]], [str(self.o2a)])
+        self.assertNotIn("Attribute", data["response"][0]["Object"])
+
+    def test_hidden_attribute_selects_nothing(self):
+        hid = self.__value("o2a-hid")
+        trees = {
+            "value": {"value": hid},
+            "value in": {"value": {"IN": [hid]}},
+            "value like": {"value": {"LIKE": f"{self.marker}-o2a-hid%"}},
+            "comment": {"comment": self.__comment("o2a-hid")},
+            "type and value": {"AND": [{"type": "domain"}, {"value": hid}]},
+            "or with nothing": {"OR": [{"value": hid}, {"comment": "no-such-comment"}]},
+            "sharing group value": {"value": self.__value("o2a-sg")},
+        }
+        for name, tree in trees.items():
+            with self.subTest(name):
+                status, objects, data = self.__search(tree)
+                self.assertEqual((status, objects), (200, {}), data)
+                status, objects, data = self.__search(tree, token=key)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(set(objects), {self.o2a}, "fixture is not discriminating")
+
+    def test_hidden_objects_and_events_are_never_returned(self):
+        cases = {
+            "id": {"id": self.o2b}, "object_id": {"object_id": {"IN": [self.o2b, self.o3]}},
+            "event_id": {"event_id": self.e3}, "attribute value": {"value": self.__value("o2b-b")},
+            "attribute value of the hidden event": {"value": self.__value("o3-x")},
+            "attribute like": {"value": {"LIKE": f"{self.marker}-o%"}},
+            "attribute comment": {"comment": {"IN": [self.__comment("o2b-b"), self.__comment("o3-x")]}},
+            "attribute type": self.__anchored({"type": "domain"}),
+            "object name": self.__anchored({"object_name": "domain-ip"}),
+            "tautology": self.__anchored({"OR": [{"id": {">=": 0}}, {"NOT": {"id": {">=": 0}}}]}),
+            "distribution": self.__anchored({"distribution": {"IN": [0, 1, 2, 3, 4, 5]}}),
+        }
+        for name, tree in cases.items():
+            with self.subTest(name):
+                status, objects, data = self.__search(tree)
+                self.assertEqual(status, 200, data)
+                self.assertNoHiddenData(objects)
+        uuid_by_object = {}
+        status, objects, data = self.__search({"event_id": {"IN": self.all_events}}, token=key)
+        self.assertEqual(status, 200)
+        for o in data["response"]:
+            uuid_by_object[int(o["Object"]["id"])] = o["Object"]["uuid"]
+        for hidden in (self.o2b, self.o3):
+            with self.subTest(f"uuid {hidden}"):
+                status, objects, data = self.__search({"uuid": uuid_by_object[hidden]})
+                self.assertEqual((status, objects), (200, {}), data)
+                status, objects, data = self.__search({"uuid": uuid_by_object[hidden]}, token=key)
+                self.assertEqual((status, set(objects)), (200, {hidden}))
+
+    def test_own_org_sees_its_private_attribute(self):
+        for tree in ({"value": self.__value("o4-p")}, {"comment": self.__comment("o4-p")}, {"id": self.o4}):
+            with self.subTest(str(tree)):
+                status, objects, data = self.__search(tree)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(self.__values(objects), {self.o4: {self.__value("o4-p")}})
+
+    def test_tags(self):
+        cases = {
+            "visible attribute tag": ({"tags": self.tag_vis}, {self.o2a}),
+            "hidden attribute tag": ({"tags": self.tag_hid}, set()),
+            "hidden attribute tag in": ({"tags": {"IN": [self.tag_hid]}}, set()),
+            "hidden tag or visible tag": ({"OR": [{"tags": self.tag_hid}, {"tags": self.tag_vis}]}, {self.o2a}),
+            "event tag": ({"tags": self.tag_evt}, {self.o1}),
+        }
+        for name, (tree, expected) in cases.items():
+            with self.subTest(name):
+                status, objects, data = self.__search(tree)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(set(objects), expected)
+                self.assertNoHiddenData(objects)
+        status, objects, data = self.__search({"tags": self.tag_hid}, token=key)
+        self.assertEqual(status, 200, data)
+        self.assertEqual(set(objects), {self.o2a})
+
+    def test_negated_tags(self):
+        status, objects, data = self.__search(self.__anchored({"tags": {"!=": self.tag_evt}}))
+        self.assertEqual(status, 200, data)
+        self.assertEqual(set(objects), {self.o2a, self.o4})
+        status, objects, data = self.__search(self.__anchored({"tags": {"NOT IN": [self.tag_evt]}}))
+        self.assertEqual(status, 200, data)
+        self.assertEqual(set(objects), {self.o2a, self.o4})
+        status, objects, data = self.__search({"id": self.o2a})
+        self.assertEqual((status, self.__values(objects)), (200, {self.o2a: {self.__value("o2a-vis")}}))
+        for tree in ({"AND": [{"id": self.o2a}, {"tags": {"!=": self.tag_vis}}]},
+                     {"AND": [{"id": self.o2a}, {"tags": {"NOT IN": [self.tag_vis]}}]}):
+            with self.subTest(str(tree)):
+                status, objects, data = self.__search(tree)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(objects, {self.o2a: []})
+        # stripping applies to the site admin's view too
+        status, objects, data = self.__search({"AND": [{"id": self.o2a}, {"tags": {"!=": self.tag_vis}}]}, token=key)
+        self.assertEqual(status, 200, data)
+        self.assertEqual(self.__values(objects), {self.o2a: {self.__value("o2a-hid"), self.__value("o2a-sg")}})
+
+    def test_hidden_attribute_never_appears_in_attribute_lists(self):
+        trees = [{"id": self.o2a}, {"value": self.__value("o2a-vis")}, {"tags": self.tag_vis}, {"object_name": "domain-ip"},
+                 {"AND": [{"id": self.o2a}, {"tags": {"!=": self.tag_evt}}]}, {"AND": [{"id": self.o2a}, {"tags": {"!=": self.tag_hid}}]}]
+        for tree in trees:
+            with self.subTest(str(tree)):
+                status, objects, data = self.__search(self.__anchored(tree))
+                self.assertEqual(status, 200, data)
+                self.assertNoHiddenData(objects)
+                self.assertNotIn(self.tag_hid, json.dumps(data))
+
+    def test_match_all_queries_never_return_hidden_data(self):
+        trees = {
+            "tautology": {"OR": [{"id": {">=": 0}}, {"NOT": {"id": {">=": 0}}}]},
+            "every distribution": {"distribution": {"IN": [0, 1, 2, 3, 4, 5]}},
+            "hidden event id": {"OR": [{"event_id": self.e3}, {"event_id": self.e1}]},
+            "double negation": {"NOT": {"NOT": {"eventinfo": {"LIKE": f"{self.marker}%"}}}},
+            "admin org": {"orgc_id": self.admin_org_id},
+            "not the visible ones": {"NOT": {"id": {"IN": [self.o1, self.o2a, self.o4]}}},
+            "or with attribute leaves": {"OR": [{"value": {"LIKE": f"{self.marker}%"}}, {"id": {">=": 0}}]},
+        }
+        for name, tree in trees.items():
+            with self.subTest(name):
+                status, objects, data = self.__search(self.__anchored(tree))
+                self.assertEqual(status, 200, data)
+                self.assertNoHiddenData(objects)
+                self.assertLessEqual(set(objects), set(self.visible))
+        status, objects, data = self.__search({"event_id": self.e3})
+        self.assertEqual((status, objects), (200, {}), data)
+        tree = self.__anchored({"OR": [{"id": {">=": 0}}, {"NOT": {"id": {">=": 0}}}]})
+        for extra in ({"eventid": [self.e3]}, {"sharinggroup": [self.sg_id]}, {"org": "ADMIN"}, {"published": [0, 1]},
+                      {"distribution": [0, 1, 2, 3, 4, 5]}, {"deleted": [0, 1]}):
+            with self.subTest(extra):
+                status, objects, _ = self.__search(tree, extra=extra)
+                self.assertIn(status, (200, 400, 403))
+                if status == 200:
+                    self.assertNoHiddenData(objects)
+
+    def test_rejections(self):
+        rejected = {
+            "negated attribute field": ({"type": {"!=": "domain"}}, "unknown_operator"),
+            "not attribute field": ({"NOT": {"type": "domain"}}, "bad_shape"),
+            "not over a subtree with an attribute field": ({"NOT": {"AND": [{"id": self.o1}, {"value": "x"}]}}, "bad_shape"),
+            "negated tags under or": ({"OR": [{"id": self.o1}, {"tags": {"!=": self.tag_vis}}]}, "bad_shape"),
+            "tags under not": ({"NOT": {"tags": self.tag_vis}}, "bad_shape"),
+        }
+        for name, (tree, code) in rejected.items():
+            with self.subTest(name):
+                status, objects, data = self.__search(tree)
+                self.assertEqual((status, objects), (400, None), data)
+                self.assertNotIn("response", data)
+                self.assertEqual(data["errors"][0]["code"], code)
+        status, objects, data = self.__search({"id": self.o1}, extra={"order": "id"})
+        self.assertEqual((status, objects), (400, None), data)
+        self.assertNotIn("response", data)
+        self.assertEqual(data["errors"][0]["path"], "order[0]")
+        bad = {
+            "string": "id=1", "list": [{"id": 1}], "empty": {}, "unknown field": {"nope": 1}, "wrong type": {"id": "1"},
+            "two keys": {"id": 1, "uuid": "x"}, "acl field": {"sharing_group_id": self.sg_id},
+            "too deep": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"id": 1}}}}}}},
+        }
+        for name, tree in bad.items():
+            with self.subTest(name):
+                status, objects, data = self.__search(tree)
+                self.assertEqual((status, objects), (400, None), data)
+                self.assertNotIn("response", data)
+
+    def test_query_is_only_accepted_in_a_post_body(self):
+        status, data = self.api(self.user_key, "GET", f"objects/restSearch?returnFormat=json&query[id]={self.o1}")
+        self.assertEqual(status, 400)
+        self.assertNotIn("response", data or {})
+        status, data = self.api(self.user_key, "GET", "objects/restSearch", {"returnFormat": "json", "query": {"id": self.o1}})
+        self.assertEqual(status, 400)
+        self.assertNotIn("response", data or {})
+        for path in (f"objects/restSearch?query[id]={self.o3}", "objects/restSearch/query:x"):
+            with self.subTest(path):
+                status, data = self.api(self.user_key, "POST", path, {"returnFormat": "json", "query": {"id": self.o1}})
+                self.assertEqual(status, 400)
+                self.assertNotIn("response", data or {})
+
+    def test_permission_flag(self):
+        for token in (self.plain_user_key, "x" * 40):
+            with self.subTest(token[:4]):
+                status, objects, _ = self.__search({"id": self.o1}, token=token)
+                self.assertEqual((status, objects), (403, None))
+                self.assertEqual(self.api(token, "GET", "objects/queryDescribe")[0], 403)
+        status, data = self.api(self.user_key, "GET", "objects/queryDescribe")
+        self.assertEqual(status, 200)
+        table = data["tables"]["objects"]
+        self.assertEqual(table["endpoint"], "/objects/restSearch")
+        self.assertEqual(table["sortable"], [])
+        for name, field in table["fields"].items():
+            self.assertIn("level", field, name)
+        self.assertEqual(table["fields"]["tags"]["level"], ["event", "attribute"])
+        status, objects, _ = self.__search({"value": self.__value("o2a-hid")}, token=self.site_admin_key)
+        self.assertEqual(status, 200)
+        self.assertEqual(set(objects), {self.o2a})
+        self.assertEqual(self.api(self.site_admin_key, "GET", "objects/queryDescribe")[0], 200)
 
 
 if __name__ == '__main__':

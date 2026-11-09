@@ -245,7 +245,12 @@ class ComplexEventQueryToolTest extends TestCase
             $this->assertSame('unknown_operator', $errors[0]['code'], json_encode($query));
             $this->assertStringContainsString('cannot be negated', $errors[0]['message']);
         }
-        $this->assertSame('operator not allowed for this field', $this->errors(['object_name' => ['LIKE' => 'f%']])[0]['message']);
+        $this->assertSame('operator not allowed for this field', $this->errors(['object_template_uuid' => ['LIKE' => 'f%']])[0]['message']);
+        $this->assertSame(['Event.id IN (Object.event_id AS Object)' => [
+            'Object.deleted' => 0,
+            ['Object.name LIKE' => 'f%'],
+            ['OR' => [self::ownEvent('Object'), ['AND' => [self::distribution('Object')]]]],
+        ]], $this->tool()->conditions(['object_name' => ['LIKE' => 'f%']]));
 
         $cases = [
             'query.NOT.type' => ['NOT' => ['type' => 'btc']],

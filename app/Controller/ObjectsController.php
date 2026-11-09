@@ -1758,6 +1758,19 @@ class ObjectsController extends AppController
         ], 'json');
     }
 
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        App::uses('ComplexObjectQueryTool', 'Tools');
+        $tool = new ComplexObjectQueryTool($this->MispObject->Attribute, $this->Auth->user(), ComplexQueryTool::limitsFromConfig());
+        return $this->RestResponse->viewData(
+            $tool->discovery('objects', '/objects/restSearch', [], 'Object'),
+            'json'
+        );
+    }
+
     public function orphanedObjectDiagnostics()
     {
         $objectIds = $this->MispObject->find('list', array(

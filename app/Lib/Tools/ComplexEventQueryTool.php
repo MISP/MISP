@@ -12,9 +12,14 @@ class ComplexEventQueryTool extends ComplexQueryTool
 {
     const POSITIVE_STRING_OPS = ['=', 'IN', 'LIKE'];
     const NEGATIONS = ['!=', 'NOT IN'];
+    const NATIVE_LEVELS = ['event'];
+    const EVENT_KEY = 'Event.id';
+    const NEGATED_ELEMENT_MESSAGE = 'attribute and object fields cannot be negated when searching events';
+    const NOT_ELEMENT_MESSAGE = 'NOT cannot hold attribute, object or tag fields when searching events; use != on tags';
+    const NEGATED_TAGS_MESSAGE = 'negated tags are only allowed under AND when searching events';
 
     /**
-     * A field whose level names attributes or objects is matched against the
+     * A field with a level outside NATIVE_LEVELS is matched against the
      * event's elements (see isElementField()).
      */
     const FIELDS = [
@@ -40,7 +45,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
         'comment' => ['kind' => 'string', 'handler' => 'set_filter_comment', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
         'value' => ['kind' => 'string', 'handler' => 'set_filter_value', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
         'to_ids' => ['kind' => 'bool', 'column' => 'Attribute.to_ids', 'ops' => ['='], 'level' => ['attribute']],
-        'object_name' => ['kind' => 'string', 'column' => 'Object.name', 'ops' => ['=', 'IN'], 'level' => ['object']],
+        'object_name' => ['kind' => 'string', 'column' => 'Object.name', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['object']],
         'object_template_uuid' => ['kind' => 'string', 'column' => 'Object.template_uuid', 'ops' => ['=', 'IN'], 'level' => ['object']],
     ];
 
@@ -55,7 +60,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
      */
     public function __construct($model, array $user, array $limits = [])
     {
-        parent::__construct($model, $limits, self::FIELDS);
+        parent::__construct($model, $limits, static::FIELDS);
         $this->user = $user;
     }
 
@@ -101,20 +106,20 @@ class ComplexEventQueryTool extends ComplexQueryTool
             $this->checkNegations($node[1], "$path.NOT", false, true);
             return;
         }
-        if (!self::isElementField($this->fields[$node[1]])) {
+        if (!static::isElementField($this->fields[$node[1]])) {
             return;
         }
         if ($negated) {
-            $this->fail("$path.{$node[1]}", 'bad_shape', 'NOT cannot hold attribute, object or tag fields when searching events; use != on tags');
+            $this->fail("$path.{$node[1]}", 'bad_shape', static::NOT_ELEMENT_MESSAGE);
         } elseif (!$andOnly && in_array($node[2], self::NEGATIONS, true)) {
-            $this->fail("$path.{$node[1]}", 'bad_shape', 'negated tags are only allowed under AND when searching events');
+            $this->fail("$path.{$node[1]}", 'bad_shape', static::NEGATED_TAGS_MESSAGE);
         }
     }
 
     protected function operatorMessage(array $def, $op)
     {
-        if (self::isElementField($def) && in_array($op, self::NEGATIONS, true)) {
-            return 'attribute and object fields cannot be negated when searching events';
+        if (static::isElementField($def) && in_array($op, self::NEGATIONS, true)) {
+            return static::NEGATED_ELEMENT_MESSAGE;
         }
         return parent::operatorMessage($def, $op);
     }
@@ -147,15 +152,30 @@ class ComplexEventQueryTool extends ComplexQueryTool
             }, $values);
         }
         $fragment = parent::buildLeaf($field, $op, $values, $path, false);
-        if ($fragment === null || !self::isElementField($def)) {
+        if ($fragment === null || !static::isElementField($def)) {
             return $fragment;
         }
-        return $this->visibleElements($def['level'] === ['object'] ? $this->model->Object : $this->model, $fragment);
+        return $this->elementLeaf($def, $fragment);
     }
 
-    private static function isElementField(array $def)
+    protected static function isElementField(array $def)
     {
-        return $def['level'] !== ['event'];
+        return array_diff($def['level'], static::NATIVE_LEVELS) !== [];
+    }
+
+    /**
+     * Events holding a non-deleted element that matches and that the user
+     * can see. The outer query has already checked that the event itself is
+     * visible.
+     *
+     * @param array $def the field
+     * @param array $fragment the condition on the element
+     * @return array
+     */
+    protected function elementLeaf(array $def, array $fragment)
+    {
+        $model = $def['level'] === ['object'] ? $this->model->Object : $this->model;
+        return $this->subquery($model, 'event_id', $this->visibleElementConditions($model, $fragment), 'Event.id');
     }
 
     /**
@@ -167,7 +187,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
     {
         $tagIds = $this->model->AttributeTag->Tag->fetchTagIdsSimple($values);
         $EventTag = $this->model->Event->EventTag;
-        $eventTagged = $this->subquery($EventTag, 'event_id', [$EventTag->alias . '.tag_id' => $tagIds], 'Event.id');
+        $eventTagged = $this->subquery($EventTag, 'event_id', [$EventTag->alias . '.tag_id' => $tagIds], static::EVENT_KEY);
         if (in_array($op, self::NEGATIONS, true)) {
             foreach ($tagIds as $tagId) {
                 if ((int)$tagId !== -1 && !in_array($tagId, $this->blockedTagIds)) {
@@ -176,6 +196,15 @@ class ComplexEventQueryTool extends ComplexQueryTool
             }
             return ['NOT' => $eventTagged];
         }
+        return ['OR' => [$eventTagged, $this->attributeTagged($tagIds)]];
+    }
+
+    /**
+     * @param array $tagIds
+     * @return array events holding a visible attribute that carries one of the tags
+     */
+    protected function attributeTagged(array $tagIds)
+    {
         // Driven by the tag rows, one primary key probe each (driven by the attributes, MariaDB
         // walked every attribute of every visible event); the redundant id correlation keeps it
         // from materialising every visible attribute
@@ -184,25 +213,10 @@ class ComplexEventQueryTool extends ComplexQueryTool
         $visibleAttribute = $this->subquery($this->model, 'id', $this->visibleElementConditions(
             $this->model, ["$attribute.id = {$AttributeTag->alias}.attribute_id"]
         ), $AttributeTag->alias . '.attribute_id');
-        $attributeTagged = $this->subquery($AttributeTag, 'event_id', [
+        return $this->subquery($AttributeTag, 'event_id', [
             $AttributeTag->alias . '.tag_id' => $tagIds,
             $visibleAttribute,
         ], 'Event.id');
-        return ['OR' => [$eventTagged, $attributeTagged]];
-    }
-
-    /**
-     * Events holding a non-deleted element that matches and that the user
-     * can see. The outer query has already checked that the event itself is
-     * visible.
-     *
-     * @param object $model the Attribute or the Object model
-     * @param array $conditions on the element
-     * @return array
-     */
-    private function visibleElements($model, array $conditions)
-    {
-        return $this->subquery($model, 'event_id', $this->visibleElementConditions($model, $conditions), 'Event.id');
     }
 
     /**
@@ -211,15 +225,16 @@ class ComplexEventQueryTool extends ComplexQueryTool
      *
      * @param object $model the Attribute or the Object model
      * @param array $conditions on the element
+     * @param bool $objectRule whether an attribute's object must be visible too
      * @return array
      */
-    private function visibleElementConditions($model, array $conditions)
+    protected function visibleElementConditions($model, array $conditions, $objectRule = true)
     {
         $alias = $model->alias;
         $conditions = [$alias . '.deleted' => 0, $conditions];
         if (empty($this->user['Role']['perm_site_admin'])) {
             $rules = [$this->distributionRules($alias)];
-            if ($alias === $this->model->alias) {
+            if ($objectRule && $alias === $this->model->alias) {
                 $Object = $this->model->Object;
                 $rules[] = ['OR' => [
                     $alias . '.object_id' => 0,
@@ -248,7 +263,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
         ]];
     }
 
-    private function subquery($model, $field, array $conditions, $lookupKey, $alias = null)
+    protected function subquery($model, $field, array $conditions, $lookupKey, $alias = null)
     {
         $alias = $alias ?? $model->alias;
         return $this->model->subQueryGenerator($model, [
