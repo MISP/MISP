@@ -568,10 +568,17 @@ class Feed extends AppModel
             if (isset($correlations[$value['value']])) {
                 $data[$key]['correlations'] = array_values($correlations[$value['value']]);
             }
-            if ($redis) {
-                foreach ($feeds as $k => $v) {
-                    if ($redis->sismember('misp:feed_cache:' . $v['Feed']['id'], md5($value['value']))) {
-                        $data[$key]['feed_correlations'][] = array($v);
+            if ($redis && $feeds) {
+                $hash = md5($value['value']);
+                $pipeline = $redis->pipeline();
+                foreach ($feeds as $feed) {
+                    $pipeline->sismember('misp:feed_cache:' . $feed['Feed']['id'], $hash);
+                }
+                $hits = $pipeline->exec();
+                $position = 0;
+                foreach ($feeds as $feed) {
+                    if ($hits[$position++]) {
+                        $data[$key]['feed_correlations'][] = array($feed);
                     }
                 }
             }
