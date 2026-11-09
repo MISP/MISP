@@ -1251,5 +1251,127 @@ class UserDeleteRemovesSettings(unittest.TestCase):
         self.assertEqual([], self._settings_of(self.user.id), 'the deleted user kept its settings')
 
 
+class SightingsAnonymisedOrgFilter(unittest.TestCase):
+    """With Sightings_anonymise on, an org filter does not unmask who reported a sighting.
+
+    listSightings and sightings/restSearch applied a caller-chosen org_id filter in SQL before
+    the reporter was masked, so filtering by another organisation returned exactly that
+    organisation's sightings and named the reporter. A non-site-admin's filter naming another
+    organisation now matches nothing, and a negated one excludes nothing.
+    """
+
+    SETTINGS = ('Plugin.Sightings_anonymise', 'Plugin.Sightings_policy')
+    POLICIES = (0, 2)
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.previous = {name: send(cls.admin, 'GET', 'servers/getSetting/%s' % name)['value']
+                        for name in cls.SETTINGS}
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event = None
+        try:
+            role_id = least_privileged_role(cls.admin, 'perm_add', 'perm_sighting')
+            cls.orgs = {}
+            cls.api = {}
+            for name in ('owner', 'reporter', 'other'):
+                org = make_org(cls.admin, 'regression sighting %s org' % name)
+                cls.created_orgs.append(org)
+                user = make_user(cls.admin, org.id, role_id)
+                cls.created_users.append(user)
+                connector = PyMISP(url, user.authkey)
+                connector.global_pythonify = False
+                cls.orgs[name] = org
+                cls.api[name] = connector
+            event = MISPEvent()
+            event.info = 'regression sightings %s' % random()
+            event.distribution = 1
+            event.add_attribute('ip-dst', '192.0.2.%d' % (int(random(), 16) % 250), distribution=5)
+            cls.event = check_response(cls.api['owner'].add_event(event, pythonify=True))
+            cls.attribute_id = int(cls.event.attributes[0].id)
+            cls.sightings = {'owner': [], 'reporter': [], 'other': []}
+            for name, count in (('owner', 1), ('reporter', 2), ('other', 1)):
+                for _ in range(count):
+                    made = send(cls.api[name], 'POST', 'sightings/add/%d' % cls.attribute_id)
+                    cls.sightings[name].append(int(made['Sighting']['id']))
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for name, value in getattr(cls, 'previous', {}).items():
+            send(cls.admin, 'POST', 'servers/serverSettingsEdit/%s' % name, data={'value': value})
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _configure(self, anonymise, policy):
+        send(self.admin, 'POST', 'servers/serverSettingsEdit/Plugin.Sightings_anonymise',
+             data={'value': anonymise})
+        send(self.admin, 'POST', 'servers/serverSettingsEdit/Plugin.Sightings_policy',
+             data={'value': policy})
+
+    def _list(self, connector, org=None):
+        path = 'sightings/listSightings/%d/attribute' % self.attribute_id
+        if org is not None:
+            path += '/%s' % org
+        return send(connector, 'GET', path)
+
+    def _search(self, connector, org=None):
+        data = {'context': 'attribute', 'id': self.attribute_id, 'returnFormat': 'json'}
+        if org is not None:
+            data['org_id'] = org
+        return {int(s['Sighting']['id']) for s in send(connector, 'POST', 'sightings/restSearch', data=data)}
+
+    def _all(self):
+        return {i for ids in self.sightings.values() for i in ids}
+
+    def test_list_sightings_org_filter_does_not_unmask(self):
+        owner, reporter = self.orgs['owner'], self.orgs['reporter']
+        for policy in self.POLICIES:
+            with self.subTest(policy=policy):
+                self._configure(True, policy)
+                everything = self._list(self.api['owner'])
+                self.assertEqual(4, len(everything), 'the observer does not see every sighting')
+                self.assertTrue(all(int(s['Sighting']['org_id']) in (0, int(owner.id)) for s in everything))
+                for org in (reporter.id, reporter.uuid):
+                    self.assertEqual([], self._list(self.api['owner'], org),
+                                     'filtering by another organisation returned its sightings')
+                own = self._list(self.api['owner'], owner.id)
+                self.assertEqual(self.sightings['owner'], [int(s['Sighting']['id']) for s in own])
+
+    def test_rest_search_org_filter_does_not_unmask(self):
+        owner, reporter = self.orgs['owner'], self.orgs['reporter']
+        theirs = set(self.sightings['reporter'])
+        for policy in self.POLICIES:
+            with self.subTest(policy=policy):
+                self._configure(True, policy)
+                everything = self._search(self.api['owner'])
+                self.assertEqual(self._all(), everything, 'the observer does not see every sighting')
+                for org in (reporter.uuid, int(reporter.id), str(reporter.id)):
+                    self.assertFalse(theirs & self._search(self.api['owner'], org),
+                                     'filtering by %r returned the reporter\'s sightings' % (org,))
+                self.assertEqual(everything, self._search(self.api['owner'], '!' + reporter.uuid),
+                                 'the negated filter excluded the reporter\'s sightings')
+                self.assertEqual(set(self.sightings['owner']), self._search(self.api['owner'], owner.uuid))
+
+    def test_site_admin_can_filter_by_any_organisation(self):
+        reporter = self.orgs['reporter']
+        # Policy 2: under 0, restSearch shows a site admin only its own org's sightings.
+        self._configure(True, 2)
+        listed = self._list(self.admin, reporter.id)
+        self.assertEqual(self.sightings['reporter'], sorted(int(s['Sighting']['id']) for s in listed))
+        self.assertTrue(all(int(s['Sighting']['org_id']) == int(reporter.id) for s in listed))
+        self.assertEqual(set(self.sightings['reporter']), self._search(self.admin, reporter.uuid))
+
+    def test_filter_is_harmless_without_anonymisation(self):
+        reporter = self.orgs['reporter']
+        self._configure(False, 2)
+        self.assertEqual(set(self.sightings['reporter']), self._search(self.api['owner'], reporter.uuid))
+        self.assertEqual(2, len(self._list(self.api['owner'], reporter.id)))
+
+
 if __name__ == '__main__':
     unittest.main()
