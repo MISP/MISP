@@ -1,17 +1,25 @@
 # Collection feed export validation
 
-Requires PHP ZIP support, PHPUnit and the companion misp-modules `misp_feed`
+Requires PHP ZIP support, the repository's PHPUnit 8.5 dependency and the companion misp-modules `misp_feed`
 module. The production flow uses a native cache worker, one-event module requests,
 private on-disk staging and an atomic final ZIP. It does not keep a generation
 HTTP request open. See the companion module's
 [operator guide](https://github.com/MISP/misp-modules/blob/feat/misp-feed-export/documentation/export_mod/misp_feed.md).
 
-The controller/model and disk-writer tests run without a database or network:
+The controller/model and disk-writer tests run without a database or network.
+Run the full PHP directory, as CI does, to check compatibility with the other
+tests' shared framework stubs:
 
 ```sh
-php app/Vendor/bin/phpunit app/Test/CollectionModuleExportTest.php app/Test/ModuleFeedExportToolTest.php
+php app/Vendor/bin/phpunit app/Test/
 node app/Test/module_feed_export_ui_test.js
 ```
+
+For a focused run, use
+`php app/Vendor/bin/phpunit --filter '(CollectionModuleExport|ModuleFeedExportTool)Test' app/Test/`.
+PHPUnit 8 accepts one positional test path; supplying two filenames does not run
+both files. The feed tests use the shared `ClassRegistry::$instances` contract
+and restore registry/configuration state after each test.
 
 To include cross-language native ZIP fixtures, generate a one-event
 `misp_feed.handler` response with `feed_chunk: true` and set

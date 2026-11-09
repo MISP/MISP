@@ -26,8 +26,23 @@ if (!class_exists('Validation', false)) {
 }
 if (!class_exists('ClassRegistry', false)) {
     class ClassRegistry {
-        public static $module;
-        public static function init($name) { return self::$module; }
+        // Match the shared stub used by the collection and widget tests.
+        public static $instances = [];
+        public static function init($name) {
+            if (!isset(self::$instances[$name])) {
+                self::$instances[$name] = new CollectionTestFakeModel();
+            }
+            return self::$instances[$name];
+        }
+        public static function reset() { self::$instances = []; }
+    }
+}
+if (!class_exists('CollectionTestFakeModel', false)) {
+    class CollectionTestFakeModel {
+        public $responses = [];
+        public function find($type, $options = []) {
+            return empty($this->responses) ? [] : array_shift($this->responses);
+        }
     }
 }
 if (!class_exists('Configure', false)) {
@@ -121,7 +136,7 @@ class CollectionExportTestController extends EventsController
     public function __construct($module)
     {
         $this->Module = $module;
-        ClassRegistry::$module = $module;
+        ClassRegistry::$instances['Module'] = $module;
         $this->Event = new CollectionExportTestEvent();
         $this->Auth = new class { public function user() { return ['id' => 7, 'org_id' => 2]; } };
         $this->response = new CollectionExportTestResponse();
@@ -163,6 +178,21 @@ class CollectionExportTestJob
 
 class CollectionModuleExportTest extends TestCase
 {
+    private $registry;
+    private $backgroundJobs;
+
+    protected function setUp(): void
+    {
+        $this->registry = ClassRegistry::$instances;
+        $this->backgroundJobs = Configure::read('MISP.background_jobs');
+    }
+
+    protected function tearDown(): void
+    {
+        ClassRegistry::$instances = $this->registry;
+        Configure::write('MISP.background_jobs', $this->backgroundJobs);
+    }
+
     public function testSelectionDialogIncludesCollectionModulesBesideBuiltinFormats()
     {
         $controller = new CollectionExportTestController(new CollectionExportTestModule());
@@ -285,6 +315,7 @@ class CollectionModuleExportTest extends TestCase
 
     public function testFeedQueueRequiresPostAndBackgroundWorkers()
     {
+        Configure::write('MISP.background_jobs', false);
         $module = new CollectionExportTestModule(); $module->feed = true;
         $controller = new CollectionExportTestController($module);
         foreach ([false, true] as $post) {

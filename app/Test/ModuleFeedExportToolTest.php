@@ -41,7 +41,7 @@ class ModuleFeedExportToolTest extends TestCase
         $this->tool->generate(1, function ($id) {
             $status = $this->tool->status(1, $this->user);
             $this->assertSame('running', $status['status']);
-            $this->assertFileDoesNotExist($this->root . '/1/feed.zip');
+            $this->assertFalse(file_exists($this->root . '/1/feed.zip'));
             return $this->part($id);
         }, function ($done) use (&$progress) { $progress[] = $done; });
         $path = $this->tool->artifact(1, $this->user);
@@ -54,8 +54,8 @@ class ModuleFeedExportToolTest extends TestCase
         $this->assertCount(2, $manifest);
         foreach ($manifest as $uuid => $metadata) { $this->assertSame($uuid, json_decode($zip->getFromName($uuid . '.json'), true)['Event']['uuid']); }
         $this->assertSame(4, $zip->numFiles); $zip->close();
-        $this->assertFileDoesNotExist($this->root . '/1/request.json');
-        $this->assertDirectoryDoesNotExist($this->root . '/1/work');
+        $this->assertFalse(file_exists($this->root . '/1/request.json'));
+        $this->assertFalse(is_dir($this->root . '/1/work'));
         $this->assertSame([1,2,2], $progress);
     }
 
@@ -85,9 +85,9 @@ class ModuleFeedExportToolTest extends TestCase
             $this->fail('Generation should fail');
         } catch (RuntimeException $e) { $this->assertSame('Synthetic failure', $e->getMessage()); }
         $this->assertSame('failed', $this->tool->status(1, $this->user)['status']);
-        $this->assertFileDoesNotExist($this->root . '/1/feed.zip');
-        $this->assertDirectoryDoesNotExist($this->root . '/1/work');
-        $this->assertFileDoesNotExist($this->root . '/1/feed.partial.zip');
+        $this->assertFalse(file_exists($this->root . '/1/feed.zip'));
+        $this->assertFalse(is_dir($this->root . '/1/work'));
+        $this->assertFalse(file_exists($this->root . '/1/feed.partial.zip'));
     }
 
     public function testWholeSelectionCountAndSizeLimitsAreEnforcedAcrossParts()
@@ -102,7 +102,7 @@ class ModuleFeedExportToolTest extends TestCase
                 });
                 $this->fail('Aggregate budget must not be reset for every event');
             } catch (RuntimeException $e) { $this->assertStringContainsString('budget', $e->getMessage()); }
-            $this->assertFileDoesNotExist($this->root . '/1/feed.zip');
+            $this->assertFalse(file_exists($this->root . '/1/feed.zip'));
             foreach (glob($this->root . '/1/*') as $file) { unlink($file); } rmdir($this->root . '/1');
         }
     }
@@ -114,7 +114,7 @@ class ModuleFeedExportToolTest extends TestCase
         $meta = json_decode(file_get_contents($path), true); $meta['expires'] = time() - 1;
         file_put_contents($path, json_encode($meta));
         $this->assertSame('expired', $this->tool->status(1, $this->user)['status']);
-        $this->assertFileDoesNotExist($this->root . '/1/feed.zip');
+        $this->assertFalse(file_exists($this->root . '/1/feed.zip'));
     }
 
     public function testDuplicateWorkerDoesNotRegenerateOrDeleteCompletedExport()
@@ -140,7 +140,7 @@ class ModuleFeedExportToolTest extends TestCase
         $this->create();
         try { $this->tool->generate(1, fn() => null); $this->fail('No visible events'); }
         catch (RuntimeException $e) { $this->assertStringContainsString('No selected', $e->getMessage()); }
-        $this->assertFileDoesNotExist($this->root . '/1/feed.zip');
+        $this->assertFalse(file_exists($this->root . '/1/feed.zip'));
     }
 
     public function testDuplicateEventPartFailsWithoutPublishing()
@@ -150,7 +150,7 @@ class ModuleFeedExportToolTest extends TestCase
         try { $this->tool->generate(1, fn() => $reply); $this->fail('Duplicate event identity'); }
         catch (RuntimeException $e) { $this->assertStringContainsString('Duplicate', $e->getMessage()); }
         $this->assertSame('failed', $this->tool->status(1, $this->user)['status']);
-        $this->assertFileDoesNotExist($this->root . '/1/feed.zip');
+        $this->assertFalse(file_exists($this->root . '/1/feed.zip'));
     }
 
     public function testInterruptedJobCannotAdvertiseOrResumeAPartialFeed()
