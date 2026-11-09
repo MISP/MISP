@@ -148,7 +148,7 @@ class CollectionExportTestController extends EventsController
         };
         $this->Job = new CollectionExportTestJob();
     }
-    protected function moduleFeedTool() { return $this->tool; }
+    protected function _moduleFeedTool() { return $this->tool; }
     public function _isRest() { return $this->rest; }
     public function redirect($url, $status = null, $exit = true) { return $url; }
     public function loadModel($modelClass = null, $id = null) { return true; }

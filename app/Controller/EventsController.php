@@ -6137,7 +6137,7 @@ class EventsController extends AppController
         return $this->response;
     }
 
-    protected function moduleFeedTool()
+    protected function _moduleFeedTool()
     {
         App::uses('ModuleFeedExportTool', 'Tools');
         return new ModuleFeedExportTool();
@@ -6156,7 +6156,7 @@ class EventsController extends AppController
         $user = $this->Auth->user();
         $jobId = $this->Job->createJob($user, 'cache', 'module_feed_export',
             count($selection) . ' selected events', 'Waiting to generate the feed.');
-        $tool = $this->moduleFeedTool();
+        $tool = $this->_moduleFeedTool();
         try {
             $tool->create($jobId, $user, $name, $selection);
             $this->Event->getBackgroundJobsTool()->enqueue(
@@ -6181,13 +6181,13 @@ class EventsController extends AppController
 
     public function moduleExportProgress($id)
     {
-        $this->moduleFeedTool()->status($id, $this->Auth->user());
+        $this->_moduleFeedTool()->status($id, $this->Auth->user());
         $this->set('jobId', $id);
     }
 
     public function moduleExportStatus($id)
     {
-        $tool = $this->moduleFeedTool();
+        $tool = $this->_moduleFeedTool();
         $meta = $tool->status($id, $this->Auth->user());
         if (in_array($meta['status'], ['queued', 'running'], true)) {
             $this->loadModel('Job');
@@ -6207,7 +6207,7 @@ class EventsController extends AppController
     public function downloadModuleExport($id)
     {
         $user = $this->Auth->user();
-        $tool = $this->moduleFeedTool();
+        $tool = $this->_moduleFeedTool();
         $meta = $tool->status($id, $user);
         $this->loadModel('Module');
         if (!is_array($this->Module->getEnabledModule($meta['module'], 'Export', $user))) {
