@@ -799,6 +799,10 @@ class EventSearchAttributeAcl(unittest.TestCase):
         cls._attach_cluster_tag(hidden)
         gone = attribute('gone', 5)
         check_response(cls.owner.delete_attribute(int(gone.id)))
+        # Security.sanitise_attribute_on_delete overwrites the value: nothing is left to match.
+        full = cls.admin.get_event(cls.event_id, deleted=True, pythonify=True)
+        cls.gone_sanitised = any(a.uuid == gone.uuid and a.value != cls.values['gone']
+                                 for a in full.attributes)
 
         shared = MISPObject('file')
         shared.distribution = 5
@@ -851,7 +855,6 @@ class EventSearchAttributeAcl(unittest.TestCase):
             "the prefix of an organisation-only attribute's value": {'value': v['hidden'][:8] + '%'},
             "an organisation-only attribute's value through searchall": {'searchall': v['hidden']},
             "a tag carried only by an organisation-only attribute": {'tags': [self.tag]},
-            "a soft-deleted attribute's value": {'value': v['gone']},
             "the attribute value of an organisation-only object": {'value': v['inobj']},
         }
         for what, filters in probes.items():
@@ -895,7 +898,13 @@ class EventSearchAttributeAcl(unittest.TestCase):
         self.assertIn(self.event_id, self._events(self.owner, value=v['hidden']))
         self.assertIn(self.event_id, self._events(self.owner, tags=[self.tag]))
         self.assertIn(self.event_id, self._events(self.admin, value=v['hidden']))
-        self.assertIn(self.event_id, self._events(self.admin, value=v['gone']))
+
+    def test_soft_deleted_value_matches_only_for_the_site_admin(self):
+        if self.gone_sanitised:
+            self.skipTest('Security.sanitise_attribute_on_delete is on: the soft-deleted value is gone')
+        self.assertNotIn(self.event_id, self._events(self.outsider, value=self.values['gone']),
+                         "the outsider selected the event through a soft-deleted attribute's value")
+        self.assertIn(self.event_id, self._events(self.admin, value=self.values['gone']))
 
 
 class EventCorrelationsAcl(unittest.TestCase):
