@@ -1,6 +1,9 @@
 <?php
 /**
- * A labelled group of settings.
+ * A labelled group of settings, one row each: the question and its one
+ * sentence of help on the left, the answer on the right, as the server
+ * settings page lays a setting out. A dense group (one per grade, say)
+ * is a grid of small tiles instead.
  *
  * One sentence visible per field and the rest behind an `i`: the pane
  * is where somebody changes a number, and a paragraph above every box
@@ -28,7 +31,13 @@
             $rest = $m[2];
         }
         ?>
-        <div class="wb-field">
+        <?php
+        // A live block's setting is changed where it is read, a switch excepted.
+        $inline = $editable && !empty($block['live']) && ($field['type'] ?? '') !== 'bool';
+        ?>
+        <div class="wb-field" data-ap-unit="<?= h(implode('.', $field['path'])) ?>"<?=
+            $inline ? ' data-ap-set="' . h(implode('.', $field['path'])) . '"' : '' ?>>
+            <div class="wb-field-k">
             <label for="<?= h(AnalystProfileFormTool::fieldId($field['path'])) ?>">
                 <?= h($field['label']) ?>
                 <?php
@@ -58,24 +67,36 @@
                             : __('not used yet')) ?></span>
                 <?php endif; ?>
             </label>
+            <?php if ($help !== ''): ?>
+                <?php
+                // The `i` holds on to the last word, so it never wraps alone.
+                $cut = $rest === '' ? false : strrpos($help, ' ');
+                ?>
+                <p class="help"><?php if ($cut === false): ?><?= h($help) ?><?php else: ?><?=
+                    h(substr($help, 0, $cut + 1)) ?><span class="text-nowrap"><?= h(substr($help, $cut + 1)) ?> <a href="#"
+                    class="wb-i" onclick="return false;" title="<?= h($rest) ?>">i</a></span><?php endif; ?></p>
+            <?php endif; ?>
+            </div>
             <div class="wb-inline">
-                <?= $this->element('AnalystProfiles/field', array(
-                    'field' => $field,
-                    'editable' => $editable,
-                )) ?>
-                <?php if (!empty($field['unit'])): ?>
-                    <span class="wb-unit"><?= h($field['unit']) ?></span>
+                <?php if ($inline): ?>
+                    <?= $this->element('AnalystProfiles/inline_value', array(
+                        'field' => $field,
+                        'unit' => $field['unit'] ?? null,
+                    )) ?>
+                <?php else: ?>
+                    <?= $this->element('AnalystProfiles/field', array(
+                        'field' => $field,
+                        'editable' => $editable,
+                    )) ?>
+                    <?php if (!empty($field['unit'])): ?>
+                        <span class="wb-unit"><?= h($field['unit']) ?></span>
+                    <?php endif; ?>
+                <?php endif; ?>
+                <?php // What the number does, in words, while it is read. ?>
+                <?php if ((!$editable || $inline) && !empty($field['reading'])): ?>
+                    <span class="wb-reading"><?= h($field['reading']) ?></span>
                 <?php endif; ?>
             </div>
-            <?php if ($help !== ''): ?>
-                <p class="help">
-                    <?= h($help) ?>
-                    <?php if ($rest !== ''): ?>
-                        <a href="#" class="wb-i" onclick="return false;"
-                           title="<?= h($rest) ?>">i</a>
-                    <?php endif; ?>
-                </p>
-            <?php endif; ?>
         </div>
     <?php endforeach; ?>
 </div>

@@ -107,14 +107,31 @@ $chars = is_scalar($shown)
 $width = $numeric ? 'max(4.6rem, ' . (int)$chars . 'ch)' : '';
 ?>
 <?php if ($type === 'bool'): ?>
+    <?php
+    // A switch that names its state (`on_label`/`off_label`) says it beside itself.
+    $onLabel = isset($field['on_label']) ? $field['on_label'] : null;
+    $offLabel = isset($field['off_label']) ? $field['off_label'] : null;
+    ?>
     <?php if ($editable): ?>
         <input type="hidden" name="<?= h($name) ?>" value="false">
-        <input class="form-check-input" type="checkbox"
-               id="<?= h($id) ?>"
-               name="<?= h($name) ?>" value="true"
-               data-ap-field="1"
-               data-ap-was="<?= !empty($value) ? 'true' : 'false' ?>"
-               <?= !empty($value) ? 'checked' : '' ?>>
+        <span class="wb-switch">
+            <?php if ($onLabel !== null): ?>
+                <label class="wb-switch-t" for="<?= h($id) ?>"
+                       data-on="<?= h($onLabel) ?>" data-off="<?= h($offLabel) ?>"><?=
+                    h(!empty($value) ? $onLabel : $offLabel) ?></label>
+            <?php endif; ?>
+            <span class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="<?= h($id) ?>"
+                       name="<?= h($name) ?>" value="true"
+                       data-ap-field="1"
+                       data-ap-was="<?= !empty($value) ? 'true' : 'false' ?>"
+                       <?= !empty($value) ? 'checked' : '' ?>>
+            </span>
+        </span>
+    <?php elseif ($onLabel !== null): ?>
+        <span class="pill <?= !empty($value) ? 't-force' : 't-off' ?>"><?=
+            h(!empty($value) ? $onLabel : $offLabel) ?></span>
     <?php else: ?>
         <span class="wb-sub"><?= !empty($value)
             ? h(__('yes'))
@@ -281,29 +298,87 @@ $width = $numeric ? 'max(4.6rem, ' . (int)$chars . 'ch)' : '';
          * `name` and is hidden until the page can drive it.
          */
         ?>
+        <?php
+        // A state as a segment: its icon and its short name, the full label as its title.
+        $segment = function ($option) {
+            $value = (string)(is_array($option) ? $option['value'] : $option);
+            $label = is_array($option) && isset($option['label'])
+                ? $option['label']
+                : $value;
+            $short = is_array($option) && isset($option['short'])
+                ? $option['short']
+                : $label;
+            $icon = is_array($option) && !empty($option['icon'])
+                ? '<i class="' . $this->FontAwesome->getClass($option['icon'])
+                    . '" aria-hidden="true"></i>'
+                : '';
+            return array(
+                'value' => $value,
+                'label' => $label,
+                'tone' => is_array($option) && isset($option['tone'])
+                    ? $option['tone']
+                    : 'custom',
+                'face' => '<span class="mod-seg-face">' . $icon
+                    . '<span class="mod-seg-t" data-t="' . h($short) . '"><span>'
+                    . h($short) . '</span></span></span>',
+            );
+        };
+        ?>
         <?php if ($editable && !empty($field['bulk_label'])
             && count($field['options']) > 1): ?>
             <div class="mod-row mod-bulk" hidden data-ap-bulk-wrap>
                 <span class="wb-id"><?= h($field['bulk_label']) ?></span>
-                <select class="form-select form-select-sm"
-                        data-ap-bulk="1">
-                    <option value="">&mdash;</option>
+                <span class="mod-seg" role="group"
+                      aria-label="<?= h($field['bulk_label']) ?>">
                     <?php foreach ($field['state_options'] as $option): ?>
-                        <?php
-                        $bulkValue = is_array($option)
-                            ? $option['value']
-                            : $option;
-                        $bulkLabel = is_array($option)
-                            && isset($option['label'])
-                            ? $option['label']
-                            : $bulkValue;
-                        ?>
-                        <option value="<?= h($bulkValue) ?>"
-                            ><?= h($bulkLabel) ?></option>
+                        <?php $seg = $segment($option); ?>
+                        <button type="button" class="mod-seg-b t-<?= h($seg['tone']) ?>"
+                                data-ap-bulk="<?= h($seg['value']) ?>"
+                                aria-pressed="false"
+                                title="<?= h($seg['label']) ?>"><?= $seg['face'] ?></button>
                     <?php endforeach; ?>
-                </select>
+                </span>
+                <span class="mod-bulk-sum" data-ap-bulk-sum></span>
             </div>
         <?php endif; ?>
+        <?php if (!$editable || !empty($field['live'])): ?>
+            <?php
+            /*
+             * Read, a row is its types as chips, each marked with its
+             * state: six identical lines saying *Pre-select, ready to
+             * run* were the bulk of the table and said one thing. A
+             * live list draws both, and Edit swaps them.
+             */
+            $looks = array();
+            foreach ($field['state_options'] as $option) {
+                if (is_array($option)) {
+                    $looks[(string)$option['value']] = $option;
+                }
+            }
+            ?>
+            <ul class="mod-chips">
+                <?php foreach ($field['options'] as $rowName): ?>
+                    <?php
+                    $state = (string)($states[$rowName] ?? '');
+                    $gone = in_array($rowName, $unavailable, true);
+                    $look = $looks[$state] ?? array('label' => $state,
+                        'tone' => 'custom', 'icon' => 'circle-question');
+                    ?>
+                    <li class="mod-chip t-<?= h($look['tone'] ?? 'plain') ?><?= $gone ? ' is-gone' : '' ?>"
+                        title="<?= h($look['label'] . ($gone ? ' · ' . $goneLabel : '')) ?>">
+                        <?php if (!empty($look['icon'])): ?>
+                            <i class="<?= $this->FontAwesome->getClass($look['icon']) ?>" aria-hidden="true"></i>
+                        <?php endif; ?>
+                        <span class="wb-id"><?= h($rowName) ?></span>
+                        <span class="visually-hidden"><?= h($look['label']) ?></span>
+                        <?php if ($gone): ?>
+                            <span class="pill t-missing"><?= h($goneLabel) ?></span>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        <?php if ($editable): ?>
         <?php foreach ($field['options'] as $rowName): ?>
             <?php
             $state = isset($states[$rowName]) ? $states[$rowName] : '';
@@ -350,42 +425,45 @@ $width = $numeric ? 'max(4.6rem, ' . (int)$chars . 'ch)' : '';
                                 __('%s — kept from this profile'),
                                 $state
                             ),
+                            'short' => $state,
+                            'icon' => 'circle-question',
+                            'tone' => 'custom',
                         );
                     }
                     ?>
-                    <select class="form-select form-select-sm"
-                            data-ap-field="1"
-                            data-ap-was="<?= h($state) ?>"
-                            name="<?= h(AnalystProfileFormTool::fieldName(
-                                $path,
-                                array_merge($extra, array($rowName))
-                            )) ?>">
+                    <?php
+                    $rowField = AnalystProfileFormTool::fieldName(
+                        $path,
+                        array_merge($extra, array($rowName))
+                    );
+                    ?>
+                    <span class="mod-seg" role="radiogroup"
+                          aria-label="<?= h($rowName) ?>">
                         <?php foreach ($rowOptions as $option): ?>
                             <?php
                             /*
-                             * The blank is one of the options rather
-                             * than a hardcoded first row: it is a
-                             * state the document can be in, and what
-                             * it resolves to is a thing the label has
-                             * to be able to say.
+                             * The blank is one of the segments rather
+                             * than the absence of one: it is a state
+                             * the document can be in, and what it
+                             * resolves to is a thing the label has to
+                             * be able to say.
                              */
-                            $stateValue = is_array($option)
-                                ? $option['value']
-                                : $option;
-                            $stateLabel = is_array($option)
-                                && isset($option['label'])
-                                ? $option['label']
-                                : $stateValue;
-                            $runs = $stateValue === ''
-                                || in_array($stateValue, $built, true);
+                            $seg = $segment($option);
+                            $runs = $seg['value'] === ''
+                                || in_array($seg['value'], $built, true);
                             ?>
-                            <option value="<?= h($stateValue) ?>"
-                                <?= (string)$state === (string)$stateValue
-                                    ? 'selected' : '' ?>
-                                <?= $runs ? '' : 'data-ap-inert="1"' ?>
-                                ><?= h($stateLabel) ?></option>
+                            <label class="mod-seg-b t-<?= h($seg['tone']) ?><?= $runs ? '' : ' is-inert' ?>"
+                                   title="<?= h($seg['label']) ?>">
+                                <input type="radio" class="mod-seg-in"
+                                       name="<?= h($rowField) ?>"
+                                       value="<?= h($seg['value']) ?>"
+                                       data-ap-field="1"
+                                       data-ap-was="<?= h($state) ?>"
+                                       <?= (string)$state === $seg['value']
+                                           ? 'checked' : '' ?>><?= $seg['face'] ?>
+                            </label>
                         <?php endforeach; ?>
-                    </select>
+                    </span>
                 <?php else: ?>
                     <?php
                     /*
@@ -410,7 +488,8 @@ $width = $numeric ? 'max(4.6rem, ' . (int)$chars . 'ch)' : '';
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
-        <?php if ($collapses): ?>
+        <?php endif; ?>
+        <?php if ($collapses && $editable): ?>
             <button type="button" class="btn btn-link btn-sm mod-more"
                     hidden data-ap-more="1"
                     data-ap-more-less="<?= h(__('show fewer')) ?>"
@@ -448,8 +527,9 @@ $width = $numeric ? 'max(4.6rem, ' . (int)$chars . 'ch)' : '';
                    : 'placeholder="' . h($placeholder) . '"' ?>
                style="<?= h($style) ?>">
     <?php else: ?>
+        <?php // `read_as` is the number as a reader says it, `33%` for a stored 0.33. ?>
         <span class="num"><?= $shown === ''
             ? '<span class="wb-sub">' . h(__('not set')) . '</span>'
-            : h((string)$shown) ?></span>
+            : h((string)($field['read_as'] ?? $shown)) ?></span>
     <?php endif; ?>
 <?php endif; ?>

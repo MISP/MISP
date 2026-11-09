@@ -17,7 +17,9 @@ if ($blurb !== '' && preg_match('/^(.+?[.!?])\s+(.*)$/s', $blurb, $m)) {
 <?php if (!empty($block['title'])): ?>
     <p class="wb-h wb-bh">
         <?= h($block['title']) ?>
-        <?php if (!empty($block['axis'])): ?>
+        <?php if (!empty($block['axes'])): ?>
+            <?= $this->element('AnalystProfiles/axis_badges', array('axes' => $block['axes'])) ?>
+        <?php elseif (!empty($block['axis'])): ?>
             <span class="wb-ax"><?= h($block['axis']) ?></span>
         <?php endif; ?>
     </p>

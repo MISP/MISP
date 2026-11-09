@@ -1,52 +1,94 @@
 <?php
 /**
- * One row per ledger row, both contributions and the delta.
+ * The ledger under both profiles: first the rows the candidate moves,
+ * each as the in-force number beside the candidate's with a bar for
+ * each, then the rows it leaves alone, folded behind a click.
  *
- * **The delta column is the one place a red/green pair does real
- * work**, so it uses `--vp-dir-with` and `--vp-dir-against` — the
- * lean's own pair — rather than a Bootstrap state that means
- * something else. It is no longer the pair the value page's *ledger*
- * uses: since `review-2026-09-13.md` §D1 those rows resolve to
- * `--vp-weighs-carries` / `--vp-weighs-lacks`, because a record
- * weighs the same under either reading. What the two surfaces still
- * share is the lean's pair, on the surfaces whose subject is the
- * lean (`ValueLean::directionStyle()`). Here the subject is *did
- * this edit move the number*, which is a direction of its own.
+ * In force is grey and the candidate the primary colour, as everywhere
+ * in the comparison. The delta keeps `--vp-dir-with` and
+ * `--vp-dir-against` (`d-up`/`d-dn`): its subject is which way this
+ * candidate moved the number, a direction of its own.
  *
  * The rows span both axes (`ValueVerdictDiffTool::diff()`), so the
- * signal-strength-axis subset sums to the signal strength exactly and the lean
- * rows to `lean_weight` — that exactness is the whole reason this diff is
- * arithmetic rather than impressionistic. The footer checks `sums`,
- * which the tool narrows to the signal-strength axis, and says so per column
- * rather than asserting it.
+ * signal-strength subset sums to the signal strength exactly and the
+ * lean rows to `lean_weight`. The footer checks `sums`, which the tool
+ * narrows to the signal-strength axis, and says so per column rather
+ * than asserting it.
  *
  * @var array $detail The diff
- * @var bool $full Every row, or only the ones that moved
  */
-$rows = $detail['rows'];
-if (!$full) {
-    $rows = array();
-    foreach ($detail['rows'] as $row) {
-        if ($row['state'] !== 'same') {
-            $rows[] = $row;
-        }
+$moved = array();
+$still = array();
+$scale = 1;
+foreach ($detail['rows'] as $row) {
+    if ($row['state'] === 'same') {
+        $still[] = $row;
+    } else {
+        $moved[] = $row;
     }
+    $scale = max($scale, abs((int)$row['before']), abs((int)$row['after']));
 }
 $stateLabel = array(
-    'changed' => __('changed'),
     'appeared' => __('appeared'),
     'vanished' => __('vanished'),
-    'same' => __('unchanged'),
 );
+$signed = function ($value) {
+    if ($value === null) {
+        return '—';
+    }
+    return $value > 0 ? '+' . $value : (string)$value;
+};
 $direction = function ($delta) {
     if ($delta > 0) {
         return 'd-up';
     }
     return $delta < 0 ? 'd-dn' : 'd-0';
 };
-$number = function ($value) {
-    return $value === null ? '—' : (string)$value;
+// A row's two contributions as two bars on one scale, the larger the longer.
+$bars = function (array $row) use ($scale) {
+    $out = '';
+    foreach (array('was' => $row['before'], 'now' => $row['after']) as $kind => $value) {
+        $width = $value === null ? 0 : round(abs($value) / $scale * 100, 1);
+        $out .= '<span class="ap-dbar-r is-' . $kind
+            . ($value !== null && $value < 0 ? ' is-neg' : '') . '">'
+            . '<span style="width:' . $width . '%"></span></span>';
+    }
+    return '<div class="ap-dbar">' . $out . '</div>';
 };
+$head = function () {
+    return '<thead><tr>'
+        . '<th style="width:30%">' . h(__('Signal')) . '</th>'
+        . '<th class="wb-wide-only">' . h(__('What it read on this value')) . '</th>'
+        . '<th class="r ap-was" style="width:8%">' . h(__('In force')) . '</th>'
+        . '<th class="r ap-now" style="width:8%">' . h(__('Candidate')) . '</th>'
+        . '<th style="width:14%"></th>'
+        . '<th class="r" style="width:9%">' . h(__('Change')) . '</th>'
+        . '</tr></thead>';
+};
+$rowsHtml = function (array $rows) use ($signed, $direction, $bars, $stateLabel) {
+    $out = '';
+    foreach ($rows as $row) {
+        $hot = $row['state'] !== 'same';
+        $sub = array_filter(array($row['group'] ?? null, $row['signal'] ?? null));
+        $out .= '<tr class="' . ($hot ? 'is-hot' : '') . '">'
+            . '<td><div class="wb-id fw-semibold">' . h($row['id']) . '</div>'
+            . (empty($sub) ? '' : '<div class="wb-sub">' . h(implode(' · ', $sub)) . '</div>')
+            . '</td>'
+            . '<td class="wb-wide-only wb-sub">' . h((string)$row['evidence']) . '</td>'
+            . '<td class="r num ap-was">' . h($signed($row['before'])) . '</td>'
+            . '<td class="r num ap-now">' . h($signed($row['after'])) . '</td>'
+            . '<td>' . $bars($row) . '</td>'
+            . '<td class="r">' . ($hot
+                ? '<span class="ap-delta num ' . $direction($row['delta']) . '">'
+                    . h($signed($row['delta'])) . '</span>'
+                    . (isset($stateLabel[$row['state']])
+                        ? '<div class="wb-sub">' . h($stateLabel[$row['state']]) . '</div>' : '')
+                : '<span class="wb-sub">' . h(__('same')) . '</span>')
+            . '</td></tr>';
+    }
+    return $out;
+};
+$totals = $detail['totals'];
 ?>
 <?php if (empty($detail['rows'])): ?>
     <div class="wb-empty">
@@ -55,9 +97,9 @@ $number = function ($value) {
             . ' weigh on this value, so there is nothing to compare.')) ?></p>
     </div>
 <?php else: ?>
-    <?php if (empty($detail['moved'])): ?>
-        <div class="wb-note mb-2">
-            <b><?= h(__('No change.')) ?></b>
+    <?php if (empty($moved)): ?>
+        <div class="ap-cmp-calm">
+            <b><?= h(__('No row moves.')) ?></b>
             <?= h(sprintf(__n(
                 'The candidate scores this value exactly as the profile'
                     . ' in force does: %s row, same contribution.',
@@ -66,80 +108,36 @@ $number = function ($value) {
                 count($detail['rows'])
             ), count($detail['rows']))) ?>
         </div>
-    <?php endif; ?>
-<?php endif; ?>
-<?php if (!empty($rows)): ?>
-    <table class="wb-tbl">
-        <thead>
-            <tr>
-                <th style="width:26%"><?= h(__('Signal')) ?></th>
-                <?php if ($full): ?>
-                    <th class="wb-wide-only" style="width:26%">
-                        <?= h(__('What it read on this value')) ?>
-                    </th>
-                <?php endif; ?>
-                <th class="r" style="width:9%"><?= h(__('In force')) ?></th>
-                <th class="r" style="width:9%"><?= h(__('Candidate')) ?></th>
-                <th class="r" style="width:8%">&Delta;</th>
-                <th style="width:9%"></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($rows as $row): ?>
-                <tr class="<?= $row['state'] === 'same' ? '' : 'is-hot' ?>">
-                    <td>
-                        <div class="wb-id fw-semibold"><?= h($row['id']) ?></div>
-                        <?php if (!empty($row['signal'])): ?>
-                            <div class="wb-sub"><?= h($row['signal']) ?></div>
-                        <?php endif; ?>
-                        <?php if (!empty($row['group'])): ?>
-                            <div class="mt-1">
-                                <span class="pill t-plain"><?= h($row['group']) ?></span>
-                            </div>
-                        <?php endif; ?>
-                    </td>
-                    <?php if ($full): ?>
-                        <td class="wb-wide-only wb-sub">
-                            <?= h((string)$row['evidence']) ?>
-                        </td>
-                    <?php endif; ?>
-                    <td class="r num"><?= h($number($row['before'])) ?></td>
-                    <td class="r num fw-bold"><?= h($number($row['after'])) ?></td>
-                    <td class="r num <?= h($direction($row['delta'])) ?>">
-                        <?= h($row['delta'] > 0 ? '+' . $row['delta'] : $row['delta']) ?>
-                    </td>
-                    <td>
-                        <?php if ($row['state'] === 'same'): ?>
-                            <span class="wb-sub"><?= h($stateLabel['same']) ?></span>
-                        <?php else: ?>
-                            <span class="pill t-force">
-                                <?= h($stateLabel[$row['state']]) ?>
-                            </span>
-                        <?php endif; ?>
-                    </td>
+    <?php else: ?>
+        <table class="wb-tbl ap-cmp-tbl">
+            <?= $head() ?>
+            <tbody><?= $rowsHtml($moved) ?></tbody>
+            <tfoot>
+                <tr>
+                    <td class="fw-semibold"><?= h(__('Signal strength')) ?></td>
+                    <td class="wb-wide-only"></td>
+                    <td class="r num ap-was"><?= h($totals['before']) ?></td>
+                    <td class="r num ap-now"><?= h($totals['after']) ?></td>
+                    <td></td>
+                    <td class="r"><span class="ap-delta num <?= h($direction($totals['delta'])) ?>"><?=
+                        h($signed($totals['delta'])) ?></span></td>
                 </tr>
-            <?php endforeach; ?>
-        </tbody>
-        <tfoot>
-            <tr>
-                <td<?= $full ? ' colspan="2"' : '' ?> class="wb-sub">
-                    <?= h(sprintf(__n(
-                        '%s row did not move',
-                        '%s rows did not move',
-                        count($detail['rows']) - count($detail['moved'])
-                    ), count($detail['rows']) - count($detail['moved']))) ?>
-                </td>
-                <td class="r num"><?= h($detail['totals']['before']) ?></td>
-                <td class="r num"><?= h($detail['totals']['after']) ?></td>
-                <td class="r num <?= h($direction($detail['totals']['delta'])) ?>">
-                    <?= h($detail['totals']['delta'] > 0
-                        ? '+' . $detail['totals']['delta']
-                        : $detail['totals']['delta']) ?>
-                </td>
-                <td></td>
-            </tr>
-        </tfoot>
-    </table>
+            </tfoot>
+        </table>
+    <?php endif; ?>
+    <?php if (!empty($still)): ?>
+        <details class="ap-cmp-still">
+            <summary>
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                <?= h(sprintf(__n('%s row does not move', '%s rows do not move',
+                    count($still)), count($still))) ?>
+            </summary>
+            <table class="wb-tbl ap-cmp-tbl">
+                <?= $head() ?>
+                <tbody><?= $rowsHtml($still) ?></tbody>
+            </table>
+        </details>
+    <?php endif; ?>
     <?php if (empty($detail['sums']['ok'])): ?>
         <div class="wb-note bad mt-2">
             <b><?= h(__('A column does not add up.')) ?></b>

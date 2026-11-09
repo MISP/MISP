@@ -14,6 +14,10 @@ echo $this->element('genericElements/assetLoader', array(
 ));
 
 $this->set('headerTitle', __('Full comparison'));
+$this->set('headerBreadcrumb', array(
+    array('label' => __('Analyst Profiles'), 'url' => array('action' => 'index')),
+    __('Full comparison'),
+));
 $this->set('headerIdentity', $base);
 $this->set('headerDescription', h($focus === null
     ? sprintf(__('%1$s against %2$s'), $base['name'],

@@ -4075,7 +4075,9 @@ tr.evt-extension-row td:first-child { position: relative; }
     position: relative;
     flex-shrink: 0;
     overflow: hidden;
-    min-width: 2.4rem;
+    /* `ch` is a digit of the gutter's own monospace; --ov-json-digits is set
+       by initJsonFields() from the line count. */
+    min-width: max(2.4rem, calc(var(--ov-json-digits, 2) * 1ch + 1rem));
     padding: 0 .5rem 0 .4rem;
     border-right: 1px solid var(--bs-border-color);
     color: var(--bs-secondary-color);
@@ -4092,6 +4094,7 @@ tr.evt-extension-row td:first-child { position: relative; }
     top: 0;
     right: .5rem;
     left: .4rem;
+    white-space: nowrap;
     will-change: transform;
 }
 

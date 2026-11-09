@@ -4496,6 +4496,8 @@ function initJsonFields(container) {
             var count = state.raw.length ? state.raw.split('\n').length : 1;
             if (count !== lineCount) {
                 lineCount = count;
+                // The gutter is as wide as its longest number: line 100 must not wrap.
+                wrap.style.setProperty('--ov-json-digits', String(count).length);
                 var rows = '';
                 for (var i = 1; i <= count; i++) {
                     rows += '<div>' + i + '</div>';

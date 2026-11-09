@@ -10,7 +10,10 @@
  * a site admin turned off, which nobody can then choose.
  *
  * @var array $profile A row from the index board
+ * @var string|null $part `pill` or `line` alone, for a caller that puts
+ *                        them in two places; both when absent
  */
+$part = isset($part) ? $part : null;
 $standing = $profile['standing'];
 $state = $standing['state'];
 $global = !empty($profile['default']) || !empty($profile['shared']);
@@ -34,12 +37,15 @@ $selectedBy = isset($profile['selected_by'])
     ? $profile['selected_by']
     : array();
 ?>
+<?php if ($part !== 'line'): ?>
 <span class="pill <?= h(isset($tone[$state]) ? $tone[$state] : 't-plain') ?>">
     <?= h(isset($label[$state]) ? $label[$state] : $state) ?>
 </span>
+<?php endif; ?>
 <?php // `not_selected` needs no line: the owner column and the pill already say it all. ?>
-<?php if ($state !== 'not_selected'): ?>
-<div class="wb-sub mt-1">
+<?php if ($state !== 'not_selected' && $part !== 'pill'): ?>
+<?php $tag = $part === 'line' ? 'span' : 'div'; // a line goes inside a paragraph ?>
+<<?= $tag ?> class="wb-sub<?= $part === null ? ' mt-1' : '' ?>">
     <?php if ($state === 'in_force'): ?>
         <?php if (in_array('user', $selectedBy, true)): ?>
             <?= h(__('You chose it.')) ?>
@@ -90,5 +96,5 @@ $selectedBy = isset($profile['selected_by'])
             . ' which resolution cannot produce. Reported rather than'
             . ' explained away.')) ?>
     <?php endif; ?>
-</div>
+</<?= $tag ?>>
 <?php endif; ?>

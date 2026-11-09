@@ -298,3 +298,404 @@
     line-height: 1.45;
     color: var(--bs-secondary-color);
 }
+
+/* At reading size, where there is room for it: the analyst profile comparison. */
+.vp-dates.is-roomy { margin-top: 0; font-size: .8125rem; }
+.vp-dates.is-roomy > summary {
+    padding: .45rem .75rem;
+    border-radius: var(--bs-border-radius);
+    align-items: center;
+}
+.vp-dates.is-roomy .vp-dates-sub { font-size: .75rem; }
+.vp-dates.is-roomy .vp-dates-tbl { padding: .35rem .75rem .5rem; }
+.vp-dates.is-roomy .vp-dates-tbl th { font-size: .6875rem; padding-bottom: .3rem; }
+.vp-dates.is-roomy .vp-dates-tbl td { padding: .35rem .75rem .35rem 0; }
+.vp-dates.is-roomy .vp-dates-tbl code { font-size: .75rem; }
+.vp-dates.is-roomy .vp-dates-foot { margin: .4rem .75rem .5rem; font-size: .75rem; }
+
+/* ==================================================================
+ * The relevance states, named once: the value pages' shelf life and
+ * lifecycle, the analyst profile's axis badge and try bar read them.
+ * ================================================================== */
+:root {
+    --vp-rel-current: #0e7490;
+    --vp-rel-aging: var(--vp-conflict);
+    --vp-rel-expired: var(--bs-secondary-color);
+    --vp-rel-uncertain: var(--vp-unknown);
+}
+
+[data-misp-mode="dark"] {
+    --vp-rel-current: #67e8f9;
+    --vp-rel-expired: var(--bs-secondary-color);
+}
+
+/* ==================================================================
+ * Verdict axes (Values/View/value_verdict_axes.ctp): the value page's
+ * Assessment card and the analyst profile's try bar draw the same
+ * block, so its rules live in the shared palette.
+ * ================================================================== */
+
+/*
+ * The assessment's three axes, at the top of the Overview's Assessment
+ * card: the lean as a headline, then the stance, the signal strength and
+ * the shelf life as three cells.
+ *
+ * One grid, three columns, four shared rows (name, figure, glyph,
+ * reading); each cell is a subgrid of it, so the figures share a
+ * baseline and the glyphs a line whatever wraps, and only the reading
+ * row varies in height. The stance cell is `value_verdict_stance`, which
+ * the Assessment tab's lean band draws too, as `vp-ax-stance-wide`.
+ */
+.vp-ax {
+    --vp-ax-ink: var(--bs-body-color);
+    --vp-ax-quiet: var(--bs-secondary-color);
+    --vp-ax-ground: color-mix(in srgb, var(--bs-body-color) 13%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    color: var(--vp-ax-ink);
+}
+
+.vp-ax-lean {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 700;
+    color: var(--vp-ax-lean-ink);
+}
+
+.vp-ax-lean-icon {
+    flex: none;
+    font-size: 13px;
+    color: var(--vp-ax-lean);
+}
+
+.vp-ax-lean-label {
+    flex: none;
+    white-space: nowrap;
+}
+
+.vp-ax-lean-rule {
+    flex: 1 1 auto;
+    min-width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--vp-ax-lean);
+}
+
+/* A lean that names no state: a lighter voice, a dashed line. */
+.vp-ax-lean-quiet {
+    font-weight: 600;
+}
+
+.vp-ax-lean-quiet .vp-ax-lean-rule {
+    height: 0;
+    border-top: 1px dashed
+        color-mix(in srgb, var(--vp-ax-lean) 70%, transparent);
+    background: none;
+}
+
+.vp-ax-void {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-cells {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, auto);
+    column-gap: 13px;
+}
+
+.vp-ax-cell {
+    position: relative;
+    display: grid;
+    grid-row: 1 / span 4;
+    grid-template-rows: subgrid;
+    min-width: 0;
+}
+
+.vp-ax-cells > .vp-ax-cell + .vp-ax-cell::before {
+    content: "";
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    left: -7px;
+    border-left: 1px solid var(--bs-border-color);
+}
+
+.vp-ax-name {
+    grid-row: 1;
+    align-self: end;
+    font-size: 10px;
+    line-height: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-fig {
+    grid-row: 2;
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    margin-top: 2px;
+    font-size: 19px;
+    line-height: 23px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.vp-ax-colon {
+    margin: 0 0.2em;
+    font-weight: 500;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-unit {
+    margin-left: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-dash {
+    font-weight: 500;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-glyph {
+    grid-row: 3;
+    position: relative;
+    height: 11px;
+    margin-top: 3px;
+}
+
+.vp-ax-track {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    right: 0;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--vp-ax-ground);
+    overflow: hidden;
+}
+
+.vp-ax-fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--vp-ax-ink);
+}
+
+.vp-ax-mark {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 11px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--vp-ax-ink);
+    opacity: 0.6;
+}
+
+.vp-ax-read {
+    grid-row: 4;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-top: 3px;
+    font-size: 10px;
+    line-height: 13px;
+}
+
+.vp-ax-legend {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    font-weight: 600;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: 5px;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-note[title] {
+    cursor: help;
+}
+
+/* Nothing to draw: the words take the glyph's row, under the dash. */
+.vp-ax-absent > .vp-ax-glyph {
+    display: none;
+}
+
+.vp-ax-absent > .vp-ax-read {
+    grid-row: 3 / span 2;
+}
+
+.vp-ax-stance .vp-ax-legend {
+    font-weight: 400;
+}
+
+.vp-ax-stance .vp-ax-t {
+    color: var(--vp-mal-ink);
+}
+
+.vp-ax-stance .vp-ax-b {
+    color: var(--vp-ben-ink);
+}
+
+.vp-ax-stance .vp-ax-n.vp-ax-zero {
+    color: var(--vp-ax-quiet);
+    font-weight: 600;
+}
+
+.vp-ax-tug {
+    background: color-mix(in srgb, var(--vp-ben) 55%, var(--vp-ax-ground));
+}
+
+.vp-ax-tug .vp-ax-fill {
+    background: var(--vp-mal);
+    border-radius: 3px 0 0 3px;
+    box-shadow: 1.5px 0 0 var(--bs-body-bg);
+}
+
+/* The stance did not decide: it steps back, and a note says what did. */
+.vp-ax-overruled .vp-ax-fig .vp-ax-n,
+.vp-ax-overruled .vp-ax-colon {
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-overruled .vp-ax-glyph {
+    opacity: 0.6;
+    filter: saturate(0.35);
+}
+
+.vp-ax-note-decided {
+    font-weight: 700;
+    color: var(--vp-ax-ink);
+}
+
+.vp-ax-note-weight {
+    font-weight: 600;
+    color: var(--vp-ax-ink);
+}
+
+.vp-ax-strength .vp-ax-fill {
+    background: var(--primary);
+}
+
+.vp-ax-strength .vp-ax-word {
+    color: var(--vp-ax-ink);
+}
+
+/* Shelf life carries its state in ink weight: the lean owns the hue. */
+.vp-ax-shelf .vp-ax-fill {
+    opacity: 0.7;
+}
+
+.vp-ax-state-aging,
+.vp-ax-state-expired {
+    color: var(--vp-ax-ink);
+    font-weight: 700;
+}
+
+.vp-ax-state-expired {
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+}
+
+.vp-ax-shelf-uncertain .vp-ax-fill {
+    opacity: 0.4;
+}
+
+.vp-ax-note-unsure {
+    font-weight: 600;
+}
+
+/* The same stance in the tab's lean band: the figure beside the bar. */
+.vp-ax-solo {
+    gap: 0;
+}
+
+.vp-ax-stance-wide {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 18px;
+    align-items: center;
+}
+
+.vp-ax-stance-wide > .vp-ax-fig {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 0;
+    font-size: 22px;
+    line-height: 26px;
+}
+
+.vp-ax-stance-wide > .vp-ax-glyph {
+    grid-column: 2;
+    grid-row: 1;
+    height: 12px;
+    margin-top: 0;
+}
+
+.vp-ax-stance-wide .vp-ax-track {
+    height: 6px;
+}
+
+.vp-ax-stance-wide .vp-ax-mark {
+    height: 12px;
+}
+
+.vp-ax-stance-wide > .vp-ax-name {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    margin-top: 1px;
+}
+
+.vp-ax-stance-wide > .vp-ax-read {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    margin-top: 0;
+}
+
+.vp-ax-stance-wide .vp-ax-notes {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px 16px;
+    margin-top: 3px;
+}
+
+.vp-ax-stance-wide.vp-ax-absent > .vp-ax-read {
+    grid-row: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 16px;
+    align-self: center;
+}
+
+.vp-ax-stance-wide.vp-ax-absent .vp-ax-notes {
+    margin-top: 0;
+}

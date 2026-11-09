@@ -506,7 +506,8 @@ if (!empty($headerActions)) {
         </div>
 
         <?php if (!empty($headerActionStrip)): ?>
-            <div class="d-flex gap-2 align-items-center flex-wrap"
+            <?php // A long description wraps beside the actions, not the actions under each other. ?>
+            <div class="d-flex gap-2 align-items-center flex-wrap flex-lg-shrink-0"
                  data-tour="page-actions">
                 <?php foreach ($headerActionStrip as $slot): ?>
                     <?php
