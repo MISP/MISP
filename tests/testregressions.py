@@ -898,5 +898,154 @@ class EventSearchAttributeAcl(unittest.TestCase):
         self.assertIn(self.event_id, self._events(self.admin, value=v['gone']))
 
 
+class EventCorrelationsAcl(unittest.TestCase):
+    """correlations/eventCorrelations vets the event and both sides of every correlation.
+
+    The action never checked that the caller can see the event it was asked about, and the
+    correlation engines only filtered the related side of each row. So any user got the
+    correlations of an organisation-only event of another organisation, and for an event they
+    could open, those of the attributes hidden from them (organisation-only, in a sharing group
+    they are not in, or inside an organisation-only object): keyed by the hidden attribute's id,
+    with its value. The default
+    engine's related-event list (events/view) named events related only through such
+    attributes too.
+    """
+
+    sharing_groups = []
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.owner_org = make_org(cls.admin, 'regression event correlations owner org')
+        cls.outsider_org = make_org(cls.admin, 'regression event correlations outsider org')
+        cls.created_orgs = [cls.owner_org, cls.outsider_org]
+        cls.owner_user = make_user(cls.admin, cls.owner_org.id, cls.role_id)
+        cls.outsider_user = make_user(cls.admin, cls.outsider_org.id, cls.role_id)
+        cls.created_users = [cls.owner_user, cls.outsider_user]
+        cls.owner = PyMISP(url, cls.owner_user.authkey)
+        cls.owner.global_pythonify = True
+        cls.outsider = PyMISP(url, cls.outsider_user.authkey)
+        cls.outsider.global_pythonify = True
+        cls._seed()
+
+    @classmethod
+    def tearDownClass(cls):
+        uuids = [e.uuid for e in (getattr(cls, n, None) for n in ('H', 'P', 'R', 'R2')) if e]
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+        for sg_id in cls.sharing_groups:
+            send(cls.admin, 'POST', 'sharingGroups/delete/%d' % sg_id, check_errors=False)
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False):
+            row = row.get('EventBlocklist', row)
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+
+    @classmethod
+    def _seed(cls):
+        """H (org only) holds V1. P (community) holds V2 (shared), V3 (organisation-only) and an
+        organisation-only object with V4, V5 in a sharing group the outsider is in and V6 in one it
+        is not. R (community) and R2 (organisation-only) belong to the outsider; R holds all
+        values and R2 only V3, so the owner sees R but not R2."""
+        token = random()
+        cls.sharing_groups = []
+        cls.values = {'V1': '198.51.100.%d' % (1 + int(token[:2], 16) % 250)}
+        cls.values.update({n: '%s-%s.example.com' % (n.lower(), token) for n in ('V2', 'V3', 'V4', 'V5', 'V6')})
+        groups = {}
+        for name, orgs in (('in', cls.created_orgs), ('out', cls.created_orgs[:1])):
+            group = send(cls.admin, 'POST', 'sharingGroups/add', data={
+                'name': 'regression event correlations %s %s' % (name, token), 'releasability': 'x',
+                'roaming': False,
+                'SharingGroupOrg': [{'Organisation': {'uuid': o.uuid, 'name': o.name}, 'extend': False}
+                                    for o in orgs]})
+            groups[name] = int(group['SharingGroup']['id'])
+            cls.sharing_groups.append(groups[name])
+
+        def event(connector, name, distribution, attributes):
+            ev = MISPEvent()
+            ev.info = 'regression event correlations %s %s' % (name, token)
+            ev.distribution = distribution
+            for typ, value, dist, *group in attributes:
+                ev.add_attribute(typ, value, distribution=dist, category='Network activity',
+                                 sharing_group_id=group[0] if group else 0)
+            return check_response(connector.add_event(ev))
+
+        v = cls.values
+        cls.H = event(cls.owner, 'H', 0, [('ip-dst', v['V1'], 5)])
+        cls.P = event(cls.owner, 'P', 1, [('domain', v['V2'], 5), ('domain', v['V3'], 0),
+                                              ('domain', v['V5'], 4, groups['in']),
+                                              ('domain', v['V6'], 4, groups['out'])])
+        obj = MISPObject('domain-ip')
+        obj.distribution = 0
+        obj.add_attribute('domain', value=v['V4'], distribution=5)
+        check_response(cls.owner.add_object(cls.P.id, obj))
+        cls.R = event(cls.outsider, 'R', 1, [('ip-dst', v['V1'], 5), ('domain', v['V2'], 5),
+                                             ('domain', v['V3'], 5), ('domain', v['V4'], 5),
+                                             ('domain', v['V5'], 5), ('domain', v['V6'], 5)])
+        cls.R2 = event(cls.outsider, 'R2', 0, [('domain', v['V3'], 5)])
+        cls.attr_ids = {}
+        for ev in (cls.H, cls.P):
+            full = cls.admin.get_event(ev.id, pythonify=True)
+            for a in full.attributes + [a for o in full.objects for a in o.attributes]:
+                cls.attr_ids[a.value] = int(a.id)
+
+    def _correlations(self, connector, event_id, query=''):
+        response = connector._prepare_request(
+            'GET', 'correlations/eventCorrelations/%s%s' % (event_id, query))
+        return response.status_code, response.json()
+
+    def _keys(self, connector, event_id, query=''):
+        status, body = self._correlations(connector, event_id, query)
+        self.assertEqual(200, status, body)
+        if isinstance(body, dict) and 'correlations' in body:
+            body = body['correlations']
+        return {int(k) for k in body} if body else set()
+
+    def test_outsider_gets_nothing_for_an_invisible_event(self):
+        v, ids = self.values, self.attr_ids
+        self.assertIn(ids[v['V1']], self._keys(self.admin, self.H.id),
+                      'H does not correlate, so the test proves nothing')
+        gone = self._correlations(self.outsider, 2147483646)
+        self.assertEqual(404, gone[0], gone[1])
+        for ref in (self.H.id, self.H.uuid):
+            probe = self._correlations(self.outsider, ref, '?include_attributes=1')
+            self.assertEqual(404, probe[0], 'the outsider got the correlations of an invisible event')
+            for field in ('name', 'message'):
+                self.assertEqual(gone[1][field], probe[1][field],
+                                 'an invisible event is told apart from a missing one')
+
+    def test_outsider_gets_only_the_correlations_of_visible_attributes(self):
+        v, ids = self.values, self.attr_ids
+        hidden = {ids[v[n]] for n in ('V3', 'V4', 'V6')}
+        for query in ('', '?include_attributes=1', '?include_warninglist_hits=1'):
+            keys = self._keys(self.outsider, self.P.id, query)
+            self.assertLessEqual({ids[v['V2']], ids[v['V5']]}, keys,
+                                 'the outsider lost the correlations of the attributes it can see')
+            self.assertFalse(keys & hidden,
+                             'correlations of attributes hidden from the outsider came back (%s)' % query)
+
+    def test_outsider_related_events_skip_hidden_attributes(self):
+        response = self.outsider._prepare_request('GET', 'events/view/%s' % self.P.id)
+        related = {int(e['Event']['id']) for e in response.json()['Event'].get('RelatedEvent', [])}
+        self.assertIn(int(self.R.id), related)
+        self.assertNotIn(int(self.R2.id), related,
+                         'an event related only through an organisation-only attribute is listed')
+
+    def test_owner_and_site_admin_keep_their_correlations(self):
+        v, ids = self.values, self.attr_ids
+        self.assertEqual({ids[v['V1']]}, self._keys(self.admin, self.H.id))
+        self.assertEqual({ids[v[n]] for n in ('V2', 'V3', 'V4', 'V5', 'V6')}, self._keys(self.admin, self.P.id))
+        self.assertEqual({ids[v['V1']]}, self._keys(self.owner, self.H.id))
+        self.assertEqual({ids[v[n]] for n in ('V2', 'V3', 'V4', 'V5', 'V6')}, self._keys(self.owner, self.P.id),
+                         'the owner lost the correlations of its own organisation-only attributes')
+        response = self.owner._prepare_request('GET', 'events/view/%s' % self.P.id)
+        related = {int(e['Event']['id']) for e in response.json()['Event'].get('RelatedEvent', [])}
+        self.assertIn(int(self.R.id), related)
+        self.assertNotIn(int(self.R2.id), related)
+        own = self._keys(self.outsider, self.R.id)
+        self.assertTrue(own, 'the outsider lost the correlations of its own event')
+
+
 if __name__ == '__main__':
     unittest.main()

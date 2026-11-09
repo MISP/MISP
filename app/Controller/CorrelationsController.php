@@ -231,6 +231,11 @@ class CorrelationsController extends AppController
             throw new ForbiddenException();
         }
         $this->loadModel('Event');
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['fields' => ['Event.id']]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $eventId = (int)$event['Event']['id'];
         $sgids = $this->Event->SharingGroup->authorizedIds($this->Auth->user());
         $correlations = $this->Correlation->getAttributesRelatedToEvent($this->Auth->user(), $eventId, $sgids);
         $extended = filter_var($this->request->query('extended'), FILTER_VALIDATE_BOOLEAN);
