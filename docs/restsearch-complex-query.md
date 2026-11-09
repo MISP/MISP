@@ -1,25 +1,31 @@
-# Complex queries in attribute restSearch
+# Complex queries in restSearch
 
-`POST /attributes/restSearch` accepts an additional `query` key carrying a
-boolean tree of field conditions, so that requests such as
+`POST /attributes/restSearch`, `POST /events/restSearch` and
+`POST /objects/restSearch` accept an additional `query` key carrying a boolean
+tree of field conditions, so that requests such as
 `type = "domain" OR (id > 50000 AND tags = "tlp:white")` can be expressed.
 Requests without `query` behave exactly as before.
 
+The grammar, operators, limits and errors are the same on all three
+endpoints. What differs is the list of fields and what the tree selects: see
+[Attributes](#attributes), [Events](#events) and [Objects](#objects).
+
 ## Availability
 
-- Only on `/attributes/restSearch`, and only as a JSON object in the body of a
-  `POST` request. A `query` in the query string or the URL (also next to one
-  in the body), in a `GET` request or of any other type is rejected with
-  HTTP 400. Other endpoints that take restSearch filters, such as the
-  `filters` of `/sightings/add`, reject a `query` with HTTP 400 as well.
+- Only on the three restSearch endpoints above, and only as a JSON object in
+  the body of a `POST` request. A `query` in the query string or the URL (also
+  next to one in the body), in a `GET` request or of any other type is
+  rejected with HTTP 400. Other endpoints that take restSearch filters, such
+  as the `filters` of `/sightings/add`, reject a `query` with HTTP 400 as well.
 - The user's role needs the **Complex query** permission
   (`perm_complex_query`, off for every role by default), unless the user is
   a site admin. Without it the request is answered with HTTP 403.
 - `query` can be combined with the legacy filters. The result is
   `ACL AND legacy filters AND query`: the tree can only narrow what the user
   is allowed to see anyway, never widen it.
-- `returnFormat` and the other output parameters work as usual; `query` only
-  selects which attributes are returned.
+- `returnFormat` and the other output parameters work as usual. `query` only
+  selects which attributes, events or objects are returned; on events and
+  objects, a negated `tags` also strips the attributes carrying the tag.
 
 ## Grammar
 
@@ -38,7 +44,7 @@ leaf := {"<field>": value}                 // shorthand for {"=": value}
 - The legacy list shapes (`["a", "!b"]`, `{"OR": [...], "NOT": [...]}`) are not
   valid inside a leaf. Use `IN`, `NOT IN` and `NOT` instead.
 
-Example:
+Example, on attributes:
 
 ```json
 {
@@ -59,7 +65,7 @@ Example:
 | Operator | Meaning |
 |---|---|
 | `=`, `!=` | equals, not equals |
-| `>`, `<`, `>=`, `<=` | numeric and timestamp fields only |
+| `>`, `<`, `>=`, `<=` | numeric, timestamp and date fields only |
 | `IN`, `NOT IN` | operand is a non-empty list |
 | `LIKE` | string fields only; see below |
 
@@ -71,6 +77,8 @@ Types are strict, nothing is coerced: strings for string fields, JSON integers
 for numeric fields (`"50000"` for `id` is an error) and `true`/`false` for
 booleans. Timestamp fields take an integer (Unix time) or a relative string
 made of digits and one of `d`, `h`, `m`, `s` (`"7d"` is seven days ago).
+Date fields (`date`, the event date) take a `"YYYY-MM-DD"` string or a number
+of days (`"30d"`); `h`, `m` and `s` are rejected there.
 
 ### Wildcards
 
@@ -80,15 +88,29 @@ Wildcards are only available through `LIKE`, with a leading and/or trailing
 compare literally, except on `tags`: as in the legacy filter, a tag value is
 matched against tag names as a pattern (`_` stands for any one character)
 and an all-digit value is a tag id. `{"tags": {"LIKE": "tlp:%"}}` selects
-anything carrying a `tlp:` tag; `NOT` over it, anything carrying none.
+anything carrying a `tlp:` tag.
 
 ### NULL handling
 
-`object_relation` and `comment` can be NULL. Inside a `query`, `!=`, `NOT IN`
-and `NOT` also match rows where the column is NULL. The legacy filters (for
-example `object_relation: "!ip"`) do not. This difference is intentional.
+`object_relation` and `comment` on attributes, and `object_name` and
+`object_template_uuid` on objects, can be NULL. Inside a `query`, `!=`,
+`NOT IN` and `NOT` also match rows where the column is NULL. The legacy
+filters (for example `object_relation: "!ip"`) do not. This difference is
+intentional.
 
-## Fields
+### Field names
+
+A field name means the same thing on every endpoint that has it. Only `id`,
+`uuid`, `distribution` and `timestamp` refer to the endpoint's own record
+(the attribute, the event or the object). Conditions on the event use the
+same names everywhere (`event_id`, `event_timestamp`, `eventinfo`, `org`,
+...), so they can be copied from one endpoint's query to another's, where
+that endpoint has the field. On events, `event_id` and `event_timestamp` are
+the same as `id` and `timestamp`.
+
+## Attributes
+
+`POST /attributes/restSearch`. The tree selects attributes.
 
 | Field | Type | Operators | Notes |
 |---|---|---|---|
@@ -107,14 +129,128 @@ example `object_relation: "!ip"`) do not. This difference is intentional.
 Anything not listed is rejected as `unknown_field`. The same list is
 available programmatically, see [Discovery](#discovery).
 
-## Ordering
-
 `order` works as before (`"timestamp desc"`, `["type", "id desc"]`). The
 sortable fields are the attribute fields `id`, `event_id`, `object_id`,
 `type`, `category`, `value`, `distribution`, `timestamp`, `object_relation`
 and `Event.publish_timestamp`. When `query` is present, an unknown or
 malformed `order` is rejected with an error at path `order[i]`; without
 `query` it is silently dropped, as it always was.
+
+## Events
+
+`POST /events/restSearch`. The tree selects events, and each one is returned
+as it would be without `query`.
+
+- Event fields are conditions on the event itself and can be negated freely.
+- Attribute and object fields select an event that holds at least one
+  element that matches, is not deleted and is visible to the user. They take
+  positive operators only: `!=` and `NOT IN` on them are rejected as
+  `unknown_operator`, and a `NOT` over a subtree holding one of them, or
+  `tags`, as `bad_shape`. "Events without a `btc` attribute" cannot be
+  expressed.
+- `tags` selects an event that carries the tag itself or holds a visible,
+  non-deleted attribute carrying it. Negated (`!=`, `NOT IN`), it excludes
+  the events carrying the tag as an event tag and strips the attributes and
+  event reports carrying it from the events returned. Since it acts on the
+  output, a negated `tags` is only allowed where every enclosing node is an
+  `AND`; under `OR` it is rejected as `bad_shape`. Write
+  `{"tags": {"!=": "x"}}`, not `{"NOT": {"tags": "x"}}`.
+- The `MISP.attribute_filters_block_only` setting does not apply: attribute
+  fields inside `query` always select events.
+
+| Field | Level | Type | Operators | Notes |
+|---|---|---|---|---|
+| `id`, `event_id` | event | integer | `= != > < >= <= IN NOT IN` | the same |
+| `distribution`, `analysis`, `threat_level_id` | event | integer | same | |
+| `org_id`, `orgc_id` | event | integer | same | owner and creator organisation |
+| `timestamp`, `event_timestamp` | event | timestamp | same | the same |
+| `publish_timestamp` | event | timestamp | same | |
+| `date` | event | date | same | |
+| `published` | event | boolean | `= !=` | |
+| `uuid` | event | string | `= != IN NOT IN` | |
+| `eventinfo` | event | string | `= != IN NOT IN LIKE` | info of the event |
+| `org` | event | string | `= != IN NOT IN` | name, uuid or id of the creator organisation |
+| `tags` | event, attribute | string | `= != IN NOT IN LIKE` | see above |
+| `type`, `category`, `object_relation`, `comment`, `value` | attribute | string | `= IN LIKE` | `value` matches both value fields |
+| `to_ids` | attribute | boolean | `=` | |
+| `object_name` | object | string | `= IN LIKE` | such as `domain-ip` |
+| `object_template_uuid` | object | string | `= IN` | |
+
+Example: events of the last 30 days holding a `btc` attribute or a
+`bank-account` object, not tagged `tlp:red`, without their `tlp:red`
+attributes:
+
+```json
+{
+  "query": {
+    "AND": [
+      {"date": {">=": "30d"}},
+      {"OR": [{"type": "btc"}, {"object_name": "bank-account"}]},
+      {"tags": {"!=": "tlp:red"}}
+    ]
+  },
+  "limit": 20
+}
+```
+
+`order` works as before, with the legacy names: `id`, `info`, `analysis`,
+`threat_level_id`, `distribution`, `timestamp` and `publish_timestamp`. When
+`query` is present, an unknown or malformed `order` is rejected as on
+attributes.
+
+## Objects
+
+`POST /objects/restSearch`. The tree selects objects, and each one is
+returned as it would be without `query`, with the attributes of it the user
+may see.
+
+- Object and event fields are conditions on the object and on its event, and
+  can be negated freely.
+- Attribute fields select an object that holds at least one attribute that
+  matches, is not deleted and is visible to the user. They take positive
+  operators only, as on events.
+- `tags` selects an object whose event carries the tag, or that holds a
+  visible, non-deleted attribute carrying it. Negated, it excludes the
+  objects whose event carries the tag as an event tag and strips the
+  attributes carrying it from the objects returned; an object left without
+  attributes is still returned. A negated `tags` is only allowed under `AND`,
+  as on events.
+- Objects cannot be sorted: an `order` next to `query` is rejected with
+  HTTP 400. Without `query`, `order` is ignored, as it always was.
+
+| Field | Level | Type | Operators | Notes |
+|---|---|---|---|---|
+| `id`, `object_id` | object | integer | `= != > < >= <= IN NOT IN` | the same |
+| `distribution` | object | integer | same | |
+| `timestamp` | object | timestamp | same | object timestamp |
+| `uuid` | object | string | `= != IN NOT IN` | |
+| `object_name` | object | string | `= != IN NOT IN LIKE` | such as `domain-ip` |
+| `object_template_uuid` | object | string | `= != IN NOT IN` | |
+| `event_id`, `threat_level_id` | event | integer | `= != > < >= <= IN NOT IN` | |
+| `orgc_id` | event | integer | same | creator organisation |
+| `event_timestamp`, `publish_timestamp` | event | timestamp | same | |
+| `date` | event | date | same | |
+| `published` | event | boolean | `= !=` | |
+| `eventinfo` | event | string | `= != IN NOT IN LIKE` | info of the event |
+| `org` | event | string | `= != IN NOT IN` | name, uuid or id of the creator organisation |
+| `tags` | event, attribute | string | `= != IN NOT IN LIKE` | see above |
+| `type`, `category`, `object_relation`, `comment`, `value` | attribute | string | `= IN LIKE` | `value` matches both value fields |
+| `to_ids` | attribute | boolean | `=` | |
+
+Example: `domain-ip` and `url` objects from events changed in the last week,
+holding a value under `example.com`:
+
+```json
+{
+  "query": {
+    "AND": [
+      {"object_name": {"IN": ["domain-ip", "url"]}},
+      {"event_timestamp": {">=": "7d"}},
+      {"value": {"LIKE": "%.example.com"}}
+    ]
+  }
+}
+```
 
 ## Limits
 
@@ -147,10 +283,10 @@ applied.
 
 | Code | Meaning |
 |---|---|
-| `unknown_field` | not a whitelisted field (path shows `<unknown>`) |
-| `unknown_operator` | operator not allowed for the field |
+| `unknown_field` | not a whitelisted field (path shows `<unknown>`), or an unknown sort field |
+| `unknown_operator` | operator not allowed for the field, including a negated attribute or object field on events and objects |
 | `bad_type` | wrong value type, malformed `LIKE`, or a value the field cannot use |
-| `bad_shape` | malformed node, empty list, extra keys |
+| `bad_shape` | malformed node, empty list, extra keys; on events and objects also a `NOT` over an attribute, object or tag field, or a negated `tags` outside an `AND` |
 | `limit_exceeded` | depth, node, list or value length limit |
 
 Paths are built from indices and field names only. Messages are fixed texts;
@@ -159,10 +295,14 @@ Missing permission is not part of this format: it is a plain HTTP 403.
 
 ## Discovery
 
-`GET /attributes/queryDescribe` (API only) returns the fields, their types and
-operators, the sortable fields and the limits in effect. A field's `level`
-says what it is matched against: the attribute itself, its event, or both
-(`tags`).
+`GET /attributes/queryDescribe`, `GET /events/queryDescribe` and
+`GET /objects/queryDescribe` (API only, same permission as `query`) return
+the fields of that endpoint, their types and operators, the sortable fields
+and the limits in effect. A field's `level` says what it is matched against:
+`attribute`, `object` or `event`, or more than one (`tags`). On events and
+objects, a field whose only level is `attribute` (or `object`, on events) is
+matched against the elements inside the record and takes positive operators
+only. `sortable` is empty for objects.
 
 ```json
 {
@@ -186,3 +326,7 @@ An `OR` whose branches share no index, or a `NOT` over tags, cannot be driven
 by an index and may scan every attribute the user can see when matches are
 rare. Anchoring such a tree with an `event_id`, `timestamp` or other selective
 condition in an enclosing `AND` keeps it bounded.
+
+On events and objects, each attribute, object or tag field is a subquery over
+the attributes (or objects) the user can see, so a leaf matching a large
+share of them, such as a common `category`, is the expensive part of a tree.
