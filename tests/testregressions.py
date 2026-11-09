@@ -1175,5 +1175,44 @@ class EventDelegationSharingGroupAcl(unittest.TestCase):
             self.admin.delete_event(event)
 
 
+class UserDeleteRemovesAuthKeys(unittest.TestCase):
+    """Deleting a user deletes its authentication keys.
+
+    A deleted user's rows stayed in auth_keys, so they became valid for whichever user was
+    later given the same id.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.org = make_org(cls.admin, 'regression user keys org')
+        cls.user = make_user(cls.admin, cls.org.id, cls.role_id)
+        cls.user_deleted = False
+
+    @classmethod
+    def tearDownClass(cls):
+        if not cls.user_deleted:
+            cls.admin.delete_user(cls.user)
+        for key_id in getattr(cls, 'key_ids', []):
+            cls.admin._prepare_request('POST', 'authKeys/delete/%s' % key_id)
+        cls.admin.delete_organisation(cls.org)
+
+    def _keys_of(self, user_id):
+        response = self.admin._prepare_request('GET', 'authKeys/index/user_id:%s' % user_id)
+        body = response.json()
+        return [int(k['AuthKey']['id']) for k in body if int(k['AuthKey']['user_id']) == int(user_id)]
+
+    def test_deleting_a_user_deletes_its_keys(self):
+        send(self.admin, 'POST', 'authKeys/add/%s' % self.user.id, data={'comment': 'regression'})
+        type(self).key_ids = self._keys_of(self.user.id)
+        self.assertEqual(2, len(self.key_ids), 'the user does not hold two keys, so the test proves nothing')
+        check_response(self.admin.delete_user(self.user))
+        type(self).user_deleted = True
+        self.assertEqual([], self._keys_of(self.user.id), 'the deleted user kept its keys')
+
+
 if __name__ == '__main__':
     unittest.main()

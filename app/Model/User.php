@@ -280,8 +280,9 @@ class User extends AppModel
 
         // bind AuthKey just when authkey table already exists. This is important for updating from old versions
         if (in_array('auth_keys', $this->getDataSource()->listSources(), true)) {
+            // dependent: a deleted user's keys would otherwise pass to a user given its id again
             $this->bindModel([
-                'hasMany' => ['AuthKey']
+                'hasMany' => ['AuthKey' => ['dependent' => true]]
             ], false);
         }
     }
