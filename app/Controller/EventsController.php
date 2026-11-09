@@ -6033,6 +6033,15 @@ class EventsController extends AppController
                 'yara-json' => __('YARA rules (JSON)'),
             ];
 
+            $this->loadModel('Module');
+            $modules = $this->Module->getEnabledModules($this->Auth->user(), 'export', 'Export');
+            foreach (is_array($modules) ? ($modules['modules'] ?? []) : [] as $module) {
+                $sources = $module['mispattributes']['inputSource'] ?? [];
+                if (is_array($sources) && in_array('event-collection', $sources, true)) {
+                    $exportFormats['module_' . $module['name']] = __('%s (module)', $module['meta']['name'] ?? $module['name']);
+                }
+            }
+
             $idList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
             if (empty($idList)) {
                 throw new NotFoundException(__('Invalid input.'));
@@ -6042,6 +6051,9 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
+            if (is_string($returnFormat) && strpos($returnFormat, 'module_') === 0) {
+                return $this->__exportSelectedEventsWithModule(substr($returnFormat, 7), $id);
+            }
             $returnFormat = !isset($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
             $idList = $id;
             if (!is_array($idList)) {
@@ -6079,6 +6091,42 @@ class EventsController extends AppController
                 ]);
             }
         }
+    }
+
+    private function __exportSelectedEventsWithModule($name, $selection)
+    {
+        $this->loadModel('Module');
+        $module = $this->Module->getEnabledModule($name, 'Export', $this->Auth->user());
+        $sources = is_array($module) ? ($module['mispattributes']['inputSource'] ?? []) : [];
+        if (!is_array($module) || !is_array($sources) || !in_array('event-collection', $sources, true)) {
+            throw new NotFoundException(__('Invalid collection export module.'));
+        }
+        if (is_string($selection) && !ctype_digit($selection) && !Validation::uuid($selection)) {
+            $selection = $this->_jsonDecode($selection);
+        }
+        if (!is_array($selection)) {
+            $selection = [$selection];
+        }
+        if (empty($selection) || array_keys($selection) !== range(0, count($selection) - 1)) {
+            throw new NotFoundException(__('Select at least one valid event.'));
+        }
+        foreach ($selection as $id) {
+            if ((!is_int($id) && !is_string($id)) ||
+                !(preg_match('/^[1-9][0-9]*$/D', (string)$id) || Validation::uuid((string)$id))) {
+                throw new NotFoundException(__('Invalid event selection.'));
+            }
+        }
+        $selection = array_values(array_unique($selection));
+        // Event::export fetches this exact set with the authenticated user's ACLs
+        // and rechecks module enablement/organisation restrictions.
+        $result = $this->Event->export($this->Auth->user(), $name, [
+            'eventid' => $selection,
+            'published' => [true, false],
+        ]);
+        $this->response->body(base64_decode($result['data']));
+        $this->response->type($result['response']);
+        $this->response->download('misp.events.' . $name . '.export.' . $result['extension']);
+        return $this->response;
     }
 
     public function xml($key, $eventid = false, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false)
