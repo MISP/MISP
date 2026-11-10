@@ -1919,6 +1919,37 @@ class MispAttribute extends AppModel
     }
 
     /**
+     * buildConditions() for the attributes of one event the user can already
+     * see: the event's owner org and site admins see all of them.
+     */
+    public function buildConditionsInEvent(array $user, $eventOrgId)
+    {
+        $objectConditions = $this->Object->buildConditionsInEvent($user, $eventOrgId);
+        if (empty($objectConditions)) {
+            return [];
+        }
+        $visibleObject = $this->subQueryGenerator($this->Object, [
+            'fields' => ['Object.id'],
+            'conditions' => ['Object.id = Attribute.object_id', $objectConditions],
+        ], 'Attribute.object_id');
+        return [
+            'AND' => [
+                ['OR' => [
+                    'Attribute.distribution' => [1, 2, 3, 5],
+                    'AND' => [
+                        'Attribute.distribution' => 4,
+                        'Attribute.sharing_group_id' => $this->SharingGroup->authorizedIds($user),
+                    ],
+                ]],
+                ['OR' => [
+                    'Attribute.object_id' => 0,
+                    $visibleObject[0],
+                ]],
+            ],
+        ];
+    }
+
+    /**
      * Unlike the other fetchers, this one foregoes any ACL checks.
      * the objective is simple: Fetch the given attribute with all related objects needed for the ZMQ output,
      * standardising on this function for fetching the attribute to be passed to Attribute->save()

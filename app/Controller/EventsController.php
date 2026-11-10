@@ -3729,11 +3729,12 @@ class EventsController extends AppController
 
         // Attribute breakdown by category
         $this->loadModel('MispAttribute');
+        $attributeAcl = $this->MispAttribute->buildConditionsInEvent($user, $event['Event']['org_id']);
         $attrRows = $this->MispAttribute->find('all', [
-            'conditions' => [
+            'conditions' => array_merge([
                 'Attribute.event_id' => $eventId,
                 'Attribute.deleted'  => 0,
-            ],
+            ], $attributeAcl),
             'fields'    => ['Attribute.category', 'COUNT(*) AS attr_count'],
             'group'     => ['Attribute.category'],
             'order'     => ['attr_count DESC'],
@@ -3750,10 +3751,10 @@ class EventsController extends AppController
         // Object breakdown by template name
         $this->loadModel('MispObject');
         $objRows = $this->MispObject->find('all', [
-            'conditions' => [
+            'conditions' => array_merge([
                 'Object.event_id' => $eventId,
                 'Object.deleted'  => 0,
-            ],
+            ], $this->MispObject->buildConditionsInEvent($user, $event['Event']['org_id'])),
             'fields'    => ['Object.name', 'COUNT(*) AS obj_count'],
             'group'     => ['Object.name'],
             'order'     => ['obj_count DESC'],
@@ -3769,11 +3770,11 @@ class EventsController extends AppController
 
         // Attachment count
         $attachmentCount = (int)$this->MispAttribute->find('count', [
-            'conditions' => [
+            'conditions' => array_merge([
                 'Attribute.event_id' => $eventId,
                 'Attribute.deleted'  => 0,
                 'Attribute.type'     => ['attachment', 'malware-sample'],
-            ],
+            ], $attributeAcl),
             'recursive' => -1,
         ]);
 
@@ -3874,11 +3875,9 @@ class EventsController extends AppController
     }
 
     /**
-     * Returns an event-level warninglist hit summary.
-     *
-     * Only checks whether the user can see the event —
-     * individual attribute ACL is intentionally skipped
-     * for performance (we only SELECT value/type fields).
+     * Returns an event-level warninglist hit summary over the
+     * attributes the user can see: a hit on a hidden attribute
+     * tells what kind of value it holds.
      *
      * Response format:
      * {
@@ -3894,7 +3893,7 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id']]
+            ['fields' => ['Event.id', 'Event.org_id']]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -3903,10 +3902,10 @@ class EventsController extends AppController
 
         $this->loadModel('Warninglist');
         $attributes = $this->Event->Attribute->find('all', [
-            'conditions' => [
+            'conditions' => array_merge([
                 'Attribute.event_id' => $eventId,
                 'Attribute.deleted' => 0,
-            ],
+            ], $this->Event->Attribute->buildConditionsInEvent($user, $event['Event']['org_id'])),
             'fields' => [
                 'Attribute.value',
                 'Attribute.type',

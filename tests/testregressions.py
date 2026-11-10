@@ -1978,5 +1978,168 @@ class ApiDescriptionDecayingModels(unittest.TestCase):
         self._check(self.admin, True)
 
 
+class EventSubviewStatsAcl(unittest.TestCase):
+    """The themed event sub-views count and warninglist-match only what the viewer can see.
+
+    viewEventStats and viewWarninglistHits checked access to the event, then aggregated every
+    attribute and object of it, so counts, categories, object names, attachments and warninglist
+    hits disclosed rows hidden by distribution, sharing group or a hidden parent object.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.sharing_group = None
+        cls.warninglists = []
+        try:
+            if not cls.admin.get_server_setting('MISP.enable_themes')['value']:
+                raise unittest.SkipTest('the event sub-views need MISP.enable_themes')
+            add_role = least_privileged_role(cls.admin, 'perm_add')
+            plain_role = least_privileged_role(cls.admin, 'perm_auth')
+            cls.owner_org = make_org(cls.admin, 'regression subview owner org')
+            cls.outsider_org = make_org(cls.admin, 'regression subview outsider org')
+            cls.created_orgs = [cls.owner_org, cls.outsider_org]
+            owner_user = make_user(cls.admin, cls.owner_org.id, add_role)
+            outsider_user = make_user(cls.admin, cls.outsider_org.id, plain_role)
+            cls.created_users = [owner_user, outsider_user]
+            cls.owner = PyMISP(url, owner_user.authkey)
+            cls.owner.global_pythonify = True
+            cls.outsider = PyMISP(url, outsider_user.authkey)
+            cls.outsider.global_pythonify = True
+            token = random()
+            group = send(cls.admin, 'POST', 'sharingGroups/add', data={
+                'name': 'regression subview %s' % token, 'releasability': 'x', 'roaming': False,
+                'SharingGroupOrg': [{'Organisation': {'uuid': o.uuid, 'name': o.name}, 'extend': False}
+                                    for o in cls.created_orgs]})
+            cls.sharing_group = int(group['SharingGroup']['id'])
+            cls.list_names = {}
+            cls.list_values = {}
+            for key_name in ('a', 'b'):
+                name = 'regression subview list %s %s' % (key_name, token)
+                value = '%s-%s.example.org' % (key_name, token)
+                made = send(cls.admin, 'POST', 'warninglists/add', data={
+                    'name': name, 'description': 'regression', 'version': 1, 'type': 'string',
+                    'category': 'false_positive', 'entries': value})
+                list_id = int((made.get('Warninglist') or made['data']['Warninglist'])['id'])
+                cls.warninglists.append(list_id)
+                send(cls.admin, 'POST', 'warninglists/toggleEnable',
+                     data={'id': list_id, 'enabled': 1})
+                cls.list_names[key_name] = name
+                cls.list_values[key_name] = value
+            cls._seed(token)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _seed(cls, token):
+        event = MISPEvent()
+        event.info = 'regression subview %s' % token
+        event.distribution = 1
+        event.add_attribute('domain', 'visible-%s.example.net' % token, category='Network activity',
+                            distribution=5)
+        event.add_attribute('domain', 'group-%s.example.net' % token, category='External analysis',
+                            distribution=4, sharing_group_id=cls.sharing_group)
+        event.add_attribute('domain', cls.list_values['a'], category='Payload delivery',
+                            distribution=0)
+        event.add_attribute('attachment', 'hidden-%s.txt' % token, category='Payload delivery',
+                            distribution=0, data='aGlkZGVu')
+        cls.event = check_response(cls.owner.add_event(event))
+        for distribution, value in ((5, 'obj-%s.example.net' % token), (0, cls.list_values['b'])):
+            obj = MISPObject('domain-ip')
+            obj.distribution = distribution
+            obj.add_attribute('domain', value=value, distribution=5)
+            check_response(cls.owner.add_object(cls.event.id, obj))
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+        if cls.sharing_group is not None:
+            send(cls.admin, 'POST', 'sharingGroups/delete/%d' % cls.sharing_group, check_errors=False)
+        for list_id in cls.warninglists:
+            send(cls.admin, 'POST', 'warninglists/delete/%d' % list_id, check_errors=False)
+
+    def _get(self, api, path):
+        response = api._prepare_request('GET', '%s/%s' % (path, self.event.id))
+        self.assertEqual(200, response.status_code, '%s: %s' % (path, response.text[:300]))
+        return response.json()
+
+    def _stats(self, api):
+        return self._get(api, 'events/viewEventStats')
+
+    def _hit_names(self, api):
+        names = []
+
+        def walk(node):
+            if isinstance(node, dict):
+                for child in node.values():
+                    walk(child)
+            elif isinstance(node, list):
+                for child in node:
+                    walk(child)
+            else:
+                names.append(str(node))
+
+        walk(self._get(api, 'events/viewWarninglistHits'))
+        return names
+
+    def _own_view(self, api):
+        """Attributes and objects as the viewer's own events/view returns them."""
+        event = self._get(api, 'events/view')['Event']
+        objects = event.get('Object', [])
+        attributes = event.get('Attribute', []) + [a for o in objects for a in o.get('Attribute', [])]
+        return attributes, objects
+
+    def _assert_all_rows(self, api, who):
+        stats = self._stats(api)
+        categories = stats['attributes']['by_category']
+        self.assertIn('Payload delivery', categories, 'stats for %s lack the hidden attribute category' % who)
+        self.assertEqual(1, stats['attachments'], 'stats for %s lack the hidden attachment' % who)
+        self.assertEqual(2, stats['objects']['total'], 'stats for %s lack the hidden object' % who)
+        self.assertEqual(2, sum(stats['objects']['by_name'].values()))
+        hits = self._hit_names(api)
+        for name in self.list_names.values():
+            self.assertIn(name, hits, 'warninglist hits for %s lack %s' % (who, name))
+
+    def test_outsider_stats_cover_visible_rows_only(self):
+        stats = self._stats(self.outsider)
+        attributes, objects = self._own_view(self.outsider)
+        expected = {}
+        for attribute in attributes:
+            expected[attribute['category']] = expected.get(attribute['category'], 0) + 1
+        names = {}
+        for obj in objects:
+            names[obj['name']] = names.get(obj['name'], 0) + 1
+        categories = stats['attributes']['by_category']
+        self.assertNotIn('Payload delivery', categories,
+                         'stats counted the hidden attribute and attachment')
+        self.assertIn('External analysis', categories,
+                      'stats dropped the sharing group attribute the viewer can see')
+        self.assertEqual(expected, categories, 'attribute categories differ from the viewer\'s own view')
+        self.assertEqual(len(attributes), stats['attributes']['total'],
+                         'attribute total counted rows the viewer cannot see')
+        self.assertEqual(len(objects), stats['objects']['total'],
+                         'object total counted a hidden object')
+        self.assertEqual(names, stats['objects']['by_name'],
+                         'object names counted a hidden object')
+        self.assertEqual(0, stats['attachments'], 'attachment count included a hidden attachment')
+
+    def test_outsider_warninglist_hits_skip_hidden_rows(self):
+        hits = self._hit_names(self.outsider)
+        self.assertNotIn(self.list_names['a'], hits, 'a hit on a hidden attribute was listed')
+        self.assertNotIn(self.list_names['b'], hits,
+                         'a hit on an attribute of a hidden object was listed')
+
+    def test_owner_sees_all_rows(self):
+        self._assert_all_rows(self.owner, 'the owner')
+
+    def test_site_admin_sees_all_rows(self):
+        self._assert_all_rows(self.admin, 'a site admin')
+
+
 if __name__ == '__main__':
     unittest.main()

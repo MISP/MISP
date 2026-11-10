@@ -588,6 +588,26 @@ class MispObject extends AppModel
         ];
     }
 
+    /**
+     * buildConditions() for the objects of one event the user can already see:
+     * the event's owner org and site admins see all of them.
+     */
+    public function buildConditionsInEvent(array $user, $eventOrgId)
+    {
+        if ($user['Role']['perm_site_admin'] || $eventOrgId == $user['org_id']) {
+            return [];
+        }
+        return [
+            'OR' => [
+                'Object.distribution' => [1, 2, 3, 5],
+                'AND' => [
+                    'Object.distribution' => 4,
+                    'Object.sharing_group_id' => $this->SharingGroup->authorizedIds($user),
+                ],
+            ],
+        ];
+    }
+
     public function fetchObjectSimple(array $user, $options = array())
     {
         $params = array(
