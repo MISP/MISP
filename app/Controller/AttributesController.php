@@ -4253,11 +4253,9 @@ class AttributesController extends AppController
                 }
                 $tag_id = $this->request->data['tag'];
             }
-            $attribute = $this->MispAttribute->find('first', [
-                'recursive' => -1,
+            $attribute = $this->MispAttribute->fetchAttributeSimple($this->Auth->user(), [
                 'conditions' => ['Attribute.id' => $id],
                 'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id', 'Attribute.type', 'Attribute.disable_correlation', 'Attribute.value', 'Event.orgc_id', 'Event.user_id'],
-                'contain' => ['Event'],
             ]);
             if (empty($attribute) || $attribute['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));

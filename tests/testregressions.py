@@ -1373,5 +1373,173 @@ class SightingsAnonymisedOrgFilter(unittest.TestCase):
         self.assertEqual(2, len(self._list(self.api['owner'], reporter.id)))
 
 
+class TagEndpointsHiddenTargets(unittest.TestCase):
+    """The tag endpoints load their target with the caller's visibility applied.
+
+    canModifyTag lets users of the host organisation set local tags on whatever they are given,
+    and addTag, removeTag and attributes/removeTag loaded the event or attribute unscoped. A
+    hidden event or attribute could be tagged or untagged by the host organisation, and
+    removeTag told any tagger whether a tag was on a hidden event. A target the caller cannot
+    see now answers like a missing one; local tagging of visible records still works.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.tag_ids = []
+        try:
+            setting = send(cls.admin, 'GET', 'servers/getSetting/MISP.host_org_id')
+            cls.host_org_id = int(setting.get('value') or 0)
+            tagger_role = least_privileged_role(cls.admin, 'perm_tagger', 'perm_add')
+            owner_role = least_privileged_role(cls.admin, 'perm_add')
+            owner_org = make_org(cls.admin, 'regression tag owner org')
+            other_org = make_org(cls.admin, 'regression tag other org')
+            cls.created_orgs = [owner_org, other_org]
+            owner_user = make_user(cls.admin, owner_org.id, owner_role)
+            other_user = make_user(cls.admin, other_org.id, tagger_role)
+            cls.created_users = [owner_user, other_user]
+            cls.other = PyMISP(url, other_user.authkey)
+            cls.other.global_pythonify = False
+            cls.host = None
+            if cls.host_org_id:
+                host_user = make_user(cls.admin, cls.host_org_id, tagger_role)
+                cls.created_users.append(host_user)
+                cls.host = PyMISP(url, host_user.authkey)
+                cls.host.global_pythonify = False
+            owner = PyMISP(url, owner_user.authkey)
+            owner.global_pythonify = False
+            token = random()
+            cls.tags = {}
+            for i in range(1, 5):
+                made = send(cls.admin, 'POST', 'tags/add', data={'name': 'regression-tag-%s-t%d' % (token, i)})
+                cls.tags[i] = int(made['Tag']['id'])
+                cls.tag_ids.append(cls.tags[i])
+
+            def make(label, distribution):
+                made = send(owner, 'POST', 'events/add', data={
+                    'info': 'regression tag %s %s' % (label, token), 'distribution': distribution,
+                    'Attribute': [{'type': 'ip-dst', 'value': '192.0.2.%d' % (int(random(), 16) % 250),
+                                   'distribution': 5}]})['Event']
+                cls.event_ids.append(int(made['id']))
+                cls.event_uuids.append(made['uuid'])
+                return int(made['id']), int(made['Attribute'][0]['id'])
+
+            cls.hidden, cls.hidden_attr = make('hidden', 0)
+            cls.visible, cls.visible_attr = make('visible', 3)
+            cls._tag('events', cls.hidden, 1, False)
+            cls._tag('events', cls.hidden, 2, True)
+            cls._tag('attributes', cls.hidden_attr, 2, True)
+            cls._tag('attributes', cls.visible_attr, 2, True)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _tag(cls, scope, target_id, tag, local):
+        send(cls.admin, 'POST', '%s/addTag/%d/%d/local:%d' % (scope, target_id, cls.tags[tag], int(local)))
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            send(cls.admin, 'POST', 'events/delete/%d' % event_id, check_errors=False)
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for tag_id in getattr(cls, 'tag_ids', []):
+            send(cls.admin, 'POST', 'tags/delete/%d' % tag_id, check_errors=False)
+        for user in getattr(cls, 'created_users', []):
+            cls.admin.delete_user(user)
+        for org in getattr(cls, 'created_orgs', []):
+            cls.admin.delete_organisation(org)
+
+    def _post(self, connector, path, data=None):
+        response = connector._prepare_request('POST', path, data=data if data is not None else {})
+        try:
+            body = response.json()
+        except ValueError:
+            body = response.text
+        return response.status_code, body
+
+    def _answer(self, connector, path, data=None):
+        status, body = self._post(connector, path, data)
+        if isinstance(body, dict):
+            body = {k: body.get(k) for k in ('saved', 'success', 'errors', 'message', 'name')}
+        return status, body
+
+    def _event_tags(self, event_id):
+        event = send(self.admin, 'GET', 'events/view/%d' % event_id)['Event']
+        return {int(t['id']) for t in event.get('Tag', [])}
+
+    def _attribute_tags(self, attribute_id):
+        attribute = send(self.admin, 'GET', 'attributes/view/%d' % attribute_id)['Attribute']
+        return {int(t['id']) for t in attribute.get('Tag', [])}
+
+    def _require_host(self):
+        if not self.host_org_id:
+            self.skipTest('MISP.host_org_id is not set')
+
+    def test_remove_tag_does_not_reveal_hidden_event_tags(self):
+        before = self._event_tags(self.hidden)
+        missing = self._answer(self.other, 'events/removeTag/2147483646/%d' % self.tags[1])
+        present = self._answer(self.other, 'events/removeTag/%d/%d' % (self.hidden, self.tags[1]))
+        absent = self._answer(self.other, 'events/removeTag/%d/%d' % (self.hidden, self.tags[3]))
+        self.assertEqual(present, absent, 'removeTag reveals whether a hidden event has the tag')
+        self.assertEqual(missing, present, 'a hidden event is told apart from a missing one')
+        self.assertEqual(before, self._event_tags(self.hidden))
+
+    def test_host_org_cannot_tag_hidden_event(self):
+        self._require_host()
+        local = self._answer(self.host, 'events/addTag/%d/%d/local:1' % (self.hidden, self.tags[3]))
+        missing = self._answer(self.host, 'events/addTag/2147483646/%d/local:1' % self.tags[1])
+        existing = self._answer(self.host, 'events/addTag/%d/%d/local:1' % (self.hidden, self.tags[1]))
+        bulk = self._answer(self.host, 'events/addTag/selected/local:1',
+                            data={'event_ids': json.dumps([self.hidden]), 'tag': self.tags[4]})
+        self.assertEqual(missing, local, 'the host organisation tagged a hidden event')
+        self.assertEqual(missing, existing, 'addTag on a hidden event is told apart from a missing event')
+        after = self._event_tags(self.hidden)
+        self.assertNotIn(self.tags[3], after, 'addTag attached a tag to a hidden event')
+        self.assertNotIn(self.tags[4], after, 'bulk addTag attached a tag to a hidden event: %s' % (bulk,))
+
+    def test_host_org_cannot_untag_hidden_event(self):
+        self._require_host()
+        self._answer(self.host, 'events/removeTag/%d/%d' % (self.hidden, self.tags[2]))
+        self.assertIn(self.tags[2], self._event_tags(self.hidden), 'removeTag removed a tag from a hidden event')
+
+    def test_host_org_cannot_untag_hidden_attribute(self):
+        self._require_host()
+        missing = self._answer(self.host, 'attributes/removeTag/2147483646/%d' % self.tags[2])
+        hidden = self._answer(self.host, 'attributes/removeTag/%d/%d' % (self.hidden_attr, self.tags[2]))
+        self.assertIn(self.tags[2], self._attribute_tags(self.hidden_attr),
+                      'attributes/removeTag removed a tag from a hidden attribute')
+        self.assertEqual(missing, hidden, 'a hidden attribute is told apart from a missing one')
+
+    def test_host_org_local_tags_on_visible_event(self):
+        self._require_host()
+        added = self._post(self.host, 'events/addTag/%d/%d/local:1' % (self.visible, self.tags[3]))
+        self.assertIn(self.tags[3], self._event_tags(self.visible), added)
+        bulk = self._post(self.host, 'events/addTag/selected/local:1',
+                          data={'event_ids': json.dumps([self.visible]), 'tag': self.tags[4]})
+        self.assertIn(self.tags[4], self._event_tags(self.visible), bulk)
+        removed = self._post(self.host, 'events/removeTag/%d/%d' % (self.visible, self.tags[3]))
+        self.assertNotIn(self.tags[3], self._event_tags(self.visible), removed)
+        removed = self._post(self.host, 'attributes/removeTag/%d/%d' % (self.visible_attr, self.tags[2]))
+        self.assertNotIn(self.tags[2], self._attribute_tags(self.visible_attr), removed)
+
+    def test_site_admin_tags_hidden_event(self):
+        send(self.admin, 'POST', 'events/removeTag/%d/%d' % (self.hidden, self.tags[3]), check_errors=False)
+        send(self.admin, 'POST', 'events/addTag/%d/%d' % (self.hidden, self.tags[3]))
+        self.assertIn(self.tags[3], self._event_tags(self.hidden))
+        send(self.admin, 'POST', 'events/removeTag/%d/%d' % (self.hidden, self.tags[3]))
+        self.assertNotIn(self.tags[3], self._event_tags(self.hidden))
+
+
 if __name__ == '__main__':
     unittest.main()
