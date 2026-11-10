@@ -717,7 +717,7 @@ class OrganisationsController extends AppController
             'conditions' => array('Organisation.id' => intval($id)),
             'recursive' => -1
         ));
-        if (empty($org)) {
+        if (empty($org) || !$this->Organisation->canSee($this->Auth->user(), $org['Organisation']['id'])) {
             throw new NotFoundException(__('Invalid organisation'));
         }
         $path = APP . 'files/img/orgs/';

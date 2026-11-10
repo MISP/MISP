@@ -940,8 +940,10 @@ class ObjectsController extends AppController
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
             throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
         }
+        $conditions = $this->MispObject->buildConditions($this->Auth->user());
+        $conditions['AND'][] = $this->__objectIdToConditions($id);
         $object = $this->MispObject->find('first', array(
-            'conditions' => $this->__objectIdToConditions($id),
+            'conditions' => $conditions,
             'contain' => 'Event',
             'recursive' => -1
         ));
@@ -1221,10 +1223,12 @@ class ObjectsController extends AppController
         if (!$this->userRole['perm_modify']) {
             throw new ForbiddenException(__('You don\'t have permissions to delete objects.'));
         }
+        $conditions = $this->MispObject->buildConditions($this->Auth->user());
+        $conditions['AND'][] = $this->__objectIdToConditions($id);
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
             'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id'),
-            'conditions' => $this->__objectIdToConditions($id),
+            'conditions' => $conditions,
             'contain' => array(
                 'Event'
             )

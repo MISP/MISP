@@ -1541,5 +1541,190 @@ class TagEndpointsHiddenTargets(unittest.TestCase):
         self.assertNotIn(self.tags[3], self._event_tags(self.hidden))
 
 
+class HiddenRecordsAnswerLikeMissing(unittest.TestCase):
+    """Endpoints that load a record by id answer for a hidden record exactly as for a missing one.
+
+    sharingGroups/edit, shadowAttributes/acceptSelected and discardSelected, objects/editField and
+    objects/delete, and organisations/getOrgLogo told a record the caller cannot see apart from
+    one that does not exist (a permission error instead of not found). A hidden record now gets
+    the missing-id answer; a visible record the caller may not change keeps its permission error.
+    """
+
+    MISSING = 2147483646
+    SETTING = 'Security.hide_organisation_index_from_users'
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.sharing_group_ids = []
+        cls.previous_hide = None
+        try:
+            cls.previous_hide = send(cls.admin, 'GET', 'servers/getSetting/%s' % cls.SETTING)['value']
+            full_role = least_privileged_role(cls.admin, 'perm_add', 'perm_modify', 'perm_sharing_group')
+            weak_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if (int(role['perm_add']) and not int(role['perm_sharing_group'])
+                        and not int(role['perm_site_admin']) and not int(role['perm_sync'])):
+                    weak_role = int(role['id'])
+                    break
+            if weak_role is None:
+                raise unittest.SkipTest('no non-admin role with perm_add and without perm_sharing_group')
+            cls.owner_org = make_org(cls.admin, 'regression hidden owner org')
+            cls.outsider_org = make_org(cls.admin, 'regression hidden outsider org')
+            cls.silent_org = make_org(cls.admin, 'regression hidden silent org')
+            cls.created_orgs = [cls.owner_org, cls.outsider_org, cls.silent_org]
+            users = [make_user(cls.admin, cls.owner_org.id, full_role),
+                     make_user(cls.admin, cls.outsider_org.id, full_role),
+                     make_user(cls.admin, cls.outsider_org.id, weak_role),
+                     make_user(cls.admin, cls.silent_org.id, full_role)]
+            cls.created_users = users
+            cls.owner, cls.outsider, cls.weak, silent = [PyMISP(url, u.authkey) for u in users]
+            token = random()
+            template = next((t['ObjectTemplate'] for t in send(cls.admin, 'GET', 'objectTemplates/index')
+                             if t['ObjectTemplate']['name'] == 'file'), None)
+            if template is None:
+                raise unittest.SkipTest('no file object template on this instance')
+
+            def make(label, distribution, object_distribution):
+                made = send(cls.owner, 'POST', 'events/add', data={
+                    'info': 'regression hidden %s %s' % (label, token), 'distribution': distribution,
+                    'Attribute': [{'type': 'ip-dst', 'value': '192.0.2.%d' % (int(random(), 16) % 250),
+                                   'distribution': 5}],
+                    'Object': [{'name': 'file', 'meta-category': 'file', 'template_uuid': template['uuid'],
+                                'template_version': template['version'], 'distribution': object_distribution,
+                                'Attribute': [{'type': 'filename', 'object_relation': 'filename',
+                                               'value': 'regression-%s.bin' % random(), 'distribution': 5}]}],
+                })['Event']
+                cls.event_ids.append(int(made['id']))
+                return send(cls.admin, 'GET', 'events/view/%s' % made['id'])['Event']
+
+            cls.hidden_event = make('hidden', 0, 5)
+            cls.visible_event = make('visible', 3, 5)
+            cls.hidden_object_event = make('hidden object', 3, 0)
+            cls.own_event = make('own', 3, 5)
+            cls.own_delete_event = make('own delete', 3, 5)
+            cls.visible_event_proposal = int(send(cls.outsider, 'POST', 'shadow_attributes/add/%s' % cls.visible_event['id'],
+                                                  data={'type': 'ip-dst', 'value': '198.51.100.%d' % (int(random(), 16) % 250)}
+                                                  )['ShadowAttribute']['id'])
+            made = send(silent, 'POST', 'events/add', data={
+                'info': 'regression hidden silent %s' % token, 'distribution': 0})['Event']
+            cls.event_ids.append(int(made['id']))
+            cls.private_group = cls._make_group('regression hidden private sg %s' % token, [])
+            cls.shared_group = cls._make_group('regression hidden shared sg %s' % token, [cls.outsider_org])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _make_group(cls, name, members):
+        made = send(cls.owner, 'POST', 'sharingGroups/add', data={
+            'name': name, 'uuid': str(uuidlib.uuid4()), 'releasability': 'regression', 'roaming': 0,
+            'SharingGroupOrg': [{'Organisation': {'uuid': org.uuid, 'name': org.name}, 'extend': extend}
+                                for org, extend in [(cls.owner_org, 1)] + [(o, 0) for o in members]]})
+        group_id = int(made['SharingGroup']['id'])
+        cls.sharing_group_ids.append(group_id)
+        return group_id
+
+    @classmethod
+    def tearDownClass(cls):
+        previous = getattr(cls, 'previous_hide', None)
+        if previous is not None:
+            send(cls.admin, 'POST', 'servers/serverSettingsEdit/%s' % cls.SETTING,
+                 data={'value': previous}, check_errors=False)
+        for group_id in getattr(cls, 'sharing_group_ids', []):
+            send(cls.admin, 'POST', 'sharingGroups/delete/%d' % group_id, check_errors=False)
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _answer(self, connector, method, path, data=None, ajax=False):
+        if ajax:  # the proposal bulk actions accept only ajax requests
+            response = requests.request(
+                method, '%s/%s' % (url, path), json=data, allow_redirects=False,
+                headers={'Authorization': connector.key, 'Accept': 'application/json',
+                         'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'})
+        else:
+            response = connector._prepare_request(method, path, data=data if data is not None else {})
+        try:
+            body = response.json()
+        except ValueError:
+            body = response.text
+        if isinstance(body, dict):
+            body = {k: body.get(k) for k in ('saved', 'success', 'errors', 'message', 'name')}
+        return response.status_code, body
+
+    def test_sharing_group_edit(self):
+        missing = self._answer(self.outsider, 'GET', 'sharingGroups/edit/%d' % self.MISSING)
+        hidden = self._answer(self.outsider, 'GET', 'sharingGroups/edit/%d' % self.private_group)
+        self.assertEqual(404, missing[0], missing)
+        self.assertEqual(missing, hidden, 'a hidden sharing group is told apart from a missing one')
+        visible = self._answer(self.outsider, 'GET', 'sharingGroups/edit/%d' % self.shared_group)
+        self.assertEqual(405, visible[0], 'a visible group the user cannot extend lost its answer')
+        own = self._answer(self.owner, 'GET', 'sharingGroups/edit/%d' % self.private_group)
+        self.assertEqual(200, own[0], own)
+
+    def _selected(self, action, field, connector, event_id, ids):
+        return self._answer(connector, 'POST', 'shadowAttributes/%s/%s' % (action, event_id),
+                            data={'ShadowAttribute': {field: json.dumps(ids)}}, ajax=True)
+
+    def test_proposal_bulk_actions(self):
+        for action, field in (('acceptSelected', 'ids_accept'), ('discardSelected', 'ids_discard')):
+            with self.subTest(action=action):
+                ids = [self.visible_event_proposal]
+                missing = self._selected(action, field, self.outsider, self.MISSING, ids)
+                self.assertIn('Invalid event.', str(missing[1]))
+                hidden = self._selected(action, field, self.outsider, self.hidden_event['id'], ids)
+                self.assertEqual(missing, hidden, 'a hidden event is told apart from a missing one')
+                visible = self._selected(action, field, self.outsider, self.visible_event['id'], ids)
+                self.assertIn("You don't have permission to do that.", str(visible[1]))
+
+    def test_proposal_bulk_actions_by_event_owner(self):
+        ids = [self.visible_event_proposal]
+        answer = self._selected('discardSelected', 'ids_discard', self.owner, self.visible_event['id'], ids)
+        self.assertEqual(True, answer[1]['saved'], answer)
+
+    def test_object_edit_field(self):
+        body = {'Object': {'comment': 'regression %s' % random()}}
+        hidden_ids = (self.hidden_event['Object'][0]['id'], self.hidden_object_event['Object'][0]['id'])
+        missing = self._answer(self.outsider, 'POST', 'objects/editField/%d' % self.MISSING, data=body)
+        self.assertIn('Invalid object', str(missing[1]))
+        for object_id in hidden_ids:
+            hidden = self._answer(self.outsider, 'POST', 'objects/editField/%s' % object_id, data=body)
+            self.assertEqual(missing, hidden, 'a hidden object is told apart from a missing one')
+        visible = self._answer(self.outsider, 'POST', 'objects/editField/%s' % self.visible_event['Object'][0]['id'],
+                               data=body)
+        self.assertIn('You do not have permission to do that.', str(visible[1]))
+        own = self._answer(self.owner, 'POST', 'objects/editField/%s' % self.own_event['Object'][0]['id'], data=body)
+        self.assertEqual(200, own[0], own)
+        self.assertTrue(own[1].get('saved') or own[1].get('success'), own)
+
+    def test_object_delete(self):
+        missing = self._answer(self.outsider, 'POST', 'objects/delete/%d' % self.MISSING)
+        self.assertEqual(404, missing[0], missing)
+        for event in (self.hidden_event, self.hidden_object_event):
+            hidden = self._answer(self.outsider, 'POST', 'objects/delete/%s' % event['Object'][0]['id'])
+            self.assertEqual(missing, hidden, 'a hidden object is told apart from a missing one')
+        visible = self._answer(self.outsider, 'POST', 'objects/delete/%s' % self.visible_event['Object'][0]['id'])
+        self.assertEqual(403, visible[0], visible)
+        own = self._answer(self.owner, 'POST', 'objects/delete/%s' % self.own_delete_event['Object'][0]['id'])
+        self.assertEqual(200, own[0], own)
+
+    def test_org_logo(self):
+        send(self.admin, 'POST', 'servers/serverSettingsEdit/%s' % self.SETTING, data={'value': True})
+        missing = self._answer(self.weak, 'GET', 'organisations/getOrgLogo/%d' % self.MISSING)
+        self.assertEqual(404, missing[0], missing)
+        self.assertIn('Invalid organisation', str(missing[1]))
+        hidden = self._answer(self.weak, 'GET', 'organisations/getOrgLogo/%s' % self.silent_org.id)
+        self.assertEqual(missing, hidden, 'a hidden organisation is told apart from a missing one')
+        own = self._answer(self.weak, 'GET', 'organisations/getOrgLogo/%s' % self.outsider_org.id)
+        self.assertIn('Organisation logo not found', str(own[1]))
+        privileged = self._answer(self.outsider, 'GET', 'organisations/getOrgLogo/%s' % self.silent_org.id)
+        self.assertIn('Organisation logo not found', str(privileged[1]))
+
+
 if __name__ == '__main__':
     unittest.main()

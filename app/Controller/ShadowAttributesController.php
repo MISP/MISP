@@ -981,17 +981,16 @@ class ShadowAttributesController extends AppController
         // check each of them and return a json object with the successful discards and the failed ones.
         $ids = json_decode($this->request->data['ShadowAttribute']['ids_discard']);
         if (!$this->_isSiteAdmin()) {
-            $event = $this->ShadowAttribute->Event->find('first', array(
-                    'conditions' => array('id' => $id),
-                    'recursive' => -1,
-                    'fields' => array('id', 'orgc_id', 'user_id')
-            ));
+            $event = $this->ShadowAttribute->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+                'fields' => ['Event.id', 'Event.orgc_id', 'Event.user_id'],
+            ]);
             if (!$event) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid event.')), 'status' => 200, 'type' => 'json'));
             }
             if (!$this->__canModifyEvent($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
+            $id = $event['Event']['id'];
         }
 
         // find all attributes from the ID list that also match the provided event ID.
@@ -1025,17 +1024,16 @@ class ShadowAttributesController extends AppController
         // check each of them and return a json object with the successful accepts and the failed ones.
         $ids = json_decode($this->request->data['ShadowAttribute']['ids_accept']);
         if (!$this->_isSiteAdmin()) {
-            $event = $this->ShadowAttribute->Event->find('first', array(
-                    'conditions' => array('id' => $id),
-                    'recursive' => -1,
-                    'fields' => array('id', 'orgc_id', 'user_id')
-            ));
+            $event = $this->ShadowAttribute->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+                'fields' => ['Event.id', 'Event.orgc_id', 'Event.user_id'],
+            ]);
             if (!$event) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid event.')), 'status' => 200, 'type' => 'json'));
             }
             if (!$this->__canModifyEvent($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
+            $id = $event['Event']['id'];
         }
 
         // find all attributes from the ID list that also match the provided event ID.
