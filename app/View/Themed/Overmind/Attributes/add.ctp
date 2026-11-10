@@ -52,47 +52,51 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="row g-3">
 
             <div class="col-md-6" data-tour="attribute-category">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Category') ?>
-                    <span class="badge bg-attribute"
-                          style="font-size:.55rem; opacity:.8; font-weight:700;">
-                        <?= __('REQUIRED') ?>
-                    </span>
-                </div>
-                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
-                    <?= $this->Form->select('category', $categories, array_filter([
-                        'id'    => 'AttributeCategory',
-                        'class' => 'form-select',
-                        'value' => $currentCat,
-                        'empty' => __('(choose one)'),
-                        'disabled' => $lockedByObject,
-                        'data-locked' => $lockedByObject ? '1' : null,
-                    ], function ($v) { return $v !== null && $v !== false; })) ?>
-                </span>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('Category'),
+                    'required' => true,
+                    'for' => 'AttributeCategory',
+                ]) ?>
+                <?= $this->element('genericElementsBS5/Forms/input_field', [
+                    'type' => 'select',
+                    'field' => 'category',
+                    'id' => 'AttributeCategory',
+                    'accent' => 'attribute',
+                    'icon' => 'fas fa-layer-group',
+                    'options' => $categories,
+                    'value' => $currentCat,
+                    'empty' => __('Choose a category'),
+                    'locked' => $lockedByObject,
+                    'lockedTitle' => $lockedMessage,
+                ]) ?>
                 <div id="notice_category" class="mt-2"
                      style="display:none;overflow:hidden;"></div>
             </div>
 
             <div class="col-md-6" data-tour="attribute-type">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Type') ?>
-                    <span class="badge bg-attribute"
-                          style="font-size:.55rem; opacity:.8; font-weight:700;">
-                        <?= __('REQUIRED') ?>
-                    </span>
-                </div>
-                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
-                    <?= $this->Form->select('type', $types, array_filter([
-                        'id'       => 'AttributeType',
-                        'class'    => 'form-select',
-                        'value'    => $currentType,
-                        'empty'    => __('(choose category first)'),
-                        'disabled' => $typeLocked,
-                        'data-locked' => $typeLocked ? '1' : null,
-                    ], function ($v) { return $v !== null && $v !== false; })) ?>
-                </span>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('Type'),
+                    'required' => true,
+                    'for' => 'AttributeType',
+                ]) ?>
+                <?= $this->element('genericElementsBS5/Forms/input_field', [
+                    'type' => 'select',
+                    'field' => 'type',
+                    'id' => 'AttributeType',
+                    'accent' => 'attribute',
+                    'icon' => 'fas fa-shapes',
+                    'options' => $types,
+                    'value' => $currentType,
+                    'empty' => __('Choose a category first'),
+                    'locked' => $typeLocked,
+                    'lockedTitle' => $lockedByObject ? $lockedMessage : null,
+                    'inputAttrs' => [
+                        'data-placeholder-first' => __('Choose a category first'),
+                        'data-placeholder-pick' => __('Choose a type'),
+                    ],
+                ]) ?>
                 <div id="notice_type" class="mt-2" style="display:none;"></div>
             </div>
 
@@ -101,25 +105,37 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
         <!-- ── VALUE ───────────────────────────────────────────── -->
         <div class="w-100" data-tour="attribute-value">
-            <div class="text-attribute fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Value') ?>
-                <span class="badge bg-attribute"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
-            <?= $this->Form->textarea('value', [
-                'id'          => 'AttributeValue',
-                'class'       => 'w-100 rounded-2 p-3',
-                'style'       => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical;'
-                    . ' outline:none; font-size:.9rem; min-height:88px;'
-                    . ' color:inherit; font-family:inherit;',
-                'rows'        => 4,
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'attribute',
+                'label' => __('Value'),
+                'required' => true,
+                'for' => 'AttributeValue',
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/input_field', [
+                'type' => 'textarea',
+                'field' => 'value',
+                'id' => 'AttributeValue',
+                'accent' => 'attribute',
+                'mono' => true,
+                'rows' => 3,
                 'placeholder' => __('Enter the indicator value, hash, IP, domain, or raw observable…')
                     . "\n\n"
                     . __('For batch import, enter one value per line.'),
+                /* initAttributeForm() fills both halves as the value, the type
+                 * and the batch switch change. */
+                'footHtml' => sprintf(
+                    '<span data-value-check></span><span data-value-count></span>'
+                        . '<script type="application/json" data-value-labels>%s</script>',
+                    json_encode([
+                        'checked' => __('Checked as'),
+                        'pick' => __('Pick a type to check the value'),
+                        'batch' => __('One value per line with Batch import'),
+                        'char' => __('1 character'),
+                        'chars' => __('%s characters'),
+                        'value' => __('1 value'),
+                        'values' => __('%s values'),
+                    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)
+                ),
             ]) ?>
         </div>
 
@@ -128,13 +144,16 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="w-100">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'attribute',
-                'label' => __('Contextual Comment'),
+                'label' => __('Comment'),
+                'for' => 'AttributeComment',
             ]) ?>
-            <?= $this->Form->text('comment', [
-                'id'          => 'AttributeComment',
-                'class'       => 'w-100 border-0 bg-transparent py-1',
-                'style'       => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
-                    . ' outline:none; font-size:.925rem;',
+            <?= $this->element('genericElementsBS5/Forms/input_field', [
+                'type' => 'textarea',
+                'field' => 'comment',
+                'id' => 'AttributeComment',
+                'accent' => 'attribute',
+                'icon' => 'fas fa-comment',
+                'rows' => 2,
                 'placeholder' => __('Add a contextual comment…'),
             ]) ?>
         </div>

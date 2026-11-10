@@ -3419,6 +3419,161 @@ tr.evt-extension-row td:first-child { position: relative; }
     font-size: .7rem;
 }
 
+/* `.ov-form-field` (Forms/input_field) is the date field's box for a text, a
+   textarea or a select: the same height, a glyph and a focus ring in the
+   modal's accent. A select is TomSelect's wrapper filling the box, with the
+   glyph and the chevron laid over it so the whole box opens the list. */
+.ov-form-field {
+    --ov-form-accent: var(--bs-primary);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: calc(2.35rem + 2px);
+    padding: .3rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ov-form-field:focus-within {
+    border-color: var(--ov-form-accent);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--ov-form-accent) 18%, transparent);
+}
+
+.ov-form-field.is-invalid-field {
+    border-color: var(--bs-danger);
+    box-shadow: none;
+}
+
+.ov-form-field.is-invalid-field:focus-within {
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--bs-danger) 15%, transparent);
+}
+
+.ov-form-field.is-locked {
+    background: var(--bs-tertiary-bg);
+}
+
+.ov-form-glyph {
+    flex: none;
+    width: 1rem;
+    text-align: center;
+    color: var(--ov-form-accent);
+    font-size: .85rem;
+}
+
+.ov-form-field .ov-form-bare {
+    flex: 1;
+    min-width: 0;
+}
+
+.ov-form-mono {
+    font-family: var(--bs-font-monospace);
+    font-size: .875rem;
+}
+
+.ov-form-field.is-area {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+}
+
+.ov-form-row {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    padding: .55rem .75rem;
+}
+
+.ov-form-row > .ov-form-glyph {
+    margin-top: .2rem;
+}
+
+.ov-form-row > textarea.ov-form-bare {
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.ov-form-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .3rem .75rem;
+    border-top: 1px solid var(--bs-border-color);
+    border-radius: 0 0 calc(var(--bs-border-radius) - 1px) calc(var(--bs-border-radius) - 1px);
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .72rem;
+}
+
+.ov-form-field.is-select {
+    padding: 0;
+}
+
+.ov-form-field.is-select > .ov-form-glyph,
+.ov-form-field.is-select > .ov-form-chev {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.ov-form-field.is-select > .ov-form-glyph {
+    left: .75rem;
+}
+
+.ov-form-chev {
+    right: .85rem;
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+}
+
+.ov-form-field > select.ov-form-select,
+.ov-form-field > .ts-wrapper.ov-form-select {
+    flex: 1;
+    min-width: 0;
+    align-self: stretch;
+}
+
+.ov-form-field > select.ov-form-select {
+    padding: .3rem 2rem .3rem .75rem;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--bs-body-color);
+    appearance: none;
+}
+
+.ov-form-field > .ts-wrapper.ov-form-select .ts-control {
+    height: 100%;
+    padding: .3rem 2rem .3rem .75rem;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: none;
+    font-size: .925rem;
+}
+
+/* TomSelect's theme writes a light-mode text colour of its own. */
+.ov-form-field > .ts-wrapper.ov-form-select .ts-control,
+.ov-form-field > .ts-wrapper.ov-form-select .ts-control input,
+.ov-form-field > .ts-wrapper.ov-form-select .ts-dropdown {
+    color: var(--bs-body-color);
+}
+
+.ov-form-field.has-glyph > select.ov-form-select,
+.ov-form-field.has-glyph > .ts-wrapper.ov-form-select .ts-control {
+    padding-left: 2.25rem;
+}
+
+.ov-form-field > .ts-wrapper.ov-form-select.disabled .ts-control {
+    background: transparent;
+}
+
 /* ═══════════════════════════════════════════════════════════
    DATE FIELD  (Elements/genericElementsBS5/Forms/date_field)
    The typed box and its calendar popover. --ov-date-accent is
