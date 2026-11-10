@@ -12,7 +12,9 @@ which protection regressed rather than only which assertion broke.
 """
 import os
 import sys
+import html
 import json
+import re
 import time
 import uuid as uuidlib
 from urllib.parse import quote
@@ -1724,6 +1726,157 @@ class HiddenRecordsAnswerLikeMissing(unittest.TestCase):
         self.assertIn('Organisation logo not found', str(own[1]))
         privileged = self._answer(self.outsider, 'GET', 'organisations/getOrgLogo/%s' % self.silent_org.id)
         self.assertIn('Organisation logo not found', str(privileged[1]))
+
+
+class DelegationRequestVisibility(unittest.TestCase):
+    """The event view shows a pending delegation request only to an organisation it involves.
+
+    __viewUI() and view2() looked the request up unrestricted for a viewer whose role lacked
+    perm_publish, so on the classic event view a third organisation's user saw "You have
+    requested that <org> take over this event." for a request between two other organisations.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.delegation_id = None
+        cls.requester = None
+        try:
+            if not cls.admin.get_server_setting('MISP.delegation')['value']:
+                raise unittest.SkipTest('MISP.delegation is disabled on this instance')
+            if not cls.admin.get_server_setting('MISP.enable_themes')['value']:
+                raise unittest.SkipTest('events/view2 needs MISP.enable_themes')
+            delegate_role = least_privileged_role(cls.admin, 'perm_add', 'perm_delegate')
+            publish_role = least_privileged_role(cls.admin, 'perm_publish')
+            plain_role = cls._role_without_publish()
+            org_a = make_org(cls.admin, 'regression delegation requester org')
+            cls.created_orgs.append(org_a)
+            org_b = make_org(cls.admin, 'regression delegation target org')
+            cls.created_orgs.append(org_b)
+            org_c = make_org(cls.admin, 'regression delegation third org')
+            cls.created_orgs.append(org_c)
+            cls.org_b = org_b
+            cls.org_c = org_c
+            cls.password = 'Rg%s-%sAa1!' % (random(), random())
+            cls.users = {}
+            for name, org, role in (('a', org_a, delegate_role), ('b', org_b, plain_role),
+                                    ('b_publish', org_b, publish_role), ('c_plain', org_c, plain_role),
+                                    ('c_publish', org_c, publish_role)):
+                user = make_user(cls.admin, org.id, role)
+                cls.created_users.append(user)
+                cls.users[name] = user
+                check_response(cls.admin.update_user(
+                    {'password': cls.password, 'confirm_password': cls.password,
+                     'change_pw': 0, 'termsaccepted': 1}, user.id))
+            cls.requester = PyMISP(url, cls.users['a'].authkey)
+            cls.requester.global_pythonify = True
+            event = make_event(cls.requester, 'regression delegation visibility')
+            cls.event = event
+            created = send(cls.requester, 'POST', 'eventDelegations/delegateEvent/%s' % event.id,
+                           data={'EventDelegation': {'org_id': org_b.id, 'distribution': 0,
+                                                     'message': 'regression delegation'}})
+            cls.delegation_id = created['EventDelegation']['id']
+            # distribution 1 so the third organisation can open the event
+            event.distribution = 1
+            check_response(cls.requester.update_event(event))
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.delegation_id is not None and cls.requester is not None:
+            cls.requester._prepare_request(
+                'POST', 'eventDelegations/deleteDelegation/%s' % cls.delegation_id)
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    @classmethod
+    def _role_without_publish(cls) -> int:
+        candidates = []
+        for entry in send(cls.admin, 'GET', 'roles'):
+            role = entry['Role'] if 'Role' in entry else entry
+            if (int(role.get('perm_site_admin', 0)) or int(role.get('perm_sync', 0))
+                    or int(role.get('perm_publish', 0))):
+                continue
+            weight = sum(1 for k, v in role.items() if k.startswith('perm_') and int(v or 0))
+            candidates.append((weight, int(role['id'])))
+        if not candidates:
+            raise unittest.SkipTest('no non-admin role without perm_publish on this instance')
+        return sorted(candidates)[0][1]
+
+    def _set_theme(self, user, theme):
+        """events/view2 renders only in the Overmind theme, which then also serves events/view
+        as a different page; the classic view needs the user's theme setting gone."""
+        listed = self.admin._prepare_request('GET', 'userSettings/index/user_id:%s' % user.id)
+        for entry in listed.json():
+            if int(entry['UserSetting']['user_id']) == int(user.id) \
+                    and entry['UserSetting']['setting'] == 'ui_theme':
+                self.admin._prepare_request('POST', 'userSettings/delete/%s' % entry['UserSetting']['id'])
+        if theme:
+            send(self.admin, 'POST', 'userSettings/setSetting/%s/ui_theme' % user.id,
+                 data={'value': theme})
+
+    def _page(self, user, page: str) -> str:
+        """The rendered HTML of a page as a user. An API key is redirected to the login page
+        for HTML views, so this signs in through the web form."""
+        self._set_theme(user, 'Overmind' if page == 'events/view2' else None)
+        session = requests.Session()
+        login = session.get(url + '/users/login', allow_redirects=False)
+        form = login.text[login.text.index('id="UserLoginForm"'):]
+        form = form[:form.index('</form>')]
+        fields = {}
+        for tag in re.findall(r'<input[^>]*>', form):
+            name = re.search(r'name="([^"]+)"', tag)
+            value = re.search(r'value="([^"]*)"', tag)
+            if name and value:
+                fields[name.group(1)] = html.unescape(value.group(1))
+        fields['data[User][email]'] = user.email
+        fields['data[User][password]'] = self.password
+        session.post(url + '/users/login', data=fields, allow_redirects=False)
+        response = session.get('%s/%s/%s' % (url, page, self.event.id), allow_redirects=False)
+        self.assertEqual(200, response.status_code,
+                         '%s did not render for %s: %s %s' % (
+                             page, user.email, response.status_code,
+                             response.headers.get('Location')))
+        self.assertIn(self.event.info, response.text,
+                      '%s did not show the event, so the absence of a message proves nothing' % page)
+        return response.text
+
+    ACTIONS = ('Accept Delegation Request', 'Discard Delegation Request')
+
+    def _assert_no_view_request(self, name: str):
+        text = self._page(self.users[name], 'events/view')
+        self.assertNotIn('take over this event', text, 'events/view showed the request to %s' % name)
+
+    def _assert_no_view2_request(self, name: str):
+        text = self._page(self.users[name], 'events/view2')
+        for label in self.ACTIONS:
+            self.assertNotIn(label, text, 'events/view2 offered %r to %s' % (label, name))
+
+    def test_third_org_without_publish_sees_no_request_on_view(self):
+        self._assert_no_view_request('c_plain')
+
+    def test_third_org_with_publish_sees_no_request(self):
+        self._assert_no_view_request('c_publish')
+        self._assert_no_view2_request('c_publish')
+
+    def test_target_org_sees_request(self):
+        text = self._page(self.users['b'], 'events/view')
+        self.assertIn('has requested that you take over this event', text)
+        text = self._page(self.users['b_publish'], 'events/view2')
+        self.assertIn('Accept Delegation Request', text)
+
+    def test_requester_org_sees_request(self):
+        text = self._page(self.users['a'], 'events/view')
+        self.assertIn('You have requested that %s take over this event' % html.escape(self.org_b.name),
+                      text)
+        text = self._page(self.users['a'], 'events/view2')
+        self.assertIn('Discard Delegation Request', text)
+        self.assertNotIn('Accept Delegation Request', text)
 
 
 if __name__ == '__main__':
