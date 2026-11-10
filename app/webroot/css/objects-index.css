@@ -196,9 +196,12 @@
 .oi-table > tbody > tr:has(> td .obj-select:checked) > td {
     background-color: var(--ix-sel);
 }
-.oi-table > tbody > tr.oi-deleted > td,
+/* A deleted object fades, its action menu (Restore, Delete permanently) does
+   not, as a deleted attribute's does not. */
+.oi-table > tbody > tr.oi-deleted > td:not(.oi-col-actions),
 .oi-table > tbody > tr.oi-deleted + tr.oi-detail > td,
-.oi-index .idx-card.oi-deleted {
+.oi-index .idx-card.oi-deleted > .oi-tile > :not(.oi-tile-head),
+.oi-index .idx-card.oi-deleted .oi-tile-head > :not(.oi-tile-actions) {
     opacity: .55;
 }
 .oi-refs-toggle {

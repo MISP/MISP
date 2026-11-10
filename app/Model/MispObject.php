@@ -2081,14 +2081,86 @@ class MispObject extends AppModel
                 'conditions' => array(
                     'ObjectReference.referenced_type' => 1,
                     'ObjectReference.referenced_id' => $id,
+                    'ObjectReference.deleted' => 0,
                 ),
                 'recursive' => -1
             ));
             foreach ($object_refs as $ref) {
                 $ref['ObjectReference']['deleted'] = 1;
+                // Stamped as the object is, so restoreObject() brings them back with it.
+                $ref['ObjectReference']['timestamp'] = $date->getTimestamp();
                 $this->ObjectReference->save($ref);
             }
         }
+        return true;
+    }
+
+    /**
+     * Undo a soft deletion: the object comes back with the attributes and the
+     * references to it that deleteObject() removed with it, all stamped with
+     * the object's own timestamp. What was deleted earlier on its own carries
+     * an older one and stays deleted.
+     *
+     * @param int $id
+     * @return bool
+     * @throws Exception
+     */
+    public function restoreObject($id)
+    {
+        $object = $this->find('first', [
+            'conditions' => ['Object.id' => $id, 'Object.deleted' => 1],
+            'recursive' => -1,
+        ]);
+        if (empty($object)) {
+            return false;
+        }
+        $deletedAt = (int)$object['Object']['timestamp'];
+        $now = time();
+        $object['Object']['deleted'] = 0;
+        $object['Object']['timestamp'] = $now;
+        if (!$this->save($object)) {
+            return false;
+        }
+
+        $attributes = $this->Attribute->find('all', [
+            'conditions' => [
+                'Attribute.object_id' => $id,
+                'Attribute.deleted' => 1,
+                'Attribute.timestamp >=' => $deletedAt,
+            ],
+            'recursive' => -1,
+        ]);
+        $restored = 0;
+        foreach ($attributes as $attribute) {
+            $attribute['Attribute']['deleted'] = 0;
+            $attribute['Attribute']['timestamp'] = $now;
+            if ($this->Attribute->save($attribute)) {
+                $restored++;
+            }
+        }
+        if ($restored > 0) {
+            $this->Event->updateAll(
+                ['Event.attribute_count' => 'Event.attribute_count + ' . $restored],
+                ['Event.id' => $object['Object']['event_id']]
+            );
+        }
+
+        $references = $this->ObjectReference->find('all', [
+            'conditions' => [
+                'ObjectReference.referenced_type' => 1,
+                'ObjectReference.referenced_id' => $id,
+                'ObjectReference.deleted' => 1,
+                'ObjectReference.timestamp >=' => $deletedAt,
+            ],
+            'recursive' => -1,
+        ]);
+        foreach ($references as $reference) {
+            $reference['ObjectReference']['deleted'] = 0;
+            $reference['ObjectReference']['timestamp'] = $now;
+            $this->ObjectReference->save($reference);
+        }
+
+        $this->Event->unpublishEvent($object['Object']['event_id']);
         return true;
     }
 

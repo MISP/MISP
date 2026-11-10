@@ -4,7 +4,8 @@
  * decides soft vs permanent from the object's own state (`/true` on an object
  * already soft-deleted), so the switch is only offered for a live one.
  *
- * Expected: $id (int), $hard (bool)
+ * Expected: $id (int), $hard (bool); $countedIds (int[], the live object the
+ * Objects tab counts)
  */
 $objectId = (int)($id ?? 0);
 $hard = !empty($hard);
@@ -25,6 +26,8 @@ echo $this->element('genericElementsBS5/Modals/confirmation_form', [
         'ids' => [$objectId],
         'inUrl' => true,
         'hard' => $hard,
+        'countTab' => 'objects',
+        'counted' => $countedIds ?? [],
     ]),
     'submitLabel' => $hard ? __('Delete permanently') : __('Delete'),
     'submitIcon' => 'trash',
