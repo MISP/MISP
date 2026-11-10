@@ -2141,5 +2141,137 @@ class EventSubviewStatsAcl(unittest.TestCase):
         self._assert_all_rows(self.admin, 'a site admin')
 
 
+class GalaxyClusterCaptureUpdateGate(unittest.TestCase):
+    """An import or push may replace an existing cluster only for its owner organisation, a site
+    admin, or a sync user that can see it, and a replacement never changes the cluster's owner.
+
+    captureCluster() replaced any locked cluster with a newer version for every galaxy editor
+    and wrote the importer's organisation as org_id and orgc_id.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.cluster_uuids = []
+        cls.galaxy_id = None
+        try:
+            editor_role = least_privileged_role(cls.admin, 'perm_galaxy_editor')
+            sync_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if (int(role['perm_sync']) and int(role['perm_galaxy_editor'])
+                        and not int(role['perm_site_admin'])):
+                    sync_role = int(role['id'])
+                    break
+            if sync_role is None:
+                raise unittest.SkipTest('no non-admin role with perm_sync and perm_galaxy_editor')
+            cls.owner_org = make_org(cls.admin, 'regression cluster owner org')
+            cls.other_org = make_org(cls.admin, 'regression cluster other org')
+            cls.sync_org = make_org(cls.admin, 'regression cluster sync org')
+            cls.created_orgs = [cls.owner_org, cls.other_org, cls.sync_org]
+            users = [make_user(cls.admin, cls.owner_org.id, editor_role),
+                     make_user(cls.admin, cls.other_org.id, editor_role),
+                     make_user(cls.admin, cls.sync_org.id, sync_role)]
+            cls.created_users = users
+            cls.owner, cls.other, cls.syncer = [PyMISP(url, u.authkey) for u in users]
+            cls.token = random()
+            cls.galaxy_type = 'regression-gate-%s' % cls.token
+            cls.galaxy = {'uuid': str(uuidlib.uuid4()), 'type': cls.galaxy_type,
+                          'name': 'regression gate %s' % cls.token, 'description': 'regression',
+                          'version': 1, 'namespace': 'regression'}
+            seed = cls._new_cluster(0, with_galaxy=True)
+            cls.galaxy_id = int(cls._stored(seed)['galaxy_id'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _new_cluster(cls, distribution, with_galaxy=False):
+        cluster_uuid = str(uuidlib.uuid4())
+        cls.cluster_uuids.append(cluster_uuid)
+        body = cls._body(cluster_uuid, 'original %s' % random(), 1, distribution)
+        if with_galaxy:
+            body['GalaxyCluster']['Galaxy'] = cls.galaxy
+        response = cls.owner._prepare_request('POST', 'galaxies/import', data=[body])
+        assert response.status_code == 200, 'seeding a cluster failed: %s' % response.text[:300]
+        return cluster_uuid
+
+    @classmethod
+    def _body(cls, cluster_uuid, value, version, distribution):
+        return {'GalaxyCluster': {'uuid': cluster_uuid, 'type': cls.galaxy_type, 'value': value,
+                                  'description': 'regression', 'version': version,
+                                  'distribution': distribution}}
+
+    @classmethod
+    def _stored(cls, cluster_uuid):
+        response = cls.admin._prepare_request('GET', 'galaxy_clusters/view/%s' % cluster_uuid)
+        if response.status_code != 200:
+            return None
+        return response.json()['GalaxyCluster']
+
+    @classmethod
+    def tearDownClass(cls):
+        for cluster_uuid in cls.cluster_uuids:
+            found = cls._stored(cluster_uuid)
+            if found:
+                cls.admin._prepare_request('POST', 'galaxy_clusters/delete/%s/1' % found['id'],
+                                           data={'hard': 1})
+            cls.admin._prepare_request('POST', 'galaxy_cluster_blocklists/delete/%s' % cluster_uuid)
+        if cls.galaxy_id is not None:
+            cls.admin._prepare_request('POST', 'galaxies/delete/%d' % cls.galaxy_id)
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _import(self, api, cluster_uuid, value, distribution=3):
+        body = self._body(cluster_uuid, value, 2, distribution)
+        return api._prepare_request('POST', 'galaxies/import', data=[body])
+
+    def _assert_unchanged(self, cluster_uuid, before, what):
+        after = self._stored(cluster_uuid)
+        for field in ('value', 'distribution', 'version', 'org_id', 'orgc_id'):
+            self.assertEqual(before[field], after[field],
+                             '%s changed %s of a cluster it may not update' % (what, field))
+
+    def _assert_updated(self, cluster_uuid, before, value, what):
+        after = self._stored(cluster_uuid)
+        self.assertEqual(value, after['value'], '%s: an allowed update was not applied' % what)
+        self.assertEqual(before['org_id'], after['org_id'], '%s changed the cluster org_id' % what)
+        self.assertEqual(before['orgc_id'], after['orgc_id'], '%s changed the cluster orgc_id' % what)
+
+    def _refused(self, api, distribution, what):
+        cluster_uuid = self._new_cluster(distribution)
+        before = self._stored(cluster_uuid)
+        self._import(api, cluster_uuid, 'hijacked %s' % random(), 3)
+        self._assert_unchanged(cluster_uuid, before, what)
+
+    def _accepted(self, api, distribution, what):
+        cluster_uuid = self._new_cluster(distribution)
+        before = self._stored(cluster_uuid)
+        value = 'updated %s' % random()
+        self._import(api, cluster_uuid, value)
+        self._assert_updated(cluster_uuid, before, value, what)
+
+    def test_other_org_cannot_replace_hidden_cluster(self):
+        self._refused(self.other, 0, 'an unrelated editor importing a newer version')
+
+    def test_other_org_cannot_replace_visible_cluster(self):
+        self._refused(self.other, 3, 'an unrelated editor importing a visible cluster')
+
+    def test_owner_can_update_own_cluster(self):
+        self._accepted(self.owner, 0, 'the owner re-importing')
+
+    def test_sync_user_updates_visible_cluster_without_taking_ownership(self):
+        self._accepted(self.syncer, 3, 'a sync user updating a visible cluster')
+
+    def test_sync_user_cannot_replace_hidden_cluster(self):
+        self._refused(self.syncer, 0, 'a sync user importing a cluster it cannot see')
+
+    def test_site_admin_updates_without_taking_ownership(self):
+        self._accepted(self.admin, 0, 'the site admin importing')
+
+
 if __name__ == '__main__':
     unittest.main()
