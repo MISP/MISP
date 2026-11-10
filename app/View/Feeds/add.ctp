@@ -59,6 +59,29 @@ echo $this->element('genericElements/Form/genericForm', [
                 'class' => 'form-control span6'
             ],
             [
+                'field' => 'Feed.settings.gathering.module',
+                'label' => __('Gathering module'),
+                'options' => $dropdownData['gatheringModules'],
+                'type' => 'dropdown',
+                'empty' => __('Select an enabled gathering module'),
+                'div' => ['id' => 'GatheringModuleDiv', 'style' => 'display:none', 'class' => 'optionalField'],
+                'class' => 'form-control span6'
+            ],
+            [
+                'field' => 'Feed.settings.gathering.parameters',
+                'label' => __('Gathering parameters (JSON object)'),
+                'type' => 'textarea',
+                'placeholder' => '{}',
+                'value' => isset($entity['Feed']['settings']['gathering']['parameters'])
+                    ? (is_array($entity['Feed']['settings']['gathering']['parameters'])
+                        ? json_encode((object)$entity['Feed']['settings']['gathering']['parameters'], JSON_PRETTY_PRINT)
+                        : $entity['Feed']['settings']['gathering']['parameters'])
+                    : '{}',
+                'div' => ['id' => 'GatheringParametersDiv', 'style' => 'display:none', 'class' => 'optionalField'],
+                'class' => 'form-control span6',
+                'rows' => 6
+            ],
+            [
                 'field' => 'url',
                 'label' => __('URL'),
                 'placeholder' => 'URL of the feed',

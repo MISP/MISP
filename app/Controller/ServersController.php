@@ -1495,7 +1495,7 @@ class ServersController extends AppController
 
             $redisInfo = $this->Server->redisInfo();
 
-            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
+            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Gathering', 'Cortex', 'AI');
             foreach ($moduleTypes as $type) {
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
@@ -1841,7 +1841,7 @@ class ServersController extends AppController
                     'advanced_attachments' => $advancedAttachments,
                 ));
             case 'modules':
-                $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
+                $moduleTypes = array('Enrichment', 'Import', 'Export', 'Gathering', 'Cortex', 'AI');
                 $moduleStatus = array();
                 foreach ($moduleTypes as $type) {
                     $moduleStatus[$type] = $this->Server->moduleDiagnostics($errors, $type);

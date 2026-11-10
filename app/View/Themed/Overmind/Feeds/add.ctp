@@ -43,6 +43,10 @@ $formatMeta = [
     ],
 ];
 $sourceMeta = [
+    'misp-modules' => [
+        'icon' => 'fas fa-download',
+        'hint' => __('A gathering module collects the selected source and prepares complete MISP events.'),
+    ],
     'network' => [
         'icon' => 'fas fa-globe',
         'hint' => __('Fetched over HTTP(S) from the URL below.'),
@@ -217,7 +221,23 @@ echo $this->Form->create('Feed', [
             <div class="d-flex align-items-start gap-1 mt-2 text-muted"
                  id="FeedSourceHint" style="font-size:.75rem;"></div>
 
-            <div class="mt-3">
+            <div class="mt-3 optionalField" id="GatheringModuleDiv" style="display:none">
+                <label class="form-label" for="FeedGatheringModule"><?= __('Gathering module') ?></label>
+                <?= $this->Form->select('Feed.settings.gathering.module', $dropdownData['gatheringModules'], [
+                    'id' => 'FeedGatheringModule', 'class' => 'form-select',
+                    'empty' => __('Select an enabled gathering module'),
+                ]) ?>
+            </div>
+            <div class="mt-3 optionalField" id="GatheringParametersDiv" style="display:none">
+                <label class="form-label" for="FeedGatheringParameters"><?= __('Gathering parameters (JSON object)') ?></label>
+                <?php $gatheringParameters = $reqFeed['settings']['gathering']['parameters'] ?? '{}'; ?>
+                <?= $this->Form->textarea('Feed.settings.gathering.parameters', [
+                    'id' => 'FeedGatheringParameters', 'class' => 'form-control font-monospace', 'rows' => 6,
+                    'value' => is_array($gatheringParameters) ? json_encode((object)$gatheringParameters, JSON_PRETTY_PRINT) : $gatheringParameters,
+                ]) ?>
+            </div>
+
+            <div class="mt-3" id="FeedUrlDiv">
                 <label class="form-label text-muted mb-1" for="FeedUrl"
                        style="font-size:.75rem;">
                     <span id="FeedUrlLabel"><?= __('URL') ?></span>
@@ -554,7 +574,7 @@ echo $this->Form->create('Feed', [
     /* ── Format / input source: show what applies, say what it means ── */
     var optional = ['OrgcDiv', 'TargetDiv', 'TargetEventDiv', 'settingsCsvValueDiv',
         'settingsCsvDelimiterDiv', 'settingsCommonExcluderegexDiv', 'PublishDiv',
-        'OverrideIdsDiv', 'DeltaMergeDiv', 'TargetSection'];
+        'OverrideIdsDiv', 'DeltaMergeDiv', 'TargetSection', 'GatheringModuleDiv', 'GatheringParametersDiv'];
 
     function refreshHint() {
         var hintEl = el('FeedSourceHint');
@@ -579,7 +599,20 @@ echo $this->Form->create('Feed', [
 
     function feedFormUpdate() {
         optional.forEach(hide);
+        var gathering = el('FeedInputSource').value === 'misp-modules';
         var fmt = el('FeedSourceFormat');
+        if (fmt) {
+            if (gathering) { fmt.value = 'misp'; }
+            fmt.disabled = gathering;
+        }
+        var cache = el('FeedCachingEnabled');
+        if (cache) {
+            if (gathering) { cache.checked = false; }
+            cache.disabled = gathering;
+        }
+        if (gathering) {
+            show('GatheringModuleDiv'); show('GatheringParametersDiv'); hide('FeedUrlDiv');
+        } else { show('FeedUrlDiv'); }
         var fmtVal = fmt ? fmt.value : '';
         if (fmtVal === 'freetext' || fmtVal === 'csv') {
             show('TargetSection');
@@ -592,7 +625,8 @@ echo $this->Form->create('Feed', [
 
         var src = el('FeedInputSource');
         var isLocal = src && src.value === 'local';
-        if (isLocal) { show('DeleteLocalFileDiv'); hide('HeadersDiv'); }
+        if (gathering) { hide('DeleteLocalFileDiv'); hide('HeadersDiv'); }
+        else if (isLocal) { show('DeleteLocalFileDiv'); hide('HeadersDiv'); }
         else { hide('DeleteLocalFileDiv'); show('HeadersDiv'); }
 
         /* The URL field is a path when the source is local — say so */
@@ -805,6 +839,10 @@ echo $this->Form->create('Feed', [
             var firstEmpty = null;
             required.forEach(function (entry) {
                 if (!entry.el) { return; }
+                if (entry.el.id === 'FeedUrl' && el('FeedInputSource').value === 'misp-modules') {
+                    fieldError(entry, false);
+                    return;
+                }
                 var empty = !entry.el.value.trim();
                 fieldError(entry, empty);
                 if (empty && !firstEmpty) { firstEmpty = entry.el; }

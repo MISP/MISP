@@ -3,6 +3,8 @@ App::uses('HttpSocketExtended', 'Tools');
 
 class CurlClient extends HttpSocketExtended
 {
+    /** @var resource|null Streamed download destination; ordinary requests are unchanged. */
+    private $downloadStream;
     /** @var resource */
     private $ch;
 
@@ -112,6 +114,20 @@ class CurlClient extends HttpSocketExtended
     public function get($uri = null, $query = [], $request = [])
     {
         return $this->internalRequest('GET', $uri, $query, $request);
+    }
+
+    /** Download without retaining the response body in PHP memory. */
+    public function download($uri, $destination, array $request = [])
+    {
+        $stream = fopen($destination, 'xb');
+        if ($stream === false) { throw new RuntimeException('Could not open download destination.'); }
+        $this->downloadStream = $stream;
+        try {
+            return $this->get($uri, [], $request);
+        } finally {
+            fclose($stream);
+            $this->downloadStream = null;
+        }
     }
 
     /**
@@ -314,6 +330,20 @@ class CurlClient extends HttpSocketExtended
             $options[CURLOPT_NOBODY] = true;
         }
 
+        if (is_resource($this->downloadStream)) {
+            $stream = $this->downloadStream;
+            $options[CURLOPT_RETURNTRANSFER] = false;
+            $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use ($stream) {
+                $offset = 0;
+                while ($offset < strlen($chunk)) {
+                    $written = fwrite($stream, substr($chunk, $offset));
+                    if (!$written) { return 0; }
+                    $offset += $written;
+                }
+                return $offset;
+            };
+        }
+
         if (!empty($request['header'])) {
             $headers = [];
             foreach ($request['header'] as $key => $value) {
@@ -366,6 +396,7 @@ class CurlClient extends HttpSocketExtended
         }
 
         $code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+        if (is_resource($this->downloadStream)) { $output = ''; }
 
         // Try to release pointer to local function to avoid circular reference and releasing memory
         // See https://github.com/php-mod/curl/issues/95

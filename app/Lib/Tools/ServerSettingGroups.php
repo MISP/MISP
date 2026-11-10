@@ -655,7 +655,7 @@ class ServerSettingGroups
      */
     private static $subGroupTabs = array(
         'Plugin' => array(
-            'Enrichment', 'Import', 'Export', 'Cortex', 'Action', 'Workflow',
+            'Enrichment', 'Import', 'Export', 'Cortex', 'Action', 'Gathering', 'Workflow',
             'ZeroMQ', 'Kafka', 'ElasticSearch', 'S3', 'RPZ', 'Sightings',
             'CustomAuth', 'Geolocation', 'CyCat', 'Benchmarking',
         ),
@@ -697,6 +697,12 @@ class ServerSettingGroups
             'description' => 'Modules a workflow can trigger to act on external systems',
             'icon' => 'bolt',
             'accent' => '#fd7e14',
+        ),
+        'Gathering' => array(
+            'title' => 'Gathering modules',
+            'description' => 'Modules collecting source data as standard MISP feeds',
+            'icon' => 'download',
+            'accent' => '#198754',
         ),
         'Workflow' => array(
             'title' => 'Workflows',
@@ -781,7 +787,7 @@ class ServerSettingGroups
      *
      * @var array
      */
-    private static $moduleFamilies = array('Enrichment', 'Import', 'Export', 'Action');
+    private static $moduleFamilies = array('Enrichment', 'Import', 'Export', 'Action', 'Gathering');
 
     /**
      * The settings the Overview lists as Essentials, with the label shown
