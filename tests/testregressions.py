@@ -1879,5 +1879,104 @@ class DelegationRequestVisibility(unittest.TestCase):
         self.assertNotIn('Accept Delegation Request', text)
 
 
+class ApiDescriptionDecayingModels(unittest.TestCase):
+    """api/getAllApis lists only the decaying models the caller may see.
+
+    The allowed values of the decayingModel parameter were built from every model on the
+    instance, so another organisation's private model (all_orgs 0) was disclosed by name and id.
+    A site admin sees all models; anyone else only their own organisation's and the shared ones.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.created_models = []
+        try:
+            decaying_role = least_privileged_role(cls.admin, 'perm_decaying')
+            plain_role = least_privileged_role(cls.admin, 'perm_auth')
+            cls.owner_org = make_org(cls.admin, 'regression api decaying owner org')
+            cls.outsider_org = make_org(cls.admin, 'regression api decaying outsider org')
+            cls.created_orgs = [cls.owner_org, cls.outsider_org]
+            owner_user = make_user(cls.admin, cls.owner_org.id, decaying_role)
+            outsider_user = make_user(cls.admin, cls.outsider_org.id, plain_role)
+            cls.created_users = [owner_user, outsider_user]
+            cls.owner = PyMISP(url, owner_user.authkey)
+            cls.outsider = PyMISP(url, outsider_user.authkey)
+            cls.private_name = 'regression private %s' % random()
+            cls.shared_name = 'regression shared %s' % random()
+            cls.private_id = cls._make_model(cls.private_name, 0)
+            cls.shared_id = cls._make_model(cls.shared_name, 1)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _make_model(cls, name, all_orgs):
+        made = send(cls.owner, 'POST', 'decayingModel/add', data={
+            'name': name, 'formula': 'polynomial', 'version': '1', 'all_orgs': all_orgs,
+            'parameters': {'threshold': 30, 'lifetime': 30, 'decay_speed': 0.5,
+                           'default_base_score': 0}})
+        model = made['data']['DecayingModel'] if 'data' in made else made['DecayingModel']
+        cls.created_models.append(model['id'])
+        return str(model['id'])
+
+    @classmethod
+    def tearDownClass(cls):
+        for model_id in cls.created_models:
+            send(cls.admin, 'POST', 'decayingModel/delete/%s' % model_id, check_errors=False)
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    @staticmethod
+    def _described(api):
+        """(id, label) pairs from every decayingModel field of the API description."""
+        found = []
+        entries = 0
+
+        def walk(node):
+            nonlocal entries
+            if isinstance(node, dict):
+                field = node.get('decayingModel')
+                if isinstance(field, dict) and isinstance(field.get('values'), list):
+                    entries += 1
+                    for value in field['values']:
+                        found.append((str(value['value']), value['label']))
+                for child in node.values():
+                    walk(child)
+            elif isinstance(node, list):
+                for child in node:
+                    walk(child)
+
+        walk(send(api, 'GET', 'api/getAllApis').get('fieldsConstraint', {}))
+        return entries, found
+
+    def _check(self, api, expect_private):
+        entries, found = self._described(api)
+        self.assertGreater(entries, 0, 'no decayingModel field in the API description')
+        ids = {i for i, _ in found}
+        labels = {label for _, label in found}
+        self.assertIn(self.shared_id, ids)
+        self.assertIn(self.shared_name, labels)
+        if expect_private:
+            self.assertIn(self.private_id, ids)
+            self.assertIn(self.private_name, labels)
+        else:
+            self.assertNotIn(self.private_id, ids, 'another organisation\'s private model id is listed')
+            self.assertNotIn(self.private_name, labels,
+                             'another organisation\'s private model name is listed')
+
+    def test_outsider_does_not_see_private_model(self):
+        self._check(self.outsider, False)
+
+    def test_owner_sees_both_models(self):
+        self._check(self.owner, True)
+
+    def test_site_admin_sees_both_models(self):
+        self._check(self.admin, True)
+
+
 if __name__ == '__main__':
     unittest.main()
