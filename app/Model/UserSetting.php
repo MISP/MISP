@@ -1,5 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('BetterSecurity', 'Tools');
+App::uses('JsonTool', 'Tools');
+App::uses('Module', 'Model');
 
 /**
  * @property User $User
@@ -29,6 +32,10 @@ class UserSetting extends AppModel
 
     // private
     const VALID_SETTINGS = array(
+        'module_api_keys' => [
+            'placeholder' => ['Enrichment' => ['virustotal' => ['apikey' => 'your-personal-key']]],
+            'validation' => 'validate_module_api_keys',
+        ],
         'publish_alert_filter' => array(
             'placeholder' => array(
                 'AND' => array(
@@ -153,6 +160,30 @@ class UserSetting extends AppModel
             'validation' => 'validate_json',
         ],
     );
+
+    public static function validate_module_api_keys($value, $user)
+    {
+        $value = is_string($value) ? json_decode($value, true) : $value;
+        if (!is_array($value)) {
+            return false;
+        }
+        foreach ($value as $family => $modules) {
+            if (!in_array($family, ['Enrichment', 'Import', 'Export'], true) || !is_array($modules)) {
+                return false;
+            }
+            foreach ($modules as $module => $credentials) {
+                if (!is_string($module) || !preg_match('/^[a-zA-Z0-9_-]+$/D', $module) || !is_array($credentials)) {
+                    return false;
+                }
+                foreach ($credentials as $name => $credential) {
+                    if (!Module::isPersonalCredential($name) || ($credential !== null && (!is_string($credential) || $credential === '*****'))) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 
     public static function validate_homepage($value, $user)
     {
@@ -301,12 +332,87 @@ class UserSetting extends AppModel
         return true;
     }
 
+    public function beforeSave($options = array())
+    {
+        if (($this->data['UserSetting']['setting'] ?? null) === 'module_api_keys' && isset($this->data['UserSetting']['value'])) {
+            $value = $this->data['UserSetting']['value'];
+            if (!self::validate_module_api_keys($value, [])) {
+                return false;
+            }
+            $value = is_string($value) ? $value : JsonTool::encode($value);
+            $this->data['UserSetting']['value'] = $this->encodeModuleApiKeys($value, Configure::read('Security.encryption_key'));
+        }
+        return true;
+    }
+
+    private function encodeModuleApiKeys($json, $key)
+    {
+        if (!$key) {
+            return $json;
+        }
+        // Keep the value column valid JSON and the binary ciphertext safe for its text encoding.
+        return JsonTool::encode(['_encrypted' => base64_encode(BetterSecurity::encrypt($json, $key))]);
+    }
+
+    private function decodeModuleApiKeys($json, $key)
+    {
+        $value = JsonTool::decode($json);
+        if (isset($value['_encrypted'])) {
+            $ciphertext = base64_decode($value['_encrypted'], true);
+            if ($ciphertext === false) {
+                throw new RuntimeException('Invalid encrypted module credentials.');
+            }
+            $value = JsonTool::decode(BetterSecurity::decrypt($ciphertext, $key));
+        }
+        return is_array($value) ? $value : [];
+    }
+
+    /** Credentials are decrypted only for execution, never by the generic settings endpoints. */
+    public function getModuleApiKeys($userId)
+    {
+        $row = $this->find('first', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['UserSetting.value'],
+            'conditions' => ['UserSetting.user_id' => $userId, 'UserSetting.setting' => 'module_api_keys'],
+        ]);
+        return $row ? $this->decodeModuleApiKeys($row['UserSetting']['value'], Configure::read('Security.encryption_key')) : [];
+    }
+
+    /** Participate in the same encryption-key rotation as instance credentials. */
+    public function reencryptModuleApiKeys($old, $new)
+    {
+        $rows = $this->find('all', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['UserSetting.id', 'UserSetting.value'],
+            'conditions' => ['UserSetting.setting' => 'module_api_keys'],
+        ]);
+        foreach ($rows as $row) {
+            $json = JsonTool::encode($this->decodeModuleApiKeys($row['UserSetting']['value'], $old));
+            $value = $this->encodeModuleApiKeys($json, $new);
+            if (!$this->updateAll(['UserSetting.value' => $this->getDataSource()->value($value, 'text')], ['UserSetting.id' => $row['UserSetting']['id']])) {
+                throw new RuntimeException('Could not rotate personal module credentials.');
+            }
+        }
+    }
+
     // Once we run a find, let us decode the JSON field so we can interact with the contents as if it was an array
     public function afterFind($results, $primary = false)
     {
+        // Cake also passes unwrapped rows when loading UserSetting as an association.
+        if (($results['setting'] ?? null) === 'module_api_keys' && array_key_exists('value', $results)) {
+            $results['value'] = '*****';
+            return $results;
+        }
         foreach ($results as $k => $v) {
+            if (is_array($v) && ($v['setting'] ?? null) === 'module_api_keys' && array_key_exists('value', $v)) {
+                $results[$k]['value'] = '*****';
+                continue;
+            }
             if (isset($v['UserSetting']['value'])) {
-                $results[$k]['UserSetting']['value'] = json_decode($v['UserSetting']['value'], true);
+                $results[$k]['UserSetting']['value'] = ($v['UserSetting']['setting'] ?? null) === 'module_api_keys'
+                    ? '*****' : json_decode($v['UserSetting']['value'], true);
             }
         }
         return $results;
@@ -360,6 +466,7 @@ class UserSetting extends AppModel
     public function settingDescriptions()
     {
         return [
+            'module_api_keys' => __('Personal credentials for enabled Enrichment, Import and Export modules. Use a JSON object keyed by family, module and credential name. Saving replaces all your module credentials; an omitted, null or empty credential uses the instance default. Values are hidden after saving.'),
             'publish_alert_filter' => __('Filters which published events send you an email alert. Matched against the event, its tags and its organisations.'),
             'dashboard_access' => __('Legacy flag that granted access to the dashboard. Kept for compatibility, it no longer gates anything.'),
             'dashboard' => __('Layout of your legacy dashboard: the widgets shown, their configuration and their position on the grid.'),
@@ -451,6 +558,10 @@ class UserSetting extends AppModel
          if (is_numeric($user)) {
              $user = $this->User->getAuthUser($user);
          }
+         if (($setting['UserSetting']['setting'] ?? null) === 'module_api_keys') {
+             return $user['id'] == $setting['UserSetting']['user_id'] &&
+                 (empty(Configure::read('MISP.disableUserSelfManagement')) || !empty($user['Role']['perm_admin']));
+         }
          if ($this->isInternal($setting['UserSetting']['setting']) && !$user['Role']['perm_site_admin']) {
              return false;
          }
@@ -534,7 +645,7 @@ class UserSetting extends AppModel
      {
          $output = $this->find('first', array(
              'recursive' => -1,
-             'fields' => ['value'],
+             'fields' => ['setting', 'value'],
              'conditions' => array(
                  'UserSetting.user_id' => $userId,
                  'UserSetting.setting' => $setting,
@@ -713,6 +824,9 @@ class UserSetting extends AppModel
         }
         if (empty($data['UserSetting']['setting'])) {
             throw new MethodNotAllowedException(__('This endpoint expects both a setting and a value to be set.'));
+        }
+        if ($data['UserSetting']['setting'] === 'module_api_keys' && $userSetting['user_id'] != $user['id']) {
+            throw new MethodNotAllowedException(__('Personal module credentials can only be changed by their owner.'));
         }
         if (!$this->checkSettingValidity($data['UserSetting']['setting'])) {
             throw new MethodNotAllowedException(__('Invalid setting.'));
