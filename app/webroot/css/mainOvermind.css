@@ -4044,6 +4044,27 @@ tr.evt-extension-row td:first-child {
 
 .ov-md-invalid .ov-md-el-id { color: var(--bs-link-color); }
 
+/* Manual extraction (js/overmind-report-extraction.js): an occurrence the
+   picked row would replace; a dashed one is left out of the save. */
+.ov-md-suggestion {
+    border-color: rgb(var(--bs-report-rgb));
+}
+.ov-md-suggestion > .ov-md-el-k {
+    background: rgba(var(--bs-report-rgb), .15);
+    border-right-color: rgb(var(--bs-report-rgb));
+}
+.ov-md-suggestion .form-check-input {
+    vertical-align: -.1em;
+    pointer-events: none;
+}
+.ov-md-suggestion.is-off {
+    border-style: dashed;
+    opacity: .55;
+}
+.ov-md-suggestion.is-current {
+    box-shadow: 0 0 0 .2rem rgba(var(--bs-report-rgb), .35);
+}
+
 .ov-md-tag {
     display: inline-block;
     margin: 0 .15rem;
