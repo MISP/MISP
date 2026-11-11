@@ -310,7 +310,7 @@ class EventsController extends AppController
         $tags = $this->Event->EventTag->Tag->find('all', array(
             'conditions' => $subconditions,
             'fields' => array('id'),
-            'contain' => array('EventTag' => ['fields' => 'event_id'], 'AttributeTag' => ['fields' => 'event_id']),
+            'contain' => array('EventTag' => ['fields' => 'event_id']),
         ));
         foreach ($tags as $tag) {
             foreach ($tag['EventTag'] as $eventTag) {
@@ -318,9 +318,15 @@ class EventsController extends AppController
                     $result[] = $eventTag['event_id'];
                 }
             }
-            foreach ($tag['AttributeTag'] as $attributeTag) {
-                if (!in_array($attributeTag['event_id'], $result)) {
-                    $result[] = $attributeTag['event_id'];
+        }
+        if (!empty($tags)) {
+            $attributeTagged = $this->Event->visibleAttributeTagEventIds(
+                $this->Auth->user(),
+                Hash::extract($tags, '{n}.Tag.id')
+            );
+            foreach ($attributeTagged as $eventId) {
+                if (!in_array($eventId, $result)) {
+                    $result[] = $eventId;
                 }
             }
         }
@@ -642,7 +648,6 @@ class EventsController extends AppController
                         }
                     }
 
-                    $AttributeTag = ClassRegistry::init('AttributeTag');
                     if (!empty($tagRules['block'])) {
                         $block = $this->Event->EventTag->find('column', array(
                             'conditions' => array('EventTag.tag_id' => $tagRules['block']),
@@ -666,10 +671,9 @@ class EventsController extends AppController
                                 'conditions' => array('EventTag.tag_id' => $tagRules['include']),
                                 'fields' => ['EventTag.event_id'],
                             ));
-                            $includeAttr = $AttributeTag->find('column', array(
-                                'conditions' => array('AttributeTag.tag_id' => $tagRules['include']),
-                                'fields' => ['AttributeTag.event_id'],
-                            ));
+                            $includeAttr = $this->Event->visibleAttributeTagEventIds(
+                                $this->Auth->user(), $tagRules['include']
+                            );
                             $include = array_unique(array_merge($include, $includeAttr));
                         }
                         if (!empty($include)) {
@@ -901,8 +905,8 @@ class EventsController extends AppController
     }
 
     /**
-     * IDs of the events carrying, on the event or on one of its attributes,
-     * a cluster of one of the named galaxies.
+     * IDs of the events carrying, on the event or on one of its attributes
+     * the user can see, a cluster of one of the named galaxies.
      *
      * @param array $galaxyNames
      * @return array
@@ -934,10 +938,7 @@ class EventsController extends AppController
             'conditions' => ['EventTag.tag_id' => $tagIds],
             'fields' => ['EventTag.event_id'],
         ]);
-        $attributeEventIds = ClassRegistry::init('AttributeTag')->find('column', [
-            'conditions' => ['AttributeTag.tag_id' => $tagIds],
-            'fields' => ['AttributeTag.event_id'],
-        ]);
+        $attributeEventIds = $this->Event->visibleAttributeTagEventIds($this->Auth->user(), $tagIds);
         return array_values(array_unique(array_merge($eventIds, $attributeEventIds)));
     }
 
@@ -2048,7 +2049,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.delegation')) {
             $this->loadModel('EventDelegation');
             $delegationConditions = array('EventDelegation.event_id' => $event['Event']['id']);
-            if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) {
+            if (empty($user['Role']['perm_site_admin'])) {
                 $delegationConditions['OR'] = array('EventDelegation.org_id' => $user['org_id'],
                                                     'EventDelegation.requester_org_id' => $user['org_id']);
             }
@@ -2635,7 +2636,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.delegation')) {
             $this->loadModel('EventDelegation');
             $delegationConditions = ['EventDelegation.event_id' => $event['Event']['id']];
-            if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) {
+            if (empty($user['Role']['perm_site_admin'])) {
                 $delegationConditions['OR'] = [
                     'EventDelegation.org_id' => $user['org_id'],
                     'EventDelegation.requester_org_id' => $user['org_id'],
@@ -4829,11 +4830,9 @@ class EventsController extends AppController
     }
 
     /**
-     * Returns an event-level warninglist hit summary.
-     *
-     * Only checks whether the user can see the event —
-     * individual attribute ACL is intentionally skipped
-     * for performance (we only SELECT value/type fields).
+     * Returns an event-level warninglist hit summary over the
+     * attributes the user can see: a hit on a hidden attribute
+     * tells what kind of value it holds.
      *
      * Response format:
      * {
@@ -4849,7 +4848,7 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id']]
+            ['fields' => ['Event.id', 'Event.org_id']]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -4858,10 +4857,10 @@ class EventsController extends AppController
 
         $this->loadModel('Warninglist');
         $attributes = $this->Event->Attribute->find('all', [
-            'conditions' => [
+            'conditions' => array_merge([
                 'Attribute.event_id' => $eventId,
                 'Attribute.deleted' => 0,
-            ],
+            ], $this->Event->Attribute->buildConditionsInEvent($user, $event['Event']['org_id'])),
             'fields' => [
                 'Attribute.value',
                 'Attribute.type',
@@ -6030,6 +6029,7 @@ class EventsController extends AppController
                 $this->redirect(array('controller' => 'events', 'action' => 'index'));
             }
         }
+        $this->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $event);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (isset($this->request->data['Event'])) {
                 $regenerateUUIDs = $this->request->data['Event']['regenerate_uuids'] ?? false;
@@ -7022,17 +7022,7 @@ class EventsController extends AppController
         $isBulk = $id === 'selected';
         $event = false;
         if (!$isBulk) {
-            $conditions = ['Event.id' => $id];
-            if (Validation::uuid($id)) {
-                $conditions = ['Event.uuid' => $id];
-            }
-            $event = $this->Event->find(
-                'first',
-                [
-                    'recursive' => -1,
-                    'conditions' => $conditions
-                ]
-            );
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
             if (empty($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
             }
@@ -7151,10 +7141,7 @@ class EventsController extends AppController
                 if ($isBulk) {
                     $event = false;
                     if (is_numeric($eventId)) {
-                        $event = $this->Event->find('first', [
-                            'recursive' => -1,
-                            'conditions' => ['Event.id' => $eventId],
-                        ]);
+                        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
                     }
                     if (empty($event)) {
                         $failed += count($tag_id_list);
@@ -7366,8 +7353,10 @@ class EventsController extends AppController
             if (!is_numeric($id)) {
                 $id = $this->request->data['Event']['id'];
             }
-            $this->Event->recursive = -1;
-            $event = $this->Event->read(array(), $id);
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+            if (empty($event)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
+            }
             $eventTag = $this->Event->EventTag->find('first', array(
                 'conditions' => array(
                     'event_id' => $id,
@@ -7641,51 +7630,20 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $event = $this->Event->find('first', array(
-                    'conditions' => array('Event.uuid' => $uuid),
-                    'contains' => array('ShadowAttribute', 'Attribute' => array(
-                        'fields' => array('id', 'uuid', 'event_id'),
-                    )),
-                    'fields' => array('Event.uuid', 'Event.id'),
-            ));
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $uuid, [
+                'fields' => ['Event.id', 'Event.uuid', 'Event.org_id'],
+            ]);
             if (empty($event)) {
                 $message = "Event not found.";
                 $success = false;
             } else {
-                foreach ($this->request->data as $k => $sa) {
-                    if (isset($event['ShadowAttribute'])) {
-                        foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
-                            if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
-                                if ($oldsa['timestamp'] < $sa['timestamp']) {
-                                    $this->Event->ShadowAttribute->delete($oldsa['id']);
-                                } else {
-                                    continue 2;
-                                }
-                            }
-                        }
-                    }
-                    $sa['event_id'] = $event['Event']['id'];
-                    if ($sa['old_id'] != 0) {
-                        foreach ($event['Attribute'] as $attribute) {
-                            if ($sa['uuid'] == $attribute['uuid']) {
-                                $sa['old_id'] = $attribute['id'];
-                            }
-                        }
-                    }
-                    if (isset($sa['id'])) {
-                        unset($sa['id']);
-                    }
-                    $sa['org_id'] = $this->Event->Orgc->captureOrg($sa['Org'], $this->Auth->user());
-                    unset($sa['Org']);
-                    $this->Event->ShadowAttribute->create();
-                    if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
+                foreach ($this->request->data as $sa) {
+                    $result = $this->Event->ShadowAttribute->capture($sa, $this->Auth->user(), $event);
+                    if ($result) {
+                        $counter++;
+                    } else if ($result === false) {
                         $message = "Some of the proposals could not be saved.";
                         $success = false;
-                    } else {
-                        $counter++;
-                    }
-                    if (!$sa['deleted']) {
-                        $this->Event->ShadowAttribute->sendProposalAlertEmail($event['Event']['id']);
                     }
                 }
             }
@@ -8002,11 +7960,12 @@ class EventsController extends AppController
             $event = $this->Event->find('first', array(
                 'recursive' => -1,
                 'conditions' => $conditions,
-                'fields' => array('id'),
+                'fields' => array('id', 'protected'),
             ));
             if (empty($event)) {
                 throw new NotFoundException(__('Event not found.'));
             }
+            $this->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $event);
             $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
             $this->Event->id = $data['settings']['event_id'];
             $date = new DateTime();
@@ -10040,6 +9999,7 @@ class EventsController extends AppController
             if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
                 throw new NotFoundException(__('Invalid event.'));
             }
+            $this->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $event);
             $eventId = $event['Event']['id'];
 
             $fileName = $this->request['data']['SelectedData']['mactime_file_name'];

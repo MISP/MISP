@@ -198,7 +198,7 @@ class SharingGroupsController extends AppController
                 ),
             ),
         ));
-        if (empty($sharingGroup)) {
+        if (empty($sharingGroup) || !$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $sharingGroup['SharingGroup']['id'])) {
             throw new NotFoundException('Invalid sharing group.');
         }
 

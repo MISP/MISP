@@ -1308,6 +1308,9 @@ class ACLComponent extends Component
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -1315,6 +1318,17 @@ class ACLComponent extends Component
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @return bool
+     * @see Event::isProtectedFromSyncUser()
+     */
+    private function isProtectedFromSyncUser(array $user, array $event)
+    {
+        return ClassRegistry::init('Event')->isProtectedFromSyncUser($user, $event);
     }
 
     /**
@@ -1332,6 +1346,9 @@ class ACLComponent extends Component
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -1340,6 +1357,8 @@ class ACLComponent extends Component
 
     /**
      * Returns true if user can add or remove tags for given event.
+     * The host org may set local tags on whatever is passed here: load the
+     * event or attribute with the user's visibility applied first.
      *
      * @param array $user
      * @param array $event
@@ -1362,7 +1381,11 @@ class ACLComponent extends Component
         if ($this->canModifyEvent($user, $event)) {
             return true; // full access
         }
-        if ($isTagLocal && $this->hostOrgId === (int)$user['org_id']) {
+        if (
+            $isTagLocal &&
+            $this->hostOrgId === (int)$user['org_id'] &&
+            !$this->isProtectedFromSyncUser($user, $event)
+        ) {
             return true;
         }
         return false;

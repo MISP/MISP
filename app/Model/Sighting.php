@@ -1042,6 +1042,9 @@ class Sighting extends AppModel
             'Sighting.' . $context . '_id' => $objectIds
         );
         if ($orgId) {
+            if (!$this->orgFilterAllowed($user, $orgId)) {
+                return [];
+            }
             $conditions[] = array('Sighting.org_id' => $orgId);
         }
         if ($sightingsType !== false) {
@@ -1101,6 +1104,21 @@ class Sighting extends AppModel
             }
         }
         return $sightings;
+    }
+
+    /**
+     * With anonymised sightings, a filter on another organisation would name
+     * the reporter of what it returns.
+     *
+     * @param array $user
+     * @param int|string|null $orgId
+     * @return bool
+     */
+    private function orgFilterAllowed(array $user, $orgId)
+    {
+        return !Configure::read('Plugin.Sightings_anonymise') ||
+            !empty($user['Role']['perm_site_admin']) ||
+            $orgId == $user['org_id'];
     }
 
      /**
@@ -1193,6 +1211,12 @@ class Sighting extends AppModel
                     if (!empty($org)) {
                         $temp = $org['Organisation']['id'];
                     }
+                }
+                if (!$this->orgFilterAllowed($user, $temp ?? null)) {
+                    if ($negation) {
+                        continue;
+                    }
+                    $temp = -1;
                 }
                 if ($negation) {
                     $conditions['Sighting.org_id NOT IN'][] = $temp;

@@ -425,6 +425,10 @@ class Galaxy extends AppModel
             return false;
         }
 
+        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_galaxy_editor']) {
+            return false; // user has no permission to modify galaxy
+        }
+
         if ($fromPull) {
             $galaxy['org_id'] = $orgId;
         } else {
@@ -460,16 +464,21 @@ class Galaxy extends AppModel
             }
         }
 
+        $existingGalaxy = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
+        ]);
+        if (!empty($existingGalaxy) && !$this->__mayUpdateCapturedGalaxy($user, $existingGalaxy['Galaxy'])) {
+            // Refusing the update must not refuse the clusters: they still go into the galaxy as it is.
+            return $existingGalaxy;
+        }
+
         $galaxy = $this->GalaxyCluster->captureOrganisationAndSG(['Galaxy' => $galaxy], 'Galaxy', $user);
         $galaxy = $galaxy['Galaxy'];
         if (isset($galaxy['icon']) && !self::isValidIconName($galaxy['icon'])) {
             // A peer's icon that is not an icon name is never stored
             $galaxy['icon'] = '';
         }
-        $existingGalaxy = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
-        ]);
 
         unset($galaxy['id']);
         $galaxy['default'] = false;
@@ -483,6 +492,7 @@ class Galaxy extends AppModel
             $fieldsToSave['Galaxy']['created'] = $existingGalaxy['Galaxy']['created'];
             // Unset these so they don't get updated
             unset($existingGalaxy['Galaxy']['id'], $existingGalaxy['Galaxy']['uuid'], $existingGalaxy['Galaxy']['type'], $existingGalaxy['Galaxy']['created']);
+            unset($existingGalaxy['Galaxy']['org_id'], $existingGalaxy['Galaxy']['orgc_id'], $existingGalaxy['Galaxy']['default']);
             foreach (array_keys(array_intersect_key($existingGalaxy['Galaxy'], $galaxy)) as $key) {
                 if ($existingGalaxy['Galaxy'][$key] != $galaxy[$key]) {
                     $fieldsToSave['Galaxy'][$key] = $galaxy[$key];
@@ -496,10 +506,6 @@ class Galaxy extends AppModel
             return $existingGalaxy; // galaxy already exists and galaxy fields are the same
         }
 
-        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_galaxy_editor']) {
-            return false; // user has no permission to modify galaxy
-        }
-
         if (empty($existingGalaxy)) {
             $this->create();
         }
@@ -509,6 +515,25 @@ class Galaxy extends AppModel
             'recursive' => -1,
             'conditions' => ['Galaxy.id' => $this->id],
         ]);
+    }
+
+    /**
+     * A captured galaxy may change an existing one only if that is not a default
+     * galaxy (those change only through the misp-galaxy update), and only for a
+     * site admin, its owner organisation or a sync user that can see it.
+     */
+    private function __mayUpdateCapturedGalaxy(array $user, array $existing)
+    {
+        if ($existing['default']) {
+            return false;
+        }
+        if ($user['Role']['perm_site_admin'] || $existing['org_id'] == $user['org_id']) {
+            return true;
+        }
+        if (!$user['Role']['perm_sync']) {
+            return false;
+        }
+        return $this->hasAny(array_merge(['Galaxy.id' => $existing['id']], $this->buildConditions($user)));
     }
 
     /**
@@ -1025,6 +1050,9 @@ class Galaxy extends AppModel
                 throw new MethodNotAllowedException('Invalid ' . Inflector::humanize($target_type) . '.');
             }
         }
+        if ($target_type !== 'tag_collection') {
+            $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
+        }
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
 
@@ -1133,6 +1161,7 @@ class Galaxy extends AppModel
                     throw new NotFoundException('Invalid Event.');
                 }
             }
+            $this->GalaxyCluster->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
         }
         $connectorModel = Inflector::camelize($targetType) . 'Tag';
         if ($targetType === 'attribute') {
