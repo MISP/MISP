@@ -4680,6 +4680,518 @@ tr.evt-extension-row td:first-child { position: relative; }
     background: var(--bs-border-color);
 }
 
+.ov-md-tool:disabled { opacity: .4; pointer-events: none; }
+
+/* ── Edit Content header: tools left, Save + Actions right ──────────── */
+
+.ov-md-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding-block: .5rem;
+}
+
+.ov-md-head-tools,
+.ov-md-head-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* Save tells whether there is anything to save: a quiet "Saved" at rest,
+   filled with a dot once the text differs from the saved report. */
+.ov-md-save,
+.ov-md-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    height: 1.9rem;
+    padding: 0 .65rem;
+    border: 1px solid transparent;
+    border-radius: var(--bs-border-radius);
+    font-size: .8125rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.ov-md-save.is-clean,
+.ov-md-save.is-saving {
+    background: transparent;
+    color: var(--bs-secondary-color);
+}
+
+.ov-md-save.is-clean i { color: var(--bs-success); }
+
+.ov-md-save.is-dirty {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+.ov-md-save.is-dirty:hover { filter: brightness(.94); }
+
+.ov-md-save:disabled { opacity: 1; cursor: default; }
+
+.ov-md-save-dot {
+    width: .45rem;
+    height: .45rem;
+    border-radius: 50%;
+    background: var(--bs-warning);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .35);
+}
+
+.ov-md-kbd {
+    padding: 0;
+    background: none;
+    color: inherit;
+    font: 500 .68rem var(--bs-font-monospace);
+    opacity: .75;
+    box-shadow: none;
+}
+
+.ov-md-btn {
+    background: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+.ov-md-btn:hover,
+.ov-md-btn.show {
+    background: var(--bs-tertiary-bg);
+}
+
+.ov-md-chev {
+    font-size: .6rem;
+    color: var(--bs-secondary-color);
+}
+
+/* ── the editor's menus ─────────────────────────────────────────────── */
+
+.ov-md-menu {
+    --bs-dropdown-padding-y: .35rem;
+    --bs-dropdown-item-padding-y: .28rem;
+    --bs-dropdown-item-padding-x: .75rem;
+    font-size: .8125rem;
+    box-shadow: 0 .5rem 1.25rem rgba(0, 0, 0, .12);
+}
+
+.ov-md-actions { min-width: 18rem; }
+
+.ov-md-menu .dropdown-item { gap: .6rem; }
+
+.ov-md-menu .dropdown-item > i:first-child,
+.ov-md-rule > i {
+    flex: none;
+    width: 1rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+}
+
+.ov-md-menu .dropdown-divider { margin: .35rem 0; }
+
+.ov-md-menu-h {
+    display: block;
+    padding: .4rem .75rem .15rem;
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+.ov-md-menu-trail {
+    margin-left: auto;
+    font-size: .7rem;
+    color: var(--bs-secondary-color);
+}
+
+/* The four downloads as one row of tiles rather than four lines. */
+.ov-md-dl {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .3rem;
+    padding: .2rem .75rem .35rem;
+}
+
+.ov-md-menu .ov-md-dl-tile {
+    flex-direction: column;
+    justify-content: center;
+    gap: .2rem;
+    padding: .4rem .2rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    font-size: .72rem;
+    line-height: 1.1;
+    text-align: center;
+}
+
+.ov-md-menu .ov-md-dl-tile > i:first-child {
+    width: auto;
+    font-size: 1rem;
+    color: var(--misp-accent, var(--bs-primary));
+}
+
+.ov-md-menu .ov-md-dl-tile:disabled { opacity: .45; }
+
+/* ── the Edit / Preview pane bars ──────────────────────────────────── */
+
+.ov-md-pane-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    min-height: 1.95rem;
+    padding: .1rem .5rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .875em;
+    font-weight: 600;
+}
+
+.ov-md-pane-bar > span > i { margin-right: .35rem; }
+
+.ov-md-pane-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    height: 1.45rem;
+    padding: 0 .45rem;
+    border: 0;
+    border-radius: var(--bs-border-radius-sm);
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+.ov-md-pane-btn:hover,
+.ov-md-pane-btn.show {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+}
+
+/* How many of the preview's rules are on; amber as soon as one is off,
+   since the preview then shows less than the report holds. */
+.ov-md-rule-count {
+    padding: .05rem .35rem;
+    border-radius: 1rem;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .66rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-md-rule-count.is-off {
+    background: rgba(var(--bs-warning-rgb), .2);
+    color: var(--bs-warning-text-emphasis);
+}
+
+.ov-md-rules { min-width: 20rem; }
+
+.ov-md-rule.form-switch {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin: 0;
+    padding: .22rem .75rem;
+    font-weight: 400;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.ov-md-rule:hover { background: var(--bs-tertiary-bg); }
+
+.ov-md-rule.form-switch .form-check-input {
+    float: none;
+    flex: none;
+    width: 1.8em;
+    height: 1em;
+    margin: 0 0 0 auto;
+    cursor: pointer;
+}
+
+.ov-md-rule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.ov-md-menu-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .35rem .75rem .1rem;
+    font-size: .72rem;
+    color: var(--bs-secondary-color);
+}
+
+.ov-md-menu-foot .btn-link { font-size: .72rem; }
+
+/* ── manual extraction ──────────────────────────────────────────────
+   While it runs, the Edit column shows the values found instead of the
+   source, and the header trades its tools for the mode and a way out. */
+
+.ov-md-x-mode,
+.ov-md-x-close { display: none; }
+
+.ov-md-editor.is-extracting .ov-md-head-tools,
+.ov-md-editor.is-extracting .ov-md-head-actions,
+.ov-md-editor.is-extracting .ov-md-source-part { display: none; }
+
+.ov-md-editor.is-extracting .ov-md-x-mode,
+.ov-md-editor.is-extracting .ov-md-x-close { display: inline-flex; }
+
+.ov-md-x-mode {
+    align-items: center;
+    gap: .5rem;
+    min-height: 1.9rem;
+    font-size: .875rem;
+}
+
+.ov-md-x-mode > i { color: var(--misp-accent, var(--bs-primary)); }
+
+.ov-md-x-mode-note {
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+.ov-md-x {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.ov-md-x[hidden] { display: none; }
+
+.ov-md-x-tabs {
+    flex: none;
+    padding: 0 .5rem;
+    background: var(--bs-tertiary-bg);
+}
+
+.ov-md-x-tabs .nav-view {
+    border: 0;
+    background: transparent;
+    padding-block: .5rem;
+    font-size: .8125rem;
+}
+
+.ov-md-x-intro {
+    flex: none;
+    margin: 0;
+    padding: .6rem .9rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+.ov-md-x-list {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.ov-md-x.is-busy .ov-md-x-list { cursor: progress; }
+
+.ov-md-x-empty {
+    padding: 2rem 1rem;
+    color: var(--bs-secondary-color);
+    font-size: .85rem;
+    text-align: center;
+}
+
+.ov-md-x-row {
+    padding: .55rem .9rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    box-shadow: inset 3px 0 0 transparent;
+    cursor: pointer;
+}
+
+.ov-md-x-row:hover { background: var(--bs-tertiary-bg); }
+
+.ov-md-x-row:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -2px;
+}
+
+.ov-md-x-row.is-picked {
+    background: var(--bs-primary-bg-subtle);
+    box-shadow: inset 3px 0 0 var(--bs-primary);
+    cursor: default;
+}
+
+.ov-md-x-head {
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+}
+
+.ov-md-x-val {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--bs-font-monospace);
+    font-size: .82rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.ov-md-x-occ {
+    flex: none;
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-md-x-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin-top: .2rem;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+.ov-md-x-type {
+    padding: 0 .35rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-weight: 600;
+}
+
+.ov-md-x-chip { font-size: .8rem; }
+
+.ov-md-x-detail {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    margin-top: .6rem;
+}
+
+.ov-md-x-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: .5rem;
+}
+
+.ov-md-x-field {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+    margin: 0;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+}
+
+.ov-md-x-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .75rem;
+}
+
+.ov-md-x-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: .15rem;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-body-color);
+}
+
+.ov-md-x-nav > span {
+    min-width: 3.2rem;
+    text-align: center;
+}
+
+.ov-md-x-ticked {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-md-x-apply-n {
+    margin-left: .15rem;
+    padding: 0 .35rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, .25);
+    font-variant-numeric: tabular-nums;
+}
+
+.ov-md-x-warn {
+    font-size: .75rem;
+    color: var(--bs-warning-text-emphasis);
+}
+
+.ov-md-x-warn > i { margin-right: .35rem; }
+
+/* An occurrence offered for replacement, in the preview: ticked, it will
+   be replaced; unticked, it stays as text. */
+.ov-md-suggest {
+    border-color: var(--bs-primary);
+    border-style: dashed;
+}
+
+.ov-md-suggest > .ov-md-el-k {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    background: var(--bs-primary-bg-subtle);
+    border-right-color: var(--bs-primary);
+    color: var(--bs-primary-text-emphasis);
+}
+
+.ov-md-suggest-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: .9rem;
+    height: .9rem;
+    border: 1px solid var(--bs-primary);
+    border-radius: 3px;
+    background: var(--bs-primary);
+    color: #fff;
+    font-size: .55rem;
+}
+
+.ov-md-suggest.is-off {
+    border-color: var(--bs-border-color);
+    opacity: .7;
+}
+
+.ov-md-suggest.is-off > .ov-md-el-k {
+    background: var(--bs-tertiary-bg);
+    border-right-color: var(--bs-border-color);
+    color: var(--bs-secondary-color);
+}
+
+.ov-md-suggest.is-off .ov-md-suggest-box {
+    border-color: var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: transparent;
+}
+
+.ov-md-suggest.is-current {
+    outline: 2px solid var(--bs-warning);
+    outline-offset: 1px;
+}
+
+.ov-md-suggest:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+
 /* The completion behind Ctrl+Space. It lives on <body> rather than in the
    pane, which is a scroll container that would clip it, so it carries its own
    position and closes when that pane scrolls. */

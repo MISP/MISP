@@ -11,7 +11,7 @@
     $this->set('headerActions', $headerActions);
 
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown']
+        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'misp-report-extraction']
     ]);
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
