@@ -344,7 +344,7 @@ class AttributeValueCidrSearchDbTest extends TestCase
     private function objectIds(array $params, array $objects)
     {
         $object = $this->event->Object;
-        $conditions = $object->buildFilterConditions($params);
+        $conditions = $object->buildFilterConditions($this->user, $params);
         $found = $object->fetchObjects($this->user, [
             'conditions' => ['AND' => [['Object.id' => $objects], $conditions]],
             'metadata' => 1,
