@@ -2748,5 +2748,161 @@ class ProtectedEventSyncWrites(unittest.TestCase):
         self.assertNotIn(attribute['id'], [a['id'] for a in self._stored()['Attribute']])
 
 
+class ObjectReferenceCaptureScope(unittest.TestCase):
+    """Saving an event may update an existing object reference, matched by uuid, only when that
+    reference belongs to the event being saved; a reference uuid owned by another organisation's
+    event is skipped, never overwritten and never recreated in the saving event.
+
+    The lookup was by uuid across the whole instance, so a user saving their own event could
+    rewrite timestamp, relationship_type, comment and deleted on a reference in an event they
+    cannot see.
+    """
+
+    FIELDS = ('timestamp', 'relationship_type', 'comment', 'deleted')
+    FAR_FUTURE = 2147480000
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_add', 'perm_modify_org')
+            cls.victim_org = make_org(cls.admin, 'regression reference victim')
+            cls.attacker_org = make_org(cls.admin, 'regression reference attacker')
+            cls.created_orgs = [cls.victim_org, cls.attacker_org]
+            cls.victim_user = make_user(cls.admin, cls.victim_org.id, role)
+            cls.attacker_user = make_user(cls.admin, cls.attacker_org.id, role)
+            cls.created_users = [cls.victim_user, cls.attacker_user]
+            cls.victim = PyMISP(url, cls.victim_user.authkey)
+            cls.attacker = PyMISP(url, cls.attacker_user.authkey)
+            cls.template = None
+            for entry in send(cls.admin, 'GET', 'objectTemplates/index'):
+                template = entry['ObjectTemplate'] if 'ObjectTemplate' in entry else entry
+                if template['name'] == 'domain-ip':
+                    cls.template = template
+            if cls.template is None:
+                raise unittest.SkipTest('no domain-ip object template')
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+
+    @classmethod
+    def _object(cls):
+        return {'name': 'domain-ip', 'meta-category': 'network', 'uuid': str(uuidlib.uuid4()),
+                'template_uuid': cls.template['uuid'], 'template_version': cls.template['version'],
+                'distribution': 0,
+                'Attribute': [{'object_relation': 'domain', 'type': 'domain',
+                               'category': 'Network activity', 'uuid': str(uuidlib.uuid4()),
+                               'value': '%s.example' % random(), 'distribution': 0}]}
+
+    @classmethod
+    def _add_event(cls, connector, objects):
+        event = send(connector, 'POST', 'events/add',
+                     {'info': 'regression reference %s' % random(), 'distribution': 0,
+                      'threat_level_id': 4, 'analysis': 0, 'Object': objects})['Event']
+        cls.event_ids.append(int(event['id']))
+        cls.event_uuids.append(event['uuid'])
+        return event
+
+    @classmethod
+    def _references(cls, event_id):
+        """Every reference of the event as the admin stores it, soft-deleted ones included."""
+        response = cls.admin._prepare_request('POST', 'events/restSearch',
+            data={'eventid': event_id, 'returnFormat': 'json', 'deleted': [0, 1]})
+        assert response.status_code == 200, response.text[:300]
+        found = []
+        for obj in response.json()['response'][0]['Event'].get('Object', []):
+            found.extend(obj.get('ObjectReference', []))
+        return found
+
+    def _stored_reference(self):
+        for reference in self._references(self.victim_event['id']):
+            if reference['uuid'] == self.reference_uuid:
+                return {f: str(reference[f]) for f in self.FIELDS}
+        return None
+
+    def setUp(self):
+        self.reference_uuid = str(uuidlib.uuid4())
+        self.victim_objects = [self._object() for _ in range(2)]
+        self.victim_objects[0]['ObjectReference'] = [{
+            'uuid': self.reference_uuid, 'object_uuid': self.victim_objects[0]['uuid'],
+            'referenced_uuid': self.victim_objects[1]['uuid'],
+            'relationship_type': 'related-to', 'comment': 'victim comment %s' % random()}]
+        self.victim_event = self._add_event(self.victim, self.victim_objects)
+        self.baseline = self._stored_reference()
+        self.assertIsNotNone(self.baseline, 'the victim reference was not created')
+
+    def _attacker_event_objects(self):
+        return [self._object() for _ in range(2)]
+
+    def _forged(self, objects):
+        """The forged reference sits on the first object and targets the attacker's own second one."""
+        objects[0]['ObjectReference'] = [{
+            'uuid': self.reference_uuid, 'object_uuid': objects[0]['uuid'],
+            'referenced_uuid': objects[1]['uuid'], 'timestamp': self.FAR_FUTURE,
+            'relationship_type': 'false-positive', 'comment': 'forged %s' % random(),
+            'deleted': True}]
+        return objects
+
+    def _assert_victim_untouched(self):
+        self.assertEqual(self.baseline, self._stored_reference())
+
+    def test_event_add_leaves_foreign_reference_alone(self):
+        event = self._add_event(self.attacker, self._forged(self._attacker_event_objects()))
+        self._assert_victim_untouched()
+        self.assertEqual([], [r for r in self._references(event['id'])
+                              if r['uuid'] == self.reference_uuid])
+
+    def test_event_edit_leaves_foreign_reference_alone(self):
+        event = self._add_event(self.attacker, self._attacker_event_objects())
+        edited = {'Object': self._forged(self._attacker_event_objects())}
+        send(self.attacker, 'POST', 'events/edit/%s' % event['id'], edited)
+        self._assert_victim_untouched()
+        self.assertEqual([], [r for r in self._references(event['id'])
+                              if r['uuid'] == self.reference_uuid])
+
+    def test_owner_still_updates_its_own_reference(self):
+        comment = 'updated %s' % random()
+        objects = [dict(o) for o in self.victim_objects]
+        objects[0]['ObjectReference'] = [{
+            'uuid': self.reference_uuid, 'object_uuid': objects[0]['uuid'],
+            'referenced_uuid': objects[1]['uuid'], 'timestamp': self.FAR_FUTURE,
+            'comment': comment}]
+        send(self.victim, 'POST', 'events/edit/%s' % self.victim_event['id'], {'Object': objects})
+        after = self._stored_reference()
+        self.assertEqual(comment, after['comment'])
+        self.assertEqual(str(self.FAR_FUTURE), after['timestamp'])
+        self.assertEqual('related-to', after['relationship_type'])
+
+    def test_new_reference_still_created(self):
+        objects = self._attacker_event_objects()
+        fresh = str(uuidlib.uuid4())
+        objects[0]['ObjectReference'] = [{
+            'uuid': fresh, 'object_uuid': objects[0]['uuid'],
+            'referenced_uuid': objects[1]['uuid'], 'relationship_type': 'related-to',
+            'comment': 'fresh'}]
+        event = self._add_event(self.attacker, objects)
+        created = [r for r in self._references(event['id']) if r['uuid'] == fresh]
+        self.assertEqual(1, len(created))
+        self.assertEqual('fresh', created[0]['comment'])
+        self.assertEqual(objects[1]['uuid'], created[0]['referenced_uuid'])
+
+
 if __name__ == '__main__':
     unittest.main()
