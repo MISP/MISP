@@ -160,16 +160,16 @@
                     'Events/View/event_pivot_explorer',
                 ],
             ],
-            // [
-            //     'id' => 'timeline',
-            //     'title' => __('Timeline'),
-            //     'icon' => 'fas fa-clock',
+            [
+                'id' => 'timeline',
+                'title' => __('Timeline'),
+                'icon' => 'fas fa-timeline',
 
-            //     // Content
-            //     'left' => [
-            //         'Events/View/event_timeline',
-            //     ],
-            // ],
+                // Content
+                'left' => [
+                    'Events/View/event_timeline',
+                ],
+            ],
             [
                 'id' => 'history',
                 'title' => __('History'),
