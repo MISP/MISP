@@ -1308,7 +1308,7 @@ class TestSecurity(unittest.TestCase):
         self.admin_misp_connector.delete_organisation(org)
 
         for sg in sgs:
-            self.failIf(sg.uuid == hidden_sg.uuid)
+            self.assertNotEqual(sg.uuid, hidden_sg.uuid)
 
     def test_sg_index_user_can_see(self):
         visible_sg = self.__create_sharing_group()

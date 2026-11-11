@@ -4,11 +4,17 @@
  *
  * Expected:
  * $data_path => item.count'
+ *
+ * Optional:
+ * $tally => true to count what $data_path extracts (e.g. 'members.{n}.id')
+ *           instead of printing the value stored there
  */
 
 $count = Hash::extract($row, $field['data_path']);
 
-if (empty($count)) {
+if (!empty($field['tally'])) {
+    $count = [count($count)];
+} elseif (empty($count)) {
     return;
 }
 

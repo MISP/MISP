@@ -56,9 +56,9 @@ $fields = [
     ],
     [
 
-        'name' => __('Base URL'),
-        'sort' => 'TaxiiServer.baseurl',
-        'data_path' => 'TaxiiServer.baseurl',
+        'name' => __('Discovery URL'),
+        'sort' => 'TaxiiServer.discovery_url',
+        'data_path' => 'TaxiiServer.discovery_url',
         'element' => 'links',
         'card_section' => 'tag',
         'display_in' => ['table', 'card']
@@ -137,13 +137,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search in all fields',
+                        'placeholder' => __('Search by name'),
                         'name'        => '',
                         'mode'        => 'quickFilter',
                     ],

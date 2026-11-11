@@ -5,7 +5,6 @@ $canModify = !empty($canCreateAuthkey);
 // Show the User cloumn only if we are not viewing the main index
 $showUserColumn = empty($user_id) && (!empty($me['Role']['perm_admin']) || !empty($me['Role']['perm_site_admin']));
 
-
 $fields = [
     [
         'element' => 'checkbox',
@@ -28,7 +27,7 @@ $fields = [
         'id_path' => 'User.id',
         'element' => 'user_link',
         'requirement' => $showUserColumn,
-        'card_section' => 'meta',
+        'card_section' => 'attribute',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -70,7 +69,7 @@ if ($seenIpsEnabled) {
         'name' => __('Seen IPs'),
         'data_path' => 'AuthKey.unique_ips',
         'element' => 'ip_list',
-        'card_section' => 'meta',
+        'card_section' => 'tag',
         'display_in' => ['table', 'card'],
     ];
 }
@@ -88,6 +87,23 @@ $rowActions = [
         'icon' => 'pen-to-square',
         'url' => $baseurl . '/auth_keys/edit/%id%',
         'requirement' => $canModify,
+    ],
+    [
+        // Revoking expires the key on the spot. If it is
+        // already expired, the action is hidden.
+        'type' => 'modal',
+        'label' => __('Revoke'),
+        'icon' => 'ban',
+        'class' => 'text-warning-emphasis',
+        'size' => 'md',
+        'url' => $baseurl . '/auth_keys/revoke/%id%',
+        'requirement' => function ($row) use ($canModify) {
+            if (!$canModify) {
+                return false;
+            }
+            $expiration = (int)(Hash::get($row, 'AuthKey.expiration') ?? 0);
+            return $expiration === 0 || $expiration > time();
+        },
     ],
     [
         'type' => 'divider',
@@ -133,6 +149,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => 3,
             'primary_id_path' => 'AuthKey.id',
             'row_dblclick_url' => $baseurl . '/auth_keys/view/%id%',
             'filter_bar' => [

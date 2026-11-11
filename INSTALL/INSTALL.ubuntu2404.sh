@@ -69,7 +69,15 @@ random_string() {
 # Some helper functions shamelessly copied from @da667's automisp install script.
 
 logfile=/var/log/misp_install.log
-mkfifo ${logfile}.pipe
+# Everything this script prints and every setting it writes ends up in here -
+# the generated admin password, the database passwords, the GPG passphrase and
+# the supervisor password among them - so the log gets the same treatment as
+# /root/misp_settings.txt: root only, from the moment it exists. The file is
+# removed first so the mode is never applied through a symlink left in /var/log,
+# and the FIFO is created restricted too, since it carries the same stream.
+rm -f "$logfile"
+install -m 0600 /dev/null "$logfile"
+mkfifo -m 0600 ${logfile}.pipe
 tee <${logfile}.pipe $logfile &
 exec &>${logfile}.pipe
 rm ${logfile}.pipe
@@ -464,8 +472,8 @@ error_check "Ensure redis is running"
 
 print_status "Running MISP updates"
 
-sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake Admin" setSetting "MISP.osuser" "${APACHE_USER}" &>>$logfile
-sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake Admin" runUpdates &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin setSetting "MISP.osuser" "${APACHE_USER}" &>>$logfile
+sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" Admin runUpdates &>>$logfile
 MISP_USER_KEY_FILE="$(mktemp)"
 sudo -u "${APACHE_USER}" "${MISP_PATH}/app/Console/cake" User init >"${MISP_USER_KEY_FILE}"
 MISP_USER_KEY="$(tr -d '\n' <"${MISP_USER_KEY_FILE}")"

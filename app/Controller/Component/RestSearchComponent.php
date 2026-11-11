@@ -73,7 +73,9 @@ class RestSearchComponent extends Component
             'retry',
             'expiry',
             'minimum_ttl',
-            'ttl'
+            'ttl',
+            'hash_type',
+            'escape_formulas_literal'
         ],
         'Event' => [
             'returnFormat',
@@ -157,6 +159,8 @@ class RestSearchComponent extends Component
             'org.nationality',
             'galaxy.*',
             'attackGalaxy',
+            'hash_type',
+            'escape_formulas_literal'
         ],
         'Object' => [
             'returnFormat',
@@ -214,6 +218,7 @@ class RestSearchComponent extends Component
             'includeAttribute',
             'includeEvent',
             'includeUuid',
+            'escape_formulas_literal',
         ],
         'GalaxyCluster' => [
             'page',

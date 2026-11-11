@@ -4,10 +4,68 @@ App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
 
 class SysLogLogableBehavior extends LogableBehavior
 {
+    /** Actor recorded when nobody is acting: background jobs, and shells that act as no user. */
+    const SYSTEM_USER = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);
+
+    /**
+     * The account a console shell acts as, published through setShellUser().
+     *
+     * Behaviours are ClassRegistry singletons, so `$this->user` is one property
+     * shared by every model, and setup() rewrites it each time a model attaches
+     * the behaviour - which any lazy association load does, mid-session. A
+     * process-wide static read at write time is what survives that. Null for
+     * every shell that acts as no user, which is every background job: those
+     * keep logging as SYSTEM.
+     *
+     * @var array|null
+     */
+    private static $shellUser = null;
+
     public function __construct()
     {
         parent::__construct();
         $this->defaults['enabled'] = !Configure::read('MISP.log_new_audit');
+    }
+
+    /**
+     * Publish the account a console shell acts as. Rows this engine writes from
+     * the shell then carry that identity - whatever models attach later - and
+     * their description says the write came from the CLI, the way an AuditLog
+     * row carries request_type = CLI. Pass null to revert to SYSTEM. Web
+     * requests ignore this and take the session user.
+     *
+     * @param array|null $user User array with id, email and Organisation.name
+     * @return void
+     */
+    public static function setShellUser($user)
+    {
+        if (empty($user['id'])) {
+            self::$shellUser = null;
+            return;
+        }
+        self::$shellUser = array(
+            'id' => (int)$user['id'],
+            'email' => isset($user['email']) ? $user['email'] : '',
+            'Organisation' => array(
+                'name' => isset($user['Organisation']['name']) ? $user['Organisation']['name'] : '',
+            ),
+        );
+    }
+
+    /**
+     * @return bool True under the console, where there is no session to read
+     */
+    private static function isShell()
+    {
+        return defined('CAKEPHP_SHELL') && CAKEPHP_SHELL;
+    }
+
+    /**
+     * @return array The actor a shell process writes as: the published user, else SYSTEM
+     */
+    private static function shellActor()
+    {
+        return self::$shellUser !== null ? self::$shellUser : self::SYSTEM_USER;
     }
 
     function afterSave(Model $Model, $created, $options = array()) {
@@ -115,6 +173,12 @@ class SysLogLogableBehavior extends LogableBehavior
 	}
 
 	function _saveLog(&$Model, $logData, $title = null) {
+		if (self::isShell()) {
+			// Resolve at write time: setup() runs again for every model that
+			// attaches this singleton behaviour, so an identity set once at
+			// startup does not survive a lazy association load mid-session.
+			$this->user['User'] = self::shellActor();
+		}
 		if ($title !== NULL) {
 			$logData['Log']['title'] = $title;
 		} else if ($Model->displayField == $Model->primaryKey) {
@@ -162,6 +226,12 @@ class SysLogLogableBehavior extends LogableBehavior
 				$logData['Log']['description'] .= ' by ' . $this->settings[$Model->alias]['userModel'] . ' "' . $this->user[$this->UserModel->alias][$this->UserModel->displayField] . '"';
 				if ($this->settings[$Model->alias]['description_ids']) {
 					$logData['Log']['description'] .= ' (' . $this->user[$this->UserModel->alias][$this->UserModel->primaryKey] . ')';
+				}
+				if (self::isShell() && !empty($this->user[$this->UserModel->alias][$this->UserModel->primaryKey])) {
+					// The logs table has no request_type column (audit_logs has), so the
+					// sentence itself says it: a shell write in a user's name must never
+					// read as that user's own web activity.
+					$logData['Log']['description'] .= ' via CLI';
 				}
 			} else {
 				// UserModel is active, but the data hasnt been set. Assume system action.
@@ -283,9 +353,12 @@ class SysLogLogableBehavior extends LogableBehavior
         }
         $this->schema = $this->Log->schema();
 
-        $user = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);
-        $isShell = defined('CAKEPHP_SHELL') && CAKEPHP_SHELL; // do not start session for shell commands
-        if (!$isShell) {
+        if (self::isShell()) {
+            // No session to start under the console; the actor is whatever the
+            // shell published through setShellUser(), otherwise SYSTEM.
+            $user = self::shellActor();
+        } else {
+            $user = self::SYSTEM_USER;
             App::uses('AuthComponent', 'Controller/Component');
             $authUser = AuthComponent::user();
             if (!empty($authUser)) {

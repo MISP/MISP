@@ -1,5 +1,13 @@
 <?php
 $filter_bar = $filter_bar ?? [];
+// A mass_* key holds the path of the modal the button opens (selected ids appended).
+$massOpen = function ($key, $size = 'xl') use ($filter_bar, $baseurl) {
+    return sprintf(
+        "multiSelectItems('%s', '', '%s')",
+        h($baseurl . $filter_bar[$key]),
+        $size
+    );
+};
 ?>
 <div id="multiSelectToolbar"
      class="mt-2 d-none">
@@ -22,12 +30,48 @@ $filter_bar = $filter_bar ?? [];
             </button>
         <?php endif; ?>
 
+        <?php if (!empty($filter_bar['fetch'])): ?>
+            <?php
+                // Remote-preview indexes are scoped by a positional id, so they
+                // pass the whole path in `fetch_url` instead of a suffix.
+                $massFetchUrl = !empty($filter_bar['fetch_url'])
+                    ? ($baseurl . $filter_bar['fetch_url'])
+                    : ($baseurl . $item_url . $filter_bar['fetch']);
+            ?>
+            <button id="mass-fetch-button"
+                    class="btn btn-primary btn-sm ms-2 d-none"
+                    title="<?= __('Fetch the selected events') ?>"
+                    aria-label="<?= __('Fetch the selected events') ?>"
+                    onclick="multiSelectItems('<?= h($massFetchUrl) ?>', '')">
+                <i class="fas fa-circle-arrow-down"></i>
+                <?= __('Fetch') ?>
+            </button>
+        <?php endif; ?>
+
+        <?php
+            /*
+             * Only for specific indexes that need a custom action button in the mass-action toolbar.
+             */
+            foreach (($filter_bar['custom_actions'] ?? []) as $customAction):
+        ?>
+            <button id="<?= h($customAction['id']) ?>"
+                    class="btn btn-sm ms-2 <?= h($customAction['class'] ?? 'btn-primary') ?>"
+                    title="<?= h($customAction['label']) ?>"
+                    aria-label="<?= h($customAction['label']) ?>"
+                    onclick="<?= h($customAction['onclick']) ?>">
+                <?php if (!empty($customAction['icon'])): ?>
+                    <i class="fas fa-<?= h($customAction['icon']) ?>"></i>
+                <?php endif; ?>
+                <?= h($customAction['label']) ?>
+            </button>
+        <?php endforeach; ?>
+
         <?php if (!empty($filter_bar['mass_edit'])): ?>
             <button id="mass-edit-button"
                     class="btn btn-secondary btn-sm d-none"
                     title="<?= __('Edit selected attributes') ?>"
                     aria-label="<?= __('Edit selected attributes') ?>"
-                    onclick="multiSelectItems('#', '')">
+                    onclick="<?= $massOpen('mass_edit', 'lg') ?>">
                 <i class="fas fa-edit text-white"></i>
                 <span class="text-white"> <?= __('Edit') ?></span>
             </button>
@@ -38,7 +82,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-tag btn-sm d-none"
                     title="<?= __('Add Tag on selected attributes') ?>"
                     aria-label="<?= __('Add Tag on selected attributes') ?>"
-                    onclick="multiSelectItems('#', '')">
+                    onclick="<?= $massOpen('mass_tag', 'xl') ?>">
                 <span class="misp-icon misp-icon-tag misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Tag') ?></span>
             </button>
@@ -56,11 +100,11 @@ $filter_bar = $filter_bar ?? [];
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_cluster'])): ?>
-            <button id="mass-cluster-button",
+            <button id="mass-cluster-button"
                     class="btn btn-galaxy btn-sm d-none"
                     title="<?= __('Add Cluster on selected attributes') ?>"
                     aria-label="<?= __('Add Cluster to selected attributes') ?>"
-                    onclick="multiSelectItems('#', '')">
+                    onclick="<?= $massOpen('mass_cluster', 'xl') ?>">
                 <span class="misp-icon misp-icon-galaxy misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Cluster') ?></span>
             </button>
@@ -82,7 +126,7 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-object btn-sm d-none"
                     title="<?= __('Group selected Attributes into an Object') ?>"
                     aria-label="<?= __('Group selected Attributes into an Object') ?>"
-                    onclick="multiSelectItems('#', '')">
+                    onclick="<?= $massOpen('mass_object', 'xl') ?>">
                 <span class="misp-icon misp-icon-object misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Object') ?></span>
             </button>
@@ -91,9 +135,9 @@ $filter_bar = $filter_bar ?? [];
         <?php if (!empty($filter_bar['mass_relationship'])): ?>
             <button id="mass-relationship-button"
                     class="btn btn-correlation btn-sm d-none"
-                    title="<?= __('Create new relationship for selected entities') ?>"
-                    aria-label="<?= __('Create new relationship for selected entities') ?>"
-                    onclick="multiSelectItems('#', '')">
+                    title="<?= __('Create new relationship for selected attributes') ?>"
+                    aria-label="<?= __('Create new relationship for selected attributes') ?>"
+                    onclick="<?= $massOpen('mass_relationship', 'lg') ?>">
                 <i class="fas fa-diagram-project text-white"></i>
                 <span class="text-white"> <?= __('Relationship') ?></span>
             </button>
@@ -104,23 +148,37 @@ $filter_bar = $filter_bar ?? [];
                     class="btn btn-sighting btn-sm d-none"
                     title="<?= __('Sightings display for selected attributes') ?>"
                     aria-label="<?= __('Sightings display for selected attributes') ?>"
-                    onclick="multiSelectItems('#', '')">
+                    onclick="openSelectedSightings()">
                 <span class="misp-icon misp-icon-sighting misp-simple text-white"></span>
                 <span class="text-white"> <?= __('Sightings') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['enable'])): ?>
+            <?php
+                /*
+                 * Controllers exposing a single toggle endpoint that takes the
+                 * target state positionally (feeds: /toggleSelected/<on>/<cache>)
+                 * pass the whole path in `enable_url` / `disable_url` instead of
+                 * relying on the massEnable/massDisable convention.
+                 */
+                $massEnableUrl = !empty($filter_bar['enable_url'])
+                    ? ($baseurl . $filter_bar['enable_url'])
+                    : ($baseurl . $item_url . '/massEnable');
+                $massDisableUrl = !empty($filter_bar['disable_url'])
+                    ? ($baseurl . $filter_bar['disable_url'])
+                    : ($baseurl . $item_url . '/massDisable');
+            ?>
             <button id="mass-enable-button"
                     class="btn btn-outline-success btn-sm d-none"
                     title="<?= __('Enable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massEnable') ?>', '')">
+                    onclick="multiSelectItems('<?= h($massEnableUrl) ?>', '')">
                 <i class="fas fa-play"></i> <?= __('Enable') ?>
             </button>
             <button id="mass-disable-button"
                     class="btn btn-outline-danger btn-sm d-none"
                     title="<?= __('Disable selected items') ?>"
-                    onclick="multiSelectItems('<?= h($baseurl . $item_url . '/massDisable') ?>', '')">
+                    onclick="multiSelectItems('<?= h($massDisableUrl) ?>', '')">
                 <i class="fas fa-stop"></i> <?= __('Disable') ?>
             </button>
         <?php endif; ?>
@@ -171,13 +229,36 @@ $filter_bar = $filter_bar ?? [];
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['soft_delete'])): ?>
+            <?php // The confirmation modal soft-deletes unless told to delete for good. ?>
             <button id="multi-soft-delete-button"
-                    class="btn btn-warning btn-sm d-none"
-                    title="<?= __('Soft-delete selected items') ?>"
-                    aria-label="<?= __('Soft-delete selected items') ?>"
+                    class="btn btn-danger btn-sm d-none"
+                    title="<?= __('Delete selected items') ?>"
+                    aria-label="<?= __('Delete selected items') ?>"
                     onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['soft_delete']) ?>', '')">
-                <i class="fas fa-trash"></i>
-                <span> <?= __('Soft-delete') ?></span>
+                <i class="fas fa-trash text-white"></i>
+                <span class="text-white"> <?= __('Delete') ?></span>
+            </button>
+        <?php endif; ?>
+
+        <?php if (!empty($filter_bar['accept'])): ?>
+            <button id="mass-accept-button"
+                    class="btn btn-success btn-sm"
+                    title="<?= __('Process the selected registrations') ?>"
+                    aria-label="<?= __('Process the selected registrations') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['accept']) ?>', '', 'xl')">
+                <i class="fas fa-check"></i>
+                <span> <?= __('Process') ?></span>
+            </button>
+        <?php endif; ?>
+
+        <?php if (!empty($filter_bar['discard'])): ?>
+            <button id="mass-discard-button"
+                    class="btn btn-danger btn-sm"
+                    title="<?= __('Discard the selected registrations') ?>"
+                    aria-label="<?= __('Discard the selected registrations') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $item_url . $filter_bar['discard']) ?>', '')">
+                <i class="fas fa-trash text-white"></i>
+                <span class="text-white"> <?= __('Discard') ?></span>
             </button>
         <?php endif; ?>
 

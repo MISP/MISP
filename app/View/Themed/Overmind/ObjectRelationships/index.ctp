@@ -105,8 +105,8 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Remove Highlight'),
                 'label_off' => __('Highlight'),
-                'icon_on' => 'down-long text-primary',
-                'icon_off' => 'highlighter text-primary',
+                'icon_on' => 'fas fa-down-long text-primary',
+                'icon_off' => 'fas fa-highlighter text-primary',
                 'url' => '/object_relationships/%action%/%name%',
                 'url_params_data_paths' => ['name' => 'name'],
                 'highlight_path' => 'highlighted',
@@ -120,6 +120,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

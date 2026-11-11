@@ -88,12 +88,15 @@ class OrgEvolutionLineWidget
         if ($timeConditions) {
             $params['conditions']['AND'][] = ['Organisation.date_created >=' => $timeConditions];
         }
+        // Grouping by the formatted month alone: MONTH()/YEAR() were both
+        // MySQL-only and redundant, since the 'YYYY-MM' string already
+        // determines them.
+        $month = $this->Organisation->getSqlDialect()->formatYearMonth('date_created');
         $raw = $this->Organisation->find('all', [
             'recursive' => -1,
             'conditions' => $params['conditions'],
-            'fields' => ['DATE_FORMAT(date_created, "%Y-%m") AS date', 'count(id) AS count'],
-            'group' => ['MONTH(date_created), YEAR(date_created)', 'date']
-            
+            'fields' => [$month . ' AS date', 'count(id) AS count'],
+            'group' => [$month]
         ]);
         usort($raw, [$this, 'sortByCreationDate']);
         $raw_padded = [];

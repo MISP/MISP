@@ -12,22 +12,15 @@ echo $this->Form->create('SharingGroup', [
 ]);
 ?>
 
-<div class="container" id="sg-wizard">
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Sharing Groups'),
+    'title' => $edit ? __('Edit Sharing Group') : __('Add Sharing Group'),
+    'description' => __('Complete each section below — use the accordions to navigate, or "Next" to proceed step by step.'),
+    'icon' => 'misp-icon misp-icon-sharing-group misp-simple',
+    'isEdit' => $edit,
+]) ?>
 
-    <div class="row justify-content-center">
-
-        <div class="card shadow-sm">
-
-            <div class="card-body">
-
-                <h3 class="mb-2">
-                    <?=  $edit ? __('Edit current SharingGroup') : __('Create New SharingGroup')  ?>
-                </h3>
-
-                <p class="text-muted mb-4">
-                    <?= __('Define a new sharing group by completing each section below. Use the accordions to navigate, or click "Next" to proceed step by step.') ?>
-                </p>
-
+<div class="container-fluid px-4 py-4" id="sg-wizard">
 
                 <div class="accordion" id="sgAccordion">
                     <!-- ===================== STEP 1 : GENERAL ===================== -->
@@ -330,90 +323,116 @@ echo $this->Form->create('SharingGroup', [
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<?= $this->Form->input('json', [
-    'style'  => 'display:none;',
-    'label'  => false,
-    'div'    => false,
-    'id'     => 'SharingGroupJson',
-    'value'  => '',
-]) ?>
+    <?php
+    $footerMeta = [];
+    if ($edit && !empty($sharingGroup['SharingGroup']['id'])) {
+        $footerMeta[] = ['label' => __('Sharing group'), 'id' => $sharingGroup['SharingGroup']['id']];
+        if (!empty($sharingGroup['SharingGroup']['name'])) {
+            $footerMeta[] = ['value' => $sharingGroup['SharingGroup']['name']];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $edit,
+        'meta' => $footerMeta,
+        'hint' => __('Your own organisation and this instance are included by default.'),
+        /* Delegates to the wizard's own Submit (step 4), which is what
+         * initSharingGroupForm() binds the payload build and submit to. */
+        'submit' => [
+            'label' => $edit ? __('Save Changes') : __('Add Sharing Group'),
+            'type' => 'button',
+            'attrs' => ['onclick' => "var b = document.getElementById('sg-submit-btn'); if (b) { b.click(); }"],
+        ],
+    ]);
+    ?>
+
+    <?= $this->Form->input('json', [
+        'style'  => 'display:none;',
+        'label'  => false,
+        'div'    => false,
+        'id'     => 'SharingGroupJson',
+        'value'  => '',
+    ]) ?>
+
+</div>
 
 <?php echo $this->Form->end(); ?>
 
 
-<script>
-<?php if ($edit && !empty($sharingGroup)): ?>
-var sgInitData = {
-    sharingGroup: {
-        name:          <?= json_encode($sharingGroup['SharingGroup']['name']) ?>,
-        releasability: <?= json_encode($sharingGroup['SharingGroup']['releasability'] ?? '') ?>,
-        description:   <?= json_encode($sharingGroup['SharingGroup']['description']  ?? '') ?>,
-        active:        <?= !empty($sharingGroup['SharingGroup']['active'])  ? 'true' : 'false' ?>,
-        roaming:       <?= !empty($sharingGroup['SharingGroup']['roaming']) ? 'true' : 'false' ?>,
-    },
-    organisations: <?= json_encode(array_map(function($sgo) use ($user) {
-        $isCurrentOrg = ($sgo['Organisation']['id'] == $user['org_id']);
-        return [
-            'id'        => $sgo['Organisation']['id'],
-            'name'      => $sgo['Organisation']['name'],
-            'type'      => !empty($sgo['Organisation']['local']) ? 'local' : 'external',
-            'uuid'      => $sgo['Organisation']['uuid'] ?? '',
-            'extend'    => !empty($sgo['extend']),
-            'removable' => !$isCurrentOrg,
-        ];
-    }, $sharingGroup['SharingGroupOrg'] ?? [])) ?>,
-    servers: <?= json_encode(array_map(function($sgs) use ($localInstance) {
-        $serverId = $sgs['server_id'];
-        $isLocal  = ($serverId == 0);
-        return [
-            'id'        => $isLocal ? 0 : ($sgs['Server']['id'] ?? $serverId),
-            'name'      => $isLocal ? __('Local instance') : ($sgs['Server']['name'] ?? ''),
-            'url'       => $isLocal ? $localInstance       : ($sgs['Server']['url']  ?? ''),
-            'all_orgs'  => !empty($sgs['all_orgs']),
-            'removable' => !$isLocal,
-        ];
-    }, $sharingGroup['SharingGroupServer'] ?? [])) ?>,
-};
-<?php else: ?>
-var sgInitData = null;
-var sgDefaultOrg = <?= json_encode([
-    'id'        => $user['Organisation']['id'],
-    'name'      => $user['Organisation']['name'],
-    'type'      => 'local',
-    'uuid'      => $user['Organisation']['uuid'] ?? '',
-    'extend'    => true,
-    'removable' => false,
-]) ?>;
-var sgDefaultServer = <?= json_encode([
-    'id'        => 0,
-    'name'      => __('Local instance'),
-    'url'       => $localInstance,
-    'all_orgs'  => false,
-    'removable' => false,
-]) ?>;
-<?php endif; ?>
+<?php
 
-var sgOrgMeta = <?= json_encode(array_reduce($localOrgs ?? [], function($carry, $o) {
-    $carry[$o['Organisation']['id']] = [
-        'uuid' => $o['Organisation']['uuid'],
-        'type' => 'local',
-    ];
-    return $carry;
-}, array_reduce($externalOrgs ?? [], function($carry, $o) {
-    $carry[$o['Organisation']['id']] = [
-        'uuid' => $o['Organisation']['uuid'],
-        'type' => 'external',
-    ];
-    return $carry;
-}, []))) ?>;
+$sgConfig = [
+    'initData'      => null,
+    'defaultOrg'    => null,
+    'defaultServer' => null,
+];
 
-var sgServerMeta = <?= json_encode(array_reduce($availableServers ?? [], function($carry, $s) {
-    $carry[$s['Server']['id']] = ['url' => $s['Server']['url']];
-    return $carry;
-}, [])) ?>;
+if ($edit && !empty($sharingGroup)) {
+    $sgConfig['initData'] = [
+        'sharingGroup' => [
+            'name'          => $sharingGroup['SharingGroup']['name'],
+            'releasability' => $sharingGroup['SharingGroup']['releasability'] ?? '',
+            'description'   => $sharingGroup['SharingGroup']['description'] ?? '',
+            'active'        => !empty($sharingGroup['SharingGroup']['active']),
+            'roaming'       => !empty($sharingGroup['SharingGroup']['roaming']),
+        ],
+        'organisations' => array_map(function ($sgo) use ($user) {
+            $isCurrentOrg = ($sgo['Organisation']['id'] == $user['org_id']);
+            return [
+                'id'        => $sgo['Organisation']['id'],
+                'name'      => $sgo['Organisation']['name'],
+                'type'      => !empty($sgo['Organisation']['local']) ? 'local' : 'external',
+                'uuid'      => $sgo['Organisation']['uuid'] ?? '',
+                'extend'    => !empty($sgo['extend']),
+                'removable' => !$isCurrentOrg,
+            ];
+        }, $sharingGroup['SharingGroupOrg'] ?? []),
+        'servers' => array_map(function ($sgs) use ($localInstance) {
+            $serverId = $sgs['server_id'];
+            $isLocal  = ($serverId == 0);
+            return [
+                'id'        => $isLocal ? 0 : ($sgs['Server']['id'] ?? $serverId),
+                'name'      => $isLocal ? __('Local instance') : ($sgs['Server']['name'] ?? ''),
+                'url'       => $isLocal ? $localInstance       : ($sgs['Server']['url'] ?? ''),
+                'all_orgs'  => !empty($sgs['all_orgs']),
+                'removable' => !$isLocal,
+            ];
+        }, $sharingGroup['SharingGroupServer'] ?? []),
+    ];
+} else {
+    $sgConfig['defaultOrg'] = [
+        'id'        => $user['Organisation']['id'],
+        'name'      => $user['Organisation']['name'],
+        'type'      => 'local',
+        'uuid'      => $user['Organisation']['uuid'] ?? '',
+        'extend'    => true,
+        'removable' => false,
+    ];
+    $sgConfig['defaultServer'] = [
+        'id'        => 0,
+        'name'      => __('Local instance'),
+        'url'       => $localInstance,
+        'all_orgs'  => false,
+        'removable' => false,
+    ];
+}
+
+/* Both metadata maps are keyed by id, so they must stay objects even when a
+ * single sequential key would otherwise make json_encode emit an array. */
+$sgOrgMeta = [];
+foreach ($localOrgs ?? [] as $o) {
+    $sgOrgMeta[$o['Organisation']['id']] = ['uuid' => $o['Organisation']['uuid'], 'type' => 'local'];
+}
+foreach ($externalOrgs ?? [] as $o) {
+    $sgOrgMeta[$o['Organisation']['id']] = ['uuid' => $o['Organisation']['uuid'], 'type' => 'external'];
+}
+$sgServerMeta = [];
+foreach ($availableServers ?? [] as $s) {
+    $sgServerMeta[$s['Server']['id']] = ['url' => $s['Server']['url']];
+}
+$sgConfig['orgMeta']    = (object)$sgOrgMeta;
+$sgConfig['serverMeta'] = (object)$sgServerMeta;
+?>
+<script type="application/json" id="sharingGroupFormConfig">
+<?= json_encode($sgConfig, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>

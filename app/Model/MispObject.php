@@ -111,6 +111,7 @@ class MispObject extends AppModel
         'description' => array(
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty'),
+                'allowEmpty' => true,
                 'on' => 'create'
             ),
         ),
@@ -325,7 +326,15 @@ class MispObject extends AppModel
                 $attribute_to_delete['Attribute']['deleted'] = 1;
                 unset($attribute_to_delete['Attribute']['timestamp']);
             }
-            $this->Attribute->saveMany($attributes_to_delete);
+            if (!$this->Attribute->saveMany($attributes_to_delete) && !empty($attributes_to_delete)) {
+                $this->log(
+                    sprintf(
+                        'Could not cascade delete to all Attributes of Object %s: some attributes may remain visible (not deleted).',
+                        $this->id
+                    ),
+                    LOG_WARNING
+                );
+            }
         }
         $workflowErrors = [];
         $logging = [
@@ -398,10 +407,14 @@ class MispObject extends AppModel
      * @param int $eventId
      * @param int $duplicatedObjectId
      * @param string $duplicateObjectUuid
+     * @param int|null $newCacheKey Key of the intra-batch cache entry created for this object, so
+     *                              that the caller can backfill the id/uuid assigned on save. Stays
+     *                              null when the object was itself found to be a duplicate.
      * @return bool
      */
-    private function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectId, &$duplicateObjectUuid)
+    private function checkForDuplicateObjects($object, $eventId, &$duplicatedObjectId, &$duplicateObjectUuid, &$newCacheKey = null)
     {
+        $newCacheKey = null;
         $newObjectAttributes = array();
         if (isset($object['Object']['Attribute'])) {
             $attributeArray = $object['Object']['Attribute'];
@@ -415,16 +428,23 @@ class MispObject extends AppModel
         $newObjectAttributeCount = count($newObjectAttributes);
         if (!empty($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']])) {
             foreach ($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']] as $previousNewObject) {
-                if ($newObjectAttributeCount === count($previousNewObject)) {
-                    if (empty(array_diff($previousNewObject, $newObjectAttributes))) {
-                        $duplicatedObjectId = $previousNewObject['Object']['id'];
-                        $duplicateObjectUuid = $previousNewObject['Object']['uuid'];
+                if ($newObjectAttributeCount === count($previousNewObject['attributes'])) {
+                    if (empty(array_diff($previousNewObject['attributes'], $newObjectAttributes))) {
+                        $duplicatedObjectId = $previousNewObject['id'];
+                        $duplicateObjectUuid = $previousNewObject['uuid'];
                         return true;
                     }
                 }
             }
         }
-        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = $newObjectAttributes;
+        // In-batch objects have no database id yet, and may not carry a uuid either - both are
+        // backfilled by captureObject() once the object has actually been stored.
+        $this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][] = array(
+            'attributes' => $newObjectAttributes,
+            'id' => isset($object['Object']['id']) ? $object['Object']['id'] : null,
+            'uuid' => isset($object['Object']['uuid']) ? $object['Object']['uuid'] : null,
+        );
+        $newCacheKey = array_key_last($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']]);
         if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
             $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
                 'recursive' => -1,
@@ -611,9 +631,7 @@ class MispObject extends AppModel
             $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
-                    array(
-                        '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
-                    ),
+                    $this->correlatedLookup('events', 'org_id', 'Attribute', 'event_id') . ' = ' . (int)$user['org_id'],
                     array(
                         'OR' => array(
                             'Attribute.distribution' => array(1, 2, 3, 5),
@@ -657,6 +675,11 @@ class MispObject extends AppModel
                 'contain' => array(
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        // MySQL hands an object's attributes back in
+                        // primary-key order off the object_id index without
+                        // being asked; PostgreSQL must be asked, or an edited
+                        // attribute moves to the end of the list.
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -680,6 +703,7 @@ class MispObject extends AppModel
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -787,6 +811,93 @@ class MispObject extends AppModel
     }
 
     /**
+     * The display order an object's fields are meant to be read in, per
+     * template.
+     *
+     * A template gives every field a `ui-priority`, and the highest is what
+     * the object leads with — a file object opens on its hashes and its
+     * filename, not on `access-time` because "a" sorts first. Ties keep the
+     * order the definition file lists them in (the order they were imported
+     * in), which is more faithful than falling back to the alphabet.
+     *
+     * The object's own `template_version` is deliberately not matched
+     * against: objects routinely predate the installed revision (a v7 `file`
+     * object against the v25 template), and insisting on the exact revision
+     * would mean no order at all rather than a slightly dated one. Where an
+     * instance holds several revisions of one uuid, the newest wins.
+     *
+     * @param array $templateUuids Object.template_uuid values
+     * @return array template_uuid => [object_relation => rank], lowest first
+     */
+    public function fieldOrderByTemplate(array $templateUuids)
+    {
+        $templateUuids = array_values(array_unique(array_filter($templateUuids)));
+        if (empty($templateUuids)) {
+            return array();
+        }
+
+        $templates = $this->ObjectTemplate->find('all', array(
+            'conditions' => array('ObjectTemplate.uuid' => $templateUuids),
+            'fields' => array(
+                'ObjectTemplate.id',
+                'ObjectTemplate.uuid',
+                'ObjectTemplate.version',
+            ),
+            'recursive' => -1,
+            // Ascending, so the last row written into the map is the newest.
+            'order' => array('ObjectTemplate.version' => 'ASC'),
+        ));
+        if (empty($templates)) {
+            return array();
+        }
+
+        $templateIdByUuid = array();
+        foreach ($templates as $template) {
+            $templateIdByUuid[$template['ObjectTemplate']['uuid']] =
+                $template['ObjectTemplate']['id'];
+        }
+        $uuidByTemplateId = array_flip($templateIdByUuid);
+
+        $elements = $this->ObjectTemplate->ObjectTemplateElement->find('all', array(
+            'conditions' => array(
+                'ObjectTemplateElement.object_template_id' =>
+                    array_values($templateIdByUuid),
+            ),
+            'fields' => array(
+                'ObjectTemplateElement.object_template_id',
+                'ObjectTemplateElement.object_relation',
+                'ObjectTemplateElement.ui-priority',
+            ),
+            'recursive' => -1,
+            'order' => array(
+                'ObjectTemplateElement.ui-priority' => 'DESC',
+                'ObjectTemplateElement.id' => 'ASC',
+            ),
+        ));
+
+        $order = array();
+        foreach ($elements as $element) {
+            $row = $element['ObjectTemplateElement'];
+            $uuid = isset($uuidByTemplateId[$row['object_template_id']])
+                ? $uuidByTemplateId[$row['object_template_id']] : null;
+            if ($uuid === null || $row['object_relation'] === null) {
+                continue;
+            }
+            if (!isset($order[$uuid])) {
+                $order[$uuid] = array();
+            }
+            // A relation is listed once per template; the guard is for the
+            // rare template that repeats one, where the first (highest
+            // priority) mention is the one that decides.
+            if (!isset($order[$uuid][$row['object_relation']])) {
+                $order[$uuid][$row['object_relation']] = count($order[$uuid]);
+            }
+        }
+
+        return $order;
+    }
+
+    /**
      * Prepare the template form view's data, setting defaults, sorting elements
      * @param array $template
      * @param array $request
@@ -846,6 +957,10 @@ class MispObject extends AppModel
                             }
                         }
                         $v['disable_correlation'] = $request_item['disable_correlation'];
+                        if (isset($request_item['distribution'])) {
+                            $v['distribution'] = $request_item['distribution'];
+                            $v['sharing_group_id'] = $request_item['sharing_group_id'] ?? 0;
+                        }
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
@@ -1121,6 +1236,7 @@ class MispObject extends AppModel
                         $newAttribute['distribution'] = $this->Event->Attribute->defaultDistribution();
                     }
                     $this->Event->Attribute->create();
+                    unset($newAttribute[$this->Event->Attribute->alias]);
                     $saveResult = $this->Event->Attribute->save($newAttribute);
                     if ($saveResult) {
                         $newAttribute['id'] = $this->Event->Attribute->id;
@@ -1143,13 +1259,13 @@ class MispObject extends AppModel
             // Set seen of object at attribute level
             if (
                 (!array_key_exists('first_seen', $newAttribute) || is_null($newAttribute['first_seen'])) &&
-                (!array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
+                (array_key_exists('first_seen', $object['Object']) && !is_null($object['Object']['first_seen']))
             ) {
                 $newAttribute['first_seen'] = $object['Object']['first_seen'];
             }
             if (
                 (!array_key_exists('last_seen', $newAttribute) || is_null($newAttribute['last_seen'])) &&
-                (!array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
+                (array_key_exists('last_seen', $object['Object']) && !is_null($object['Object']['last_seen']))
             ) {
                 $newAttribute['last_seen'] = $object['Object']['last_seen'];
             }
@@ -1175,10 +1291,11 @@ class MispObject extends AppModel
         if (!isset($object['Object'])) {
             $object = array('Object' => $object);
         }
+        $duplicationCheckCacheKey = null;
         if (!empty($object['Object']['breakOnDuplicate']) || $breakOnDuplicate) {
             $duplicatedObjectId = null;
             $duplicateObjectUuid = null;
-            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid);
+            $duplicate = $this->checkForDuplicateObjects($object, $eventId, $duplicatedObjectId, $duplicateObjectUuid, $duplicationCheckCacheKey);
             if ($duplicate) {
                 $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
                     __('Object dropped due to it being a duplicate (ID: %s, UUID: %s) and breakOnDuplicate being requested for Event %s', $duplicatedObjectId, $duplicateObjectUuid, $eventId),
@@ -1190,6 +1307,10 @@ class MispObject extends AppModel
         unset($object['Object']['id']);
         $object['Object']['event_id'] = $eventId;
         if (!$this->save($object)) {
+            // The object never made it into the database, so it must not stand in as the original
+            // for later duplicates in the same batch - they would be dropped in favour of an object
+            // that does not exist, and logged against an empty ID/UUID.
+            $this->forgetDuplicationCheckCacheEntry($object, $duplicationCheckCacheKey);
             $this->loadLog()->createLogEntry($user, 'add', 'Object', 0,
                 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
                 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($object)
@@ -1216,8 +1337,29 @@ class MispObject extends AppModel
             ]);
             $object['Object']['uuid'] = $t['Object']['uuid'];
         }
+        if ($duplicationCheckCacheKey !== null) {
+            $templateUuid = $object['Object']['template_uuid'];
+            $this->__objectDuplicationCheckCache['new'][$templateUuid][$duplicationCheckCacheKey]['id'] = $objectId;
+            $this->__objectDuplicationCheckCache['new'][$templateUuid][$duplicationCheckCacheKey]['uuid'] = $object['Object']['uuid'];
+        }
         $this->Event->captureAnalystData($user, $object['Object'], 'Object', $object['Object']['uuid']);
         return true;
+    }
+
+    /**
+     * Drop an intra-batch duplication check cache entry that was registered by
+     * checkForDuplicateObjects() for an object that subsequently failed to save.
+     *
+     * @param array $object
+     * @param int|null $cacheKey
+     * @return void
+     */
+    private function forgetDuplicationCheckCacheEntry($object, $cacheKey)
+    {
+        if ($cacheKey === null || !isset($object['Object']['template_uuid'])) {
+            return;
+        }
+        unset($this->__objectDuplicationCheckCache['new'][$object['Object']['template_uuid']][$cacheKey]);
     }
 
     public function editObject($object, array $event, $user, $log, $force = false, &$nothingToChange = false, $server = null)
@@ -1286,6 +1428,7 @@ class MispObject extends AppModel
         $object['id'] = $existingObject['Object']['id'];
         $object['uuid'] = $existingObject['Object']['uuid'];
         $object['event_id'] = $eventId;
+        unset($object[$this->alias]);
         if ($object['distribution'] == 4) {
             $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
         }
@@ -1757,7 +1900,11 @@ class MispObject extends AppModel
             $params['page'] = 1;
         }
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 
@@ -1766,7 +1913,6 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $this->Allowedlist = ClassRegistry::init('Allowedlist');
             $results = $this->fetchObjects($user, $params, $continue);
             if (empty($results)) {
                 $loop = false;
@@ -1780,9 +1926,6 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            foreach ($results as $k => $result) {
-                $results[$k]['Attribute'] = $this->Allowedlist->removeAllowedlistedFromArray($result['Attribute'], true);
-            }
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

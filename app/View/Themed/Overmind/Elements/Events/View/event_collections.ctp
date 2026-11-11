@@ -3,6 +3,9 @@ $eventUuid = h($data['Event']['uuid'] ?? '');
 $uid       = 'evt-collections-' . h($data['Event']['id'] ?? '');
 $fetchUrl  = h($baseurl . '/collections/getCollectionsForElement/Event/' . $eventUuid . '.json');
 $viewBase  = h($baseurl . '/collections/view/');
+// The picker modal — an existing collection, or a new one carrying this event as its attach target.
+$addUrl    = h($baseurl . '/collectionElements/addElementToCollection/Event/' . $eventUuid);
+$mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
 ?>
 
 <div class="card shadow-sm mb-3" id="collections-card">
@@ -19,6 +22,16 @@ $viewBase  = h($baseurl . '/collections/view/');
                 <div class="small text-muted mt-1"
                      id="<?= $uid ?>-count">…</div>
             </div>
+
+            <?php if ($mayAdd): ?>
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                    data-tour="event-collections-add"
+                    onclick="openModal('<?= $addUrl ?>', 'xl')"
+                    title="<?= __('Add this event to a collection') ?>">
+                <i class="fas fa-plus"></i>
+            </button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -63,9 +76,11 @@ $viewBase  = h($baseurl . '/collections/view/');
 
             if (total === 0) {
                 bodyEl.innerHTML =
-                    '<div class="text-center text-muted py-4 small">'
-                    + '<i class="fas fa-folder me-2"></i>'
+                    '<div class="d-flex flex-column align-items-center justify-content-center text-muted py-4">'
+                    + '<i class="fas fa-folder fa-2x mb-2 opacity-50"></i>'
+                    + '<p class="mb-0 small fw-semibold">'
                     + <?= json_encode(__('This event is not part of any collection.')) ?>
+                    + '</p>'
                     + '</div>';
                 return;
             }

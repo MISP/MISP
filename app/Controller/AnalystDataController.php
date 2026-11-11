@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('AnalystData', 'Model');
 
 class AnalystDataController extends AppController
 {
@@ -373,8 +374,42 @@ class AnalystDataController extends AppController
         if ($overmind && $isAjax) {
             $this->layout = false;
         }
+        if ($overmind) {
+            $this->__setTargetExistence($this->viewVars['data'] ?? []);
+        }
         $this->_setViewElements();
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
+    }
+
+    /**
+     * Tell the index which of the rendered targets still resolve, so a UUID
+     * pointing at something this instance no longer holds is rendered as text
+     * instead of a link into a "not found" page.
+     *
+     * @param array $rows the page of analyst data about to be rendered
+     */
+    private function __setTargetExistence(array $rows)
+    {
+        $model = $this->modelSelection;
+        $pairs = [
+            ['object_type', 'object_uuid'],
+            ['related_object_type', 'related_object_uuid'],
+        ];
+        $targets = [];
+        foreach ($rows as $row) {
+            foreach ($pairs as list($typeKey, $uuidKey)) {
+                if (!empty($row[$model][$uuidKey])) {
+                    $targets[] = [
+                        'type' => $row[$model][$typeKey] ?? '',
+                        'uuid' => $row[$model][$uuidKey],
+                    ];
+                }
+            }
+        }
+        $this->set(
+            'analystTargetExists',
+            $this->AnalystData->existingTargets($this->Auth->user(), $targets)
+        );
     }
 
     /**
@@ -408,6 +443,12 @@ class AnalystDataController extends AppController
      */
     public function viewForObject($object_type, $object_uuid)
     {
+        // The type never selects a model here, it is only matched and rendered,
+        // so anything outside the parent types analyst data can hang off is a
+        // malformed request rather than a lookup that finds nothing.
+        if (!in_array($object_type, AnalystData::valid_targets, true)) {
+            throw new NotFoundException(__('Invalid object type.'));
+        }
         $user = $this->Auth->user();
         $analystData = ['Note' => [], 'Opinion' => [], 'Relationship' => [], 'RelationshipInbound' => []];
         foreach (['Note', 'Opinion', 'Relationship'] as $type) {
@@ -477,7 +518,15 @@ class AnalystDataController extends AppController
                 $orgcNames = [$orgcNames];
             }
             $filterName = 'orgc_uuid';
+            // Track whether an OR-rule (allow-list) was supplied separately from
+            // whether it resolved: a NOT-rule against an org that doesn't exist
+            // locally should impose no restriction, not exclude everything. Only
+            // "caller asked for specific orgs, none exist" should return nothing.
+            $hasOrRule = false;
             foreach ($orgcNames as $orgcName) {
+                if (!is_string($orgcName) || $orgcName === '') {
+                    continue;
+                }
                 if ($orgcName[0] === '!') {
                     $orgc = $this->AnalystData->Orgc->fetchOrg(substr($orgcName, 1));
                     if ($orgc === false) {
@@ -485,6 +534,7 @@ class AnalystDataController extends AppController
                     }
                     $options[]['AND'][] = ["{$filterName} !=" => $orgc['uuid']];
                 } else {
+                    $hasOrRule = true;
                     $orgc = $this->AnalystData->Orgc->fetchOrg($orgcName);
                     if ($orgc === false) {
                         continue;
@@ -493,7 +543,7 @@ class AnalystDataController extends AppController
                 }
             }
 
-            if (empty($options)) {
+            if ($hasOrRule && empty($options['OR'])) {
                 return $this->RestResponse->viewData([], $this->response->type());
             }
         }

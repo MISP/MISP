@@ -116,20 +116,16 @@ $fmtDay = function ($dayKey) {
                         <?php foreach ($dayEntries as $i => $e):
                             $m = $meta[$e['action'] ?? ''] ?? $fallback;
                             $label = $e['action_label'] ?? ($e['action'] ?? '');
-                            $searchBlob = strtolower(trim(implode(' ', [
-                                $e['title'] ?? '', $e['model'] ?? '', $e['action'] ?? '',
-                                $label, $e['user'] ?? '', $e['org'] ?? '',
-                            ])));
                             $collapseId = $uid . '-c-' . h($dayKey) . '-' . $i;
                             $collapseId = preg_replace('/[^A-Za-z0-9_-]/', '', $collapseId);
                         ?>
-                            <div class="tl-entry" data-search="<?= h($searchBlob) ?>">
+                            <div class="tl-entry">
                                 <div class="tl-dot" style="color:<?= h($m['color']) ?>;background:<?= h($m['bg']) ?>;"></div>
 
                                 <div class="d-flex align-items-start gap-2 flex-wrap">
                                     <span class="text-muted flex-shrink-0 mt-1"
                                           style="font-size:.72rem;min-width:2.8rem;"><?= h($fmtTime($e['created'] ?? '')) ?></span>
-                                    <div style = "width:5.5rem;">
+                                    <div style = "width:8.5rem;">
                                         <span class="badge flex-shrink-0 mt-1"
                                             style="display:inline-block;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:<?= h($m['bg']) ?>;color:<?= h($m['color']) ?>;font-size:.68rem;border:1px solid <?= h($m['color']) ?>33;"
                                             title="<?= h($label) ?>">

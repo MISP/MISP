@@ -22,41 +22,6 @@ class Job extends AppModel
         WORKER_CACHE = 'cache',
         WORKER_UPDATE = 'update';
 
-    // private function __jobStatusConverter($status)
-    // {
-    //     switch ($status) {
-    //         case "1":
-    //             return 'Waiting';
-    //         case "2":
-    //             return 'Running';
-    //         case "3":
-    //             return 'Failed';
-    //         case "4":
-    //             return 'Completed';
-    //         default:
-    //             return 'Unknown';
-    //     }
-    // }
-
-    // public function afterFind($results, $primary = false)
-    // {
-    //     foreach ($results as $k => $result) {
-    //         if (!empty($result['Job'])) {
-    //             if (!empty($result['Job']['process_id'])) {
-    //                 if (!Configure::read('SimpleBackgroundJobs.enabled')) {
-    //                     $status = CakeResque::getJobStatus($result['Job']['process_id']);
-    //                 } else {
-    //                     $job = $this->getBackgroundJobsTool()->getJob($result['Job']['process_id']);
-    //                     $status = $job ? $job->status() : null;
-    //                 }
-    //                 $results[$k]['Job']['status_text'] = $this->__jobStatusConverter($status);
-    //                 $results[$k]['Job']['failed'] = $status === self::STATUS_FAILED;
-    //             }
-    //         }
-    //     }
-    //     return $results;
-    // }
-
     public $belongsTo = array(
         'Org' => array(
             'className' => 'Organisation',

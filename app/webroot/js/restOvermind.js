@@ -21,6 +21,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     populateRestHistory('bookmark');
     populateRestHistory('history');
+
+    // Keep the tooltip open while the pointer is inside it, so the user can
+    // read (and select) a long API description without it slipping away.
+    const tooltip = document.getElementById('api-tooltip');
+    if (tooltip) {
+        tooltip.addEventListener('mouseenter', () => {
+            isHoveringTooltip = true;
+            clearTimeout(hoverTimeout);
+        });
+        tooltip.addEventListener('mouseleave', () => {
+            isHoveringTooltip = false;
+            scheduleHideTooltip();
+        });
+    }
 });
 
 
@@ -367,6 +381,9 @@ function applyQuery(element) {
     const descriptionBox = document.getElementById('template_description');
     if (bodyTextarea) {
         bodyTextarea.value = data['body'] || '';
+        // The body is a json_field: it reads the box on `input`, and an
+        // assignment fires none.
+        bodyTextarea.dispatchEvent(new Event('input', { bubbles: true }));
         if (descriptionBox) descriptionBox.style.display = 'none';
     }
 
@@ -436,6 +453,7 @@ function applyTemplate(element) {
         if (shouldReplace) {
             bodyTextarea.value = formattedBody;
             bodyTextarea.dataset.lastTemplate = url;
+            bodyTextarea.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         if (descriptionBox) descriptionBox.style.display = 'block';

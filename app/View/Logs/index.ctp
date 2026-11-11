@@ -103,7 +103,9 @@
             ],
             'fields' => $fields,
             'title' => __('Application Logs'),
-            'persistUrlParams' => $paramArray
+            // Persist the active quick filter (filter:<name>) across pagination
+            // and sort links, otherwise the next page drops it (#10687).
+            'persistUrlParams' => array_merge($paramArray, ['filter'])
         ],
         'passedArgsArray' => $passedArgsArray,
     ]);

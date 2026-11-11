@@ -10,17 +10,27 @@
  */
 $value  = Hash::get($row, $field['data_path']);
 $isCard = isset($viewMode) && $viewMode === 'card';
-$label  = ($isCard && !empty($field['name']))
-    ? '<span class="text-muted small me-1">' . h($field['name']) . ':</span>'
-    : '';
-
-if (empty($value)) {
-    echo $label . '<span class="text-muted">' . h($field['empty'] ?? __('N/A')) . '</span>';
-    return;
-}
 
 $formatted = is_numeric($value)
     ? date('Y-m-d H:i:s', (int)$value)
     : $value;
+?>
 
-echo $label . '<span>' . h($formatted) . '</span>';
+<?php if ($isCard && !empty($field['name'])): ?>
+    <div class="d-flex flex-column gap-1">
+        <span class="text-muted small me-1">
+            <?= h($field['name']) ?>
+        </span>
+        <?php if (empty($value)): ?>
+            <span class="text-muted"> <?= h($field['empty'] ?? __('N/A')) ?> </span>
+        <?php else: ?>
+            <span class="fw-semibold"> <?= h($formatted) ?> </span>
+        <?php endif; ?>
+    </div>
+<?php else: ?>
+    <?php if (empty($value)): ?>
+        <span class="text-muted"><?= h($field['empty'] ?? __('N/A')) ?></span>
+    <?php else: ?>
+        <span><?= h($formatted) ?></span>
+    <?php endif; ?>
+<?php endif; ?>

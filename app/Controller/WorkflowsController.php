@@ -13,7 +13,12 @@ class WorkflowsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'checkGraph';
-        $this->Security->unlockedActions[] = 'moduleStatelessExecution';
+        // moduleStatelessExecution runs a module's exec() with caller-supplied
+        // input and parameters, so it keeps the CSRF check: unlockedActions
+        // would drop that as well as the field hash, and the module dialog
+        // posts a hand-built object that can never produce a field hash. The
+        // dialog sends the token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['moduleStatelessExecution']);
         $requirementErrors = [];
         if (empty(Configure::read('MISP.background_jobs'))) {
             $requirementErrors[] = __('Background workers must be enabled to use workflows');
@@ -42,12 +47,113 @@ class WorkflowsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        if ($this->theme === 'Overmind') {
+            if (!empty($this->viewVars['requirementErrors'])) {
+                return $this->render('error');
+            }
+            $this->__setHubStats();
+        }
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'index'));
+    }
+
+    /**
+     * __setHubStats Collect the counters powering the Overmind workflow hub.
+     *
+     */
+    private function __setHubStats()
+    {
+        $countEnabled = function (array $items) {
+            return count(array_filter($items, function ($item) {
+                return empty($item['disabled']);
+            }));
+        };
+
+        $modules = $this->Workflow->getModulesByType();
+        $coreTriggers = $this->Workflow->attachWorkflowToTriggers(array_values(array_filter(
+            $modules['modules_trigger'],
+            function ($trigger) {
+                return empty($trigger['is_adhoc']);
+            }
+        )));
+        $adhocTriggers = array_values(array_filter($modules['modules_trigger'], function ($trigger) {
+            return !empty($trigger['is_adhoc']);
+        }));
+
+        $this->set('hubTriggers', [
+            'total' => count($coreTriggers),
+            'enabled' => $countEnabled($coreTriggers),
+            'attached' => count(array_filter($coreTriggers, function ($trigger) {
+                return !empty($trigger['Workflow']);
+            })),
+            'blocking' => count(array_filter($coreTriggers, function ($trigger) {
+                return !empty($trigger['blocking']);
+            })),
+            'scopes' => count(array_unique(Hash::extract($coreTriggers, '{n}.scope'))),
+        ]);
+        $this->set('hubAdhoc', [
+            'total' => count($adhocTriggers),
+            'enabled' => $countEnabled($adhocTriggers),
+        ]);
+
+        $actionModules = $modules['modules_action'];
+        $logicModules = $modules['modules_logic'];
+        $allModules = array_merge($actionModules, $logicModules);
+        $this->Module = ClassRegistry::init('Module');
+        $this->set('hubModules', [
+            'total' => count($allModules),
+            'enabled' => $countEnabled($allModules),
+            'action' => count($actionModules),
+            'logic' => count($logicModules),
+            'misp_module' => count(array_filter($actionModules, function ($module) {
+                return !empty($module['is_misp_module']);
+            })),
+            'custom' => count(array_filter($allModules, function ($module) {
+                return !empty($module['is_custom']);
+            })),
+            'service_error' => !is_array($this->Module->getModules('Action')),
+            'loading_errors' => count($this->Workflow->getModuleLoadingError()),
+        ]);
+
+        $this->loadModel('WorkflowBlueprint');
+        // Two counts rather than SUM(flag): the flag is boolean on PostgreSQL,
+        // which has no SUM over booleans, and a typed condition renders on both.
+        $this->set('hubBlueprints', [
+            'total' => (int)$this->WorkflowBlueprint->find('count', ['callbacks' => false]),
+            'default' => (int)$this->WorkflowBlueprint->find('count', [
+                'conditions' => ['WorkflowBlueprint.default' => true],
+                'callbacks' => false,
+            ]),
+        ]);
+
+        $totals = $this->Workflow->find('first', [
+            'recursive' => -1,
+            'fields' => [
+                'COUNT(*) AS total',
+                'SUM(Workflow.counter) AS runs',
+            ],
+            'callbacks' => false,
+        ]);
+        $debugging = $this->Workflow->find('count', [
+            'conditions' => ['Workflow.debug_enabled' => true],
+            'callbacks' => false,
+        ]);
+        $this->set('hubWorkflows', [
+            'total' => (int)($totals[0]['total'] ?? 0),
+            'runs' => (int)($totals[0]['runs'] ?? 0),
+            'debugging' => (int)$debugging,
+        ]);
     }
 
     public function rebuildRedis()
     {
+        $this->request->allowMethod(['post']);
         $this->Workflow->rebuildRedis();
+        $message = __('Workflow Redis cache rebuilt.');
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Workflow', 'rebuildRedis', false, $this->response->type(), $message);
+        }
+        $this->Flash->success($message);
+        $this->redirect(['controller' => 'workflows', 'action' => 'index']);
     }
 
     public function add()
@@ -65,7 +171,14 @@ class WorkflowsController extends AppController
                 $redirectTarget = null;
                 return $this->__getFailResponseBasedOnContext($result['errors'], null, 'edit', $this->Workflow->id, $redirectTarget);
             } else {
-                $redirectTarget = ['action' => 'view', $result['saved']['Workflow']['id']];
+                /*
+                 * A workflow added from the UI carries no graph, so addWorkflow()
+                 * gave it a generated ad-hoc trigger. Send the user back to the
+                 * ad-hoc index they came from rather than to the legacy view.
+                 */
+                $redirectTarget = $this->theme === 'Overmind'
+                    ? ['action' => 'adhoc']
+                    : ['action' => 'view', $result['saved']['Workflow']['id']];
                 $successMessage = __('Workflow saved.');
                 $savedWorkflow = $result['saved'];
                 $savedWorkflow = $this->Workflow->attachLabelToConnections($savedWorkflow);
@@ -74,6 +187,9 @@ class WorkflowsController extends AppController
         }
 
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'add']);
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
     }
 
     public function edit($id)
@@ -85,7 +201,9 @@ class WorkflowsController extends AppController
             $newWorkflow['Workflow']['data'] = JsonTool::decode($newWorkflow['Workflow']['data']);
             $newWorkflow = $this->__applyDataFromSavedWorkflow($newWorkflow, $savedWorkflow);
             $result = $this->Workflow->editWorkflow($newWorkflow);
-            $redirectTarget = ['action' => 'view', $id];
+            $redirectTarget = $this->theme === 'Overmind'
+                ? $this->referer(['action' => 'index'])
+                : ['action' => 'view', $id];
             if (!empty($result['errors'])) {
                 return $this->__getFailResponseBasedOnContext($result['errors'], null, 'edit', $this->Workflow->id, $redirectTarget);
             } else {
@@ -100,6 +218,9 @@ class WorkflowsController extends AppController
         }
 
         $this->set('menuData', array('menuList' => 'workflows', 'menuItem' => 'edit'));
+        if ($this->theme === 'Overmind') {
+            $this->layout = false;
+        }
         $this->render('add');
     }
 
@@ -111,6 +232,22 @@ class WorkflowsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function deleteSelection($id = null)
+    {
+        return $this->CRUD->deleteSelection($id, [
+            'modelName' => 'Workflow',
+            'restName' => 'Workflows',
+            'itemName' => 'workflow',
+            'view' => 'ajax/workflowDeleteConfirmationForm',
+            'checkModifyCallback' => function () {
+                return $this->userRole['perm_site_admin'];
+            },
+            'multiSuccessMessageCallback' => function ($count) {
+                return __n('%s workflow deleted.', '%s workflows deleted.', $count, $count);
+            }
+        ]);
     }
 
     public function view($id)
@@ -230,7 +367,9 @@ class WorkflowsController extends AppController
                 } else {
                     $this->Flash->success('Workflow successfully executed.');
                 }
-                $this->redirect(['scope' => 'workflows', 'action' => 'adhoc']);
+                // 'scope' was never a routing key: it leaked through as a named
+                // param, landing the user on /workflows/adhoc/scope:workflows.
+                $this->redirect($this->__moduleViewReturn(['action' => 'adhoc']));
             }
         }
         $this->render('ajax/executeWorkflow');
@@ -245,13 +384,37 @@ class WorkflowsController extends AppController
         });
         $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
         $triggers = $this->Workflow->attachTriggerParamsToWorkflow($triggers);
-        $scopes = array_unique(Hash::extract($triggers, '{n}.scope'));
-        sort($scopes);
-        if (isset($filters['enabled'])) {
-            $triggers = array_filter($triggers, function($trigger) use ($filters) {
-                return $trigger['disabled'] != $filters['enabled'];
+
+        /*
+         * Data input scopes are read off the trigger node of each graph, so the
+         * list is only as complete as the workflows that have been configured —
+         * collect it before filtering so the dropdown does not shrink as the
+         * user narrows the index down.
+         */
+        $dataInputScopes = array_values(array_filter(array_unique(
+            Hash::extract(array_values($triggers), '{n}.trigger_scope')
+        )));
+        sort($dataInputScopes);
+
+        $filters = $this->IndexFilter->harvestParameters(['enabled', 'trigger_scope', 'quickFilter']);
+        if (!empty($filters['quickFilter'])) {
+            $needle = mb_strtolower($filters['quickFilter']);
+            $triggers = array_filter($triggers, function ($trigger) use ($needle) {
+                return mb_strpos(mb_strtolower((string)Hash::get($trigger, 'Workflow.name')), $needle) !== false;
             });
         }
+        if (isset($filters['enabled']) && $filters['enabled'] !== '') {
+            $wantEnabled = !empty($filters['enabled']);
+            $triggers = array_filter($triggers, function ($trigger) use ($wantEnabled) {
+                return empty($trigger['disabled']) === $wantEnabled;
+            });
+        }
+        if (!empty($filters['trigger_scope'])) {
+            $triggers = array_filter($triggers, function ($trigger) use ($filters) {
+                return (string)Hash::get($trigger, 'trigger_scope') === $filters['trigger_scope'];
+            });
+        }
+
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $customPagination->truncateAndPaginate($triggers, $this->params, 'Workflow', true);
@@ -259,7 +422,15 @@ class WorkflowsController extends AppController
             return $this->RestResponse->viewData($triggers, $this->response->type());
         }
 
+        if ($this->theme === 'Overmind') {
+            foreach ($triggers as $i => $trigger) {
+                $triggers[$i]['enabled'] = empty($trigger['disabled']);
+            }
+        }
+
         $this->set('data', $triggers);
+        $this->set('dataInputScopes', $dataInputScopes);
+        $this->set('filters', $filters);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_adhoc']);
     }
 
@@ -267,12 +438,20 @@ class WorkflowsController extends AppController
     {
         $triggers = $this->Workflow->getModulesByType('trigger');
         $triggers = $this->Workflow->attachWorkflowToTriggers($triggers);
-        $scopes = array_unique(Hash::extract($triggers, '{n}.scope'));
-        sort($scopes);
         $triggers = array_filter($triggers, function($trigger) {
             return empty($trigger['is_adhoc']);
         });
-        $filters = $this->IndexFilter->harvestParameters(['scope', 'enabled', 'blocking']);
+        // Scopes are collected after the ad-hoc triggers are dropped: 'adhoc' is
+        // never reachable here, so offering it as a filter yields an empty page.
+        $scopes = array_unique(Hash::extract(array_values($triggers), '{n}.scope'));
+        sort($scopes);
+        $filters = $this->IndexFilter->harvestParameters(['scope', 'enabled', 'blocking', 'quickFilter']);
+        if (!empty($filters['quickFilter'])) {
+            $needle = mb_strtolower($filters['quickFilter']);
+            $triggers = array_filter($triggers, function ($trigger) use ($needle) {
+                return mb_strpos(mb_strtolower($trigger['name']), $needle) !== false;
+            });
+        }
         if (!empty($filters['scope'])) {
             $triggers = array_filter($triggers, function($trigger) use ($filters) {
                 return $trigger['scope'] === $filters['scope'];
@@ -295,10 +474,89 @@ class WorkflowsController extends AppController
             return $this->RestResponse->viewData($triggers, $this->response->type());
         }
 
+        if ($this->theme === 'Overmind') {
+            foreach ($triggers as $i => $trigger) {
+                $triggers[$i]['enabled'] = empty($trigger['disabled']);
+            }
+        }
+
         $this->set('data', $triggers);
         $this->set('scopes', $scopes);
         $this->set('filters', $filters);
         $this->set('menuData', ['menuList' => 'workflows', 'menuItem' => 'index_trigger']);
+    }
+
+    /**
+     * massToggleTrigger Enable or disable several triggers at once.
+     *
+     * @param string $enabled target state, '1' or '0'
+     * @param string $idList JSON array of trigger ids
+     */
+    public function massToggleTrigger($enabled, $idList = null)
+    {
+        return $this->__massToggle($enabled, $idList, true);
+    }
+
+    /**
+     * massToggleModule Enable or disable several action/logic modules at once.
+     *
+     * @param string $enabled target state, '1' or '0'
+     * @param string $idList JSON array of module ids
+     */
+    public function massToggleModule($enabled, $idList = null)
+    {
+        return $this->__massToggle($enabled, $idList, false);
+    }
+
+    /**
+     * __massToggle Shared body of the two mass-toggle endpoints.
+     *
+     *
+     * @param string $enabled target state, '1' or '0'
+     * @param string $idList JSON array of ids
+     * @param bool $isTrigger toggling triggers rather than action/logic modules
+     */
+    private function __massToggle($enabled, $idList, $isTrigger)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Insufficient privileges'));
+        }
+        $enabled = !empty($enabled) && $enabled !== '0';
+        $cleanIdList = htmlspecialchars_decode(urldecode((string)$idList));
+        $ids = json_decode($cleanIdList, true);
+        if (empty($ids) || !is_array($ids)) {
+            throw new NotFoundException(__('Invalid IDs provided.'));
+        }
+
+        if ($isTrigger) {
+            $redirectAction = $this->Workflow->isAdHocTrigger($ids[0]) ? 'adhoc' : 'triggers';
+        } else {
+            $redirectAction = 'moduleIndex';
+        }
+
+        if ($this->request->is(['post', 'put'])) {
+            $count = $this->Workflow->toggleModules($ids, $enabled, $isTrigger);
+            $verb = $enabled ? __('enabled') : __('disabled');
+            $message = $isTrigger
+                ? __n('%s trigger %s.', '%s triggers %s.', $count, $count, $verb)
+                : __n('%s module %s.', '%s modules %s.', $count, $count, $verb);
+            return $this->__getSuccessResponseBasedOnContext(
+                $message,
+                null,
+                'toggle_module',
+                false,
+                ['action' => $redirectAction]
+            );
+        }
+
+        $endpoint = $isTrigger ? 'massToggleTrigger' : 'massToggleModule';
+        $this->layout = false;
+        $this->set('actionText', $enabled ? __('enable') : __('disable'));
+        $this->set('itemLabel', $isTrigger ? __('trigger') : __('module'));
+        $this->set('itemLabelPlural', $isTrigger ? __('triggers') : __('modules'));
+        $this->set('idArray', $ids);
+        $this->set('url', '/workflows/' . $endpoint . '/' . ($enabled ? '1' : '0') . '/' . urlencode($cleanIdList));
+        $this->render('ajax/massToggleConfirmationForm');
     }
 
     public function moduleIndex()
@@ -308,8 +566,12 @@ class WorkflowsController extends AppController
         $this->Module = ClassRegistry::init('Module');
         $mispModules = $this->Module->getModules('Action');
         $this->set('module_service_error', !is_array($mispModules));
-        $filters = $this->IndexFilter->harvestParameters(['type', 'actiontype', 'enabled']);
-        $moduleType = $filters['type'] ?? 'action';
+        $filters = $this->IndexFilter->harvestParameters(['type', 'actiontype', 'enabled', 'quickFilter']);
+        if ($this->theme === 'Overmind') {
+            $moduleType = $filters['type'] ?? 'all';
+        } else {
+            $moduleType = $filters['type'] ?? 'action';
+        }
         $actionType = $filters['actiontype'] ?? 'all';
         $enabledState = $filters['enabled'] ?? false;
         if ($moduleType == 'all' || $moduleType == 'custom') {
@@ -339,6 +601,13 @@ class WorkflowsController extends AppController
                 return !empty($enabledState) ? empty($module['disabled']) : !empty($module['disabled']);
             });
         }
+        // Searchbar for Overmind index
+        if (!empty($filters['quickFilter'])) {
+            $needle = mb_strtolower($filters['quickFilter']);
+            $data = array_filter($data, function ($module) use ($needle) {
+                return mb_strpos(mb_strtolower((string)$module['name']), $needle) !== false;
+            });
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, $this->response->type());
         }
@@ -348,7 +617,13 @@ class WorkflowsController extends AppController
         $params = $customPagination->applyRulesOnArray($data, $params, 'Workflow');
         $params['options'] = array_merge($params['options'], $filters);
         $this->params['paging'] = [$this->modelClass => $params];
+        if ($this->theme === 'Overmind') {
+            foreach ($data as $i => $module) {
+                $data[$i]['enabled'] = empty($module['disabled']);
+            }
+        }
         $this->set('data', $data);
+        $this->set('filters', $filters);
         $this->set('indexType', $moduleType);
         $this->set('actionType', $actionType);
         $this->set('errorWhileLoading', $errorWhileLoading);
@@ -369,6 +644,19 @@ class WorkflowsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($module, $this->response->type());
         }
+        if ($this->theme === 'Overmind') {
+            $module['enabled'] = empty($module['disabled']);
+            $module['is_adhoc'] = !empty($module['is_adhoc']);
+            if ($is_trigger) {
+                $module = $this->Workflow->attachTriggerParamsToWorkflow([$module])[0];
+                $listening = empty($module['listening_workflows']) ? [] : $this->Workflow->find('all', [
+                    'conditions' => ['Workflow.id' => $module['listening_workflows']],
+                    'fields' => ['Workflow.id', 'Workflow.name', 'Workflow.trigger_id'],
+                    'recursive' => -1,
+                ]);
+                $module['listening_workflows'] = Hash::combine($listening, '{n}.Workflow.id', '{n}.Workflow.name');
+            }
+        }
         if (!isset($module['Workflow']))
             $module['Workflow'] = ['counter' => false, 'id' => false];
         $this->set('data', $module);
@@ -380,13 +668,16 @@ class WorkflowsController extends AppController
         $this->request->allowMethod(['post', 'put']);
         $saved = $this->Workflow->toggleModule($module_id, $enabled, $is_trigger);
         $is_adhoc_workflow = $this->Workflow->isAdHocTrigger($module_id);
+        $redirect = $this->__moduleViewReturn(
+            ['action' => (!empty($is_trigger) ? ($is_adhoc_workflow ? 'adhoc' : 'triggers') : 'moduleIndex')]
+        );
         if ($saved) {
             return $this->__getSuccessResponseBasedOnContext(
                 __('%s module %s', ($enabled ? 'Enabled' : 'Disabled'), $module_id),
                 null,
                 'toggle_module',
                 $module_id,
-                ['action' => (!empty($is_trigger) ? ($is_adhoc_workflow ? 'adhoc' : 'triggers') : 'moduleIndex')]
+                $redirect
             );
         } else {
             return $this->__getFailResponseBasedOnContext(
@@ -394,9 +685,57 @@ class WorkflowsController extends AppController
                 null,
                 'toggle_module',
                 $module_id,
-                ['action' => (!empty($is_trigger) ? ($is_adhoc_workflow ? 'adhoc' : 'triggers') : 'moduleIndex')]
+                $redirect
             );
         }
+    }
+
+    /**
+     * toggleDebugMode Turn a workflow's debug mode on or off.
+     *
+     *
+     * @param int $workflow_id
+     * @param string $enabled target state, '1' or '0'
+     */
+    public function toggleDebugMode($workflow_id, $enabled)
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException(__('Insufficient privileges'));
+        }
+        $workflow = $this->Workflow->fetchWorkflow($workflow_id);
+        if (empty($workflow)) {
+            throw new NotFoundException(__('Invalid workflow'));
+        }
+        $enabled = !empty($enabled) && $enabled !== '0';
+        $redirect = $this->__moduleViewReturn(
+            ['action' => $this->Workflow->isAdHocTrigger($workflow['Workflow']['trigger_id']) ? 'adhoc' : 'triggers']
+        );
+
+        if ($this->request->is(['post', 'put'])) {
+            $saved = $this->Workflow->toggleDebug($workflow_id, $enabled);
+            if ($saved) {
+                return $this->__getSuccessResponseBasedOnContext(
+                    __('%s debug mode for workflow #%s.', $enabled ? __('Enabled') : __('Disabled'), $workflow_id),
+                    null,
+                    'toggle_debug',
+                    $workflow_id,
+                    $redirect
+                );
+            }
+            return $this->__getFailResponseBasedOnContext(
+                __('Could not %s debug mode.', $enabled ? __('enable') : __('disable')),
+                null,
+                'toggle_debug',
+                $workflow_id,
+                $redirect
+            );
+        }
+
+        $this->layout = false;
+        $this->set('actionText', $enabled ? __('enable') : __('disable'));
+        $this->set('workflow', $workflow);
+        $this->set('url', '/workflows/toggleDebugMode/' . $workflow_id . '/' . ($enabled ? '1' : '0'));
+        $this->render('ajax/debugToggleConfirmationForm');
     }
 
     public function debugToggleField($workflow_id, $enabled)
@@ -454,6 +793,22 @@ class WorkflowsController extends AppController
                 );
             }
         }
+    }
+
+    /**
+     * An Overmind action fired from a module view lands back on that view
+     * rather than on the index the action would otherwise redirect to.
+     */
+    private function __moduleViewReturn(array $default)
+    {
+        if ($this->theme !== 'Overmind') {
+            return $default;
+        }
+        $referer = $this->referer(null, true);
+        if (is_string($referer) && strpos($referer, '/workflows/moduleView/') === 0) {
+            return $referer;
+        }
+        return $default;
     }
 
     private function __getSuccessResponseBasedOnContext($message, $data = null, $action = '', $id = false, $redirect = array())
@@ -537,8 +892,9 @@ class WorkflowsController extends AppController
     {
         $this->request->allowMethod(['post']);
         $input_data = JsonTool::decode($this->request->data['input_data']);
-        $param_data = $this->request->data['module_indexed_param'];
-        $convert_data = $this->request->data['convert_data'];
+        // A module without parameters posts none, and the model wants an array.
+        $param_data = $this->request->data['module_indexed_param'] ?? [];
+        $convert_data = !empty($this->request->data['convert_data']);
         $result = $this->Workflow->moduleStatelessExecution($module_id, $input_data, $param_data, $convert_data);
         return $this->RestResponse->viewData($result, 'json');
     }

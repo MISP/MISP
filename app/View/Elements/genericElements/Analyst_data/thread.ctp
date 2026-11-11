@@ -3,7 +3,7 @@
     $URL_EDIT = '/analystData/edit/';
     $URL_DELETE = '/analystData/delete/';
 
-    $seed = isset($seed) ? $seed : mt_rand();
+    $seed = empty($seed) ? mt_rand() : (int)$seed;
     $injectInPage = !empty($container_id) ? true : false;
 
     $notes = !empty($notes) ? $notes : [];

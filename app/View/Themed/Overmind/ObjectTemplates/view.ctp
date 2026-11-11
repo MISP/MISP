@@ -24,7 +24,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/objectTemplateElements/viewElements/%s/all', h($data['ObjectTemplate']['id']))
+                        'ajax' => sprintf('%s/objectTemplateElements/viewElements/%s/all', $baseurl, h($data['ObjectTemplate']['id']))
                     ]
                 ],
             ]

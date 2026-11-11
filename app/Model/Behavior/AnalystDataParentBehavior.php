@@ -67,7 +67,11 @@ class AnalystDataParentBehavior extends ModelBehavior
         $data = [];
         foreach ($types as $type) {
             $this->{$type} = ClassRegistry::init($type);
-            $this->{$type}->fetchRecursive = !empty($model->includeAnalystDataRecursive);
+            // The nested path does its own depth-5 recursion below, so afterFind() must not also
+            // recurse - it would memoise the uuids in fetchedUUIDFromRecursion and make the
+            // deeper call below short-circuit. Reset explicitly: the model is a registry
+            // singleton and may still be flagged from an earlier fetch in this request.
+            $this->{$type}->fetchRecursive = false;
             $temp = $this->{$type}->fetchForUuid($object['uuid'], $this->__currentUser);
             if (!empty($temp)) {
                 foreach ($temp as $k => $temp_element) {

@@ -1,5 +1,8 @@
 <?php
 $edit = $this->request->params['action'] === 'edit' ? true : false;
+// Keep saved or submitted selections available without repeating discovery.
+$apiRoot = $this->request->data['TaxiiServer']['api_root'] ?? '';
+$collection = $this->request->data['TaxiiServer']['collection'] ?? '';
 $fields = [
     [
         'field' => 'name',
@@ -55,7 +58,7 @@ $fields = [
         'field' => 'api_root',
         'class' => 'span6',
         'type' => 'dropdown',
-        'options' => [],
+        'options' => $apiRoot !== '' ? [$apiRoot => $apiRoot] : [],
         'populateAction' => json_encode([
             'uri' => '/taxii_servers/getRoot',
             'body' => [
@@ -72,7 +75,7 @@ $fields = [
         'field' => 'collection',
         'class' => 'span6',
         'type' => 'dropdown',
-        'options' => [],
+        'options' => $collection !== '' ? [$collection => $collection] : [],
         'populateAction' => json_encode([
             'uri' => '/taxii_servers/getCollections',
             'body' => [
