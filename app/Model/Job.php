@@ -1,8 +1,16 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('CakeResque', 'Queue');
+App::uses('Configure', 'Core');
+App::uses('ClassRegistry', 'Utility');
+App::uses('BackgroundJobsTool', 'Tools');
 
 class Job extends AppModel
 {
+    public $actsAs = array(
+        'Containable'
+    );
+
     const STATUS_WAITING = 1,
         STATUS_RUNNING = 2,
         STATUS_FAILED = 3,
@@ -13,8 +21,6 @@ class Job extends AppModel
         WORKER_DEFAULT = 'default',
         WORKER_CACHE = 'cache',
         WORKER_UPDATE = 'update';
-
-    public $actsAs = array('Containable');
 
     public $belongsTo = array(
         'Org' => array(
