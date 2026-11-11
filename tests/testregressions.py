@@ -2273,5 +2273,200 @@ class GalaxyClusterCaptureUpdateGate(unittest.TestCase):
         self._accepted(self.admin, 0, 'the site admin importing')
 
 
+class GalaxyCaptureUpdateGate(unittest.TestCase):
+    """A galaxy carried by an imported cluster may change an existing non-default galaxy only for
+    a site admin, its owner organisation, or a sync user that can see it, never a default galaxy,
+    and an update never changes the galaxy's org_id, orgc_id or default flag.
+    """
+
+    FIELDS = ('name', 'description', 'distribution', 'version', 'org_id', 'orgc_id', 'default')
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.cluster_uuids = []
+        cls.galaxy_ids = []
+        cls.default_before = None
+        cls.restore_report = []
+        try:
+            editor_role = least_privileged_role(cls.admin, 'perm_galaxy_editor')
+            sync_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if (int(role['perm_sync']) and int(role['perm_galaxy_editor'])
+                        and not int(role['perm_site_admin'])):
+                    sync_role = int(role['id'])
+                    break
+            if sync_role is None:
+                raise unittest.SkipTest('no non-admin role with perm_sync and perm_galaxy_editor')
+            cls.owner_org = make_org(cls.admin, 'regression galaxy owner org')
+            cls.other_org = make_org(cls.admin, 'regression galaxy other org')
+            cls.sync_org = make_org(cls.admin, 'regression galaxy sync org')
+            cls.created_orgs = [cls.owner_org, cls.other_org, cls.sync_org]
+            users = [make_user(cls.admin, cls.owner_org.id, editor_role),
+                     make_user(cls.admin, cls.other_org.id, editor_role),
+                     make_user(cls.admin, cls.sync_org.id, sync_role)]
+            cls.created_users = users
+            cls.owner, cls.other, cls.syncer = [PyMISP(url, u.authkey) for u in users]
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _stored_galaxy(cls, galaxy_id):
+        response = cls.admin._prepare_request('GET', 'galaxies/view/%s' % galaxy_id)
+        if response.status_code != 200:
+            return None
+        return response.json()['Galaxy']
+
+    @classmethod
+    def _stored_cluster(cls, cluster_uuid):
+        response = cls.admin._prepare_request('GET', 'galaxy_clusters/view/%s' % cluster_uuid)
+        if response.status_code != 200:
+            return None
+        return response.json()['GalaxyCluster']
+
+    @classmethod
+    def _cluster_body(cls, galaxy):
+        cluster_uuid = str(uuidlib.uuid4())
+        cls.cluster_uuids.append(cluster_uuid)
+        return cluster_uuid, [{'GalaxyCluster': {
+            'uuid': cluster_uuid, 'type': galaxy['type'], 'value': 'regression %s' % random(),
+            'description': 'regression', 'version': 1, 'distribution': 3, 'Galaxy': galaxy}}]
+
+    @classmethod
+    def _new_galaxy(cls, distribution):
+        galaxy = {'uuid': str(uuidlib.uuid4()), 'type': 'regression-galaxy-%s' % random(),
+                  'name': 'regression galaxy %s' % random(), 'description': 'regression',
+                  'version': 1, 'namespace': 'regression', 'distribution': distribution}
+        cluster_uuid, body = cls._cluster_body(galaxy)
+        response = cls.owner._prepare_request('POST', 'galaxies/import', data=body)
+        assert response.status_code == 200, 'seeding a galaxy failed: %s' % response.text[:300]
+        stored = cls._stored_cluster(cluster_uuid)
+        assert stored, 'the seeded cluster was not stored'
+        cls.galaxy_ids.append(int(stored['galaxy_id']))
+        return cls._stored_galaxy(stored['galaxy_id'])
+
+    def _attempt(self, api, galaxy):
+        """Import a new cluster whose payload galaxy tries to rewrite the stored one.
+
+        A stored version 0 becomes a timestamp, so only the changed icon makes the non-forced
+        misp-galaxy update rewrite a default galaxy that was overwritten.
+        """
+        payload = {'uuid': galaxy['uuid'], 'type': galaxy['type'],
+                   'name': 'rewritten %s' % random(), 'description': 'rewritten %s' % random(),
+                   'distribution': 0, 'version': 0, 'icon': 'regression-icon',
+                   'namespace': galaxy.get('namespace', '')}
+        cluster_uuid, body = self._cluster_body(payload)
+        response = api._prepare_request('POST', 'galaxies/import', data=body)
+        self.assertEqual(200, response.status_code, 'the import was refused: %s' % response.text[:300])
+        return payload, cluster_uuid
+
+    def _assert_unchanged(self, before, what):
+        after = self._stored_galaxy(before['id'])
+        for field in self.FIELDS:
+            self.assertEqual(str(before[field]), str(after[field]),
+                             '%s changed %s of a galaxy it may not update' % (what, field))
+
+    def _assert_updated(self, before, payload, what):
+        after = self._stored_galaxy(before['id'])
+        self.assertEqual(payload['name'], after['name'], '%s: an allowed update was not applied' % what)
+        for field in ('org_id', 'orgc_id', 'default'):
+            self.assertEqual(str(before[field]), str(after[field]), '%s changed the galaxy %s' % (what, field))
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls._restore_default()
+        finally:
+            for cluster_uuid in cls.cluster_uuids:
+                found = cls._stored_cluster(cluster_uuid)
+                if found:
+                    cls.admin._prepare_request('POST', 'galaxy_clusters/delete/%s/1' % found['id'],
+                                               data={'hard': 1})
+                cls.admin._prepare_request('POST', 'galaxy_cluster_blocklists/delete/%s' % cluster_uuid)
+            for galaxy_id in cls.galaxy_ids:
+                cls.admin._prepare_request('POST', 'galaxies/delete/%d' % galaxy_id)
+            drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    @classmethod
+    def _restore_default(cls):
+        before = cls.default_before
+        if not before:
+            return
+        now = cls._stored_galaxy(before['id'])
+        if now and all(str(now[f]) == str(before[f]) for f in cls.FIELDS):
+            return
+        started = time.time()
+        response = cls.admin._prepare_request('POST', 'galaxies/update')
+        elapsed = time.time() - started
+        now = cls._stored_galaxy(before['id'])
+        exact = bool(now) and all(str(now[f]) == str(before[f]) for f in cls.FIELDS)
+        cls.restore_report.append('restore of the default galaxy took %.1fs (HTTP %s), row %s the snapshot'
+                                  % (elapsed, response.status_code, 'matches' if exact else 'DIFFERS FROM'))
+        print('\n' + cls.restore_report[-1])
+        assert exact, 'the default galaxy was not restored: %s' % cls.restore_report[-1]
+
+    def test_other_org_cannot_update_visible_galaxy(self):
+        before = self._new_galaxy(3)
+        self._attempt(self.other, before)
+        self._assert_unchanged(before, 'an unrelated editor importing a visible galaxy')
+
+    def test_other_org_cannot_update_hidden_galaxy(self):
+        before = self._new_galaxy(0)
+        self._attempt(self.other, before)
+        self._assert_unchanged(before, 'an unrelated editor importing a hidden galaxy')
+
+    def test_owner_can_update_own_galaxy(self):
+        before = self._new_galaxy(0)
+        payload, _ = self._attempt(self.owner, before)
+        self._assert_updated(before, payload, 'the owner re-importing')
+
+    def test_sync_user_updates_visible_galaxy_without_taking_ownership(self):
+        before = self._new_galaxy(3)
+        payload, _ = self._attempt(self.syncer, before)
+        self._assert_updated(before, payload, 'a sync user updating a visible galaxy')
+
+    def test_sync_user_cannot_update_hidden_galaxy(self):
+        before = self._new_galaxy(0)
+        self._attempt(self.syncer, before)
+        self._assert_unchanged(before, 'a sync user importing a galaxy it cannot see')
+
+    def test_site_admin_updates_without_taking_ownership(self):
+        before = self._new_galaxy(0)
+        payload, _ = self._attempt(self.admin, before)
+        self._assert_updated(before, payload, 'the site admin importing')
+
+    def test_default_galaxy_is_never_changed(self):
+        listing = send(self.admin, 'GET', 'galaxies/index')
+        chosen = None
+        for entry in listing:
+            galaxy = entry['Galaxy'] if 'Galaxy' in entry else entry
+            if int(galaxy['default']) and int(galaxy['org_id']) == 0:
+                chosen = galaxy
+                break
+        if chosen is None:
+            self.skipTest('no default galaxy on the instance')
+        type(self).default_before = self._stored_galaxy(chosen['id'])
+        before = self.default_before
+        print('\ndefault galaxy used: %s (id %s)' % (before['name'], before['id']))
+        try:
+            for api, who in ((self.other, 'an unrelated editor'), (self.admin, 'the site admin')):
+                payload, cluster_uuid = self._attempt(api, before)
+                self._assert_unchanged(before, '%s importing a default galaxy' % who)
+                cluster = self._stored_cluster(cluster_uuid)
+                self.assertTrue(cluster, 'the cluster was refused along with the galaxy update')
+                self.assertEqual(str(before['id']), str(cluster['galaxy_id']),
+                                 'the cluster did not go into the default galaxy')
+                self.admin._prepare_request('POST', 'galaxy_clusters/delete/%s/1' % cluster['id'],
+                                            data={'hard': 1})
+        finally:
+            self._restore_default()
+
+
 if __name__ == '__main__':
     unittest.main()
