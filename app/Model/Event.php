@@ -9566,7 +9566,11 @@ class Event extends AppModel
         }
         // Export module can specify additional options for event fetch
         if (isset($module['meta']['fetch_options'])) {
+            $selection = $options['eventid'] ?? null;
             $options = array_merge($options, $module['meta']['fetch_options']);
+            if ($selection !== null) {
+                $options['eventid'] = $selection;
+            }
         }
         $events = $this->fetchEvent($user, $options);
         if (empty($events)) {
@@ -9587,11 +9591,41 @@ class Event extends AppModel
         }
         $modulePayload['data'] = $events;
         $result = $this->Module->queryModuleServer($modulePayload, false, 'Export');
+        if (!is_array($result) || isset($result['error']) || !isset($result['data']) || !is_string($result['data']) ||
+            base64_decode($result['data'], true) === false) {
+            throw new RuntimeException('The export module failed to generate a downloadable file.');
+        }
         return [
             'data' => $result['data'],
             'extension' => $module['mispattributes']['outputFileExtension'],
             'response' => $module['mispattributes']['responseType']
         ];
+    }
+
+    /** One bounded serialization request for the CLI feed worker. */
+    public function exportFeedPart(array $user, array $module, $id)
+    {
+        $options = array_merge($module['meta']['fetch_options'] ?? [], [
+            'eventid' => $id, 'published' => [true, false],
+        ]);
+        $events = $this->fetchEvent($user, $options);
+        if (empty($events)) {
+            return null; // Deleted or no longer visible to the submitting user.
+        }
+        if (count($events) !== 1) {
+            throw new RuntimeException('Expected one selected event.');
+        }
+        if (!empty($module['meta']['require_standard_format'])) {
+            App::uses('JSONConverterTool', 'Tools');
+            $events = [JSONConverterTool::convert(reset($events), false, true)];
+        }
+        $payload = ['module' => $module['name'], 'data' => $events, 'feed_chunk' => true, 'config' => []];
+        foreach ($module['meta']['config'] ?? [] as $setting) {
+            if (is_string($setting)) {
+                $payload['config'][$setting] = Configure::read('Plugin.Export_' . $module['name'] . '_' . $setting);
+            }
+        }
+        return $this->Module->queryModuleServer($payload, false, 'Export', true);
     }
 
     public function __cacheSharingGroupData($user, $useCache = false)

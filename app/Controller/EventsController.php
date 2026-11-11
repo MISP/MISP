@@ -77,7 +77,7 @@ class EventsController extends AppController
         // CSRF token as a header. None of them take body fields a form hash
         // would protect - they post a JSON document
         $this->_csrfTokenHeaderOnly([
-            'publish', 'unpublish', 'restSearch', 'getEventTimeline',
+            'publish', 'unpublish', 'restSearch', 'restSearchExport', 'getEventTimeline',
             'editEventTags', 'editEventGalaxies',
             'editEventTagRelationships', 'editEventGalaxyRelationships',
             'getEventGraphReferences','getEventGraphTags','getEventGraphGeneric',
@@ -6079,6 +6079,11 @@ class EventsController extends AppController
 
     public function restSearchExport($id = null, $returnFormat = null)
     {
+        if ($this->request->is('post')) {
+            $input = $this->request->data['Event'] ?? $this->request->data;
+            $id = $input['eventid'] ?? $id;
+            $returnFormat = $input['returnFormat'] ?? $returnFormat;
+        }
         if ($returnFormat === null) {
             $exportFormats = [
                 'attack' => __('Attack matrix'),
@@ -6105,7 +6110,16 @@ class EventsController extends AppController
                 'yara-json' => __('YARA rules (JSON)'),
             ];
 
-            $idList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
+            $this->loadModel('Module');
+            $modules = $this->Module->getEnabledModules($this->Auth->user(), 'export', 'Export');
+            foreach (is_array($modules) ? ($modules['modules'] ?? []) : [] as $module) {
+                $sources = $module['mispattributes']['inputSource'] ?? [];
+                if (is_array($sources) && in_array('event-collection', $sources, true)) {
+                    $exportFormats['module_' . $module['name']] = __('%s (module)', $module['meta']['name'] ?? $module['name']);
+                }
+            }
+
+            $idList = is_array($id) ? $id : (is_numeric($id) ? [$id] : $this->_jsonDecode($id));
             if (empty($idList)) {
                 throw new NotFoundException(__('Invalid input.'));
             }
@@ -6114,6 +6128,9 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('ajax/eventRestSearchExportConfirmationForm');
         } else {
+            if (is_string($returnFormat) && strpos($returnFormat, 'module_') === 0) {
+                return $this->__exportSelectedEventsWithModule(substr($returnFormat, 7), $id);
+            }
             $returnFormat = !isset($this->Event->validFormats[$returnFormat]) ? 'json' : $returnFormat;
             $idList = $id;
             if (!is_array($idList)) {
@@ -6151,6 +6168,129 @@ class EventsController extends AppController
                 ]);
             }
         }
+    }
+
+    private function __exportSelectedEventsWithModule($name, $selection)
+    {
+        $this->loadModel('Module');
+        $module = $this->Module->getEnabledModule($name, 'Export', $this->Auth->user());
+        $sources = is_array($module) ? ($module['mispattributes']['inputSource'] ?? []) : [];
+        if (!is_array($module) || !is_array($sources) || !in_array('event-collection', $sources, true)) {
+            throw new NotFoundException(__('Invalid collection export module.'));
+        }
+        if (is_string($selection) && !ctype_digit($selection)) {
+            $selection = $this->_jsonDecode($selection);
+        }
+        if (!is_array($selection)) {
+            $selection = [$selection];
+        }
+        if (empty($selection) || array_keys($selection) !== range(0, count($selection) - 1)) {
+            throw new NotFoundException(__('Select at least one valid event.'));
+        }
+        foreach ($selection as $id) {
+            if ((!is_int($id) && !is_string($id)) ||
+                !preg_match('/^[1-9][0-9]*$/D', (string)$id)) {
+                throw new NotFoundException(__('Invalid event selection.'));
+            }
+        }
+        $selection = array_values(array_unique($selection));
+        if (($module['meta']['collection_export'] ?? null) === 'misp-feed-v1') {
+            return $this->__queueModuleFeed($name, $selection);
+        }
+        // Event::export fetches this exact set with the authenticated user's ACLs
+        // and rechecks module enablement/organisation restrictions.
+        $result = $this->Event->export($this->Auth->user(), $name, [
+            'eventid' => $selection,
+            'published' => [true, false],
+        ]);
+        $this->response->body(base64_decode($result['data']));
+        $this->response->type($result['response']);
+        $this->response->download('misp.events.' . $name . '.export.' . $result['extension']);
+        return $this->response;
+    }
+
+    protected function _moduleFeedTool()
+    {
+        App::uses('ModuleFeedExportTool', 'Tools');
+        return new ModuleFeedExportTool();
+    }
+
+    private function __queueModuleFeed($name, array $selection)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Submit the event selection using POST.'));
+        }
+        if (!Configure::read('MISP.background_jobs')) {
+            throw new MethodNotAllowedException(__('Enable background jobs and a cache worker for feed generation.'));
+        }
+        App::uses('BackgroundJobsTool', 'Tools');
+        $this->loadModel('Job');
+        $user = $this->Auth->user();
+        $jobId = $this->Job->createJob($user, 'cache', 'module_feed_export',
+            count($selection) . ' selected events', 'Waiting to generate the feed.');
+        $tool = $this->_moduleFeedTool();
+        try {
+            $tool->create($jobId, $user, $name, $selection);
+            $this->Event->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::CACHE_QUEUE, BackgroundJobsTool::CMD_EVENT,
+                ['exportModuleFeed', $user['id'], $jobId], true, $jobId
+            );
+        } catch (Throwable $e) {
+            $this->Job->saveStatus($jobId, false, 'Could not queue feed export.');
+            try { $tool->fail($jobId, 'Could not queue feed export.'); } catch (Throwable $ignored) {}
+            throw $e;
+        }
+        if ($this->_isRest()) {
+            $this->response->statusCode(202);
+            $this->response->type('json');
+            $this->response->body(json_encode(['job_id' => $jobId, 'status' => 'queued',
+                'status_url' => $this->request->base . '/events/moduleExportStatus/' . $jobId,
+                'download_url' => $this->request->base . '/events/downloadModuleExport/' . $jobId]));
+            return $this->response;
+        }
+        return $this->redirect(['action' => 'moduleExportProgress', $jobId]);
+    }
+
+    public function moduleExportProgress($id)
+    {
+        $this->_moduleFeedTool()->status($id, $this->Auth->user());
+        $this->set('jobId', $id);
+    }
+
+    public function moduleExportStatus($id)
+    {
+        $tool = $this->_moduleFeedTool();
+        $meta = $tool->status($id, $this->Auth->user());
+        if (in_array($meta['status'], ['queued', 'running'], true)) {
+            $this->loadModel('Job');
+            $job = $this->Job->find('first', ['conditions' => ['Job.id' => $id], 'recursive' => -1]);
+            if (!empty($job) && (int)$job['Job']['status'] === Job::STATUS_FAILED) {
+                $tool->fail($id, 'The export worker stopped; submit a new selection.');
+                $meta = $tool->status($id, $this->Auth->user());
+            }
+        }
+        $meta['download_url'] = $this->request->base . '/events/downloadModuleExport/' . $id;
+        $this->response->type('json');
+        $this->response->header('Cache-Control', 'no-store');
+        $this->response->body(json_encode($meta));
+        return $this->response;
+    }
+
+    public function downloadModuleExport($id)
+    {
+        $user = $this->Auth->user();
+        $tool = $this->_moduleFeedTool();
+        $meta = $tool->status($id, $user);
+        $this->loadModel('Module');
+        if (!is_array($this->Module->getEnabledModule($meta['module'], 'Export', $user))) {
+            throw new NotFoundException(__('The export module is unavailable or restricted.'));
+        }
+        $path = $tool->artifact($id, $user);
+        $this->response->type('application/zip');
+        $this->response->header('Cache-Control', 'private, no-store');
+        $this->response->header('X-Content-SHA256', $meta['sha256']);
+        $this->response->file($path, ['download' => true, 'name' => 'misp.feed.' . $id . '.zip']);
+        return $this->response;
     }
 
     public function xml($key, $eventid = false, $withAttachment = false, $tags = false, $from = false, $to = false, $last = false)

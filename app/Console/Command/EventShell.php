@@ -190,6 +190,54 @@ class EventShell extends AppShell
         ]);
     }
 
+    public function purgeModuleFeeds()
+    {
+        App::uses('ModuleFeedExportTool', 'Tools');
+        (new ModuleFeedExportTool())->purgeExpired();
+        $this->out('Expired feed exports removed.');
+    }
+
+    public function exportModuleFeed()
+    {
+        list($userId, $jobId) = $this->args;
+        set_time_limit(0); // Collection generation is a CLI job, not a web request.
+        App::uses('ModuleFeedExportTool', 'Tools');
+        $tool = new ModuleFeedExportTool();
+        try {
+            $user = $this->getUser($userId);
+            if (!empty($user['disabled'])) { throw new RuntimeException('Export user is disabled.'); }
+            $request = $tool->request($jobId);
+            if ((string)$request['owner'] !== (string)$user['id']) { throw new RuntimeException('Wrong job owner.'); }
+            $this->Event->Module = ClassRegistry::init('Module');
+            $module = null;
+            $counter = 0;
+            $lastProgress = 0;
+            $done = $tool->generate($jobId, function ($id) use (&$module, &$counter, &$user, $userId, $request) {
+                // Refresh account and module permissions during long-running exports.
+                if ($counter++ % 100 === 0) {
+                    $user = $this->getUser($userId);
+                    if (!empty($user['disabled'])) { throw new RuntimeException('Export user is disabled.'); }
+                    $module = $this->Event->Module->getEnabledModule($request['module'], 'Export', $user);
+                    if (!is_array($module) || ($module['meta']['collection_export'] ?? null) !== 'misp-feed-v1') {
+                        throw new RuntimeException('The feed module is unavailable or restricted.');
+                    }
+                }
+                return $this->Event->exportFeedPart($user, $module, $id);
+            }, function ($done, $total, $message) use ($jobId, &$lastProgress) {
+                if (time() - $lastProgress >= 5 || $done === $total) {
+                    $this->Job->saveProgress($jobId, $message, min(95, (int)(95 * $done / max(1, $total))));
+                    $lastProgress = time();
+                }
+            });
+            if ($done) { $this->Job->saveStatus($jobId, true, 'Feed ZIP is ready to download.'); }
+        } catch (Throwable $e) {
+            try { $tool->fail($jobId, 'Feed export failed; no partial feed is available.'); } catch (Throwable $ignored) {}
+            $this->Job->saveStatus($jobId, false, 'Feed export failed; no partial feed is available.');
+            $this->log('Module feed export failed', LOG_ERR);
+            throw $e;
+        }
+    }
+
     public function cache()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
