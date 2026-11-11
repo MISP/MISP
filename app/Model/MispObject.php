@@ -177,10 +177,10 @@ class MispObject extends AppModel
             $subQueryOptions = array(
                 'fields' => ['Attribute.object_id'],
                 'recursive' => -1,
-                'conditions' => array(
+                'conditions' => $this->Event->visibleElementConditions($user, 'Attribute', array(
                     'Attribute.object_id NOT' => 0,
                     'OR' => $this->Event->wildcardAttributeConditions($params['wildcard'])
-                )
+                ))
             );
             $conditions['AND'][] = array('OR' => array(
                 array('Event.info LIKE' => $params['wildcard']),

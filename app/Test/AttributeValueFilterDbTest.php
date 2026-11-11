@@ -448,11 +448,12 @@ class AttributeValueFilterDbTest extends TestCase
         return $objects;
     }
 
-    private function objectIds(array $params, array $objects)
+    private function objectIds(array $params, array $objects, ?array $user = null)
     {
+        $user = $user ?? $this->user;
         $object = $this->attribute->Event->Object;
-        $conditions = $object->buildFilterConditions($this->user, $params);
-        $found = $object->fetchObjects($this->user, [
+        $conditions = $object->buildFilterConditions($user, $params);
+        $found = $object->fetchObjects($user, [
             'conditions' => ['AND' => [['Object.id' => $objects], $conditions]],
             'metadata' => 1,
         ]);
@@ -634,6 +635,31 @@ class AttributeValueFilterDbTest extends TestCase
         // The event info matches objects without attributes too
         $this->exec(sprintf("UPDATE events SET info = '%s-info' WHERE id = %d", $t, $this->events[0]));
         $this->assertSame([$a, $objects[2]], $this->objectIds(['wildcard' => "$t-info"], $objects));
+    }
+
+    public function testTheObjectScopeWildcardMatchesOnlyTheAttributesAnObjectShows()
+    {
+        $t = $this->token;
+        list($first) = $this->events;
+        $objects = $this->createObjects();
+        $this->addFixtures([
+            'hidden' => [$first, 'domain', "{$t}hidden.example"],
+            'gone' => [$first, 'domain', "{$t}gone.example"],
+        ]);
+        $this->exec(sprintf('UPDATE attributes SET object_id = %d, distribution = 0 WHERE id = %d', $objects[0], $this->ids['hidden']));
+        $this->exec(sprintf('UPDATE attributes SET object_id = %d, deleted = 1 WHERE id = %d', $objects[0], $this->ids['gone']));
+        $this->exec(sprintf('UPDATE events SET distribution = 1, published = 1 WHERE id = %d', $first));
+        $owner = (int)$this->exec(sprintf('SELECT org_id FROM events WHERE id = %d', $first))[0]['org_id'];
+        // The ACL reads only the org and the role, so no outsider account is needed
+        $outsider = $this->user;
+        $outsider['org_id'] = (int)$this->exec(sprintf('SELECT id FROM organisations WHERE id != %d ORDER BY id LIMIT 1', $owner))[0]['id'];
+        $outsider['Role']['perm_site_admin'] = false;
+        $outsider['Role']['perm_sync'] = false;
+
+        $this->assertSame([$objects[0]], $this->objectIds(['wildcard' => "%{$t}obj%"], $objects, $outsider));
+        $this->assertSame([], $this->objectIds(['wildcard' => "%{$t}hidden%"], $objects, $outsider));
+        $this->assertSame([], $this->objectIds(['wildcard' => "%{$t}gone%"], $objects, $outsider));
+        $this->assertSame([$objects[0]], $this->objectIds(['wildcard' => "%{$t}hidden%"], $objects));
     }
 
     public function testAShortEventidListBoundsTheAttributeScopeValuePattern()
