@@ -4044,6 +4044,27 @@ tr.evt-extension-row td:first-child {
 
 .ov-md-invalid .ov-md-el-id { color: var(--bs-link-color); }
 
+/* Manual extraction (js/overmind-report-extraction.js): an occurrence the
+   picked row would replace; a dashed one is left out of the save. */
+.ov-md-suggestion {
+    border-color: rgb(var(--bs-report-rgb));
+}
+.ov-md-suggestion > .ov-md-el-k {
+    background: rgba(var(--bs-report-rgb), .15);
+    border-right-color: rgb(var(--bs-report-rgb));
+}
+.ov-md-suggestion .form-check-input {
+    vertical-align: -.1em;
+    pointer-events: none;
+}
+.ov-md-suggestion.is-off {
+    border-style: dashed;
+    opacity: .55;
+}
+.ov-md-suggestion.is-current {
+    box-shadow: 0 0 0 .2rem rgba(var(--bs-report-rgb), .35);
+}
+
 .ov-md-tag {
     display: inline-block;
     margin: 0 .15rem;
@@ -4773,4 +4794,100 @@ tr.evt-extension-row td:first-child {
 .ft-editor > td {
     border-left: 3px solid var(--event);
     background: var(--bs-tertiary-bg);
+}
+
+/* Event timeline (vis.js, js/overmind-event-timeline.js): vis.css's light
+   palette swapped for the theme's tokens, so the tab follows dark mode. */
+.ov-timeline .vis-timeline {
+    border: 0;
+    font-family: inherit;
+}
+.ov-timeline .vis-panel.vis-bottom,
+.ov-timeline .vis-panel.vis-center,
+.ov-timeline .vis-panel.vis-left,
+.ov-timeline .vis-panel.vis-right,
+.ov-timeline .vis-panel.vis-top,
+.ov-timeline .vis-labelset .vis-label,
+.ov-timeline .vis-time-axis .vis-grid.vis-major,
+.ov-timeline .vis-panel.vis-background.vis-horizontal .vis-grid.vis-major {
+    border-color: var(--bs-border-color);
+}
+.ov-timeline .vis-time-axis .vis-grid.vis-minor,
+.ov-timeline .vis-panel.vis-background.vis-horizontal .vis-grid.vis-minor {
+    border-color: var(--bs-border-color-translucent);
+}
+.ov-timeline .vis-time-axis .vis-text,
+.ov-timeline .vis-labelset .vis-label {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+}
+.ov-timeline .vis-current-time {
+    background-color: rgb(var(--bs-danger-rgb));
+}
+.ov-timeline .vis-item {
+    color: var(--bs-body-color);
+    font-size: .75rem;
+    border-radius: var(--bs-border-radius-sm);
+}
+.ov-timeline .vis-item .vis-item-content {
+    padding: 3px 6px;
+    text-align: left;
+}
+.ov-timeline .vis-item.vis-selected {
+    box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .45);
+    z-index: 2;
+}
+.ov-timeline .ov-tl-attrs td {
+    padding: 0;
+    line-height: 1.25;
+    vertical-align: top;
+}
+.ov-tl-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid;
+    border-radius: 2px;
+}
+.ov-timeline .vis-item.attribute,
+.ov-tl-swatch.attribute {
+    background-color: rgba(var(--bs-attribute-rgb), .2);
+    border-color: rgb(var(--bs-attribute-rgb));
+}
+.ov-timeline .vis-item.object,
+.ov-tl-swatch.object {
+    background-color: rgba(var(--bs-object-rgb), .12);
+    border-color: rgba(var(--bs-object-rgb), .8);
+}
+[data-bs-theme="dark"] .ov-timeline .vis-item.object,
+[data-bs-theme="dark"] .ov-tl-swatch.object {
+    background-color: rgba(var(--bs-secondary-rgb), .18);
+    border-color: rgb(var(--bs-secondary-rgb));
+}
+.ov-timeline .vis-item.sighting_positive,
+.ov-tl-swatch.sighting_positive {
+    background-color: rgba(var(--bs-success-rgb), .55);
+    border-color: rgb(var(--bs-success-rgb));
+}
+.ov-timeline .vis-item.sighting_negative,
+.ov-tl-swatch.sighting_negative {
+    background-color: rgba(var(--bs-danger-rgb), .55);
+    border-color: rgb(var(--bs-danger-rgb));
+}
+/* No first seen: drawn at its timestamp, which is not a claim about when. */
+.ov-timeline .vis-item.ov-no-seen,
+.ov-tl-swatch.ov-no-seen {
+    border-style: dashed;
+}
+.ov-timeline:fullscreen {
+    overflow: auto;
+}
+/* The theme's tom-select sizes the wrapper for form-select-sm, not the control
+   inside it: tightened to the height of the toolbar's btn-sm. */
+.ov-timeline .ts-wrapper.form-select-sm {
+    padding: 0;
+}
+.ov-timeline .ts-wrapper.form-select-sm .ts-control {
+    min-height: calc(1.5em + .5rem + 2px);
+    padding: .25rem 2rem .25rem .5rem;
 }

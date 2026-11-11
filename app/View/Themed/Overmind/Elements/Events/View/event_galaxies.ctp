@@ -85,7 +85,10 @@ $mayModify = $this->Acl->canModifyTag($data);
     loadGalaxies();
 
     /* Expose a reload hook so the edit modal can refresh this card after save. */
-    window['reloadGalaxiesCard_' + uid] = loadGalaxies;
+    window['reloadGalaxiesCard_' + uid] = function () {
+        loadGalaxies();
+        document.dispatchEvent(new CustomEvent('misp:event-galaxies-changed'));
+    };
 
     function loadGalaxies() {
         fetch(fetchUrl)
