@@ -59,7 +59,7 @@ class PubSubTool
         $redis = $this->createRedisConnection($settings);
         $redis->rPush( 'command', 'status');
         $response = $redis->blPop('status', 5);
-        if ($response === null) {
+        if (empty($response)) {
             throw new Exception("No response from status command returned after 5 seconds.");
         }
         return JsonTool::decode(trim($response[1]));
@@ -108,11 +108,6 @@ class PubSubTool
             $object_reference['action'] = $action;
         }
         return $this->pushToRedis('data:misp_json_object_reference', $object_reference);
-    }
-
-    public function publishConversation(array $message)
-    {
-        return $this->pushToRedis('data:misp_json_conversation', $message);
     }
 
     public function attribute_save(array $attribute, $action = false)

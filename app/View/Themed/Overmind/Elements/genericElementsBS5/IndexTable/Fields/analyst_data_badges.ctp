@@ -47,7 +47,7 @@ $onclick = sprintf(
             </span>
         <?php endif; ?>
         <?php if ($relCount): ?>
-            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
                 <i class="fas fa-diagram-project me-1"></i><?= $relCount ?>
             </span>
         <?php endif; ?>

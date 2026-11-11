@@ -84,7 +84,13 @@ foreach ($galaxies as $g) {
                             . 'max-width:260px;';
             ?>
                 <div data-cluster-item
+                     class="d-inline-flex flex-column align-items-start gap-1"
                      data-cluster-name="<?= h(strtolower($cluster['value'] ?? '')) ?>">
+                    <?= $this->element('Events/View/extension_origin', [
+                        'event_id'     => $cluster['event_id'] ?? null,
+                        'compact'      => true,
+                        'only_foreign' => true,
+                    ]); ?>
                      <a style="cursor:pointer;"
                      href="<?= h($baseurl) ?>/galaxy_clusters/view/<?= $cId ?>">
 

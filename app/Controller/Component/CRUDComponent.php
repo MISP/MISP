@@ -70,6 +70,13 @@ class CRUDComponent extends Component
             $this->Controller->restResponsePayload = $this->Controller->RestResponse->viewData($data, 'json');
         } else {
             $query['includeAnalystData'] = true;
+            // Optional pagination overrides — web UI only, REST returns the full set.
+            if (!empty($options['limit'])) {
+                $query['limit'] = $options['limit'];
+            }
+            if (!empty($options['maxLimit'])) {
+                $query['maxLimit'] = $options['maxLimit'];
+            }
             $this->Controller->paginate = $query;
             $data = $this->Controller->paginate();
             if (isset($options['afterFind'])) {
@@ -89,8 +96,12 @@ class CRUDComponent extends Component
         $data = [];
         if ($this->Controller->request->is('post') || $this->Controller->request->is('put')) {
             $input = $this->Controller->request->data;
-            if (empty($input[$modelName])) {
+            if (empty($input[$modelName]) || !is_array($input[$modelName])) {
                 $input = [$modelName => $input];
+            } else {
+                // A flat body can survive alongside the model's own block, for instance when the
+                // controller promotes harvested parameters into it. The block is the record.
+                $input = [$modelName => $input[$modelName]];
             }
             if (!empty($params['override'])) {
                 foreach ($params['override'] as $field => $value) {
@@ -369,13 +380,34 @@ class CRUDComponent extends Component
         $this->Controller->render('/genericTemplates/delete');
     }
 
+    /**
+     * Prefix a bare column name with the alias of the model being indexed.
+     *
+     * The index joins whatever `contain` names, and as soon as a joined table
+     * shares a column name with the main one - `name`, `description` and `uuid`
+     * on `organisations` next to `galaxies`, say - a bare `LOWER(name) LIKE`
+     * is ambiguous and MySQL refuses the whole query. Filter names stay as the
+     * controllers declare them and as callers pass them; only the SQL side is
+     * qualified. A name that already carries an alias is left alone.
+     *
+     * @param string $field
+     * @return string
+     */
+    private function __qualifyField($field)
+    {
+        if (strpos($field, '.') !== false) {
+            return $field;
+        }
+        return $this->Controller->{$this->Controller->modelClass}->alias . '.' . $field;
+    }
+
     public function setQuickFilters($params, array $query, $quickFilterFields, $quickFilterParameter = 'quickFilter')
     {
         if (!empty($params[$quickFilterParameter]) && !empty($quickFilterFields)) {
             $queryConditions = [];
             $filter = '%' . strtolower($params[$quickFilterParameter]) . '%';
             foreach ($quickFilterFields as $filterField) {
-                $queryConditions["LOWER($filterField) LIKE"] = $filter;
+                $queryConditions['LOWER(' . $this->__qualifyField($filterField) . ') LIKE'] = $filter;
             }
             $query['conditions']['OR'] = $queryConditions;
         }
@@ -391,12 +423,13 @@ class CRUDComponent extends Component
                 if ($filter === $quickFilterParameter) {
                     continue;
                 }
+                $field = $this->__qualifyField($filter);
                 if (is_array($filterValue)) {
-                    $query['conditions']['AND'][] = [$filter => $filterValue];
+                    $query['conditions']['AND'][] = [$field => $filterValue];
                 } else if (strlen(trim($filterValue, '%')) === strlen($filterValue)) {
-                    $query['conditions']['AND'][] = [$filter => $filterValue];
+                    $query['conditions']['AND'][] = [$field => $filterValue];
                 } else {
-                    $query['conditions']['AND'][] = [$filter . ' LIKE' => $filterValue];
+                    $query['conditions']['AND'][] = [$field . ' LIKE' => $filterValue];
                 }
             }
         }

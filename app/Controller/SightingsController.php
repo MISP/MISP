@@ -15,6 +15,12 @@ class SightingsController extends AppController
         'order' => array('Sighting.date_sighting' => 'DESC'),
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        $this->_csrfTokenHeaderOnly(['add', 'quickAdd', 'quickDelete']);
+    }
+
     // takes an attribute ID or UUID
     public function add($id = false)
     {
@@ -64,12 +70,18 @@ class SightingsController extends AppController
                 $type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
                 $source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
                 $filters = !empty($this->request->data['filters']) ? $this->request->data['filters'] : false;
+                if (is_string($filters)) {
+                    $filters = json_decode($filters, true);
+                    if (!is_array($filters)) {
+                        $error = __('The filters must be a JSON object.');
+                    }
+                }
             }
             if (!$error) {
                 $publish_sighting = !empty(Configure::read('Sightings_enable_realtime_publish'));
                 $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, $publish_sighting, false, $filters);
             }
-            if (!is_numeric($result)) {
+            if (!$error && !is_numeric($result)) {
                 $error = $result;
             }
             if ($this->request->is('ajax')) {

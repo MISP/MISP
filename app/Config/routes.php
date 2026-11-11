@@ -27,8 +27,11 @@
  */
 	Router::connect('/', array('controller' => 'events', 'action' => 'index'));
 
+	// Fallback for the instance PGP key. Only reached when app/webroot/gpg.asc
+	// does not exist, as the web server serves existing files directly.
+	Router::connect('/gpg.asc', array('controller' => 'users', 'action' => 'getGpgPublicKey', 'filename' => 'gpg.asc'));
+
 	// admin Paginator
-	Router::connect('/allowedlists/admin_index/*', array('controller' => 'allowedlists', 'action' => 'index', 'admin' => true));
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));
 	Router::connect('/roles/admin_index/*', array('controller' => 'roles', 'action' => 'index', 'admin' => true));
 	Router::connect('/logs/admin_search/*', array('controller' => 'logs', 'action' => 'search', 'admin' => true));

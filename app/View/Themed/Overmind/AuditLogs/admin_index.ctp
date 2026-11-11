@@ -17,7 +17,7 @@ foreach (($models ?? []) as $m) {
 $filterFields = [
     [
         'name' => 'model_title', 'label' => __('Title contains'), 'type' => 'text',
-        'placeholder' => __('Search on this page...'), 'col' => 6,
+        'placeholder' => __('e.g. an event or attribute name'), 'col' => 6,
     ],
     [
         'name' => 'action', 'label' => __('Action'), 'type' => 'select',
@@ -28,10 +28,12 @@ $filterFields = [
         'options' => $modelOptions, 'col' => 3,
     ],
     [
-        'name' => 'model_id', 'label' => __('Model ID'), 'type' => 'number', 'col' => 3,
+        'name' => 'model_id', 'label' => __('Model ID'), 'type' => 'number',
+        'placeholder' => __('e.g. 42'), 'col' => 3,
     ],
     [
-        'name' => 'event_id', 'label' => __('Event ID'), 'type' => 'number', 'col' => 3,
+        'name' => 'event_id', 'label' => __('Event ID'), 'type' => 'number',
+        'placeholder' => __('e.g. 2178'), 'col' => 3,
     ],
     [
         'name' => 'user', 'label' => __('User'), 'type' => 'text',
@@ -42,10 +44,12 @@ $filterFields = [
         'placeholder' => __('ID, UUID or name'), 'col' => 3,
     ],
     [
-        'name' => 'ip', 'label' => __('IP'), 'type' => 'text', 'col' => 3,
+        'name' => 'ip', 'label' => __('IP'), 'type' => 'text',
+        'placeholder' => __('e.g. 10.0.0.1'), 'col' => 3,
     ],
     [
-        'name' => 'authkey_id', 'label' => __('Auth key ID'), 'type' => 'number', 'col' => 3,
+        'name' => 'authkey_id', 'label' => __('Auth key ID'), 'type' => 'number',
+        'placeholder' => __('e.g. 7'), 'col' => 3,
     ],
     [
         'name' => 'request_type', 'label' => __('Request type'), 'type' => 'select',
@@ -160,21 +164,24 @@ foreach (($list ?? []) as $item) {
 
     <?= $this->element('Logs/filter_card', [
         'item_url'      => '/admin/audit_logs',
-        'search'        => ['placeholder' => __('Filter this page…')],
+        'search'        => ['placeholder' => __('Search title, model, action, user, org, IP…')],
         'fields'        => $filterFields,
         'pager_element' => 'Logs/pager_prevnext',
     ]) ?>
 
-    <?= $this->element('Logs/timeline', [
-        'entries'    => $entries,
-        'title'      => __('Audit history'),
-        'icon'       => 'fas fa-history',
-        'empty_text' => __('No audit log entries match your filters.'),
-    ]) ?>
+    <!-- Swapped wholesale by the filter bar's ajax reload — see mispOvermind.js -->
+    <div id="log-index-results" class="index-results">
+        <?= $this->element('Logs/timeline', [
+            'entries'    => $entries,
+            'title'      => __('Audit history'),
+            'icon'       => 'fas fa-history',
+            'empty_text' => __('No audit log entries match your filters.'),
+        ]) ?>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
+            </div>
         </div>
     </div>
 

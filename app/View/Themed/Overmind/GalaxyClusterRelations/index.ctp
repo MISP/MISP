@@ -1,7 +1,16 @@
 <?php
 $this->set('headerTitle', __('Galaxy Cluster Relationships'));
 $this->set('headerDescription', __('All relationships between galaxy clusters.'));
-$this->set('headerActions', []);
+$headerActions = [];
+if ($this->Acl->canAccess('galaxy_cluster_relations', 'add')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Add relationship'),
+        'icon' => 'plus',
+        'url' => $baseurl . '/galaxy_cluster_relations/add'
+    ];
+}
+$this->set('headerActions', $headerActions);
 
 $showOwnerOrg = $isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'));
 $showCreatorOrg = $isSiteAdmin || Configure::read('MISP.showorg') || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'));
@@ -35,7 +44,7 @@ $fields = [
         'sort' => 'type',
         'data_path' => 'GalaxyClusterRelation.referenced_galaxy_cluster_type',
         'element' => 'relationship_type',
-        'card_section' => 'attribute',
+        'card_section' => 'title',
         'display_in' => ['table', 'card'],
     ],
     [
@@ -52,7 +61,7 @@ $fields = [
         'name' => __('Tags'),
         'data_path' => 'GalaxyClusterRelationTag',
         'element' => 'custom',
-        'card_section' => 'meta',
+        'card_section' => 'tag',
         'display_in' => ['table', 'card'],
         'function' => function ($row) {
             $relTags = $row['GalaxyClusterRelationTag'] ?? [];
@@ -89,6 +98,8 @@ $fields = [
         'name' => __('Owner Org'),
         'data_path' => 'SourceCluster.Org',
         'element' => 'organisation',
+        // Default galaxy data is owned by org 0 — show MISP, like legacy.
+        'default_org' => 'MISP',
         'card_section' => 'meta',
         'display_in' => ['card'],
         'requirement' => $showOwnerOrg,
@@ -97,6 +108,7 @@ $fields = [
         'name' => __('Creator Org'),
         'data_path' => 'SourceCluster.Orgc',
         'element' => 'organisation',
+        'default_org' => 'MISP',
         'card_section' => 'meta',
         'display_in' => ['table', 'card'],
         'requirement' => $showCreatorOrg,
@@ -115,28 +127,28 @@ $fields = [
         'data_path' => 'GalaxyClusterRelation.id',
         'card_section' => 'extra',
         'actions' => [
-            // [
-            //     'type' => 'modal',
-            //     'label' => __('Edit'),
-            //     'icon' => 'pen-to-square',
-            //     'url' => $baseurl . '/galaxy_cluster_relations/edit/%id%',
-            //     'requirement' => function ($row) use ($me) {
-            //         return empty($row['SourceCluster']['default'])
-            //             && (!empty($me['Role']['perm_site_admin'])
-            //                 || ($me['org_id'] == ($row['SourceCluster']['org_id'] ?? null) && !empty($me['Role']['perm_galaxy_editor'])));
-            //     },
-            // ],
-            // [
-            //     'type' => 'modal',
-            //     'label' => __('Delete'),
-            //     'icon' => 'trash',
-            //     'class' => 'text-danger',
-            //     'url' => $baseurl . '/galaxy_cluster_relations/delete/%id%',
-            //     'requirement' => function ($row) use ($me) {
-            //         return !empty($me['Role']['perm_site_admin'])
-            //             || ($me['org_id'] == ($row['SourceCluster']['org_id'] ?? null) && !empty($me['Role']['perm_galaxy_editor']));
-            //     },
-            // ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/galaxy_cluster_relations/edit/%id%',
+                'requirement' => function ($row) use ($me) {
+                    return empty($row['GalaxyClusterRelation']['default'])
+                        && (!empty($me['Role']['perm_site_admin'])
+                            || ($me['org_id'] == ($row['SourceCluster']['org_id'] ?? null) && !empty($me['Role']['perm_galaxy_editor'])));
+                },
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'class' => 'text-danger',
+                'url' => $baseurl . '/galaxy_cluster_relations/delete/%id%',
+                'requirement' => function ($row) use ($me) {
+                    return !empty($me['Role']['perm_site_admin'])
+                        || ($me['org_id'] == ($row['SourceCluster']['org_id'] ?? null) && !empty($me['Role']['perm_galaxy_editor']));
+                },
+            ],
         ],
     ],
 ];
@@ -145,6 +157,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => 3,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

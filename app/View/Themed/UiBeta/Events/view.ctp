@@ -2286,7 +2286,7 @@
                                                    <tr>
                                                        <td><span class="label label-warning"><?php echo h($match['warninglist_name']); ?></span></td>
                                                        <td>
-                                                            <a href="#attributes" onclick="$('.nav-tabs a[href=\'#attributes\']').tab('show'); $('#beta-attr-search').val('<?php echo h($match['value']); ?>').trigger('keyup'); return false;" class="attr-value">
+                                                            <a href="#attributes" onclick="$('.nav-tabs a[href=\'#attributes\']').tab('show'); $('#beta-attr-search').val(<?php echo h(json_encode($match['value'])); ?>).trigger('keyup'); return false;" class="attr-value">
                                                                <?php echo h($match['value']); ?>
                                                            </a>
                                                        </td>
@@ -2321,8 +2321,28 @@
                                        'checkbox_url' => $baseurl . '/events/restSearch/xml/eventid:' . $eventId . '/withAttachments:1.xml',
                                        'icon' => 'fa-file-code',
                                    ],
+                                   'xlsx' => [
+                                       'label' => $isPublished ? __('XLSX (Excel)') : __('XLSX (Excel, IDS flag ignored)'),
+                                       'url' => $isPublished
+                                           ? $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:0/eventid:' . $eventId
+                                           : $baseurl . '/events/restSearch/returnFormat:xlsx/includeContext:0/eventid:' . $eventId,
+                                       'checkbox' => $isPublished,
+                                       'checkbox_label' => __('Include non-IDS marked attributes'),
+                                       'checkbox_url' => $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1||0/published:1||0/includeContext:0/eventid:' . $eventId,
+                                       'icon' => 'fa-file-excel',
+                                   ],
+                                   'xlsx_context' => [
+                                       'label' => __('XLSX (Excel) with context'),
+                                       'url' => $isPublished
+                                           ? $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:1/eventid:' . $eventId
+                                           : $baseurl . '/events/restSearch/returnFormat:xlsx/includeContext:1/eventid:' . $eventId,
+                                       'checkbox' => $isPublished,
+                                       'checkbox_label' => __('Include non-IDS marked attributes'),
+                                       'checkbox_url' => $baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1||0/published:1||0/includeContext:1/eventid:' . $eventId,
+                                       'icon' => 'fa-file-excel',
+                                   ],
                                    'csv' => [
-                                       'label' => $isPublished ? __('CSV') : __('CSV (IDS flag ignored)'),
+                                       'label' => $isPublished ? __('CSV (NOT FOR EXCEL)') : __('CSV (NOT FOR EXCEL, IDS flag ignored)'),
                                        'url' => $isPublished
                                            ? $baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:0/eventid:' . $eventId
                                            : $baseurl . '/events/restSearch/returnFormat:csv/includeContext:0/eventid:' . $eventId,
@@ -2332,7 +2352,7 @@
                                        'icon' => 'fa-file-csv',
                                    ],
                                    'csv_context' => [
-                                       'label' => __('CSV with context'),
+                                       'label' => __('CSV with context (NOT FOR EXCEL)'),
                                        'url' => $isPublished
                                            ? $baseurl . '/events/restSearch/returnFormat:csv/to_ids:1/published:1/includeContext:1/eventid:' . $eventId
                                            : $baseurl . '/events/restSearch/returnFormat:csv/includeContext:1/eventid:' . $eventId,
@@ -2605,7 +2625,7 @@
                 </div>
                 
                 <?php if (!empty($contributors)): ?>
-                    <p style="margin-bottom: 20px;"><strong><?php echo __('Contributors'); ?>:</strong> <?php echo implode(', ', $contributors); ?></p>
+                    <p style="margin-bottom: 20px;"><strong><?php echo __('Contributors'); ?>:</strong> <?php echo h(implode(', ', $contributors)); ?></p>
                 <?php endif; ?>
                 
                 <div id="history-content-container">
@@ -3644,7 +3664,7 @@
         $('.filter-active-msg').remove();
         $('#beta-attr-search').val(comment).trigger('keyup');
 
-        var filterMessage = buildFilterMessage('Filtering by Comment: <strong>' + comment + '</strong>');
+        var filterMessage = buildFilterMessage('Filtering by Comment: <strong>' + escapeHtml(comment) + '</strong>');
         if ($('.beta-toolbar').length) {
             $('.beta-toolbar').after(filterMessage);
         } else {
@@ -3851,16 +3871,18 @@
             return '';
         }
         var iconHtml = '<i class="fa fa-comment"></i>';
+        var safeComment = escapeHtml(comment);
+        var safeCommentAttr = safeComment.replace(/"/g, '&quot;');
         if (comment.length > 50) {
             return '<span class="beta-correlation-comment-inline">'
                 + iconHtml
-                + '<span>' + comment.substring(0, 50) + '...</span>'
-                + '<i class="fa fa-comment-dots" style="cursor: pointer;" data-toggle="popover" data-trigger="click" data-placement="top" data-content="' + comment + '"></i>'
+                + '<span>' + escapeHtml(comment.substring(0, 50)) + '...</span>'
+                + '<i class="fa fa-comment-dots" style="cursor: pointer;" data-toggle="popover" data-trigger="click" data-placement="top" data-content="' + safeCommentAttr + '"></i>'
                 + '</span>';
         }
         return '<span class="beta-correlation-comment-inline">'
             + iconHtml
-            + '<span>' + comment + '</span>'
+            + '<span>' + safeComment + '</span>'
             + '</span>';
     }
 
@@ -3909,11 +3931,11 @@
                 var html = '';
                 html += '  <div class="beta-card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">';
                 html += '    <div style="display: flex; align-items: center; gap: 10px;">';
-                html += '      <span class="label label-default" style="font-weight: normal;">' + details.date + '</span>';
+                html += '      <span class="label label-default" style="font-weight: normal;">' + escapeHtml(details.date) + '</span>';
                 if (creatorOrg) {
                     html += '      <span class="beta-correlation-org"><i class="fa fa-building"></i>' + creatorOrg + '</span>';
                 }
-                html += '      <a class="beta-correlation-event-link" href="<?php echo $baseurl; ?>/events/view/' + eid + '">#' + eid + ' ' + details.info + '</a>';
+                html += '      <a class="beta-correlation-event-link" href="<?php echo $baseurl; ?>/events/view/' + eid + '">#' + eid + ' ' + escapeHtml(details.info) + '</a>';
                 html += '    </div>';
                 html += '    <div style="text-align: right;">';
                 html += '      <span style="font-size: 12px; font-weight: 600; color: #666;">' + count + ' ' + (count === 1 ? 'match' : 'matches') + '</span>';
@@ -3962,7 +3984,7 @@
                 var html = '';
                 html += '<div class="tag-container tag-wrapper-beta" style="display: inline-flex; align-items: stretch; margin-right: 4px; margin-bottom: 2px;">';
                 html += '  <span class="tag-scope-icon" style="background-color: ' + rgba + '; color: ' + iconColor + '; display: inline-flex; align-items: center; justify-content: center; padding: 4px 6px; border-radius: 4px 0 0 4px; border: 1px solid #d0d0d0; border-right: none;"><i class="fas fa-' + (tag.local ? 'user' : 'globe-americas') + '" style="font-size: 11px;"></i></span>';
-                html += '  <span class="tag nowrap" style="background-color: transparent; border: 1px solid #d0d0d0; color: #000; padding: 3px 8px; font-size: 12px; border-radius: 0 4px 4px 0;">' + tag.name + '</span>';
+                html += '  <span class="tag nowrap" style="background-color: transparent; border: 1px solid #d0d0d0; color: #000; padding: 3px 8px; font-size: 12px; border-radius: 0 4px 4px 0;">' + escapeHtml(tag.name) + '</span>';
                 html += '</div>';
                 return html;
             }
@@ -3972,7 +3994,7 @@
                 if (!attr) {
                     return '        <tr class="beta-attr-row">'
                         + '          <td style="width: 40px;"></td>'
-                        + '          <td colspan="5"><span class="label label-info">' + entry.value + '</span></td>'
+                        + '          <td colspan="5"><span class="label label-info">' + escapeHtml(entry.value) + '</span></td>'
                         + '        </tr>';
                 }
 
@@ -3984,14 +4006,14 @@
                 html += '            <div class="beta-correlation-meta">';
                 html += '              <div class="beta-attr-type-path">';
                 html += '                <span class="beta-correlation-chevrons">';
-                html += '                  <span class="beta-correlation-chevron beta-correlation-category"><span>' + attr.category + '</span></span>';
+                html += '                  <span class="beta-correlation-chevron beta-correlation-category"><span>' + escapeHtml(attr.category) + '</span></span>';
                 if (attr.Object && attr.Object.name) {
-                    html += '                  <span class="beta-correlation-chevron beta-correlation-relation"><span>' + attr.Object.name + '</span></span>';
+                    html += '                  <span class="beta-correlation-chevron beta-correlation-relation"><span>' + escapeHtml(attr.Object.name) + '</span></span>';
                     if (attr.object_relation) {
-                        html += '                  <span class="beta-correlation-chevron beta-correlation-relation"><span>' + attr.object_relation + '</span></span>';
+                        html += '                  <span class="beta-correlation-chevron beta-correlation-relation"><span>' + escapeHtml(attr.object_relation) + '</span></span>';
                     }
                 }
-                html += '                  <span class="beta-correlation-chevron beta-correlation-type"><span>' + attr.type + '</span></span>';
+                html += '                  <span class="beta-correlation-chevron beta-correlation-type"><span>' + escapeHtml(attr.type) + '</span></span>';
                 html += '                </span>';
                 if (attr.comment) {
                     html += '                ' + buildCorrelationCommentHtml(attr.comment);
@@ -3999,10 +4021,10 @@
                 html += '              </div>';
                 html += '              <div class="beta-correlation-value-row">';
                 if (attr.uuid || attr.id) {
-                    html += '                <a class="beta-correlation-value-link" href="' + linkHref + '" title="<?php echo h(__('Open attribute in related event')); ?>">' + attr.value + '</a>';
+                    html += '                <a class="beta-correlation-value-link" href="' + linkHref + '" title="<?php echo h(__('Open attribute in related event')); ?>">' + escapeHtml(attr.value) + '</a>';
                     html += '                <a class="beta-correlation-branch-link" href="' + linkHref + '" title="<?php echo h(__('Open attribute in related event')); ?>"><i class="fa fa-code-branch"></i></a>';
                 } else {
-                    html += '                <span class="beta-correlation-value-link">' + attr.value + '</span>';
+                    html += '                <span class="beta-correlation-value-link">' + escapeHtml(attr.value) + '</span>';
                 }
                 html += '              </div>';
                 if (attr.AttributeTag && attr.AttributeTag.length > 0) {
@@ -4023,7 +4045,8 @@
                 html += '          </td>';
                 html += '          <td class="col-sightings" style="text-align: center;"><i class="fa fa-eye beta-correlation-status-icon" style="opacity: 0.24;"></i></td>';
                 html += '          <td class="col-distribution beta-correlation-distribution-cell">';
-                html += '            <div class="dist-widget dist-' + parseInt(attr.distribution, 10) + '" title="' + (attr.SharingGroup ? attr.SharingGroup.name : '') + '"></div>';
+                var sharingGroupName = (attr.SharingGroup && attr.SharingGroup.name) || '';
+                html += '            <div class="dist-widget dist-' + parseInt(attr.distribution, 10) + '" title="' + escapeHtml(sharingGroupName).replace(/"/g, '&quot;') + '"></div>';
                 html += '          </td>';
                 html += '          <td class="col-date beta-correlation-date-cell" style="width: 90px;"><span class="beta-correlation-date-text">' + moment.unix(attr.timestamp).format('YYYY-MM-DD') + '</span></td>';
                 html += '        </tr>';
@@ -5253,6 +5276,7 @@
                 url: url,
                 type: 'POST',
                 dataType: 'json',
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 success: function(response) {
                     $toggle.prop('disabled', false);
                     if (response.saved || (response.response && response.response.saved)) {
@@ -5487,16 +5511,16 @@
                 html += '              <div class="beta-attr-type-path">';
                 html += '                <span class="beta-correlation-chevrons">';
                 if (attrCategory) {
-                    html += '                  <span class="beta-correlation-chevron beta-correlation-category"><span>' + attrCategory + '</span></span>';
+                    html += '                  <span class="beta-correlation-chevron beta-correlation-category"><span>' + escapeHtml(attrCategory) + '</span></span>';
                 }
                 if (attrType) {
-                    html += '                  <span class="beta-correlation-chevron beta-correlation-type"><span>' + attrType + '</span></span>';
+                    html += '                  <span class="beta-correlation-chevron beta-correlation-type"><span>' + escapeHtml(attrType) + '</span></span>';
                 }
                 html += '                </span>';
                 html += '              </div>';
             }
             html += '              <div class="beta-correlation-value-row">';
-            html += '                <span class="beta-correlation-value-link">' + attrValue + '</span>';
+            html += '                <span class="beta-correlation-value-link">' + escapeHtml(attrValue) + '</span>';
             html += '              </div>';
             html += '            </div>';
             html += '          </td>';
@@ -5773,6 +5797,7 @@
             url: baseurl + '/collections/getCollectionsForElements/Event.json',
             method: 'POST',
             contentType: 'application/json',
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             data: JSON.stringify({ uuids: [eventUuid] }),
             dataType: 'json',
             success: function(data) {
@@ -5790,6 +5815,9 @@
             }
         });
     };
-    window.loadEventCollections();
+    // The layout assigns csrfToken after rendering this view.
+    $(function () {
+        window.loadEventCollections();
+    });
     // ─────────────────────────────────────────────────────────────────────────
 </script>

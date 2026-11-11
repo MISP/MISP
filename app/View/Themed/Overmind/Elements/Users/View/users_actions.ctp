@@ -9,14 +9,14 @@ if ($adminView) {
     $actions[] = [
         'url'     => "$baseurl/admin/users/edit/$uid",
         'onclick' => "event.preventDefault(); openModal('$baseurl/admin/users/edit/$uid');",
-        'icon'    => 'fas fa-user-pen',
+        'icon'    => 'fas fa-pen-to-square',
         'label'   => __('Edit user'),
     ];
 } else {
     $actions[] = [
         'url'     => "$baseurl/users/edit",
         'onclick' => "event.preventDefault(); openModal('$baseurl/users/edit');",
-        'icon'    => 'fas fa-user-pen',
+        'icon'    => 'fas fa-pen-to-square',
         'label'   => __('Edit profile'),
     ];
 }
@@ -58,7 +58,7 @@ $actions[] = [
 if ($adminView && !empty($isSiteAdmin)) {
     $actions[] = [
         'url'     => "$baseurl/admin/users/delete/$uid",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/users/delete/$uid', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/users/delete/$uid', 'md');",
         'icon'    => 'fas fa-trash',
         'label'   => __('Delete user'),
         'danger'  => true,

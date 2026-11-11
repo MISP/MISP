@@ -7,6 +7,7 @@
  * - $allTags
  * - $customTags
  * - $tagCollections
+ * - $taxonomies
  * - $currentGlobalTags
  * - $currentLocalTags
  * - attributeId
@@ -19,6 +20,7 @@ echo $this->element('genericElementsBS5/Modals/tag_picker', [
     'allTags'           => $allTags,
     'customTags'        => $customTags,
     'tagCollections'    => $tagCollections,
+    'taxonomies'        => $taxonomies,
     'currentGlobalTags' => $currentGlobalTags,
     'currentLocalTags'  => $currentLocalTags,
     'mayModify'         => $mayModify,

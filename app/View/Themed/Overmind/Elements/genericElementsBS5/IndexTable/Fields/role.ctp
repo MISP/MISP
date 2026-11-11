@@ -1,31 +1,58 @@
 <?php
-/*
- * role.ctp — role as a filled pill, coloured/iconed by the role's highest
- * permission tier. The role's real name is always shown (works for custom roles).
- * Expected:
- *   $field['data_path'] => path to the Role array (e.g. 'Role')
- */
 $role = Hash::get($row, $field['data_path']);
+
 if (empty($role['name'])) {
     return;
 }
 
-if (!empty($role['perm_site_admin'])) {
-    $color = 'danger';  $icon = 'fa-shield-halved';
-} elseif (!empty($role['perm_admin'])) {
-    $color = 'warning'; $icon = 'fa-user-shield';
-} elseif (!empty($role['perm_sync'])) {
-    $color = 'info';    $icon = 'fa-arrows-rotate';
+// Glyph and colour come from app/Lib/Tools/RoleGlyph.php
+$glyph = $this->RoleGlyph->get($role);
+
+// Optional larger variant (e.g. when the chip is reused as a page header title).
+$size = $field['size'] ?? 'sm';
+if ($size === 'lg') {
+    $boxStyle = 'width:2.5rem; height:2.5rem;';
+    $iconStyle = 'font-size:1.3rem;';
 } else {
-    $color = 'secondary'; $icon = 'fa-user';
+    $boxStyle = 'width:1.5rem; height:1.5rem;';
+    $iconStyle = 'font-size:.8rem;';
 }
 
-echo sprintf(
-    '<a href="%s/roles/view/%s" class="badge rounded-pill text-bg-%s text-decoration-none d-inline-flex align-items-center gap-1">'
-        . '<i class="fas %s"></i>%s</a>',
-    h($baseurl),
-    h($role['id'] ?? 0),
-    $color,
-    $icon,
-    h($role['name'])
+$square = sprintf(
+    '<span class="d-inline-flex align-items-center justify-content-center rounded-2 flex-shrink-0" '
+        . 'style="%s background-color:%s; color:%s; border:1px solid %s33;"%s>'
+        . '<i class="%s" style="%s"></i></span>',
+    $boxStyle,
+    h($glyph['tint']),
+    h($glyph['colour']),
+    h($glyph['colour']),
+    empty($field['icon_only']) ? '' : sprintf(
+        ' data-bs-toggle="tooltip" title="%s" aria-label="%s"',
+        h($role['name']),
+        h($role['name'])
+    ),
+    h($glyph['icon']),
+    $iconStyle
 );
+
+// Just the badge, named by its tooltip (e.g. in front of a user's email).
+if (!empty($field['icon_only'])) {
+    echo $square;
+    return;
+}
+
+$chip = $square . sprintf('<span class="fw-semibold text-body">%s</span>', h($role['name']));
+
+if (!empty($field['no_link'])) {
+    echo sprintf(
+        '<span class="d-inline-flex align-items-center gap-2">%s</span>',
+        $chip
+    );
+} else {
+    echo sprintf(
+        '<a href="%s/roles/view/%s" class="d-inline-flex align-items-center gap-2 text-decoration-none">%s</a>',
+        h($baseurl),
+        h($role['id'] ?? 0),
+        $chip
+    );
+}

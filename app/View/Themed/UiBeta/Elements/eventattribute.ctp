@@ -978,7 +978,7 @@
                     data-object-type="<?php echo $dataType; ?>"
                     data-primary-id="<?php echo h($item['id']); ?>"
                     <?php if (!empty($item['uuid'])): ?>data-uuid="<?php echo h($item['uuid']); ?>"<?php endif; ?>
-                    <?php if ($isObject): ?>data-object-name="<?php echo $dataName; ?>" data-object-id="<?php echo h($item['id']); ?>"<?php else: ?>data-attribute-type="<?php echo $dataName; ?>"<?php endif; ?>>
+                    <?php if ($isObject): ?>data-object-name="<?php echo h($dataName); ?>" data-object-id="<?php echo h($item['id']); ?>"<?php else: ?>data-attribute-type="<?php echo h($dataName); ?>"<?php endif; ?>>
                     
                     <!-- Checkbox & Actions Dropdown -->
                     <td style="position: relative;" <?php if ($isObject) echo 'colspan="7"'; ?>>
@@ -1243,7 +1243,7 @@
                             $hasGalaxies = !empty($subAttr['Galaxy']);
                             $attributeIsLast = $isLast && !$hasTags && !$hasGalaxies;
                         ?>
-                        <tr class="beta-attr-row object-attr-row" id="Attribute_<?php echo h($subAttr['id']); ?>_tr" data-object-type="attribute" data-primary-id="<?php echo h($subAttr['id']); ?>" data-uuid="<?php echo h($subAttr['uuid']); ?>" data-attribute-type="<?php echo h($subAttr['type']); ?>" data-parent-object-id="<?php echo h($item['id']); ?>" data-parent-object="<?php echo $dataName; ?>">
+                        <tr class="beta-attr-row object-attr-row" id="Attribute_<?php echo h($subAttr['id']); ?>_tr" data-object-type="attribute" data-primary-id="<?php echo h($subAttr['id']); ?>" data-uuid="<?php echo h($subAttr['uuid']); ?>" data-attribute-type="<?php echo h($subAttr['type']); ?>" data-parent-object-id="<?php echo h($item['id']); ?>" data-parent-object="<?php echo h($dataName); ?>">
                             <td class="tree-cell <?php echo $attributeIsLast ? 'last-item' : ''; ?>">
                                  <!-- Checkbox & Actions for Sub-Attribute -->
                                  <div class="beta-left-cell-stack">

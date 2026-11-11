@@ -29,7 +29,13 @@
  * Index.ctp's tag-chip contrast helper (`_idxContrastColour`), guard-defined
  * identically below so the card renders standalone when no Index widget
  * shares the page.
+ *
+ * The `#id` link is gated by DashboardURLValidator (DD-03) — the same gate
+ * every other dashboard renderer uses; an unsafe URL degrades to plain
+ * text rather than a link.
  */
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
+
 $rows = isset($data['data']) ? $data['data'] : [];
 
 if (empty($rows)) {
@@ -37,20 +43,7 @@ if (empty($rows)) {
     return;
 }
 
-$baseurl = (Configure::read('MISP.baseurl') ?: rtrim(Router::url('/', true), '/'));
-
-/**
- * Same URL safety contract as Index.ctp / SimpleList: relative paths
- * starting with a single `/`, or absolute URLs on MISP.baseurl's host.
- */
-$isSafeUrl = function ($url) use ($baseurl) {
-    if (!is_string($url) || $url === '') return false;
-    if ($url[0] === '/' && (!isset($url[1]) || $url[1] !== '/')) return true;
-    if ($baseurl === '') return false;
-    $baseHost = parse_url($baseurl, PHP_URL_HOST);
-    $host     = parse_url($url, PHP_URL_HOST);
-    return $baseHost && $host && strcasecmp($baseHost, $host) === 0;
-};
+$baseurl = DashboardURLValidator::baseUrl();
 
 /**
  * threat_level_id → [css-modifier, human label]. Unknown / missing ids
@@ -175,9 +168,11 @@ foreach ($rows as $ev) {
 
     $idHtml = '';
     if ($id !== '') {
-        $eventUrl = $baseurl . '/events/view/' . rawurlencode($id);
+        $eventUrl = DashboardURLValidator::validate(
+            $baseurl . '/events/view/' . rawurlencode($id)
+        );
         $idLabel = '#' . $id;
-        if ($isSafeUrl($eventUrl)) {
+        if ($eventUrl !== null) {
             $idHtml = sprintf('<a class="misp-eventcards-id" href="%s">%s</a>',
                 h($eventUrl), h($idLabel));
         } else {

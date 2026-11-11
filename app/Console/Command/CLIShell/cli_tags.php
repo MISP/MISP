@@ -27,6 +27,15 @@ trait CLITagsTrait
                     'hide_tag', 'local_only',
                     'numerical_value',
                 ],
+                // Web ACL: tags/add needs
+                // perm_tag_editor; edit and delete
+                // are site-admin only.
+                'writePerms' => [
+                    'add' => 'perm_tag_editor',
+                    'edit' => 'perm_site_admin',
+                    'delete' => 'perm_site_admin',
+                ],
+                'filters' => ['searchall'],
             ],
         ];
     }
@@ -237,25 +246,32 @@ trait CLITagsTrait
      * @param int $id Tag ID.
      * @return void
      */
-    private function __editTag($id)
+    private function __editTag($id, $fields = null)
     {
         $existing = $this->__fetchTagDetail($id);
         if (empty($existing)) {
             $this->err(
                 'Tag #' . $id . ' not found.'
             );
-            return;
+            return false;
         }
         $editableFields =
             $this->__entityConfig['tag']
                 ['editableFields'];
+        if ($fields !== null) {
+            $editableFields = array_values(
+                array_intersect(
+                    $editableFields, $fields
+                )
+            );
+        }
         $values = $this->__promptForFields(
             'tag',
             $existing['Tag'],
             $editableFields
         );
         if ($values === false) {
-            return;
+            return false;
         }
         if (
             !$this->__promptConfirm(
@@ -264,7 +280,7 @@ trait CLITagsTrait
             )
         ) {
             $this->out('Cancelled.');
-            return;
+            return false;
         }
         $data = [
             'Tag' => array_merge(
@@ -279,6 +295,7 @@ trait CLITagsTrait
                 'Tag #' . $id
                 . ' updated successfully.'
             );
+            return true;
         } else {
             $this->err(
                 'Failed to update tag #'
@@ -303,6 +320,7 @@ trait CLITagsTrait
                 }
             }
         }
+        return false;
     }
 
     /**

@@ -1,4 +1,7 @@
 <?php
+/*
+ * A single attribute row, fetched on its own.
+ */
 echo $this->element(
     'Objects/object_add_attributes',
     [
@@ -7,11 +10,3 @@ echo $this->element(
         'appendValue' => '0',
     ]
 );
-?>
-<script>
-(function () {
-    if (typeof window.overmindEnableObjectRow === 'function') {
-        window.overmindEnableObjectRow(<?= (int)$k ?>);
-    }
-}());
-</script>

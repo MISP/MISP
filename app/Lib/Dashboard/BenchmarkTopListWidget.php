@@ -1,5 +1,6 @@
 <?php
 
+App::uses('BenchmarkTool', 'Tools');
 
 class BenchmarkTopListWidget
 {

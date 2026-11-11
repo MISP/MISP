@@ -34,6 +34,11 @@ class EventGraph extends AppModel
             'message' => 'The provided eventGraph is not a valid json format',
             'required' => true,
         ),
+        'preview_img' => array(
+            'rule' => array('custom', '/^data:image\/png;base64,[A-Za-z0-9+\/]*={0,2}$/'),
+            'message' => 'The preview has to be a base64 encoded PNG data URL',
+            'allowEmpty' => true,
+        ),
     );
 
     public function beforeValidate($options = array())

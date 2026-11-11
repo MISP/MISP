@@ -13,13 +13,49 @@ class SchedulerWorkerShell extends AppShell
     /** @var Worker */
     private $worker;
 
+    /** @var int */
+    private $maxExecutionTime;
+
+    /** @var int Consecutive database failures, drives the back-off and log throttling. */
+    private $dbFailures = 0;
+
+    const DEFAULT_MAX_EXECUTION_TIME = 0; // unlimited
+
+    const LOOP_INTERVAL = 10;
+
+    /** Upper bound of the back-off applied while the database is unreachable. */
+    const MAX_DB_BACKOFF = 60;
+
+    /** Only log every Nth consecutive database failure, so an outage cannot flood the log. */
+    const DB_FAILURE_LOG_INTERVAL = 10;
+
     public const ADMIN_ACTIONS = [
         'updateGalaxies',
         'updateTaxonomies',
         'updateWarningLists',
         'updateNoticeLists',
-        'updateObjectTemplates'
+        'updateObjectTemplates',
+        // Reconcile MISP accounts with the external identity provider. The
+        // reporting variant changes nothing; the blocking one disables users
+        // it no longer backs, so it is a separate, explicit choice.
+        'checkUserValidity',
+        'blockInvalidUsers'
     ];
+
+    public function getOptionParser(): ConsoleOptionParser
+    {
+        $parser = parent::getOptionParser();
+        $parser->addOption(
+            'maxExecutionTime',
+            [
+                'help' => 'Worker maximum execution time (seconds) before it self-destruct. Zero means unlimited.',
+                'default' => self::DEFAULT_MAX_EXECUTION_TIME,
+                'required' => false
+            ]
+        );
+
+        return $parser;
+    }
 
     public function main()
     {
@@ -36,9 +72,18 @@ class SchedulerWorkerShell extends AppShell
             ]
         );
 
+        $this->maxExecutionTime = (int)($this->params['maxExecutionTime'] ?? self::DEFAULT_MAX_EXECUTION_TIME);
+
         CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - starting task scheduler...");
 
         while (true) {
+            $this->checkMaxExecutionTime();
+
+            if (!$this->ensureDatabaseConnection()) {
+                sleep($this->databaseBackoff());
+                continue;
+            }
+
             $now = time();
 
             try {
@@ -49,21 +94,11 @@ class SchedulerWorkerShell extends AppShell
                     ],
                     'contain' => ['Job'],
                 ]);
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
+                // A lost connection is picked up by the probe on the next pass,
+                // which owns the reconnect, the back-off and the log throttling.
                 CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - failed to fetch tasks: " . $e->getMessage());
-
-                $message = $e->getMessage();
-                if (strpos($message, 'MySQL server has gone away') !== false
-                    || strpos($message, 'Lost connection to MySQL server') !== false) {
-                    try {
-                        $this->Task->getDataSource()->reconnect();
-                        CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - database connection re-established.");
-                    } catch (Exception) {
-                        // still down — next iteration will retry
-                    }
-                }
-
-                sleep(10);
+                sleep(self::LOOP_INTERVAL);
                 continue;
             }
 
@@ -71,12 +106,74 @@ class SchedulerWorkerShell extends AppShell
                 $task = $task['Task'];
                 try {
                     $this->processTask($task);
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
                     $this->logMessage('error', $task['id'], "failed to process task: " . $e->getMessage());
                 }
             }
 
-            sleep(10);
+            sleep(self::LOOP_INTERVAL);
+        }
+    }
+
+    /**
+     * Make sure the shared datasource holds a usable connection before querying.
+     *
+     * When the server drops the connection, CakePHP never re-establishes it on
+     * its own, and a failed reconnect leaves the datasource with a null PDO
+     * handle - the next query then raises an Error, not an Exception, killing
+     * the worker. Probing first keeps the loop alive across outages of any
+     * length, and doubles as a keepalive on long-haul database links.
+     *
+     * @return boolean True when the connection is usable.
+     */
+    private function ensureDatabaseConnection(): bool
+    {
+        try {
+            $db = ConnectionManager::getDataSource($this->Task->useDbConfig);
+
+            if (!$db->isConnected()) {
+                $db->disconnect();
+                $db->connect();
+            }
+        } catch (Throwable $e) {
+            $this->dbFailures++;
+            if ($this->dbFailures === 1 || $this->dbFailures % self::DB_FAILURE_LOG_INTERVAL === 0) {
+                CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - database unavailable (attempt {$this->dbFailures}): " . $e->getMessage());
+            }
+            return false;
+        }
+
+        if ($this->dbFailures > 0) {
+            CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - database connection re-established after {$this->dbFailures} failed attempt(s).");
+            $this->dbFailures = 0;
+        }
+
+        return true;
+    }
+
+    /**
+     * Seconds to wait before retrying, growing with the number of consecutive failures.
+     *
+     * @return integer
+     */
+    private function databaseBackoff(): int
+    {
+        return (int)min(self::LOOP_INTERVAL * max(1, $this->dbFailures), self::MAX_DB_BACKOFF);
+    }
+
+    /**
+     * Checks if worker maximum execution time is reached, and exits if so.
+     *
+     * @return void
+     */
+    private function checkMaxExecutionTime()
+    {
+        if ($this->maxExecutionTime === 0) {
+            return;
+        }
+        if ((time() - $this->worker->createdAt()) > $this->maxExecutionTime) {
+            CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - worker max execution time reached, exiting gracefully worker...");
+            exit;
         }
     }
 
@@ -137,7 +234,13 @@ class SchedulerWorkerShell extends AppShell
         $this->Task->id = $taskId;
         if ($type === 'error') {
             CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - Task ID: {$taskId} - {$message}");
-            $this->Task->saveField('message', $message);
+            try {
+                // Persisting the message is a database write inside the handler
+                // for a failure that may itself be the database being down.
+                $this->Task->saveField('message', $message);
+            } catch (Throwable $e) {
+                CakeLog::error("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - Task ID: {$taskId} - could not persist task message: " . $e->getMessage());
+            }
         } else {
             CakeLog::info("[WORKER PID: {$this->worker->pid()}][{$this->worker->queue()}] - Task ID: {$taskId} - {$message}");
         }
@@ -157,7 +260,7 @@ class SchedulerWorkerShell extends AppShell
         try {
             $this->Task->id = $task['id'];
             $this->Task->saveField('next_execution_time', $task['next_execution_time']);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->logMessage('error', $task['id'], "failed to save next_execution_time. Error: " . $e->getMessage());
             return;
         }

@@ -96,6 +96,10 @@ if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
 <?php endif; ?>
 
 
+<?php
+if (empty($this->viewVars['_correlateScriptEmitted'])):
+    $this->viewVars['_correlateScriptEmitted'] = true;
+?>
 
 <script>
 (function () {
@@ -203,6 +207,17 @@ if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
 
     /* DOM update after a successful toggle */
     function _updateBtn(btn, nowDisabled) {
+        // One attribute can be on screen more than once — the object index
+        // renders its list view and its card view at the same time — so every
+        // copy of the toggle has to follow, not just the one that was clicked.
+        const attrId = btn.dataset.attributeId;
+        const all = attrId
+            ? document.querySelectorAll('.correlate-toggle[data-attribute-id="' + attrId + '"]')
+            : [btn];
+        all.forEach(function (el) { _paintBtn(el, nowDisabled); });
+    }
+
+    function _paintBtn(btn, nowDisabled) {
         btn.dataset.disableCorrelation = nowDisabled ? '1' : '0';
         btn.title = nowDisabled
             ? <?= json_encode(__('Correlation disabled — click to enable')) ?>
@@ -230,6 +245,7 @@ if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
     }
 })();
 </script>
+<?php endif; ?>
 
 <?php
 else:

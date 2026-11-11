@@ -20,24 +20,13 @@ echo $this->Form->create('User', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('User') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-envelope-open-text text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Send email') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('to') ?> <?= h($user['User']['email']) ?>
-        </p>
-    </div>
-    <i class="fas fa-envelope text-primary" style="font-size:2rem; opacity:.5;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('User'),
+    'title' => __('Send email'),
+    'description' => __('to') . ' ' . $user['User']['email'],
+    'titleIcon' => 'fas fa-envelope-open-text',
+    'icon' => 'fas fa-envelope',
+]) ?>
 
 
 
@@ -85,14 +74,10 @@ echo $this->Form->create('User', [
     </div>
 </div>
 
-<!-- FOOTER -->
-<div class="px-4 py-3 d-flex justify-content-end gap-2 border-top">
-    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-        <?= __('Discard') ?>
-    </button>
-    <button type="submit" class="btn btn-primary">
-        <i class="fas fa-paper-plane me-1"></i><?= __('Send email') ?>
-    </button>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_footer', [
+    'align' => 'end',
+    'bleed' => true,
+    'submit' => ['label' => __('Send email'), 'icon' => 'fas fa-paper-plane'],
+]) ?>
 
 <?= $this->Form->end() ?>

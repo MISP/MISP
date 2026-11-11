@@ -128,7 +128,6 @@
             'correlations' => __('Correlations'),
             'sightings' => __('Sightings'),
             'proposals' => __('Proposals'),
-            'discussion' => __('Posts'),
             'report_count' => __('Report count'),
             'timestamp' => __('Last modified at'),
             'publish_timestamp' => __('Published at')
@@ -282,7 +281,6 @@
         'creator_user',
         'publish_timestamp',
         'timestamp',
-        'discussion',
         'proposals',
         'sightings',
         'report_count',
@@ -472,6 +470,7 @@
             url: betaEventsIndexBaseurl + '/collections/getCollectionsForElements/Event.json',
             method: 'POST',
             contentType: 'application/json',
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             data: JSON.stringify({ uuids: uuids }),
             dataType: 'json',
             success: function(data) {

@@ -751,7 +751,8 @@
                 headers: {
                     'Content-Type':     'application/json',
                     'Accept':           'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': (window.csrfToken || '')
                 },
                 body: JSON.stringify({
                     ObjectReference: {

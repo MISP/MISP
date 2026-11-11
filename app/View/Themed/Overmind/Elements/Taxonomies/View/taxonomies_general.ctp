@@ -96,23 +96,6 @@
             </div>
 
 
-            <!-- ACCEPTED ATTRIBUTE TYPES -->
-            <?php if (!empty($data['WarninglistType'])): ?>
-                <div class="mt-4">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <?= __('Accepted attribute types') ?>
-                    </div>
-
-                    <div class="d-flex flex-wrap gap-2">
-                        <?php foreach ($data['WarninglistType'] as $type): ?>
-                            <span class="badge bg-dark">
-                                <?= h($type['type']) ?>
-                            </span>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-
         </div>
 
     </div>

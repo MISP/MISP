@@ -360,15 +360,35 @@ class TaxonomiesController extends AppController
             if (empty($taxonomy_id) && !empty($this->request->params['named']['taxonomy_id'])) {
                 $taxonomy_id = $this->request->params['named']['taxonomy_id'];
             }
-            if (
-                empty($taxonomy_id) ||
-                empty($this->request->params['named']['name'])
-            ) {
+            if (empty($taxonomy_id)) {
                 throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
-            } else {
-                $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
-                $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
             }
+            if (empty($this->request->params['named']['name'])) {
+                if ($this->theme !== 'Overmind') {
+                    throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
+                }
+                $taxonomy = $this->Taxonomy->find('first', [
+                    'conditions' => ['Taxonomy.id' => $taxonomy_id],
+                    'contain' => [
+                        'TaxonomyPredicate' => [
+                            'fields' => ['TaxonomyPredicate.id', 'TaxonomyPredicate.value'],
+                            'TaxonomyEntry' => ['fields' => ['TaxonomyEntry.id', 'TaxonomyEntry.value']]
+                        ]
+                    ]
+                ]);
+                if (empty($taxonomy)) {
+                    throw new NotFoundException(__('Taxonomy not found.'));
+                }
+                // Same counter as the index cell, so the two never disagree.
+                $counted = $this->__tagCount([$taxonomy])[0];
+                $this->set('taxonomy', $counted['Taxonomy']);
+                $this->set('currentCount', $counted['current_count']);
+                $this->set('totalCount', $counted['total_count']);
+                $this->layout = false;
+                return $this->render('ajax/taxonomyEnableAllTagsConfirmationForm');
+            }
+            $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
+            $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
         } else {
             if ($taxonomy_id) {
                 $result = $this->Taxonomy->addTags($taxonomy_id);
@@ -471,15 +491,45 @@ class TaxonomiesController extends AppController
             if (empty($taxonomy_id) && !empty($this->request->params['named']['taxonomy_id'])) {
                 $taxonomy_id = $this->request->params['named']['taxonomy_id'];
             }
-            if (
-                empty($taxonomy_id) ||
-                empty($this->request->params['named']['name'])
-            ) {
+            if (empty($taxonomy_id)) {
                 throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
-            } else {
-                $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
-                $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
             }
+            if (empty($this->request->params['named']['name'])) {
+                /*
+                 * No tag named: this is the index's "enable all" asking before
+                 * it creates every tag the taxonomy is still missing. The
+                 * question and the creation share this URL, so the confirmation
+                 * form carries a token the POST can spend.
+                 *
+                 * Only the BS5 index offers it — the legacy one still confirms
+                 * in the browser and has no view here — so any other theme
+                 * keeps the old complaint.
+                 */
+                if ($this->theme !== 'Overmind') {
+                    throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
+                }
+                $taxonomy = $this->Taxonomy->find('first', [
+                    'conditions' => ['Taxonomy.id' => $taxonomy_id],
+                    'contain' => [
+                        'TaxonomyPredicate' => [
+                            'fields' => ['TaxonomyPredicate.id', 'TaxonomyPredicate.value'],
+                            'TaxonomyEntry' => ['fields' => ['TaxonomyEntry.id', 'TaxonomyEntry.value']]
+                        ]
+                    ]
+                ]);
+                if (empty($taxonomy)) {
+                    throw new NotFoundException(__('Taxonomy not found.'));
+                }
+                // Same counter as the index cell, so the two never disagree.
+                $counted = $this->__tagCount([$taxonomy])[0];
+                $this->set('taxonomy', $counted['Taxonomy']);
+                $this->set('currentCount', $counted['current_count']);
+                $this->set('totalCount', $counted['total_count']);
+                $this->layout = false;
+                return $this->render('ajax/taxonomyEnableAllTagsConfirmationForm');
+            }
+            $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
+            $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
         } else {
             if ($taxonomy_id) {
                 $result = $this->Taxonomy->disableTags($taxonomy_id);
@@ -679,8 +729,7 @@ class TaxonomiesController extends AppController
         $this->loadModel('Tag');
         $existingTags = $this->Tag->find('column', [
             'fields' => ['Tag.name'],
-            'conditions' => [
-                'lower(Tag.name)' => array_keys($tags),
+            'conditions' => $this->Tag->nameCondition(array_keys($tags)) + [
                 'hide_tag' => 0
             ],
         ]);
@@ -775,10 +824,9 @@ class TaxonomiesController extends AppController
 
     private function _massToggleState($idList = null, $state = null, $field = '')
     {
-        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
-        $ids = json_decode($cleanIdList, true);
+        $ids = $this->_massActionIdList($idList, 'Taxonomy');
 
-        if (empty($ids) || !is_array($ids)) {
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Taxonomies', 'massToggle', false, $message, $this->response->type());
@@ -874,7 +922,10 @@ class TaxonomiesController extends AppController
         $this->set('actionText', __($actionTextMap[$field]));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/taxonomies/' . $urlMap[$field] . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in Taxonomy.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['Taxonomy']['id'] = json_encode($ids);
+        $this->set('url', '/taxonomies/' . $urlMap[$field]);
 
         $this->render('ajax/taxonomyToggleConfirmationForm');
     }

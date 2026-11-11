@@ -115,7 +115,7 @@ def run_push(misp, server_id):
 
 def run_pull(misp, server_id):
     url = f'servers/pull/{server_id}/disable_background_processing:1'
-    return check_response(misp._check_response(misp._prepare_request('GET', url)))
+    return check_response(misp._check_response(misp._prepare_request('POST', url)))
 
 
 # ---------------------------------------------------------------------------

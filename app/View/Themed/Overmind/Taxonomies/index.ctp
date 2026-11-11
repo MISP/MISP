@@ -25,6 +25,9 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Taxonomy.id',
+        'enable_path' => 'Taxonomy.enabled',
+        'require_path' => 'Taxonomy.required',
+        'highlight_path' => 'Taxonomy.highlighted',
         'card_section' => 'selector',
     ],
     [
@@ -77,16 +80,9 @@ $fields = [
     ],
     [
         'name' => __('Active Tags'),
-        'element' => 'custom',
-        'class' => 'shortish',
+        'element' => 'taxonomy_active_tags',
         'card_section' => 'top',
-        'function' => function (array $item) use ($isSiteAdmin) {
-            $content = '<strong>' . h($item['current_count']) . '</strong> / ' . h($item['total_count']);
-            if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) {
-                $content .= ' (' . $this->Form->postLink(__('enable all'), array('action' => 'addTag', h($item['Taxonomy']['id'])), array('title' => __('Enable all tags')), __('Are you sure you want to enable every tag associated to this taxonomy?')) . ')';
-            }
-            return $content;
-        }
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Actions'),
@@ -112,8 +108,8 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Disable'),
                 'label_off' => __('Enable'),
-                'icon_on' => 'stop text-danger',
-                'icon_off' => 'play text-success',
+                'icon_on' => 'stop',
+                'icon_off' => 'play',
                 'url' => '/taxonomies/%action%/%id%',
                 'enable_path' => 'Taxonomy.enabled',
                 'requirement' => $isSiteAdmin
@@ -122,8 +118,8 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Optional'),
                 'label_off' => __('Require'),
-                'icon_on' => 'question text-dark',
-                'icon_off' => 'asterisk text-dark',
+                'icon_on' => 'question',
+                'icon_off' => 'asterisk',
                 'url' => '/taxonomies/%action%/%id%',
                 'require_path' => 'Taxonomy.required',
                 'requirement' => $isSiteAdmin
@@ -132,8 +128,8 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Remove Highlight'),
                 'label_off' => __('Highlight'),
-                'icon_on' => 'down-long text-primary',
-                'icon_off' => 'highlighter text-primary',
+                'icon_on' => 'down-long',
+                'icon_off' => 'highlighter',
                 'url' => '/taxonomies/%action%/%id%',
                 'highlight_path' => 'Taxonomy.highlighted',
                 'requirement' => $isSiteAdmin
@@ -146,6 +142,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

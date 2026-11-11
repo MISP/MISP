@@ -80,7 +80,7 @@ $fields = [
         'name' => __('Requirements'),
         'data_path' => 'ObjectTemplate.requirements',
         'element' => 'object_template_requirements',
-        'card_section' => 'extra',
+        'card_section' => 'tag',
         'display_in' => ['table', 'card']
     ],
     [
@@ -128,8 +128,8 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Deactivate'),
                 'label_off' => __('Activate'),
-                'icon_on' => 'stop text-danger',
-                'icon_off' => 'play text-success',
+                'icon_on' => 'fas fa-stop text-danger',
+                'icon_off' => 'fas fa-play text-success',
                 'url' => '/objectTemplates/%action%/%id%',
                 'active_path' => 'ObjectTemplate.active',
                 'requirement' => $isSiteAdmin
@@ -142,6 +142,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

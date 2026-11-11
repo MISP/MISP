@@ -86,6 +86,16 @@ $divider = '<li class="divider"></li>';
                             ),
                             'text' => __('Populate from…')
                         ));
+                        if (Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiActions')) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'aiActions',
+                                'onClick' => array(
+                                    'function' => 'genericPopup',
+                                    'params' => array($baseurl . '/events/aiActions/' . $eventId, '#confirmation_box')
+                                ),
+                                'text' => __('AI actions…')
+                            ));
+                        }
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'onClick' => array(
                                 'function' => 'genericPopup',
@@ -646,35 +656,6 @@ $divider = '<li class="divider"></li>';
                     }
                     break;
 
-                case 'allowedlist':
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => sprintf(
-                            '%s%s/allowedlists/index',
-                            $baseurl,
-                            $isSiteAdmin ? '/admin' : ''
-                        ),
-                        'text' => __('List Allowedlist')
-                    ));
-                    if ($isSiteAdmin) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/add',
-                            'text' => __('New Allowedlist')
-                        ));
-                    }
-                    if ($menuItem == 'edit') {
-                        echo $divider;
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/edit/' . h($id),
-                            'element_id' => 'edit',
-                            'text' => __('Edit Allowedlist')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
-                            'url' => $baseurl . '/admin/allowedlists/delete/' . h($id),
-                            'text' => __('Delete Allowedlist'),
-                            'message' => __('Are you sure you want to delete #%s?', h($id))
-                        ));
-                    }
-                    break;
 
                 case 'globalActions':
                     if ($menuItem === 'edit' || $menuItem === 'view' || $menuItem === 'change_pw') {
@@ -1204,44 +1185,6 @@ $divider = '<li class="divider"></li>';
                     }
                     break;
 
-                case 'threads':
-                    if ($menuItem === 'add' || $menuItem === 'view') {
-                        if (!(empty($thread_id) && empty($target_type))) {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'url' => $baseurl . '/threads/view/' . h($thread_id),
-                                'text' => __('View Thread')
-                            ));
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'add_post',
-                                'url' => $baseurl . '/posts/add/thread/' . h($thread_id),
-                                'text' => __('Add Post')
-                            ));
-                            echo $divider;
-                        }
-                    }
-                    if ($menuItem === 'edit') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view',
-                            'url' => $baseurl . '/threads/view/' . h($thread_id),
-                            'text' => __('View Thread')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'edit',
-                            'url' => $baseurl . '/threads/view/' . h($id),
-                            'text' => __('Edit Post')
-                        ));
-                        echo $divider;
-                    }
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/threads/index',
-                        'text' => __('List Threads')
-                    ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/posts/add',
-                        'text' => __('New Thread')
-                    ));
-                    break;
-
                 case 'tags':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'indexfav',
@@ -1306,33 +1249,6 @@ $divider = '<li class="divider"></li>';
                             'url' => $baseurl . '/taxonomies/update',
                             'text' => __('Update Taxonomies')
                         ));
-                    }
-                    break;
-
-                case 'templates':
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/templates/index',
-                        'text' => __('List Templates')
-                    ));
-                    if ($this->Acl->canAccess('templates', 'add')) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/templates/add',
-                            'text' => __('Add Template')
-                        ));
-                    }
-                    if ($menuItem === 'view' || $menuItem === 'edit') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view',
-                            'url' => $baseurl . '/templates/view/' . h($id),
-                            'text' => __('View Template')
-                        ));
-                        if ($mayModify) {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'edit',
-                                'url' => $baseurl . '/templates/edit/' . h($id),
-                                'text' => __('Edit Template')
-                            ));
-                        }
                     }
                     break;
 

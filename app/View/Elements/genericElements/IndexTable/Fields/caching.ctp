@@ -22,11 +22,14 @@
         '<span class="%s">%s</span>%s',
         empty($timestamp) ? 'red bold' : '',
         h($ageString),
-        (!$enabled || !$isSiteAdmin) ? '' : sprintf(
-            ' <a href="%s" aria-label="%s" title="%s"><span class="black fa fa-memory"></span></a>',
+        (!$enabled || !$isSiteAdmin) ? '' : ' ' . $this->Form->postLink(
+            '<span class="black fa fa-memory"></span>',
             $baseurl . '/feeds/cacheFeeds/' . h($primary),
-            __('Cache feed'),
-            __('Cache feed')
+            array(
+                'escape' => false,
+                'aria-label' => __('Cache feed'),
+                'title' => __('Cache feed')
+            )
         )
     );
 ?>

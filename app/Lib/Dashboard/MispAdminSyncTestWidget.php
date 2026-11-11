@@ -20,7 +20,7 @@ class MispAdminSyncTestWidget
     {
         $this->Server = ClassRegistry::init('Server');
         $servers = $this->Server->find('all', array(
-            'fields' => array('id', 'url', 'name', 'pull', 'push', 'caching_enabled', 'authkey', 'cert_file', 'client_cert_file', 'self_signed'),
+            'fields' => array('id', 'url', 'name', 'pull', 'push', 'caching_enabled', 'authkey', 'cert_file', 'client_cert_file', 'self_signed', 'skip_proxy'),
             'conditions' => array('OR' => array('pull' => 1, 'push' => 1, 'caching_enabled' => 1)),
             'recursive' => -1
         ));
