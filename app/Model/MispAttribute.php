@@ -3494,6 +3494,7 @@ class MispAttribute extends AppModel
                 }
             }
         }
+        $this->Event->assertNotProtectedFromSyncUser($user, $attribute);
         if ($hard) {
             $save = $this->delete($id);
         } else {

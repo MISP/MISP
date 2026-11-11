@@ -3830,6 +3830,9 @@ class Event extends AppModel
         if (!empty($user['Role']['perm_site_admin'])) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if (!empty($user['Role']['perm_modify_org']) && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -3837,6 +3840,46 @@ class Event extends AppModel
             return true;
         }
         return false;
+    }
+
+    /**
+     * A sync user that is neither a site admin nor an internal sync user may
+     * change a protected event only through events/edit with a valid
+     * signature: every other write path refuses it.
+     *
+     * @param array $user
+     * @param array $event with an Event key; `protected` is looked up when missing
+     * @return bool
+     */
+    public function isProtectedFromSyncUser(array $user, array $event)
+    {
+        if (
+            empty($user['Role']['perm_sync']) ||
+            !empty($user['Role']['perm_site_admin']) ||
+            !empty($user['Role']['perm_sync_internal'])
+        ) {
+            return false;
+        }
+        // Many callers load the event with a short field list.
+        if (array_key_exists('protected', $event['Event'])) {
+            return (bool)$event['Event']['protected'];
+        }
+        if (empty($event['Event']['id'])) {
+            return true;
+        }
+        return $this->hasAny(['Event.id' => $event['Event']['id'], 'Event.protected' => 1]);
+    }
+
+    /**
+     * @param array $user
+     * @param array $event with an Event key
+     * @throws ForbiddenException
+     */
+    public function assertNotProtectedFromSyncUser(array $user, array $event)
+    {
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            throw new ForbiddenException(__('This event is protected: a sync user may change it only through events/edit with a valid signature.'));
+        }
     }
 
     /**
@@ -9870,7 +9913,11 @@ class Event extends AppModel
             }
             $existingEvent = $this->find('first', ['conditions' => ['Event.uuid' => $data['Event']['uuid']], 'recursive' => -1]);
             if (!empty($existingEvent)) {
-                if ($user['Role']['perm_modify_org'] && $existingEvent['Event']['orgc_id'] == $user['org_id']) {
+                if (
+                    $user['Role']['perm_modify_org'] &&
+                    $existingEvent['Event']['orgc_id'] == $user['org_id'] &&
+                    !$this->isProtectedFromSyncUser($user, $existingEvent)
+                ) {
                     $eventid = $existingEvent['Event']['id'];
                     $result = $this->_edit($data, $user, $eventid, null, null, true);
                     if ($result === true) {

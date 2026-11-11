@@ -657,6 +657,8 @@ class TagsController extends AppController
             }
             throw new ForbiddenException($message);
         }
+        // Every caller attaches or removes a tag, local ones included.
+        $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $object);
         return $object;
     }
 

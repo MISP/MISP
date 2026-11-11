@@ -1033,6 +1033,9 @@ class Galaxy extends AppModel
                 throw new MethodNotAllowedException('Invalid ' . Inflector::humanize($target_type) . '.');
             }
         }
+        if ($target_type !== 'tag_collection') {
+            $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
+        }
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
 
@@ -1141,6 +1144,7 @@ class Galaxy extends AppModel
                     throw new NotFoundException('Invalid Event.');
                 }
             }
+            $this->GalaxyCluster->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
         }
         $connectorModel = Inflector::camelize($targetType) . 'Tag';
         if ($targetType === 'attribute') {

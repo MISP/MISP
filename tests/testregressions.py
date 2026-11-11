@@ -15,6 +15,9 @@ import sys
 import html
 import json
 import re
+import shutil
+import subprocess
+import tempfile
 import time
 import uuid as uuidlib
 from urllib.parse import quote
@@ -2466,6 +2469,283 @@ class GalaxyCaptureUpdateGate(unittest.TestCase):
                                             data={'hard': 1})
         finally:
             self._restore_default()
+
+
+class ProtectedEventSyncWrites(unittest.TestCase):
+    """A protected event may be changed by an external sync user only through events/edit with a
+    valid signature; no other write route (attributes, objects, populate, publish, tags, reports,
+    galaxy clusters, cryptographic keys, unprotect) may be used by that user to change it.
+
+    Only events/edit checked the protection, so the creator organisation's sync user could change
+    a protected event through every other route without a signature.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.created_roles = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.tag_id = None
+        cls.cluster_id = None
+        cls.gnupg_home = None
+        try:
+            org_role = least_privileged_role(cls.admin, 'perm_modify_org', 'perm_publish',
+                                             'perm_tagger')
+            ext_role = None
+            int_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if int(role['perm_site_admin']) or not int(role['perm_sync']):
+                    continue
+                if any(not int(role.get(p, 0) or 0)
+                       for p in ('perm_modify_org', 'perm_publish', 'perm_tagger')):
+                    continue
+                if int(role.get('perm_sync_internal', 0) or 0):
+                    int_role = int_role or role
+                else:
+                    ext_role = ext_role or role
+            if ext_role is None:
+                raise unittest.SkipTest('no external sync role with modify_org, publish, tagger')
+            ext_role_id = int(ext_role['id'])
+            int_role_id = int(int_role['id']) if int_role else None
+            if int_role_id is None:
+                body = {k: v for k, v in ext_role.items()
+                        if k.startswith('perm_') and k != 'perm_sync_internal'}
+                body['perm_sync_internal'] = 1
+                body['permission'] = 3
+                body['name'] = 'regression internal sync %s' % random()
+                response = cls.admin._prepare_request('POST', 'admin/roles/add', data={'Role': body})
+                created = response.json() if response.status_code == 200 else {}
+                created = created.get('Role', created)
+                if created.get('id') and int(created.get('perm_sync_internal', 0)):
+                    int_role_id = int(created['id'])
+                    cls.created_roles.append(int_role_id)
+            cls.corg = make_org(cls.admin, 'regression protected org')
+            cls.created_orgs = [cls.corg]
+            cls.org_admin_user = make_user(cls.admin, cls.corg.id, org_role)
+            cls.ext_user = make_user(cls.admin, cls.corg.id, ext_role_id)
+            cls.created_users = [cls.org_admin_user, cls.ext_user]
+            cls.int_user = None
+            if int_role_id is not None:
+                cls.int_user = make_user(cls.admin, cls.corg.id, int_role_id)
+                cls.created_users.append(cls.int_user)
+            cls.org_admin = PyMISP(url, cls.org_admin_user.authkey)
+            cls.ext = PyMISP(url, cls.ext_user.authkey)
+            cls.internal = PyMISP(url, cls.int_user.authkey) if cls.int_user else None
+            cls.tag_name = 'regression-protected-%s' % random()
+            tag = send(cls.admin, 'POST', 'tags/add', {'name': cls.tag_name})
+            cls.tag_id = int(tag['Tag']['id'])
+            cls.pgp_key = cls._make_pgp_key()
+            cls.template_id = None
+            for entry in send(cls.admin, 'GET', 'objectTemplates/index'):
+                template = entry['ObjectTemplate'] if 'ObjectTemplate' in entry else entry
+                if template['name'] == 'domain-ip':
+                    cls.template_id = int(template['id'])
+            if cls.template_id is None:
+                raise unittest.SkipTest('no domain-ip object template')
+            for galaxy in send(cls.admin, 'GET', 'galaxies/index'):
+                galaxy = galaxy['Galaxy'] if 'Galaxy' in galaxy else galaxy
+                clusters = send(cls.admin, 'GET', 'galaxy_clusters/index/%s' % galaxy['id'])
+                if clusters:
+                    cluster = clusters[0]
+                    cluster = cluster['GalaxyCluster'] if 'GalaxyCluster' in cluster else cluster
+                    cls.cluster_id = int(cluster['id'])
+                    break
+            if cls.cluster_id is None:
+                raise unittest.SkipTest('no galaxy cluster on the instance')
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _make_pgp_key(cls):
+        base = os.environ.get('REGRESSION_TMP') or tempfile.gettempdir()
+        cls.gnupg_home = tempfile.mkdtemp(prefix='regression-gnupg-', dir=base)
+        os.chmod(cls.gnupg_home, 0o700)
+        env = dict(os.environ, GNUPGHOME=cls.gnupg_home)
+        try:
+            subprocess.run(['gpg', '--batch', '--passphrase', '', '--quick-generate-key',
+                            'regression-%s@test.local' % random(), 'rsa2048', 'sign', '1d'],
+                           env=env, check=True, capture_output=True, timeout=120)
+            exported = subprocess.run(['gpg', '--batch', '--armor', '--export'], env=env,
+                                      check=True, capture_output=True, timeout=30)
+            return exported.stdout.decode()
+        except Exception:
+            shutil.rmtree(cls.gnupg_home, ignore_errors=True)
+            cls.gnupg_home = None
+            return None
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        if getattr(cls, 'tag_id', None) is not None:
+            cls.admin._prepare_request('POST', 'tags/delete/%d' % cls.tag_id)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+        for role_id in getattr(cls, 'created_roles', []):
+            cls.admin._prepare_request('POST', 'admin/roles/delete/%d' % role_id)
+        if getattr(cls, 'gnupg_home', None):
+            shutil.rmtree(cls.gnupg_home, ignore_errors=True)
+
+    def _stored(self):
+        response = self.admin._prepare_request('POST', 'events/restSearch',
+            data={'eventid': self.event_id, 'returnFormat': 'json'})
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return response.json()['response'][0]['Event']
+
+    def _build_event(self):
+        event = send(self.org_admin, 'POST', 'events/add',
+                     {'info': 'regression protected %s' % random(), 'distribution': 0,
+                      'threat_level_id': 4, 'analysis': 0})['Event']
+        self.event_id = int(event['id'])
+        type(self).event_ids.append(self.event_id)
+        type(self).event_uuids.append(event['uuid'])
+        for _ in range(2):
+            send(self.org_admin, 'POST', 'attributes/add/%d' % self.event_id,
+                 {'type': 'comment', 'category': 'Other', 'value': 'seed %s' % random()})
+        send(self.org_admin, 'POST', 'objects/add/%d/%d' % (self.event_id, self.template_id),
+             {'name': 'domain-ip', 'meta-category': 'network', 'distribution': 0,
+              'Attribute': [{'object_relation': 'domain', 'type': 'domain',
+                             'category': 'Network activity', 'value': '%s.example' % random(),
+                             'distribution': 0}]})
+        send(self.org_admin, 'POST', 'eventReports/add/%d' % self.event_id,
+             {'name': 'report %s' % random(), 'content': 'original content', 'distribution': 0})
+        send(self.org_admin, 'POST', 'galaxies/attachCluster/%d/event' % self.event_id,
+             {'Galaxy': {'target_id': self.cluster_id}})
+        send(self.org_admin, 'POST', 'events/protect/%d' % self.event_id)
+        stored = self._stored()
+        self.assertTrue(int(stored['protected']), 'the event did not become protected')
+        self.assertTrue(stored['Attribute'] and stored['Object'] and stored['EventReport']
+                        and stored['Galaxy'], 'the event was not built as expected')
+        return stored
+
+    def setUp(self):
+        self.stored = self._build_event()
+
+    def _refused(self, response):
+        self.assertTrue(400 <= response.status_code < 500,
+                        'expected a 4xx, got %s: %s' % (response.status_code, response.text[:200]))
+
+    def _plain_attribute(self, event=None):
+        event = event or self.stored
+        return [a for a in event['Attribute'] if not int(a.get('object_id', 0))][0]
+
+    def test_sync_user_cannot_add_attribute(self):
+        n = len(self.stored['Attribute'])
+        response = self.ext._prepare_request('POST', 'attributes/add/%d' % self.event_id,
+            data={'type': 'comment', 'category': 'Other', 'value': 'inject %s' % random()})
+        self._refused(response)
+        self.assertEqual(n, len(self._stored()['Attribute']))
+
+    def test_sync_user_cannot_edit_attribute(self):
+        attribute = self._plain_attribute()
+        response = self.ext._prepare_request('POST', 'attributes/edit/%s' % attribute['id'],
+            data={'value': 'changed %s' % random()})
+        self._refused(response)
+        after = [a for a in self._stored()['Attribute'] if a['id'] == attribute['id']][0]
+        self.assertEqual(attribute['value'], after['value'])
+
+    def test_sync_user_cannot_delete_attribute(self):
+        attribute = self._plain_attribute()
+        response = self.ext._prepare_request('POST', 'attributes/delete/%s' % attribute['id'],
+            data={'hard': 1})
+        self._refused(response)
+        ids = [a['id'] for a in self._stored()['Attribute']]
+        self.assertIn(attribute['id'], ids)
+
+    def test_sync_user_cannot_delete_object(self):
+        object_id = self.stored['Object'][0]['id']
+        response = self.ext._prepare_request('POST', 'objects/delete/%s/1' % object_id)
+        self._refused(response)
+        self.assertEqual([object_id], [o['id'] for o in self._stored()['Object']])
+
+    def test_sync_user_cannot_populate(self):
+        n = len(self.stored['Attribute'])
+        body = {'Attribute': [{'type': 'comment', 'category': 'Other',
+                               'value': 'populated %s' % random()}]}
+        response = self.ext._prepare_request('POST', 'events/populate/%d' % self.event_id,
+                                             data=body)
+        self._refused(response)
+        self.assertEqual(n, len(self._stored()['Attribute']))
+
+    def test_sync_user_cannot_unprotect(self):
+        response = self.ext._prepare_request('POST', 'events/unprotect/%d' % self.event_id)
+        self._refused(response)
+        self.assertTrue(int(self._stored()['protected']))
+
+    def test_sync_user_cannot_publish(self):
+        response = self.ext._prepare_request('POST', 'events/publish/%d' % self.event_id)
+        self._refused(response)
+        self.assertFalse(int(self._stored()['published']))
+
+    def test_sync_user_cannot_attach_tag(self):
+        response = self.ext._prepare_request('POST', 'tags/attachTagToObject',
+            data={'uuid': self.stored['uuid'], 'tag': self.tag_name})
+        self._refused(response)
+        self.assertNotIn(self.tag_name, [t['name'] for t in self._stored().get('Tag', [])])
+
+    def test_sync_user_cannot_edit_report(self):
+        report = self.stored['EventReport'][0]
+        response = self.ext._prepare_request('POST', 'eventReports/edit/%s' % report['id'],
+            data={'content': 'changed %s' % random()})
+        self._refused(response)
+        after = self._stored()['EventReport'][0]
+        self.assertEqual(report['content'], after['content'])
+
+    def test_sync_user_cannot_detach_cluster(self):
+        galaxy_tags = [t for t in self._stored().get('Tag', []) if 'misp-galaxy:' in t['name']]
+        self.assertTrue(galaxy_tags, 'no galaxy tag on the event')
+        response = self.ext._prepare_request('POST', 'galaxy_clusters/detach/%d/event/%s' % (
+            self.event_id, galaxy_tags[0]['id']))
+        self._refused(response)
+        still = [t['id'] for t in self._stored().get('Tag', [])]
+        self.assertIn(galaxy_tags[0]['id'], still)
+
+    def test_sync_user_cannot_add_cryptographic_key(self):
+        if self.pgp_key:
+            key_data = self.pgp_key
+        else:
+            key_data = '-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nAAAA\n-----END PGP PUBLIC KEY BLOCK-----'
+        response = self.ext._prepare_request('POST', 'cryptographicKeys/add/Event/%d' % self.event_id,
+            data={'CryptographicKey': {'type': 'pgp', 'key_data': key_data}})
+        self._refused(response)
+        # Without a GnuPG home the instance refuses any key: only the protection's refusal counts.
+        self.assertIn('protected', response.text)
+        self.assertFalse(self._stored().get('CryptographicKey'))
+
+    def test_control_internal_sync_user_can_delete_attribute(self):
+        if self.internal is None:
+            self.skipTest('no internal sync role could be created')
+        attribute = self._plain_attribute()
+        response = self.internal._prepare_request('POST', 'attributes/delete/%s' % attribute['id'],
+                                                  data={'hard': 1})
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertNotIn(attribute['id'], [a['id'] for a in self._stored()['Attribute']])
+
+    def test_control_org_admin_can_add_attribute(self):
+        n = len(self.stored['Attribute'])
+        send(self.org_admin, 'POST', 'attributes/add/%d' % self.event_id,
+             {'type': 'comment', 'category': 'Other', 'value': 'added %s' % random()})
+        self.assertEqual(n + 1, len(self._stored()['Attribute']))
+
+    def test_control_sync_user_can_delete_after_unprotect(self):
+        send(self.org_admin, 'POST', 'events/unprotect/%d' % self.event_id)
+        self.assertFalse(int(self._stored()['protected']))
+        attribute = self._plain_attribute()
+        response = self.ext._prepare_request('POST', 'attributes/delete/%s' % attribute['id'],
+                                             data={'hard': 1})
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertNotIn(attribute['id'], [a['id'] for a in self._stored()['Attribute']])
 
 
 if __name__ == '__main__':
