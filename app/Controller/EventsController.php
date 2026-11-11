@@ -3410,6 +3410,84 @@ class EventsController extends AppController
     public function viewEventGalaxies($id = null)
     {
         $user = $this->Auth->user();
+        list($event, $galaxies) = $this->__eventGalaxyGroups($user, $id);
+
+        $this->set('galaxies',  $galaxies);
+        $this->set('eventId',   $event['Event']['id']);
+        $this->set('mayModify', $this->__canModifyEvent(
+            $event, $user
+        ));
+        $this->layout = false;
+    }
+
+    /**
+     * The event's clusters of every matrix galaxy (one with a kill-chain
+     * order), grouped by tactic. Card fragment by default; `full:1` renders
+     * the whole matrix of one galaxy (`galaxy:<id>`) on one platform
+     * (`platform:<position in kill_chain_order>`), `hide:1` starting with
+     * the unused columns hidden.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventGalaxyMatrices($id = null)
+    {
+        $user = $this->Auth->user();
+        list($event, $galaxies, $eventIds) = $this->__eventGalaxyGroups($user, $id);
+
+        $this->loadModel('Galaxy');
+        $matrices = [];
+        foreach ($galaxies as $galaxy) {
+            if (!empty($galaxy['kill_chain_order'])) {
+                $matrices[] = $this->Galaxy->tacticCoverage($galaxy);
+            }
+        }
+        usort($matrices, function ($a, $b) {
+            return [$b['techniques'], $a['name']] <=> [$a['techniques'], $b['name']];
+        });
+
+        $this->set('matrices', $matrices);
+        $this->set('eventId', $event['Event']['id']);
+        $this->layout = false;
+
+        $named = $this->request->params['named'];
+        if (empty($named['full'])) {
+            return;
+        }
+
+        $galaxyId = (int)($named['galaxy'] ?? 0);
+        if (!in_array($galaxyId, array_column($matrices, 'id'), true)) {
+            $galaxyId = $matrices[0]['id'] ?? 0;
+        }
+        $matrix = null;
+        foreach ($galaxies as $galaxy) {
+            if ((int)$galaxy['id'] !== $galaxyId) {
+                continue;
+            }
+            $onEvent = array_fill_keys(
+                array_column($galaxy['GalaxyCluster'], 'id'), true
+            );
+            $onIndicators = $this->Event->Attribute->AttributeTag
+                ->galaxyTagCounts($user, $eventIds, $galaxy['type']);
+            $matrix = $this->Galaxy->eventMatrix(
+                $user, $galaxy, $onEvent, $onIndicators,
+                isset($named['platform']) ? (int)$named['platform'] : null
+            );
+        }
+        $this->set('matrix', $matrix);
+        $this->set('hideUnused', !empty($named['hide']));
+        $this->render('view_event_galaxy_matrices_full');
+    }
+
+    /**
+     * The event's galaxy clusters (with its extensions' in the extended
+     * view), grouped by galaxy.
+     *
+     * @param array $user
+     * @param int|string $id Event ID or UUID
+     * @return array [$event, $galaxies, ids of the events in view]
+     */
+    private function __eventGalaxyGroups(array $user, $id)
+    {
         $event = $this->Event->fetchSimpleEvent(
             $user, $id,
             [
@@ -3465,14 +3543,8 @@ class EventsController extends AppController
                 $galaxies[$galaxyId]['GalaxyCluster'] = [$cluster];
             }
         }
-        $galaxies = array_values($galaxies);
 
-        $this->set('galaxies',  $galaxies);
-        $this->set('eventId',   $event['Event']['id']);
-        $this->set('mayModify', $this->__canModifyEvent(
-            $event, $user
-        ));
-        $this->layout = false;
+        return [$event, array_values($galaxies), $extensionSet['ids']];
     }
 
     /**

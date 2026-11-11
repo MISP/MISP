@@ -93,6 +93,7 @@
                 ],
                 'right' => [
                     'Events/View/event_actions',
+                    'Events/View/event_galaxy_matrices',
                     'Events/View/event_sightings',
                     'Events/View/event_related',
                     'Events/View/event_warninglists',
