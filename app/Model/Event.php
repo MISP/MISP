@@ -6695,11 +6695,14 @@ class Event extends AppModel
     // accepts an attribute array and a list of blocked tags. Returns the attribute array with the blocked attributes cleaned out.
     private function __filterBlockedAttributesFromContainer($container, $blockedTags)
     {
+        // looked up per attribute tag, and a tag pattern can block thousands of ids
+        $blockedTags = $this->__tagIdSet($blockedTags);
         foreach ($container as $key => $attribute) {
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
-                    if (in_array($at['tag_id'], $blockedTags)) {
+                    if (isset($blockedTags[$at['tag_id']])) {
                         unset($container[$key]);
+                        break;
                     }
                 }
             }
@@ -6711,17 +6714,30 @@ class Event extends AppModel
     // accepts an event-report array and a list of blocked tags. Returns the event-report array with the blocked reports cleaned out.
     private function __filterBlockedEventReportsFromContainer($container, $blockedTags)
     {
+        $blockedTags = $this->__tagIdSet($blockedTags);
         foreach ($container as $key => $eventReport) {
             if (!empty($eventReport['EventReportTag'])) {
                 foreach ($eventReport['EventReportTag'] as $ev) {
-                    if (in_array($ev['tag_id'], $blockedTags)) {
+                    if (isset($blockedTags[$ev['tag_id']])) {
                         unset($container[$key]);
+                        break;
                     }
                 }
             }
         }
         $container = array_values($container);
         return $container;
+    }
+
+    /**
+     * @param array $tagIds
+     * @return array the ids as keys; anything that cannot be a key is left out
+     */
+    private function __tagIdSet(array $tagIds)
+    {
+        return array_flip(array_filter($tagIds, function ($tagId) {
+            return is_int($tagId) || is_string($tagId);
+        }));
     }
 
     public function set_filter_sharing_group(&$params, $conditions, $options)

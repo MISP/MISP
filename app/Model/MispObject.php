@@ -1188,9 +1188,12 @@ class MispObject extends AppModel
             }
         }
         if (empty($options['metadata'])) {
+            $blockedTags = array_flip(array_filter($options['blockedAttributeTags'] ?? [], function ($tagId) {
+                return is_int($tagId) || is_string($tagId);
+            }));
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
-                    if (!empty($options['blockedAttributeTags']) && array_intersect(array_column($attribute['AttributeTag'] ?? [], 'tag_id'), $options['blockedAttributeTags'])) {
+                    if ($blockedTags && array_intersect_key(array_flip(array_column($attribute['AttributeTag'] ?? [], 'tag_id')), $blockedTags)) {
                         unset($results[$key]['Attribute'][$key2]);
                         continue;
                     }
