@@ -6731,13 +6731,18 @@ class Event extends AppModel
 
     /**
      * @param array $tagIds
-     * @return array the ids as keys; anything that cannot be a key is left out
+     * @return array the numeric ids as keys; anything else never matches a tag id
      */
     private function __tagIdSet(array $tagIds)
     {
-        return array_flip(array_filter($tagIds, function ($tagId) {
-            return is_int($tagId) || is_string($tagId);
-        }));
+        $set = [];
+        foreach ($tagIds as $tagId) {
+            if (is_numeric($tagId)) {
+                // canonical form, as the database compares it: '08482' is tag 8482
+                $set[(string)($tagId + 0)] = true;
+            }
+        }
+        return $set;
     }
 
     public function set_filter_sharing_group(&$params, $conditions, $options)
