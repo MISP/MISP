@@ -2217,11 +2217,16 @@ class TestComplexEventQueryAcl(unittest.TestCase):
     def test_negated_tags(self):
         status, events, _ = self.__search(self.__anchored({"tags": {"!=": self.tag_vis}}))
         self.assertEqual((status, events), (200, {**self.visible, self.e1: {self.__value("e1-a2")}}))
-        status, events, _ = self.__search(self.__anchored({"tags": {"NOT IN": [self.tag_evt]}}))
-        self.assertEqual(status, 200)
-        self.assertEqual(set(events), {self.e2, self.e4})
+        status, events, _ = self.__search(self.__anchored({"tags": {"NOT LIKE": f"{self.marker}:v%"}}))
+        self.assertEqual((status, events), (200, {**self.visible, self.e1: {self.__value("e1-a2")}}))
+        for negated in ({"NOT IN": [self.tag_evt]}, {"NOT LIKE": f"{self.marker}:e%"}):
+            status, events, _ = self.__search(self.__anchored({"tags": negated}))
+            self.assertEqual(status, 200)
+            self.assertEqual(set(events), {self.e2, self.e4})
         rejected = {
             "negated tag under or": ({"OR": [{"id": self.e1}, {"tags": {"!=": self.tag_vis}}]}, "bad_shape"),
+            "not like tag under or": ({"OR": [{"id": self.e1}, {"tags": {"NOT LIKE": f"{self.marker}:%"}}]}, "bad_shape"),
+            "not like attribute field": ({"value": {"NOT LIKE": f"{self.marker}%"}}, "unknown_operator"),
             "tag under not": ({"NOT": {"tags": self.tag_vis}}, "bad_shape"),
             "attribute field under not": ({"NOT": {"AND": [{"id": self.e1}, {"type": "domain"}]}}, "bad_shape"),
             "negated attribute field": ({"type": {"!=": "domain"}}, "unknown_operator"),
@@ -2543,10 +2548,14 @@ class TestComplexObjectQueryAcl(unittest.TestCase):
         status, objects, data = self.__search(self.__anchored({"tags": {"NOT IN": [self.tag_evt]}}))
         self.assertEqual(status, 200, data)
         self.assertEqual(set(objects), {self.o2a, self.o4})
+        status, objects, data = self.__search(self.__anchored({"tags": {"NOT LIKE": f"{self.marker}:e%"}}))
+        self.assertEqual(status, 200, data)
+        self.assertEqual(set(objects), {self.o2a, self.o4})
         status, objects, data = self.__search({"id": self.o2a})
         self.assertEqual((status, self.__values(objects)), (200, {self.o2a: {self.__value("o2a-vis")}}))
         for tree in ({"AND": [{"id": self.o2a}, {"tags": {"!=": self.tag_vis}}]},
-                     {"AND": [{"id": self.o2a}, {"tags": {"NOT IN": [self.tag_vis]}}]}):
+                     {"AND": [{"id": self.o2a}, {"tags": {"NOT IN": [self.tag_vis]}}]},
+                     {"AND": [{"id": self.o2a}, {"tags": {"NOT LIKE": f"{self.marker}:v%"}}]}):
             with self.subTest(str(tree)):
                 status, objects, data = self.__search(tree)
                 self.assertEqual(status, 200, data)

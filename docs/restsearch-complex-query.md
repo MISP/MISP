@@ -67,9 +67,10 @@ Example, on attributes:
 | `=`, `!=` | equals, not equals |
 | `>`, `<`, `>=`, `<=` | numeric, timestamp and date fields only |
 | `IN`, `NOT IN` | operand is a non-empty list |
-| `LIKE` | string fields only; see below |
+| `LIKE`, `NOT LIKE` | string fields only; see below |
 
-`!=` and `NOT IN` are shorthand for `NOT` over `=` and `IN`.
+`!=`, `NOT IN` and `NOT LIKE` are shorthand for `NOT` over `=`, `IN` and
+`LIKE`.
 
 ### Types
 
@@ -82,13 +83,14 @@ of days (`"30d"`); `h`, `m` and `s` are rejected there.
 
 ### Wildcards
 
-Wildcards are only available through `LIKE`, with a leading and/or trailing
-`%` and nothing else (`%evil`, `evil%`, `%evil%`). `=`, `!=`, `IN` and
-`NOT IN` values starting or ending with `%` are rejected, so these operators
-compare literally, except on `tags`: as in the legacy filter, a tag value is
-matched against tag names as a pattern (`_` stands for any one character)
-and an all-digit value is a tag id. `{"tags": {"LIKE": "tlp:%"}}` selects
-anything carrying a `tlp:` tag.
+Wildcards are only available through `LIKE` and `NOT LIKE`, with a leading
+and/or trailing `%` and nothing else (`%evil`, `evil%`, `%evil%`). An `=`,
+`!=`, `IN` or `NOT IN` value starting or ending with `%` is rejected, on
+`tags` too, so these operators compare literally. The exception is `tags`,
+as in the legacy filter: a value is matched against tag names as a pattern,
+`_` standing for any one character and a `%` inside the value for any run
+of them, and an all-digit value is a tag id. `{"tags": {"LIKE": "tlp:%"}}`
+selects anything carrying a `tlp:` tag.
 
 ### NULL handling
 
@@ -121,9 +123,9 @@ the same as `id` and `timestamp`.
 | `to_ids` | boolean | `= !=` | |
 | `published` | boolean | `= !=` | of the event |
 | `uuid` | string | `= != IN NOT IN` | |
-| `type`, `category`, `object_relation`, `comment`, `value` | string | `= != IN NOT IN LIKE` | `value` matches both value fields |
-| `eventinfo` | string | `= != IN NOT IN LIKE` | info of the event |
-| `tags` | string | `= != IN NOT IN LIKE` | attribute or event tag; negated means neither carries it (as in the legacy filter); see Wildcards |
+| `type`, `category`, `object_relation`, `comment`, `value` | string | `= != IN NOT IN LIKE NOT LIKE` | `value` matches both value fields |
+| `eventinfo` | string | `= != IN NOT IN LIKE NOT LIKE` | info of the event |
+| `tags` | string | `= != IN NOT IN LIKE NOT LIKE` | attribute or event tag; negated means neither carries it (as in the legacy filter); see Wildcards |
 | `org` | string | `= != IN NOT IN` | name, uuid or id of the event's creator organisation, as in the legacy filter |
 
 Anything not listed is rejected as `unknown_field`. The same list is
@@ -144,17 +146,21 @@ as it would be without `query`.
 - Event fields are conditions on the event itself and can be negated freely.
 - Attribute and object fields select an event that holds at least one
   element that matches, is not deleted and is visible to the user. They take
-  positive operators only: `!=` and `NOT IN` on them are rejected as
-  `unknown_operator`, and a `NOT` over a subtree holding one of them, or
-  `tags`, as `bad_shape`. "Events without a `btc` attribute" cannot be
-  expressed.
+  positive operators only: `!=`, `NOT IN` and `NOT LIKE` on them are
+  rejected as `unknown_operator`, and a `NOT` over a subtree holding one of
+  them, or `tags`, as `bad_shape`. "Events without a `btc` attribute" cannot
+  be expressed.
 - `tags` selects an event that carries the tag itself or holds a visible,
-  non-deleted attribute carrying it. Negated (`!=`, `NOT IN`), it excludes
-  the events carrying the tag as an event tag and strips the attributes and
-  event reports carrying it from the events returned. Since it acts on the
-  output, a negated `tags` is only allowed where every enclosing node is an
-  `AND`; under `OR` it is rejected as `bad_shape`. Write
-  `{"tags": {"!=": "x"}}`, not `{"NOT": {"tags": "x"}}`.
+  non-deleted attribute carrying it. Negated (`!=`, `NOT IN`, `NOT LIKE`),
+  it excludes the events carrying a matching tag as an event tag and strips
+  the attributes and event reports carrying one from the events returned.
+  Since it acts on the output, a negated `tags` is only allowed where every
+  enclosing node is an `AND`; under `OR` it is rejected as `bad_shape`.
+  Write `{"tags": {"!=": "x"}}` or `{"tags": {"NOT LIKE": "x%"}}`, not
+  `{"NOT": {"tags": ...}}`.
+- So `{"tags": {"NOT LIKE": "tlp:%"}}` returns the events that carry no
+  `tlp:` tag themselves; an event holding a `tlp:red` attribute is returned
+  without that attribute.
 - The `MISP.attribute_filters_block_only` setting does not apply: attribute
   fields inside `query` always select events.
 
@@ -168,9 +174,9 @@ as it would be without `query`.
 | `date` | event | date | same | |
 | `published` | event | boolean | `= !=` | |
 | `uuid` | event | string | `= != IN NOT IN` | |
-| `eventinfo` | event | string | `= != IN NOT IN LIKE` | info of the event |
+| `eventinfo` | event | string | `= != IN NOT IN LIKE NOT LIKE` | info of the event |
 | `org` | event | string | `= != IN NOT IN` | name, uuid or id of the creator organisation |
-| `tags` | event, attribute | string | `= != IN NOT IN LIKE` | see above |
+| `tags` | event, attribute | string | `= != IN NOT IN LIKE NOT LIKE` | see above |
 | `type`, `category`, `object_relation`, `comment`, `value` | attribute | string | `= IN LIKE` | `value` matches both value fields |
 | `to_ids` | attribute | boolean | `=` | |
 | `object_name` | object | string | `= IN LIKE` | such as `domain-ip` |
@@ -210,11 +216,11 @@ may see.
   matches, is not deleted and is visible to the user. They take positive
   operators only, as on events.
 - `tags` selects an object whose event carries the tag, or that holds a
-  visible, non-deleted attribute carrying it. Negated, it excludes the
-  objects whose event carries the tag as an event tag and strips the
-  attributes carrying it from the objects returned; an object left without
-  attributes is still returned. A negated `tags` is only allowed under `AND`,
-  as on events.
+  visible, non-deleted attribute carrying it. Negated (`!=`, `NOT IN`,
+  `NOT LIKE`), it excludes the objects whose event carries a matching tag as
+  an event tag and strips the attributes carrying one from the objects
+  returned; an object left without attributes is still returned. A negated
+  `tags` is only allowed under `AND`, as on events.
 - Objects cannot be sorted: an `order` next to `query` is rejected with
   HTTP 400. Without `query`, `order` is ignored, as it always was.
 
@@ -224,16 +230,16 @@ may see.
 | `distribution` | object | integer | same | |
 | `timestamp` | object | timestamp | same | object timestamp |
 | `uuid` | object | string | `= != IN NOT IN` | |
-| `object_name` | object | string | `= != IN NOT IN LIKE` | such as `domain-ip` |
+| `object_name` | object | string | `= != IN NOT IN LIKE NOT LIKE` | such as `domain-ip` |
 | `object_template_uuid` | object | string | `= != IN NOT IN` | |
 | `event_id`, `threat_level_id` | event | integer | `= != > < >= <= IN NOT IN` | |
 | `orgc_id` | event | integer | same | creator organisation |
 | `event_timestamp`, `publish_timestamp` | event | timestamp | same | |
 | `date` | event | date | same | |
 | `published` | event | boolean | `= !=` | |
-| `eventinfo` | event | string | `= != IN NOT IN LIKE` | info of the event |
+| `eventinfo` | event | string | `= != IN NOT IN LIKE NOT LIKE` | info of the event |
 | `org` | event | string | `= != IN NOT IN` | name, uuid or id of the creator organisation |
-| `tags` | event, attribute | string | `= != IN NOT IN LIKE` | see above |
+| `tags` | event, attribute | string | `= != IN NOT IN LIKE NOT LIKE` | see above |
 | `type`, `category`, `object_relation`, `comment`, `value` | attribute | string | `= IN LIKE` | `value` matches both value fields |
 | `to_ids` | attribute | boolean | `=` | |
 

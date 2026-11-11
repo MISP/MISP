@@ -11,11 +11,10 @@ App::uses('ComplexQueryTool', 'Tools');
 class ComplexEventQueryTool extends ComplexQueryTool
 {
     const POSITIVE_STRING_OPS = ['=', 'IN', 'LIKE'];
-    const NEGATIONS = ['!=', 'NOT IN'];
     const NATIVE_LEVELS = ['event'];
     const EVENT_KEY = 'Event.id';
     const NEGATED_ELEMENT_MESSAGE = 'attribute and object fields cannot be negated when searching events';
-    const NOT_ELEMENT_MESSAGE = 'NOT cannot hold attribute, object or tag fields when searching events; use != on tags';
+    const NOT_ELEMENT_MESSAGE = 'NOT cannot hold attribute, object or tag fields when searching events; use != or NOT LIKE on tags';
     const NEGATED_TAGS_MESSAGE = 'negated tags are only allowed under AND when searching events';
 
     /**
@@ -111,14 +110,14 @@ class ComplexEventQueryTool extends ComplexQueryTool
         }
         if ($negated) {
             $this->fail("$path.{$node[1]}", 'bad_shape', static::NOT_ELEMENT_MESSAGE);
-        } elseif (!$andOnly && in_array($node[2], self::NEGATIONS, true)) {
+        } elseif (!$andOnly && isset(self::NEGATED_OPS[$node[2]])) {
             $this->fail("$path.{$node[1]}", 'bad_shape', static::NEGATED_TAGS_MESSAGE);
         }
     }
 
     protected function operatorMessage(array $def, $op)
     {
-        if (static::isElementField($def) && in_array($op, self::NEGATIONS, true)) {
+        if (static::isElementField($def) && isset(self::NEGATED_OPS[$op])) {
             return static::NEGATED_ELEMENT_MESSAGE;
         }
         return parent::operatorMessage($def, $op);
@@ -188,7 +187,7 @@ class ComplexEventQueryTool extends ComplexQueryTool
         $tagIds = $this->model->AttributeTag->Tag->fetchTagIdsSimple($values);
         $EventTag = $this->model->Event->EventTag;
         $eventTagged = $this->subquery($EventTag, 'event_id', [$EventTag->alias . '.tag_id' => $tagIds], static::EVENT_KEY);
-        if (in_array($op, self::NEGATIONS, true)) {
+        if (isset(self::NEGATED_OPS[$op])) {
             foreach ($tagIds as $tagId) {
                 if ((int)$tagId !== -1 && !in_array($tagId, $this->blockedTagIds)) {
                     $this->blockedTagIds[] = $tagId;

@@ -172,6 +172,10 @@ class ComplexObjectQueryToolTest extends TestCase
             ['NOT' => ['AND' => ['Object.name IS NOT NULL', ['Object.name' => 'file']]]],
             $this->tool()->conditions(['NOT' => ['object_name' => 'file']])
         );
+        $this->assertSame(
+            ['NOT' => ['AND' => ['Object.name IS NOT NULL', ['Object.name LIKE' => 'dom%']]]],
+            $this->tool()->conditions(['object_name' => ['NOT LIKE' => 'dom%']])
+        );
         $this->assertSame(0, $this->model->SharingGroup->lookups);
     }
 
@@ -218,11 +222,15 @@ class ComplexObjectQueryToolTest extends TestCase
         $this->assertSame(['NOT' => $eventTagged], $c['AND'][1]);
         $this->assertSame([7], $tool->blockedTagIds());
         $this->assertSame([['x'], ['tlp:%'], ['a', 'b']], $this->model->AttributeTag->Tag->lookups);
+
+        $c = $tool->conditions(['AND' => [['type' => 'btc'], ['tags' => ['NOT LIKE' => 'tlp:%']]]]);
+        $this->assertSame(['NOT' => $eventTagged], $c['AND'][1]);
+        $this->assertSame([7], $tool->blockedTagIds());
     }
 
     public function testAttributeLeavesCannotBeNegated(): void
     {
-        foreach ([['type' => ['!=' => 'btc']], ['comment' => ['NOT IN' => ['a']]], ['to_ids' => ['!=' => true]]] as $query) {
+        foreach ([['type' => ['!=' => 'btc']], ['comment' => ['NOT IN' => ['a']]], ['value' => ['NOT LIKE' => 'a%']], ['to_ids' => ['!=' => true]]] as $query) {
             $errors = $this->errors($query);
             $this->assertSame('unknown_operator', $errors[0]['code'], json_encode($query));
             $this->assertSame('attribute fields cannot be negated when searching objects', $errors[0]['message']);
@@ -231,6 +239,7 @@ class ComplexObjectQueryToolTest extends TestCase
             'query.NOT.value' => ['NOT' => ['value' => 'x']],
             'query.NOT.OR[1].tags' => ['NOT' => ['OR' => [['id' => 1], ['tags' => 'x']]]],
             'query.OR[1].tags' => ['OR' => [['id' => 1], ['tags' => ['!=' => 'x']]]],
+            'query.OR[0].tags' => ['OR' => [['tags' => ['NOT LIKE' => 'x%']], ['id' => 1]]],
         ] as $path => $query) {
             $errors = $this->errors($query);
             $this->assertSame([$path, 'bad_shape'], [$errors[0]['path'], $errors[0]['code']], $path);
@@ -239,6 +248,7 @@ class ComplexObjectQueryToolTest extends TestCase
         foreach ([
             ['NOT' => ['OR' => [['object_name' => 'file'], ['orgc_id' => 2], ['date' => '1d']]]],
             ['AND' => [['tags' => ['!=' => 'x']], ['OR' => [['type' => 'a'], ['id' => 1]]]]],
+            ['AND' => [['tags' => ['NOT LIKE' => 'x%']], ['OR' => [['type' => 'a'], ['object_name' => ['NOT LIKE' => 'f%']]]]]],
         ] as $query) {
             $this->tool()->conditions($query);
         }
@@ -264,8 +274,8 @@ class ComplexObjectQueryToolTest extends TestCase
         $table = $d['tables']['objects'];
         $this->assertSame(array_keys(ComplexObjectQueryTool::FIELDS), array_keys($table['fields']));
         $this->assertSame([], $table['sortable']);
-        $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE'], $table['fields']['object_name']['operators']);
-        $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE'], $table['fields']['tags']['operators']);
+        $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'], $table['fields']['object_name']['operators']);
+        $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'], $table['fields']['tags']['operators']);
         $this->assertSame(['=', 'IN', 'LIKE'], $table['fields']['value']['operators']);
         $this->assertSame(['object'], $table['fields']['id']['level']);
         $this->assertSame(['event'], $table['fields']['orgc_id']['level']);

@@ -113,6 +113,8 @@ class ComplexQueryToolTest extends TestCase
             $this->assertSame($positive, $this->tool()->conditions([$field => 'x']));
             $this->assertSame(['NOT' => $positive], $this->tool()->conditions([$field => ['!=' => 'x']]));
             $this->assertSame(['NOT' => $positive], $this->tool()->conditions(['NOT' => [$field => 'x']]));
+            $like = ['AND' => ["$column IS NOT NULL", ["stub:" . ($field === 'comment' ? 'set_filter_comment' : 'set_filter_simple_attribute') . ":$field" => ['x%']]]];
+            $this->assertSame(['NOT' => $like], $this->tool()->conditions([$field => ['NOT LIKE' => 'x%']]));
         }
         $c = $this->tool()->conditions(['type' => ['NOT IN' => ['a', 'b']]]);
         $this->assertSame(['NOT' => ['stub:set_filter_type:type' => ['a', 'b']]], $c);
@@ -163,6 +165,12 @@ class ComplexQueryToolTest extends TestCase
         $this->assertSame(['bad_type'], $this->codes(['tags' => 'tlp:%']));
         $this->assertSame(['stub:tags' => ['tlp:%']], $this->tool()->conditions(['tags' => ['LIKE' => 'tlp:%']]));
         $this->assertSame(['NOT' => ['stub:tags' => ['tlp:%']]], $this->tool()->conditions(['NOT' => ['tags' => ['LIKE' => 'tlp:%']]]));
+        $this->assertSame(['NOT' => ['stub:tags' => ['tlp:%']]], $this->tool()->conditions(['tags' => ['NOT LIKE' => 'tlp:%']]));
+        $this->assertSame(['NOT' => ['stub:set_filter_value:value' => ['%evil%']]], $this->tool()->conditions(['value' => ['NOT LIKE' => '%evil%']]));
+        $this->assertSame(['bad_type'], $this->codes(['value' => ['NOT LIKE' => 'evil']]));
+        $this->assertSame(['bad_type'], $this->codes(['value' => ['NOT LIKE' => '%e%vil']]));
+        $this->assertSame(['unknown_operator'], $this->codes(['uuid' => ['NOT LIKE' => '%a']]));
+        $this->assertSame(['unknown_operator'], $this->codes(['id' => ['NOT LIKE' => 1]]));
         $this->assertSame(['unknown_operator'], $this->codes(['to_ids' => ['IN' => [true]]]));
         $this->assertSame(['unknown_operator'], $this->codes(['type' => ['>' => 'a']]));
         $this->assertSame(['unknown_operator'], $this->codes(['id' => ['LIKE' => 1]]));
@@ -281,6 +289,8 @@ class ComplexQueryToolTest extends TestCase
         $this->assertSame(['attribute'], $d['fields']['type']['level']);
         $this->assertSame(['event'], $d['fields']['published']['level']);
         $this->assertSame(['attribute', 'event'], $d['fields']['tags']['level']);
+        $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'], $d['fields']['tags']['operators']);
+        $this->assertSame(['=', '!=', 'IN', 'NOT IN'], $d['fields']['uuid']['operators']);
         $this->assertSame(5, $d['limits']['max_depth']);
     }
 

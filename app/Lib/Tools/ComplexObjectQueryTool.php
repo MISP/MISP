@@ -13,7 +13,7 @@ class ComplexObjectQueryTool extends ComplexEventQueryTool
     const NATIVE_LEVELS = ['object', 'event'];
     const EVENT_KEY = 'Object.event_id';
     const NEGATED_ELEMENT_MESSAGE = 'attribute fields cannot be negated when searching objects';
-    const NOT_ELEMENT_MESSAGE = 'NOT cannot hold attribute or tag fields when searching objects; use != on tags';
+    const NOT_ELEMENT_MESSAGE = 'NOT cannot hold attribute or tag fields when searching objects; use != or NOT LIKE on tags';
     const NEGATED_TAGS_MESSAGE = 'negated tags are only allowed under AND when searching objects';
 
     const FIELDS = [

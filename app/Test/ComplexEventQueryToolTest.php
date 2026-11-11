@@ -157,6 +157,7 @@ class ComplexEventQueryToolTest extends TestCase
             ['distribution' => ['!=' => 0]],
             ['NOT' => ['orgc_id' => 4]],
             ['eventinfo' => ['LIKE' => '%apt%']],
+            ['eventinfo' => ['NOT LIKE' => 'test%']],
             ['event_timestamp' => ['>=' => '7d']],
         ]]);
         $this->assertSame(['AND' => [
@@ -166,6 +167,7 @@ class ComplexEventQueryToolTest extends TestCase
             ['NOT' => ['Event.distribution' => 0]],
             ['NOT' => ['Event.orgc_id' => 4]],
             ['stub:set_filter_eventinfo:eventinfo' => ['%apt%']],
+            ['NOT' => ['stub:set_filter_eventinfo:eventinfo' => ['test%']]],
             ['Event.timestamp >=' => 1700049600 - 7 * 86400],
         ]], $c);
         $this->assertSame(0, $this->model->SharingGroup->lookups);
@@ -236,11 +238,17 @@ class ComplexEventQueryToolTest extends TestCase
             $tool->conditions(['tags' => ['!=' => 'missing']])
         );
         $this->assertSame([], $tool->blockedTagIds());
+
+        $this->model->AttributeTag->Tag->ids = [7, 8];
+        $c = $tool->conditions(['AND' => [['eventinfo' => 'x'], ['tags' => ['NOT LIKE' => 'tlp:%']]]]);
+        $this->assertSame(['NOT' => ['Event.id IN (EventTag.event_id AS EventTag)' => ['EventTag.tag_id' => [7, 8]]]], $c['AND'][1]);
+        $this->assertSame([7, 8], $tool->blockedTagIds());
+        $this->assertSame(['tlp:%'], end($this->model->AttributeTag->Tag->lookups));
     }
 
     public function testElementLeavesCannotBeNegated(): void
     {
-        foreach ([['type' => ['!=' => 'btc']], ['value' => ['NOT IN' => ['a']]], ['to_ids' => ['!=' => true]]] as $query) {
+        foreach ([['type' => ['!=' => 'btc']], ['value' => ['NOT IN' => ['a']]], ['value' => ['NOT LIKE' => '%a']], ['to_ids' => ['!=' => true]]] as $query) {
             $errors = $this->errors($query);
             $this->assertSame('unknown_operator', $errors[0]['code'], json_encode($query));
             $this->assertStringContainsString('cannot be negated', $errors[0]['message']);
@@ -257,6 +265,7 @@ class ComplexEventQueryToolTest extends TestCase
             'query.NOT.AND[1].tags' => ['NOT' => ['AND' => [['id' => 1], ['tags' => 'x']]]],
             'query.OR[1].tags' => ['OR' => [['id' => 1], ['tags' => ['!=' => 'x']]]],
             'query.AND[0].OR[0].tags' => ['AND' => [['OR' => [['tags' => ['NOT IN' => ['x']]]]]]],
+            'query.OR[0].tags' => ['OR' => [['tags' => ['NOT LIKE' => 'tlp:%']], ['id' => 1]]],
         ];
         foreach ($cases as $path => $query) {
             $this->assertSame([['path' => $path, 'code' => 'bad_shape']], array_map(function ($e) {
@@ -266,7 +275,9 @@ class ComplexEventQueryToolTest extends TestCase
         foreach ([
             ['tags' => ['!=' => 'x']],
             ['AND' => [['id' => 1], ['AND' => [['tags' => ['!=' => 'x']]]]]],
+            ['AND' => [['id' => 1], ['tags' => ['NOT LIKE' => 'tlp:%']]]],
             ['OR' => [['tags' => 'x'], ['NOT' => ['eventinfo' => 'y']]]],
+            ['OR' => [['tags' => 'x'], ['eventinfo' => ['NOT LIKE' => '%y']]]],
             ['NOT' => ['OR' => [['id' => 1], ['date' => '1d']]]],
         ] as $query) {
             $this->tool()->conditions($query);
@@ -296,7 +307,8 @@ class ComplexEventQueryToolTest extends TestCase
         $this->assertSame(array_keys(ComplexEventQueryTool::FIELDS), array_keys($d['fields']));
         $this->assertSame('date', $d['fields']['date']['type']);
         $this->assertSame(['=', 'IN', 'LIKE'], $d['fields']['type']['operators']);
-        $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE'], $d['fields']['tags']['operators']);
+        $this->assertSame(['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'], $d['fields']['tags']['operators']);
+        $this->assertStringContainsString('NOT LIKE', $this->errors(['NOT' => ['tags' => ['LIKE' => 'tlp:%']]])[0]['message']);
         $this->assertArrayNotHasKey('info', $d['fields']);
         $this->assertSame(['event'], $d['fields']['eventinfo']['level']);
         $this->assertSame(['event', 'attribute'], $d['fields']['tags']['level']);

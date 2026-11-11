@@ -25,9 +25,10 @@ class ComplexQueryException extends Exception
 class ComplexQueryTool
 {
     const NUMERIC_OPS = ['=', '!=', '>', '<', '>=', '<=', 'IN', 'NOT IN'];
-    const STRING_OPS = ['=', '!=', 'IN', 'NOT IN', 'LIKE'];
+    const STRING_OPS = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
     const EXACT_STRING_OPS = ['=', '!=', 'IN', 'NOT IN'];
     const BOOL_OPS = ['=', '!='];
+    const NEGATED_OPS = ['!=' => '=', 'NOT IN' => 'IN', 'NOT LIKE' => 'LIKE'];
     const MAX_ERRORS = 10;
 
     /**
@@ -358,7 +359,7 @@ class ComplexQueryTool
             return $this->fail($path, 'limit_exceeded', 'value too long');
         }
         $edge = $value[0] === '%' || substr($value, -1) === '%';
-        if ($op === 'LIKE') {
+        if ($op === 'LIKE' || $op === 'NOT LIKE') {
             $core = trim($value, '%');
             if (!$edge || $core === '' || strpos($core, '%') !== false) {
                 return $this->fail($path, 'bad_type', 'LIKE takes a leading and/or trailing %, nothing else');
@@ -399,8 +400,8 @@ class ComplexQueryTool
     protected function buildLeaf($field, $op, array $values, $path, $selectiveSiblings)
     {
         $def = $this->fields[$field];
-        $negate = $op === '!=' || $op === 'NOT IN';
-        $positive = $negate ? ($op === '!=' ? '=' : 'IN') : $op;
+        $negate = isset(self::NEGATED_OPS[$op]);
+        $positive = self::NEGATED_OPS[$op] ?? $op;
         if (isset($def['column'])) {
             $fragment = $this->native($def, $positive, $values);
         } else {
