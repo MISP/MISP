@@ -16,7 +16,6 @@
  * @var string $profileId
  * @var bool $modal Read in #mainModal: no picker, no pinning, no link out
  */
-App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 
 $full = isset($full) ? $full : false;
@@ -55,19 +54,9 @@ $focus = $bench['focus'];
 $values = $bench['values'];
 $pinned = $bench['comparison_set'];
 $benched = !empty($values) ? $values[0] : null;
-/*
- * The editor and the viewer carry the document beside the bench, so
- * benching and pinning happen in place and the unsaved edits survive.
- * The expanded simulator is a page of its own with nothing unsaved,
- * and the same presses are a navigation there.
- */
-$live = !$full;
+// Where the simulate page's picker navigates to, with `?value=`.
 $benchUrl = $this->Html->url(array(
     'action' => $this->request->params['action'], $profileId));
-$pinUrl = function ($value, $pin) {
-    return array('action' => $pin ? 'pin' : 'unpin',
-        ValueUrlTool::encode($value));
-};
 /*
  * Which way the direction pair points, re-stated on every recompute.
  * `--vp-dir-with` is *with the lean*, and a weight edit can move the
@@ -125,45 +114,12 @@ $carry = array(
      data-ap-ledger="<?= h(json_encode($carry)) ?>"
      <?= $directionStyle === ''
          ? '' : 'style="' . h($directionStyle) . '"' ?>>
-    <?php
-    /*
-     * The picker, and it comes before everything including the empty
-     * state. An instruction to pin a value with no control that pins
-     * one is the state a reader who has not arrived from a value page
-     * actually lands in, and it was a dead end.
-     */
-    ?>
-    <?php if (!$modal): ?>
-    <div class="bench-pick">
-        <div class="input-group input-group-sm">
-            <input type="text" class="form-control form-control-sm"
-                   data-ap-bench-input autocomplete="off" spellcheck="false"
-                   placeholder="<?= h(__('try a value — an IP, a domain,'
-                       . ' a hash')) ?>">
-            <button type="button" class="btn btn-sm btn-outline-primary"
-                    data-ap-bench=""><?= h(__('Try it')) ?></button>
-        </div>
-        <?php if (!empty($values)): ?>
-            <div class="bench-quick">
-                <span class="wb-sub"><?= h(__('yours:')) ?></span>
-                <?php foreach ($values as $candidate): ?>
-                    <button type="button"
-                            class="chip <?= $candidate === $benched
-                                ? 'is-on' : '' ?>"
-                            data-ap-bench="<?= h($candidate) ?>"><?=
-                        h($candidate) ?></button>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
-
     <?php if ($benched === null): ?>
         <div class="wb-empty">
             <div class="fw-semibold"><?= h(__('No value chosen')) ?></div>
             <p class="mb-0 mt-1">
                 <?= $modal
-                    ? h(__('Try a value in the profile\'s rail, then open the'
+                    ? h(__('Try a value on the profile page, then open the'
                         . ' comparison again to read every row of it.'))
                     : h(__('Put a value in the box above to see what this'
                         . ' profile makes of it, beside the profile in force.'
@@ -172,137 +128,53 @@ $carry = array(
             </p>
         </div>
     <?php else: ?>
-        <div class="bench-value">
-            <span class="v"><?= h($benched) ?></span>
-            <?php if (!in_array($benched, $pinned, true)): ?>
-                <span class="wb-sub"><?= h(__('not pinned')) ?></span>
-                <?php if ($modal): ?>
-                <?php elseif ($live): ?>
-                    <button type="button" data-ap-value="<?= h($benched) ?>"
-                            data-ap-pin="<?= h($this->Html->url(
-                                $pinUrl($benched, true))) ?>"
-                            class="btn btn-sm btn-outline-primary py-0 px-2">
-                        <?= h(__('Pin')) ?>
-                    </button>
-                <?php else: ?>
-                    <?php
-                    /*
-                     * No form to borrow a token from on this page, so
-                     * the helper mints its own — a raw POST form here
-                     * carries none and trips the CSRF check.
-                     */
-                    ?>
-                    <?= $this->Form->postLink(__('Pin'),
-                        $pinUrl($benched, true),
-                        array('class' => 'btn btn-sm btn-outline-primary'
-                            . ' py-0 px-2')) ?>
-                <?php endif; ?>
-            <?php else: ?>
-                <span class="wb-sub"><?= h(__('pinned')) ?></span>
-                <?php if ($modal): ?>
-                <?php elseif ($live): ?>
-                    <button type="button" data-ap-value="<?= h($benched) ?>"
-                            data-ap-pin="<?= h($this->Html->url(
-                                $pinUrl($benched, false))) ?>"
-                            class="btn btn-sm btn-outline-secondary py-0 px-2">
-                        <?= h(__('Unpin')) ?>
-                    </button>
-                <?php else: ?>
-                    <?= $this->Form->postLink(__('Unpin'),
-                        $pinUrl($benched, false),
-                        array('class' => 'btn btn-sm btn-outline-secondary'
-                            . ' py-0 px-2')) ?>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-
-        <?php if (!$modal): ?>
-            <div class="bench-live">
-                <?= h(__('recomputed')) ?>
-            </div>
-        <?php endif; ?>
-
         <?php if ($detail !== null): ?>
-            <div class="bench-sec">
-                <span><?= h(__('Assessment')) ?></span>
-            </div>
-            <?= $this->element('AnalystProfiles/assessment_head', array(
-                'axes' => $detail['axes'],
-                'moved' => $detail['changed'],
-                /*
-                 * The benched value's dates, for the provenance table
-                 * under the relevance line. Absent on a bench with no
-                 * value, and the element draws nothing then.
-                 */
+            <?= $this->element('AnalystProfiles/compare_axes', array(
+                'detail' => $detail,
                 'dates' => $bench['dates'] ?? null,
                 'lastSighting' => $benchSightingLast,
-                'sightingTotal' => 0,
             )) ?>
 
-            <div class="bench-sec">
-                <span><?= h(__('Signal strength')) ?></span>
-            </div>
-            <div class="bench-q">
-                <span class="now"><?= h($detail['totals']['after']) ?></span>
-                <span class="from">
-                    <?= h(__('signal strength')) ?><br>
-                    <span class="num"><?= h($detail['totals']['before']) ?></span>
-                    <?= h(__('under the profile in force')) ?>
-                </span>
-                <span class="num <?= $detail['totals']['delta'] > 0
-                        ? 'd-up'
-                        : ($detail['totals']['delta'] < 0 ? 'd-dn' : 'd-0') ?>"
-                      style="font-size:1.1rem;font-weight:700;margin-left:auto">
-                    <?= h($detail['totals']['delta'] > 0
-                        ? '+' . $detail['totals']['delta']
-                        : $detail['totals']['delta']) ?>
-                </span>
-            </div>
-
-            <?= $this->element('AnalystProfiles/block_strip', array(
-                'strip' => $bands,
-                'marks' => array(
-                    'was' => $detail['totals']['before'],
-                    'now' => $detail['totals']['after'],
-                ),
-            )) ?>
-
-            <div class="bench-axes bench-meta">
-                <div>
-                    <span><?= h(__('signals fired')) ?></span>
-                    <b class="num"><?= h($detail['axes']['fired']['after']) ?></b>
+            <section class="ap-cmp-card">
+                <header class="ap-cmp-card-h">
+                    <span class="ap-cmp-card-t"><?= h(__('Signal strength on the bands')) ?></span>
+                    <span class="ap-cmp-card-aside"><?= h(sprintf(
+                        __('signals fired %1$s → %2$s · highest reachable %3$s'),
+                        $detail['axes']['fired']['before'], $detail['axes']['fired']['after'],
+                        $bands['bound'])) ?></span>
+                </header>
+                <div class="ap-cmp-card-b">
+                    <?= $this->element('AnalystProfiles/block_strip', array(
+                        'strip' => $bands,
+                        'marks' => array(
+                            'was' => $detail['totals']['before'],
+                            'now' => $detail['totals']['after'],
+                        ),
+                    )) ?>
+                    <div class="ap-cmp-legend">
+                        <span class="is-was"><span class="ap-key-dot" aria-hidden="true"></span><?=
+                            h(__('in force')) ?> <b class="num"><?= h($detail['totals']['before']) ?></b></span>
+                        <span class="is-now"><span class="ap-key-dot" aria-hidden="true"></span><?=
+                            h(__('candidate')) ?> <b class="num"><?= h($detail['totals']['after']) ?></b></span>
+                    </div>
                 </div>
-                <div>
-                    <span><?= h(__('highest reachable')) ?></span>
-                    <b class="num"><?= h($bands['bound']) ?></b>
-                </div>
-            </div>
+            </section>
 
-            <?php $rule = $detail['axes']['rule']['after']; ?>
-            <?php if (!empty($rule)): ?>
-                <div class="wb-note warn mt-2">
-                    <b><?= h($detail['axes']['lean']['after']) ?></b>
-                    &mdash; <?= h($rule['prose']) ?>
-                    <?php if (!empty($rule['evidence'])): ?>
-                        <div class="wb-sub mt-1"><?= h($rule['evidence']) ?></div>
-                    <?php endif; ?>
+            <section class="ap-cmp-card">
+                <header class="ap-cmp-card-h">
+                    <span class="ap-cmp-card-t"><?= h(__('What moves, row by row')) ?></span>
+                    <span class="ap-cmp-card-aside"><?= h(sprintf(
+                        __('%1$s of %2$s rows'),
+                        count($detail['moved']),
+                        count($detail['rows'])
+                    )) ?></span>
+                </header>
+                <div class="ap-cmp-card-b">
+                    <?= $this->element('AnalystProfiles/diff_table', array(
+                        'detail' => $detail,
+                    )) ?>
                 </div>
-            <?php endif; ?>
-
-            <div class="bench-sec" style="margin-top:1.1rem">
-                <span><?= $full
-                    ? h(__('Every ledger row'))
-                    : h(__('What moved')) ?></span>
-                <span class="num"><?= h(sprintf(
-                    __('%1$s of %2$s rows'),
-                    count($detail['moved']),
-                    count($detail['rows'])
-                )) ?></span>
-            </div>
-            <?= $this->element('AnalystProfiles/diff_table', array(
-                'detail' => $detail,
-                'full' => $full,
-            )) ?>
+            </section>
         <?php endif; ?>
 
         <?= $this->element('AnalystProfiles/comparison', array(

@@ -54,14 +54,6 @@ $entry = function (array $write, $extra = '') use ($item) {
                     'action' => 'view', $profile['id']))) ?>">
                     <i class="fas fa-eye me-2"></i><?= h(__('View')) ?></a>
             </li>
-            <?php if ($profile['editable']): ?>
-                <li>
-                    <a class="<?= $item ?>" href="<?= h($this->Html->url(array(
-                        'action' => 'edit', $profile['id']))) ?>">
-                        <i class="fas fa-pen-to-square me-2"></i><?= h(
-                            __('Edit')) ?></a>
-                </li>
-            <?php endif; ?>
             <li>
                 <a class="<?= $item ?>" href="<?= h($this->Html->url(array(
                     'action' => 'simulate', $profile['id']))) ?>">

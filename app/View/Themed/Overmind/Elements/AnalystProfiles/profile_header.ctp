@@ -23,6 +23,10 @@ if (isset($lead)) {
 }
 
 $this->set('headerTitle', $profile['name']);
+$this->set('headerBreadcrumb', array(
+    array('label' => __('Analyst Profiles'), 'url' => array('action' => 'index')),
+    __('View'),
+));
 $this->set('headerIdentity', $profile);
 $this->set('headerTimestamps', $profile);
 // `headerSection` prints the description raw.

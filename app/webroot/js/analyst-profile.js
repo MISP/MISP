@@ -60,24 +60,28 @@
         window.analystProfileCompare(link.getAttribute('href'));
     });
 
-    // The whole document, from the template profile_sections leaves in the page.
-    window.analystProfileRaw = function () {
-        var template = document.getElementById('ap-raw-modal');
-        var modal = document.getElementById('mainModal');
-        if (!template || !modal
-            || typeof renderMainModalContent !== 'function'
-        ) {
+    // An `i` keeps the rest of a sentence in its title; a click shows it inline.
+    document.addEventListener('click', function (event) {
+        var info = event.target.closest ? event.target.closest('.wb-i[title]') : null;
+        if (!info) {
             return;
         }
-        setModalSize('xl');
-        renderMainModalContent(template.innerHTML);
-        bootstrap.Modal.getOrCreateInstance(modal).show();
-    };
+        event.preventDefault();
+        var more = info.nextElementSibling;
+        if (more && more.classList.contains('wb-i-more')) {
+            more.hidden = !more.hidden;
+            return;
+        }
+        more = document.createElement('span');
+        more.className = 'wb-i-more';
+        more.textContent = info.getAttribute('title');
+        info.parentNode.insertBefore(more, info.nextSibling);
+    });
 
 function boot() {
     var form = document.getElementById('ap-form');
     var bench = document.querySelector('.wb-bench');
-    if (!form && !bench) {
+    if (!form && !bench && !document.querySelector('[data-ap-settings]')) {
         return;
     }
 
@@ -88,34 +92,7 @@ function boot() {
      */
     var carried = document.getElementById('ap-bench-value');
     var live = !!(form && bench && carried);
-    var unsavedLabel = (form && form.getAttribute('data-ap-unsaved')) || '';
-
-    /*
-     * The pasted document lives in #mainModal and joins the form through
-     * its `form` attribute. A disabled field posts nothing, and `edit`
-     * prefers a pasted document over a merged section — so once the
-     * modal closes the textarea is switched off, or the next save would
-     * post the whole document beside the weights and the paste would win.
-     */
-    document.addEventListener('input', function (event) {
-        if (event.target.id === 'ap-raw') {
-            mark();
-        }
-    });
-    var modal = document.getElementById('mainModal');
-    if (form && modal) {
-        modal.addEventListener('hidden.bs.modal', function () {
-            var raw = document.getElementById('ap-raw');
-            if (raw && modal.contains(raw)) {
-                raw.disabled = true;
-                mark();
-            }
-        });
-    }
-    var rawTemplate = document.getElementById('ap-raw-modal');
-    if (rawTemplate && rawTemplate.hasAttribute('data-ap-open')) {
-        window.analystProfileRaw();
-    }
+    var inits = [];
 
     /* ------------------------------------------------------------ *
      * What this session has changed, and where
@@ -128,6 +105,10 @@ function boot() {
         }
         if (field.type === 'checkbox') {
             return String(field.checked) !== was;
+        }
+        // A radio group changed once the radio now checked is not the one it had.
+        if (field.type === 'radio') {
+            return field.checked && String(field.value) !== was;
         }
         return String(field.value) !== was;
     }
@@ -195,33 +176,6 @@ function boot() {
                     folds.indexOf(fold) !== -1);
             }
         );
-        // A tab whose sections hold a change says so, since it may be out of sight.
-        if (typeof setTabBadge === 'function') {
-            Array.prototype.forEach.call(
-                document.querySelectorAll('.nav-view-badge[data-tab-badge]'),
-                function (badge) {
-                    var id = badge.getAttribute('data-tab-badge');
-                    var pane = document.getElementById('tab-' + id);
-                    var edited = pane && Array.prototype.some.call(
-                        pane.querySelectorAll('.wb-sec[data-sec]'),
-                        function (sec) {
-                            return dirty[sec.getAttribute('data-sec')];
-                        }
-                    );
-                    setTabBadge(id, edited ? unsavedLabel : '');
-                }
-            );
-        }
-        var raw = document.getElementById('ap-raw');
-        var counter = document.querySelector('[data-ap-unsaved-count]');
-        if (counter) {
-            var total = count + (raw && !raw.disabled
-                && raw.value !== raw.defaultValue ? 1 : 0);
-            counter.textContent = total === 1
-                ? counter.getAttribute('data-one')
-                : (counter.getAttribute('data-many') || '').replace('%s', total);
-            counter.hidden = total === 0;
-        }
         return count;
     }
 
@@ -261,7 +215,7 @@ function boot() {
         var labels = carry.labels || {};
 
         var table = document.querySelector(
-            '.wb-sec[data-sec="signals"] table.wb-tbl');
+            '.wb-sec[data-sec="signals"] table.wb-tbl, .wb-sec[data-sec="signals"] .ap-rules');
         if (table) {
             /*
              * Editing a weight can move the lean itself, and the pair
@@ -612,7 +566,9 @@ function boot() {
         if (row) {
             var map = row.closest ? row.closest('.ap-map') : null;
             var table = row.closest('table');
-            row.parentNode.removeChild(row);
+            var rows = row.parentNode;
+            rows.removeChild(row);
+            countNew(rows);
             /*
              * Back to the note the map started with. An empty table
              * with its headings still up says the map has columns; the
@@ -620,7 +576,9 @@ function boot() {
              * thing the analyst who just removed the last row needs
              * told.
              */
-            if (map && table && !table.querySelector('tbody tr')) {
+            if (map && table && !table.hasAttribute('data-ap-new-table')
+                && !table.querySelector('tbody tr[data-ap-key]')
+            ) {
                 table.hidden = true;
                 var note = map.querySelector('[data-ap-map-empty]');
                 if (note) {
@@ -631,45 +589,6 @@ function boot() {
             refresh();
         }
     });
-
-    /*
-     * A box the browser refuses sits in whatever tab it belongs to,
-     * and a tab out of sight is `display: none` — a control the browser
-     * cannot report on, so it blocks the save and says nothing at all.
-     * Bringing the tab forward first is what turns a silent refusal
-     * back into the message beside the box.
-     *
-     * The first refusal only. The events arrive in tree order and the
-     * browser reports on the first of them, so showing a tab for each
-     * would leave the last one on screen and the reported box behind
-     * it. The flag clears on the next tick, which is after the whole
-     * pass.
-     */
-    var reported = false;
-    document.addEventListener('invalid', function (event) {
-        if (reported) {
-            return;
-        }
-        reported = true;
-        window.setTimeout(function () {
-            reported = false;
-        }, 0);
-        var fold = event.target.closest
-            ? event.target.closest('[data-ap-fold]')
-            : null;
-        if (fold) {
-            fold.open = true;
-        }
-        var tab = event.target.closest
-            ? event.target.closest('.tab-pane')
-            : null;
-        if (tab && !tab.classList.contains('active') && window.bootstrap) {
-            var link = document.querySelector('[href="#' + tab.id + '"]');
-            if (link) {
-                bootstrap.Tab.getOrCreateInstance(link).show();
-            }
-        }
-    }, true);
 
     /*
      * The control a value gets, decided the same way the server
@@ -739,17 +658,52 @@ function boot() {
             var title = document.createElement('span');
             title.className = 'wb-id';
             title.textContent = rowName;
-            var control = document.createElement('select');
-            control.className = 'form-select form-select-sm';
-            fill(control, options, null);
-            control.name = name + '[' + rowName + ']';
-            control.setAttribute('data-ap-field', '1');
-            control.setAttribute('data-ap-was', '');
+            var group = document.createElement('span');
+            group.className = 'mod-seg';
+            group.setAttribute('role', 'radiogroup');
+            group.setAttribute('aria-label', rowName);
+            options.forEach(function (option, index) {
+                group.appendChild(stateSegment(option, name + '[' + rowName + ']', index === 0));
+            });
             row.appendChild(title);
-            row.appendChild(control);
+            row.appendChild(group);
             box.appendChild(row);
         });
         return box;
+    }
+
+    // One state of a row, drawn as the server draws it in field.ctp.
+    function stateSegment(option, name, checked) {
+        var value = option && option.value !== undefined ? String(option.value) : String(option);
+        var label = document.createElement('label');
+        label.className = 'mod-seg-b t-' + (option.tone || 'custom');
+        label.title = option.label || value;
+        var input = document.createElement('input');
+        input.type = 'radio';
+        input.className = 'mod-seg-in';
+        input.name = name;
+        input.value = value;
+        input.checked = checked;
+        input.setAttribute('data-ap-field', '1');
+        input.setAttribute('data-ap-was', '');
+        var face = document.createElement('span');
+        face.className = 'mod-seg-face';
+        if (option.icon_class) {
+            var icon = document.createElement('i');
+            icon.className = option.icon_class;
+            icon.setAttribute('aria-hidden', 'true');
+            face.appendChild(icon);
+        }
+        var text = document.createElement('span');
+        text.className = 'mod-seg-t';
+        text.setAttribute('data-t', option.short || option.label || value);
+        var word = document.createElement('span');
+        word.textContent = text.getAttribute('data-t');
+        text.appendChild(word);
+        face.appendChild(text);
+        label.appendChild(input);
+        label.appendChild(face);
+        return label;
     }
 
     /*
@@ -828,26 +782,48 @@ function boot() {
          * buckets table is the one that comes first.
          */
         var map = add.closest ? add.closest('.ap-map') : null;
-        var table = map ? map.querySelector('table.wb-tbl') : null;
+        var table = map ? map.querySelector('table.wb-tbl:not([data-ap-new-table])') : null;
         var body = table ? table.querySelector('tbody') : null;
         if (!body) {
             return null;
         }
-        if (body.querySelector('tr[data-ap-key="' + cssEscape(key) + '"]')) {
+        if (map.querySelector('tr[data-ap-key="' + cssEscape(key) + '"]')) {
             return null;
+        }
+        // What the picker knows of the key: its name, icon and description.
+        var facts = null;
+        (add.apRows || []).some(function (known) {
+            facts = known.key === key ? known : null;
+            return facts !== null;
+        });
+        if (!label && facts) {
+            label = facts.label;
         }
         var row = document.createElement('tr');
         row.setAttribute('data-ap-key', key);
         var name = document.createElement('td');
         var title = document.createElement('div');
         title.className = 'fw-semibold';
-        title.textContent = label || key;
+        if (facts && facts.icon) {
+            var icon = document.createElement('i');
+            icon.className = facts.icon + ' ap-map-ico';
+            icon.setAttribute('aria-hidden', 'true');
+            title.appendChild(icon);
+        }
+        title.appendChild(document.createTextNode(label || key));
         name.appendChild(title);
         if (label && label !== key) {
             var sub = document.createElement('div');
             sub.className = 'wb-sub';
             sub.textContent = key;
             name.appendChild(sub);
+        }
+        if (facts && facts.desc) {
+            var about = document.createElement('div');
+            about.className = 'wb-sub ap-map-desc';
+            about.textContent = facts.desc;
+            name.appendChild(about);
+            row.title = facts.desc;
         }
         var value = document.createElement('td');
         var control = valueControl(add, prefix + '[' + key + ']', key);
@@ -867,12 +843,31 @@ function boot() {
         button.type = 'button';
         button.className = 'wb-drop';
         button.setAttribute('data-ap-drop', key);
-        button.innerHTML = '&times;';
+        button.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
         drop.appendChild(button);
         row.appendChild(name);
         row.appendChild(value);
         row.appendChild(drop);
-        body.appendChild(row);
+        row.classList.add('is-new');
+        /*
+         * A row nobody saved yet belongs to none of the groups: it waits
+         * beside the control that added it where the map has a place for
+         * that, and otherwise at the top under a heading of its own.
+         */
+        var fresh = map.querySelector('[data-ap-new-rows]');
+        if (fresh) {
+            fresh.appendChild(row);
+            countNew(fresh);
+        } else if (body.querySelector('tr.ap-map-grp:not(.ap-map-new)')) {
+            var added = body.querySelectorAll('tr.is-new');
+            var after = added.length
+                ? added[added.length - 1]
+                : newHeading(map, body, row.cells.length);
+            body.insertBefore(row, after.nextSibling);
+            countNew(body);
+        } else {
+            body.appendChild(row);
+        }
         /*
          * The table was folded away while the map was empty, and the
          * note beside it said so. The first row swaps them.
@@ -898,6 +893,42 @@ function boot() {
         mark();
         price();
         return control;
+    }
+
+    function newHeading(map, body, span) {
+        var heading = document.createElement('tr');
+        heading.className = 'wb-grp ap-map-grp ap-map-new';
+        var cell = document.createElement('td');
+        cell.colSpan = span;
+        cell.appendChild(document.createTextNode(
+            map.getAttribute('data-ap-new-label') || ''));
+        var count = document.createElement('span');
+        count.className = 'ap-map-grp-n';
+        cell.appendChild(count);
+        heading.appendChild(cell);
+        body.insertBefore(heading, body.firstChild);
+        return heading;
+    }
+
+    // The heading over the rows not saved yet counts them, and goes with the last.
+    function countNew(body) {
+        var wrap = body.closest ? body.closest('[data-ap-new-wrap]') : null;
+        if (wrap) {
+            var waiting = wrap.querySelectorAll('tr.is-new').length;
+            wrap.querySelector('[data-ap-new-n]').textContent = waiting;
+            wrap.hidden = waiting === 0;
+            return;
+        }
+        var heading = body.querySelector('tr.ap-map-new');
+        if (!heading) {
+            return;
+        }
+        var count = body.querySelectorAll('tr.is-new').length;
+        if (count === 0) {
+            body.removeChild(heading);
+            return;
+        }
+        heading.querySelector('.ap-map-grp-n').textContent = count;
     }
 
     /*
@@ -1010,13 +1041,13 @@ function boot() {
     }
 
     function taken(add) {
-        var map = add.closest ? add.closest('.ap-map') : null;
+        var map = add.closest ? add.closest('.ap-map, .ap-order') : null;
         var keys = {};
         if (!map) {
             return keys;
         }
         Array.prototype.forEach.call(
-            map.querySelectorAll('tbody tr[data-ap-key]'),
+            map.querySelectorAll('tbody tr[data-ap-key], [data-ap-order-row]'),
             function (row) {
                 keys[row.getAttribute('data-ap-key')] = true;
             }
@@ -1030,7 +1061,7 @@ function boot() {
      * only where the two differ enough to be worth printing both. A
      * warninglist is its own name, so it gets one line.
      */
-    function option(key, label, sub) {
+    function option(key, label, sub, desc) {
         var node = document.createElement('button');
         node.type = 'button';
         node.className = 'ap-pick-opt';
@@ -1047,6 +1078,14 @@ function boot() {
             line.textContent = sub;
             node.appendChild(line);
         }
+        // What the key is about, for a key that is only a short name.
+        if (desc) {
+            var about = document.createElement('span');
+            about.className = 'ap-pick-desc';
+            about.textContent = desc;
+            node.title = desc;
+            node.appendChild(about);
+        }
         return node;
     }
 
@@ -1058,11 +1097,19 @@ function boot() {
         var already = taken(add);
         list.innerHTML = '';
         var drawn = 0;
+        // What picking does, said above the options when the box asks for it.
+        var head = add.getAttribute('data-ap-pick-head');
+        if (head) {
+            var heading = document.createElement('div');
+            heading.className = 'ap-pick-head';
+            heading.textContent = head;
+            list.appendChild(heading);
+        }
         rows.forEach(function (row) {
             if (!row || !row.key || already[row.key]) {
                 return;
             }
-            list.appendChild(option(row.key, row.label, row.sub));
+            list.appendChild(option(row.key, row.label, row.sub, row.desc));
             drawn += 1;
         });
         /*
@@ -1081,6 +1128,9 @@ function boot() {
             list.appendChild(option(query.toLowerCase(), '',
                 add.getAttribute('data-ap-pick-unknown') || ''));
             drawn += 1;
+        }
+        if (drawn === 0 && heading) {
+            list.removeChild(heading);
         }
         if (drawn === 0) {
             var none = document.createElement('div');
@@ -1149,12 +1199,23 @@ function boot() {
             .filter(function (word) {
                 return word !== '';
             });
-        return rows.filter(function (row) {
-            var haystack = row.key.toLowerCase();
+        var named = function (haystack) {
             return words.every(function (word) {
                 return haystack.indexOf(word) !== -1;
             });
+        };
+        // A description matches too, after the names that do.
+        var byName = [];
+        var byDesc = [];
+        rows.forEach(function (row) {
+            var name = (row.key + ' ' + (row.label || '')).toLowerCase();
+            if (named(name)) {
+                byName.push(row);
+            } else if (row.desc && named(name + ' ' + row.desc.toLowerCase())) {
+                byDesc.push(row);
+            }
         });
+        return byName.concat(byDesc);
     }
 
     function suggest(add) {
@@ -1217,10 +1278,22 @@ function boot() {
         if (!add) {
             return;
         }
-        addRow(add, option.getAttribute('data-value'),
-            option.getAttribute('data-label'));
+        choose(add, option);
         close(add);
     });
+
+    // A pick is a row of a map, or a tile of a ranking, which draws its own.
+    function choose(add, option) {
+        var key = option.getAttribute('data-value');
+        var label = option.getAttribute('data-label');
+        if (add.hasAttribute('data-ap-order-pick')) {
+            add.dispatchEvent(new CustomEvent('ap-order-pick',
+                {detail: {key: key, label: label}}));
+            add.value = '';
+            return;
+        }
+        addRow(add, key, label);
+    }
 
     document.addEventListener('keydown', function (event) {
         var add = event.target;
@@ -1263,8 +1336,7 @@ function boot() {
         } else if (event.key === 'Enter') {
             var pick = active || (options.length === 1 ? options[0] : null);
             if (pick) {
-                addRow(add, pick.getAttribute('data-value'),
-                    pick.getAttribute('data-label'));
+                choose(add, pick);
                 close(add);
             }
         } else if (event.key === 'Escape') {
@@ -1329,10 +1401,15 @@ function boot() {
          * the DOM would be a hundred names nobody reads.
          */
         box.apRows = [];
+        // An option may name its key: the name is shown, the key under it.
         Array.prototype.forEach.call(select.options, function (node) {
             var key = node.value.trim();
+            var label = node.textContent.trim();
             if (key !== '') {
-                box.apRows.push({key: key, label: key});
+                box.apRows.push({key: key, label: label || key,
+                    sub: label !== '' && label !== key ? key : '',
+                    desc: node.getAttribute('data-desc') || '',
+                    icon: node.getAttribute('data-icon') || ''});
             }
         });
         var list = document.createElement('div');
@@ -1344,12 +1421,12 @@ function boot() {
         select.parentNode.replaceChild(pick, select);
     }
 
-    Array.prototype.forEach.call(
-        document.querySelectorAll('select[data-ap-add-filter]'),
-        function (select) {
-            upgrade(select);
-        }
-    );
+    inits.push(function (root) {
+        Array.prototype.forEach.call(
+            root.querySelectorAll('select[data-ap-add-filter]'),
+            upgrade
+        );
+    });
 
     /* ------------------------------------------------------------ *
      * A bucket's types: chips in, chips out
@@ -1429,12 +1506,80 @@ function boot() {
      * fields instead of being one: without this script it would be a
      * control that silently does nothing.
      */
-    Array.prototype.forEach.call(
-        document.querySelectorAll('[data-ap-bulk-wrap]'),
-        function (wrap) { wrap.hidden = false; }
-    );
+    /*
+     * The row-wide segments read as pressed when every type holds that
+     * state, and otherwise say how the row is split; each type row is
+     * flagged once its choice is not the stored one.
+     */
+    function paintStates(box) {
+        var counts = {};
+        var kinds = 0;
+        var same = null;
+        Array.prototype.forEach.call(
+            box.querySelectorAll('.mod-row:not(.mod-bulk)'),
+            function (row) {
+                var checked = row.querySelector('.mod-seg-in:checked');
+                if (!checked) {
+                    return;
+                }
+                row.classList.toggle('is-edited',
+                    checked.value !== checked.getAttribute('data-ap-was'));
+                if (!(checked.value in counts)) {
+                    counts[checked.value] = 0;
+                    kinds++;
+                    same = checked.value;
+                }
+                counts[checked.value]++;
+            }
+        );
+        if (kinds !== 1) {
+            same = null;
+        }
+        var sum = box.querySelector('[data-ap-bulk-sum]');
+        if (sum) {
+            sum.textContent = '';
+        }
+        // The split is said in the segments' own order, one part per state held.
+        Array.prototype.forEach.call(
+            box.querySelectorAll('[data-ap-bulk]'),
+            function (button) {
+                var value = button.getAttribute('data-ap-bulk');
+                button.setAttribute('aria-pressed', value === same ? 'true' : 'false');
+                if (!sum || same !== null || !counts[value]) {
+                    return;
+                }
+                if (sum.childNodes.length) {
+                    sum.appendChild(document.createTextNode(' · '));
+                }
+                var part = document.createElement('span');
+                part.textContent = counts[value] + ' '
+                    + button.querySelector('.mod-seg-t').getAttribute('data-t');
+                sum.appendChild(part);
+            }
+        );
+    }
+
+    inits.push(function (root) {
+        Array.prototype.forEach.call(
+            root.querySelectorAll('[data-ap-bulk-wrap]'),
+            function (wrap) { wrap.hidden = false; }
+        );
+        Array.prototype.forEach.call(
+            root.querySelectorAll('.mod-states'),
+            paintStates
+        );
+    });
 
     document.addEventListener('change', function (event) {
+        var box = event.target.matches && event.target.matches('.mod-seg-in')
+            ? event.target.closest('.mod-states')
+            : null;
+        if (box) {
+            paintStates(box);
+        }
+    });
+
+    document.addEventListener('click', function (event) {
         var bulk = event.target.closest
             ? event.target.closest('[data-ap-bulk]')
             : null;
@@ -1445,21 +1590,27 @@ function boot() {
         if (!box) {
             return;
         }
-        var written = box.querySelectorAll('select[data-ap-field]');
-        Array.prototype.forEach.call(written, function (control) {
-            control.value = bulk.value;
-        });
-        /*
-         * Back to the dash, so the control reads as an action taken
-         * rather than as a state the row is now in — nothing stores
-         * what it was set to.
-         */
-        bulk.value = '';
+        var value = bulk.getAttribute('data-ap-bulk');
+        var written = [];
+        Array.prototype.forEach.call(
+            box.querySelectorAll('.mod-row:not(.mod-bulk) .mod-seg'),
+            function (group) {
+                Array.prototype.forEach.call(
+                    group.querySelectorAll('.mod-seg-in'),
+                    function (radio) {
+                        if (radio.value === value) {
+                            radio.checked = true;
+                            written.push(radio);
+                        }
+                    }
+                );
+            }
+        );
         /* A folded row that was just written to has something to show. */
         expand(box, true);
         /*
          * One synthetic `change` rather than a call to `mark()` here:
-         * the handler above already marks, re-prices and debounces the
+         * the change handlers already mark, re-price and debounce the
          * bench, and a second copy of that sequence is how the two
          * come to disagree. Dispatched once, from the last field
          * written, because the handler does not care which.
@@ -1490,16 +1641,18 @@ function boot() {
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    Array.prototype.forEach.call(
-        document.querySelectorAll('.mod-states[data-ap-collapse]'),
-        function (box) {
-            var button = box.querySelector('[data-ap-more]');
-            if (button) {
-                button.hidden = false;
+    inits.push(function (root) {
+        Array.prototype.forEach.call(
+            root.querySelectorAll('.mod-states[data-ap-collapse]'),
+            function (box) {
+                var button = box.querySelector('[data-ap-more]');
+                if (button) {
+                    button.hidden = false;
+                }
+                expand(box, false);
             }
-            expand(box, false);
-        }
-    );
+        );
+    });
 
     document.addEventListener('click', function (event) {
         var button = event.target.closest
@@ -1525,10 +1678,12 @@ function boot() {
      * row says under it — a module's description, so `geolocation`
      * finds `mmdb_lookup` without the reader knowing the name.
      */
-    Array.prototype.forEach.call(
-        document.querySelectorAll('[data-ap-rowfilter-wrap]'),
-        function (wrap) { wrap.hidden = false; }
-    );
+    inits.push(function (root) {
+        Array.prototype.forEach.call(
+            root.querySelectorAll('[data-ap-rowfilter-wrap]'),
+            function (wrap) { wrap.hidden = false; }
+        );
+    });
 
     document.addEventListener('input', function (event) {
         var box = event.target.closest
@@ -1538,7 +1693,7 @@ function boot() {
             return;
         }
         var map = box.closest('.ap-map');
-        var body = map ? map.querySelector('table.wb-tbl tbody') : null;
+        var body = map ? map.querySelector('table.wb-tbl:not([data-ap-new-table]) tbody') : null;
         if (!body) {
             return;
         }
@@ -1575,7 +1730,11 @@ function boot() {
      * its position, so moving a row is swapping two list items and
      * re-indexing. Nothing needs to know what a shape is.
      */
-    document.querySelectorAll('[data-ap-order]').forEach(function (box) {
+    inits.push(function (root) {
+        root.querySelectorAll('[data-ap-order]').forEach(initOrder);
+    });
+
+    function initOrder(box) {
         var list = box.querySelector('[data-ap-order-list]');
         var empty = box.querySelector('[data-ap-order-empty]');
         var capNote = box.querySelector('[data-ap-order-capnote]');
@@ -1616,108 +1775,92 @@ function boot() {
             mark();
         }
 
+        // A tile moved by a drag or by the arrow keys is renumbered like one moved here.
+        new MutationObserver(renumber).observe(list, { childList: true });
+
         list.addEventListener('click', function (event) {
             var row = event.target.closest
                 ? event.target.closest('[data-ap-order-row]')
                 : null;
-            if (!row) {
-                return;
-            }
-            if (event.target.closest('[data-ap-order-up]')) {
-                var prev = row.previousElementSibling;
-                if (prev) {
-                    list.insertBefore(row, prev);
-                }
-            } else if (event.target.closest('[data-ap-order-down]')) {
-                var next = row.nextElementSibling;
-                if (next) {
-                    list.insertBefore(next, row);
-                }
-            } else if (event.target.closest('[data-ap-order-remove]')) {
-                var key = row.getAttribute('data-ap-key');
-                row.parentNode.removeChild(row);
-                /*
-                 * Back into the picker, so a row removed by mistake is
-                 * one choice away rather than a page reload away.
-                 */
-                if (pick && key) {
-                    var option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = key
-                        .replace(/-/g, ' ')
-                        .replace(/^./, function (c) {
-                            return c.toUpperCase();
-                        });
-                    pick.appendChild(option);
-                }
-            } else {
+            if (!row || !event.target.closest('[data-ap-order-remove]')) {
                 return;
             }
             event.preventDefault();
-            renumber();
+            // The picker offers it again: it leaves out only the tiles on screen.
+            row.parentNode.removeChild(row);
         });
 
+        // A tile drawn like the server's, at the end of the ranking.
+        function tile(key, label, desc) {
+            var row = document.createElement('li');
+            row.className = 'ap-order-row is-new';
+            row.setAttribute('data-ap-order-row', '');
+            row.setAttribute('data-ap-key', key);
+            if (desc) {
+                row.title = desc;
+            }
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.value = key;
+            input.setAttribute('data-ap-order-input', '');
+            var rank = document.createElement('span');
+            rank.className = 'ap-order-rank';
+            rank.setAttribute('data-ap-order-rank', '');
+            var body = document.createElement('span');
+            body.className = 'ap-order-body';
+            var title = document.createElement('span');
+            title.className = 'fw-semibold';
+            title.textContent = label;
+            body.appendChild(title);
+            if (desc) {
+                var about = document.createElement('span');
+                about.className = 'wb-sub';
+                about.textContent = desc;
+                body.appendChild(about);
+            }
+            var drop = document.createElement('button');
+            drop.type = 'button';
+            drop.className = 'wb-drop';
+            drop.setAttribute('data-ap-order-remove', '');
+            drop.title = box.getAttribute('data-ap-order-remove-label') || '';
+            drop.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
+            row.appendChild(input);
+            row.appendChild(rank);
+            row.appendChild(body);
+            row.appendChild(drop);
+            return row;
+        }
+
+        // The search box the select was upgraded to hands over a pick, with its description.
         if (pick) {
-            pick.addEventListener('change', function () {
-                var key = pick.value;
-                if (!key) {
+            pick.addEventListener('ap-order-pick', function (event) {
+                var key = event.detail.key;
+                if (!key || list.querySelector('[data-ap-key="' + cssEscape(key) + '"]')) {
                     return;
                 }
-                var row = document.createElement('li');
-                row.className = 'ap-order-row';
-                row.setAttribute('data-ap-order-row', '');
-                row.setAttribute('data-ap-key', key);
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.value = key;
-                input.setAttribute('data-ap-order-input', '');
-                var rank = document.createElement('span');
-                rank.className = 'ap-order-rank';
-                rank.setAttribute('data-ap-order-rank', '');
-                var bodyCell = document.createElement('span');
-                bodyCell.className = 'ap-order-body';
-                var title = document.createElement('span');
-                title.className = 'fw-semibold';
-                title.textContent = pick.options[pick.selectedIndex]
-                    .textContent;
-                bodyCell.appendChild(title);
-                var moves = document.createElement('span');
-                moves.className = 'ap-order-moves';
-                [['data-ap-order-up', '↑'],
-                    ['data-ap-order-down', '↓'],
-                    ['data-ap-order-remove', '×']
-                ].forEach(function (pair) {
-                    var button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'btn btn-sm btn-link';
-                    button.setAttribute(pair[0], '');
-                    button.textContent = pair[1];
-                    moves.appendChild(button);
-                });
-                row.appendChild(input);
-                row.appendChild(rank);
-                row.appendChild(bodyCell);
-                row.appendChild(moves);
-                list.appendChild(row);
-                pick.remove(pick.selectedIndex);
-                pick.value = '';
-                renumber();
+                var known = (pick.apRows || []).filter(function (row) {
+                    return row.key === key;
+                })[0];
+                list.appendChild(tile(key, event.detail.label || key,
+                    known ? known.desc : ''));
             });
         }
 
         renumber();
-    });
+    }
 
-    window.analystProfileSave = function () {
-        if (!form) {
-            return;
-        }
-        if (form.requestSubmit) {
-            form.requestSubmit();
-        } else {
-            form.submit();
-        }
-    };
+    /*
+     * What the page's controls need once they are in the document. The
+     * view swaps a parameter's inputs in when it is edited, so it runs
+     * this again on what it inserted.
+     */
+    function initEditors(root) {
+        inits.forEach(function (init) {
+            init(root);
+        });
+    }
+    window.analystProfileInitEditors = initEditors;
+    initEditors(document);
 
     mark();
 }

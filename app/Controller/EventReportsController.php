@@ -512,9 +512,13 @@ class EventReportsController extends AppController
             $report['EventReport']['content'] = $dataResults['replacementResult']['contentWithReplacements'];
             $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report);
             $typeToCategoryMapping = $this->EventReport->Event->Attribute->typeToCategoryMapping();
+            $defaultCategories = array_map(function ($definition) {
+                return $definition['default_category'];
+            }, $this->EventReport->Event->Attribute->typeDefinitions);
             $data = [
                 'complexTypeToolResult' => $dataResults['complexTypeToolResult'],
                 'typeToCategoryMapping' => $typeToCategoryMapping,
+                'defaultCategories' => $defaultCategories,
                 'replacementValues' => $dataResults['replacementResult']['replacedValues'],
                 'replacementContext' => $contextResults['replacedContext']
             ];

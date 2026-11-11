@@ -6,9 +6,10 @@
  * already decided what each section is made of, and a template that
  * knew better would be a second opinion about the same document.
  *
- * Two garnishes are section-specific and deliberately so: the relevance
- * pane draws the curve its numbers describe, and the signals pane says
- * what is left in the palette.
+ * Three garnishes are section-specific and deliberately so: the
+ * relevance pane draws the curve its numbers describe, the lean draws
+ * its share between contested and leans, and the signals pane says what
+ * is left in the palette.
  *
  * @var array $section
  * @var bool $editable
@@ -20,6 +21,9 @@
  * @var string|null $lean The bench value's lean, which says which way
  *                        the palette's direction pair points
  * @var bool $compact Signals on one line each, explained behind their help
+ * @var bool $mayEdit Whether the reader may edit: a `live` block is then
+ *                    drawn with its inputs even on a read page
+ * @var array|null $axes The bench value's readings, for the assessment card
  */
 $ledger = isset($ledger) ? $ledger : array();
 $benchValue = isset($benchValue) ? $benchValue : null;
@@ -27,6 +31,11 @@ $marks = isset($marks) ? $marks : array();
 $runway = isset($runway) ? $runway : null;
 $lean = isset($lean) ? $lean : null;
 $compact = !empty($compact);
+$mayEdit = !empty($mayEdit);
+$axes = isset($axes) ? $axes : null;
+$live = function (array $block) use ($editable, $mayEdit) {
+    return !$editable && $mayEdit && !empty($block['live']);
+};
 
 $blurb = trim($section['blurb']);
 $rest = '';
@@ -77,7 +86,9 @@ if ($section['id'] === 'signals' && $configured > 0) {
         <div>
             <p class="wb-h wb-sec-title">
                 <?= h($section['title']) ?>
-                <?php if (!empty($section['axis'])): ?>
+                <?php if (!empty($section['axes'])): ?>
+                    <?= $this->element('AnalystProfiles/axis_badges', array('axes' => $section['axes'])) ?>
+                <?php elseif (!empty($section['axis'])): ?>
                     <span class="wb-ax"><?= h($section['axis']) ?></span>
                 <?php endif; ?>
             </p>
@@ -102,11 +113,12 @@ if ($section['id'] === 'signals' && $configured > 0) {
 
     <?php if (!empty($section['guide'])): ?>
         <?php $guide = $section['guide']; ?>
-        <div class="wb-guide">
-            <p class="wb-guide-h">
+        <details class="wb-guide">
+            <summary class="wb-guide-h">
                 <i class="fa-solid fa-sliders" aria-hidden="true"></i>
                 <?= h($guide['title']) ?>
-            </p>
+                <i class="fa-solid fa-chevron-down wb-guide-caret" aria-hidden="true"></i>
+            </summary>
             <?php if (!empty($guide['intro'])): ?>
                 <p class="wb-guide-intro"><?= h($guide['intro']) ?></p>
             <?php endif; ?>
@@ -118,14 +130,57 @@ if ($section['id'] === 'signals' && $configured > 0) {
                     </div>
                 <?php endforeach; ?>
             </dl>
-        </div>
+        </details>
     <?php endif; ?>
 
     <?php
     $renderBlock = function (array $block) use (
         $section, $editable, $ledger, $benchValue, $lean, $marks, $runway,
-        $compact
+        $compact, $live, $axes
     ) {
+        $editable = $editable || $live($block);
+        if (($block['display'] ?? '') === 'assessment') {
+            return $this->element('AnalystProfiles/assessment_card', array(
+                'block' => $block,
+                'editable' => $editable,
+                'axes' => $axes,
+                'benchValue' => $benchValue,
+            ));
+        }
+        if (($block['display'] ?? '') === 'bands') {
+            return $this->element('AnalystProfiles/band_board', array(
+                'block' => $block,
+                'marks' => $marks,
+                'editable' => $editable,
+            ));
+        }
+        if (($block['display'] ?? '') === 'grade_caps') {
+            return $this->element('AnalystProfiles/grade_caps', array(
+                'block' => $block,
+                'editable' => $editable,
+            ));
+        }
+        if (($block['display'] ?? '') === 'scale') {
+            return $this->element('AnalystProfiles/grade_scale', array(
+                'block' => $block,
+                'editable' => $editable,
+            ));
+        }
+        if (($block['display'] ?? '') === 'rules') {
+            return $this->element('AnalystProfiles/exclusion_rules', array(
+                'block' => $block,
+                'editable' => $editable,
+                'benchValue' => $benchValue,
+                'lean' => $lean,
+                'ledger' => $ledger,
+            ));
+        }
+        if (($block['display'] ?? '') === 'reuse') {
+            return $this->element('AnalystProfiles/reuse_window', array(
+                'block' => $block,
+                'editable' => $editable,
+            ));
+        }
         if ($block['kind'] === 'items') {
             return $this->element('AnalystProfiles/block_items', array(
                 'block' => $block,
@@ -138,27 +193,47 @@ if ($section['id'] === 'signals' && $configured > 0) {
             ));
         }
         if ($block['kind'] === 'fields') {
-            return $this->element('AnalystProfiles/block_fields', array(
+            $fields = $this->element('AnalystProfiles/block_fields', array(
                 'block' => $block,
                 'editable' => $editable,
             ));
+            if ($section['id'] === 'relevance' && $block['id'] === 'decay') {
+                // The curve the two numbers make, beside them, over the shortest bucket.
+                foreach ($section['blocks'] as $buckets) {
+                    if ($buckets['id'] !== 'ttl_buckets') {
+                        continue;
+                    }
+                    return '<div class="ttl-grid"><div class="ttl-fields">' . $fields
+                        . '</div>' . $this->element('AnalystProfiles/ttl_curve', array(
+                            'block' => $buckets,
+                            'section' => $section,
+                            'runway' => $runway,
+                        )) . '</div>';
+                }
+            }
+            if ($section['id'] !== 'thresholds' || $block['id'] !== 'lean') {
+                return $fields;
+            }
+            // The gauge under the share it draws, before the settings that follow it.
+            $share = $block;
+            $share['fields'] = array_slice($block['fields'], 0, 1);
+            $rest = array('fields' => array_slice($block['fields'], 1),
+                'live' => !empty($block['live']));
+            return $this->element('AnalystProfiles/block_fields', array(
+                    'block' => $share,
+                    'editable' => $editable,
+                )) . $this->element('AnalystProfiles/lean_gauge',
+                    array('block' => $block))
+                . (empty($rest['fields']) ? '' : $this->element('AnalystProfiles/block_fields', array(
+                    'block' => $rest,
+                    'editable' => $editable,
+                )));
         }
         if ($block['kind'] === 'map') {
-            $map = $this->element('AnalystProfiles/block_map', array(
+            return $this->element('AnalystProfiles/block_map', array(
                 'block' => $block,
                 'editable' => $editable,
             ));
-            if ($section['id'] !== 'relevance'
-                || $block['id'] !== 'ttl_buckets'
-            ) {
-                return $map;
-            }
-            return '<div class="ttl-grid"><div class="ttl-buckets">' . $map
-                . '</div>' . $this->element('AnalystProfiles/ttl_curve', array(
-                    'block' => $block,
-                    'section' => $section,
-                    'runway' => $runway,
-                )) . '</div>';
         }
         if ($block['kind'] === 'order') {
             return $this->element('AnalystProfiles/block_order', array(
@@ -186,7 +261,8 @@ if ($section['id'] === 'signals' && $configured > 0) {
     }
     ?>
     <?php foreach ($main as $block): ?>
-        <div class="wb-block" data-ap-block="<?= h($block['id']) ?>">
+        <div class="card ap-blk wb-block" data-ap-block="<?= h($block['id']) ?>"
+             data-ap-kind="<?= h($block['kind']) ?>"<?= $live($block) ? ' data-ap-live' : '' ?>>
             <?= $renderBlock($block) ?>
         </div>
     <?php endforeach; ?>
@@ -206,9 +282,11 @@ if ($section['id'] === 'signals' && $configured > 0) {
                     h(__('unsaved changes')) ?></span>
             </summary>
             <div class="wb-fold-body">
+                <?php // One card already: the folded blocks are its parts, not cards of their own. ?>
                 <?php foreach ($folded as $block): ?>
-                    <div class="wb-block"
-                         data-ap-block="<?= h($block['id']) ?>">
+                    <div class="ap-blk-part wb-block"
+                         data-ap-block="<?= h($block['id']) ?>"
+                         data-ap-kind="<?= h($block['kind']) ?>"<?= $live($block) ? ' data-ap-live' : '' ?>>
                         <?= $renderBlock($block) ?>
                     </div>
                 <?php endforeach; ?>

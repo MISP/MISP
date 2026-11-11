@@ -167,6 +167,19 @@ class AnalystProfileFormTool
     );
 
     /**
+     * The same tags as badges: each axis a section reaches, by key.
+     */
+    const SECTION_AXIS_BADGES = array(
+        'lean + signal strength' => array('lean', 'signal_strength'),
+        'lean' => array('lean'),
+        'signal_strength' => array('signal_strength'),
+        'relevance' => array('relevance'),
+        'signal strength — trust weighting' => array('signal_strength', 'trust'),
+        'no axis — context' => array('context'),
+        'no axis — display order' => array('display'),
+    );
+
+    /**
      * The groups the rail draws the sections under, in order.
      *
      * The axis tag answers *what does this move?*, which is the right
@@ -271,9 +284,60 @@ class AnalystProfileFormTool
             $method = 'section' . ucfirst($id);
             $sections[$id] = $this->$method($parameters, $sources);
             $sections[$id]['axis'] = $this->axisLabel($id);
+            $sections[$id]['axes'] = $this->axisBadges(
+                self::SECTION_AXIS_BADGES[self::SECTION_AXIS[$id]] ?? array());
+            foreach ($sections[$id]['blocks'] as $n => $block) {
+                if (!empty($block['axis_keys'])) {
+                    $sections[$id]['blocks'][$n]['axes']
+                        = $this->axisBadges($block['axis_keys']);
+                }
+            }
             $sections[$id]['group'] = self::SECTION_GROUP[$id];
         }
         return $sections;
+    }
+
+    /**
+     * An axis tag as a badge: its word, what it moves, and its look.
+     *
+     * The lean and the relevance keep the hues the value pages give
+     * them; signal strength has none there, deliberately, and none here.
+     *
+     * @param array $keys Axis keys, in the order they are read
+     * @return array
+     */
+    private function axisBadges(array $keys)
+    {
+        $all = array(
+            'lean' => array('label' => __('lean'), 'icon' => null,
+                'title' => __('Moves the lean: whether the record calls the'
+                    . ' value harmful or harmless.')),
+            'signal_strength' => array('label' => __('signal strength'),
+                'icon' => 'signal',
+                'title' => __('Moves the signal strength: how well'
+                    . ' evidenced the record is, whichever way it leans.')),
+            'relevance' => array('label' => __('relevance'),
+                'icon' => 'hourglass-half',
+                'title' => __('Moves the relevance: whether what the record'
+                    . ' says still holds today.')),
+            'trust' => array('label' => __('trust weighting'),
+                'icon' => 'shield-halved',
+                'title' => __('Scales what each graded source contributes.')),
+            'context' => array('label' => __('context'), 'icon' => 'puzzle-piece',
+                'title' => __('Reaches no score: what outside services are'
+                    . ' asked, and what their answers show.')),
+            'display' => array('label' => __('display order'),
+                'icon' => 'eye',
+                'title' => __('Reaches no score: which labels are shown'
+                    . ' first.')),
+        );
+        $badges = array();
+        foreach ($keys as $key) {
+            if (isset($all[$key])) {
+                $badges[] = array('key' => $key) + $all[$key];
+            }
+        }
+        return $badges;
     }
 
     /**
@@ -361,6 +425,16 @@ class AnalystProfileFormTool
                     'path' => array('signals'),
                     'items' => $this->signalPalette($parameters, $sources),
                     'groups' => $this->signalGroups($parameters),
+                    // A signal per row under its group, as the rules are (exclusion_rules.ctp).
+                    'live' => true,
+                    'display' => 'rules',
+                    'group_looks' => $this->signalGroupLooks(),
+                    // The section head already says what this is; the card opens on its groups.
+                    'no_summary' => true,
+                    'sets_by_map' => array(
+                        'points' => __('Points'),
+                        'config' => __('Tuning'),
+                    ),
                 ),
             ),
         );
@@ -596,6 +670,14 @@ class AnalystProfileFormTool
                 if ($map === 'points' && !isset($field['unit'])) {
                     $field['unit'] = __('points');
                 }
+                // Points read with their sign: a plus carries, a minus lacks.
+                $effective = $field['value'] !== null
+                    ? $field['value']
+                    : $field['default'];
+                if ($map === 'points' && is_numeric($effective)) {
+                    $field['read_as'] = ($effective > 0 ? '+' : '')
+                        . str_replace('-', '−', (string)$effective);
+                }
                 $item['fields'][] = $field;
             }
         }
@@ -745,6 +827,27 @@ class AnalystProfileFormTool
     }
 
     /**
+     * The ledger groups as headings: an icon and what the group asks.
+     *
+     * @return array group => `icon`, `note`
+     */
+    private function signalGroupLooks()
+    {
+        return array(
+            'Reporting' => array('icon' => 'users',
+                'note' => __('who reported it, and how widely')),
+            'Sightings' => array('icon' => 'eye',
+                'note' => __('who has seen it, and how recently')),
+            'Attribution' => array('icon' => 'crosshairs',
+                'note' => __('what it has been linked to')),
+            'Lifecycle' => array('icon' => 'clock-rotate-left',
+                'note' => __('whether it is still worth acting on')),
+            'Enrichment' => array('icon' => 'puzzle-piece',
+                'note' => __('what outside services answered')),
+        );
+    }
+
+    /**
      * Which groups this profile's signals actually land in, in the
      * ledger's own order, so a design can section the table the way the
      * assessment sections its ledger.
@@ -842,6 +945,7 @@ class AnalystProfileFormTool
                     'id' => 'signal_strength_bands',
                     'title' => __('Signal-strength bands'),
                     'axis' => __('signal strength'),
+                    'axis_keys' => array('signal_strength'),
                     'blurb' => __(
                         'These two numbers cut the points a value earns'
                         . ' from its signals into low, medium and high —'
@@ -873,22 +977,56 @@ class AnalystProfileFormTool
                             'path' => array('thresholds',
                                 'signal_strength_bands', 'high'),
                         ),
+                        // The second condition of the high band, beside the first.
+                        array(
+                            'key' => 'signal_strength_high_min_signals',
+                            'label' => __('Signals needed for high'),
+                            'type' => 'int',
+                            'unit' => __('signals'),
+                            'min' => 0,
+                            'value' => isset(
+                                $section['signal_strength_high_min_signals'])
+                                ? $section['signal_strength_high_min_signals']
+                                : null,
+                            'default' => 4,
+                            'help' => __(
+                                'So that one generous signal cannot buy'
+                                . ' the high band on its own.'
+                            ),
+                            'path' => array('thresholds',
+                                'signal_strength_high_min_signals'),
+                        ),
                     ),
+                    // The strip, then a tile per band holding its threshold (band_board.ctp).
+                    'live' => true,
+                    'display' => 'bands',
                 ) + $this->bandStrip($parameters),
                 array(
                     'kind' => 'fields',
                     'id' => 'lean',
                     'title' => __('The lean'),
                     'axis' => __('lean'),
+                    'axis_keys' => array('lean'),
+                    'blurb' => __('How one-sided the reporting has to be'
+                        . ' before a value leans one way.'),
+                    // Each value is changed where it is read (inline_value.ctp).
+                    'live' => true,
                     'fields' => array(
                         array(
                             'key' => 'lean_supermajority',
                             'label' => __('Supermajority share'),
                             'type' => 'float',
+                            'min' => 0,
+                            'max' => 1,
                             'value' => isset($section['lean_supermajority'])
                                 ? $section['lean_supermajority']
                                 : null,
                             'default' => 0.66,
+                            'read_as' => round((isset($section['lean_supermajority'])
+                                && is_numeric($section['lean_supermajority'])
+                                    ? (float)$section['lean_supermajority']
+                                    : 0.66) * 100) . '%',
+                            'unit' => __('must agree'),
                             'help' => __(
                                 'At 0.66, two thirds of the reporting'
                                 . ' organisations must agree before the'
@@ -901,14 +1039,43 @@ class AnalystProfileFormTool
                             'path' => array('thresholds',
                                 'lean_supermajority'),
                         ),
+                        array(
+                            'key' => 'dispute_stale_factor',
+                            'label' => __('Weight of an old dispute'),
+                            'type' => 'float',
+                            'min' => 0,
+                            'max' => 1,
+                            'value' => isset(
+                                $section['dispute_stale_factor']
+                            )
+                                ? $section['dispute_stale_factor']
+                                : null,
+                            'default' => 0.5,
+                            'read_as' => round((isset($section['dispute_stale_factor'])
+                                && is_numeric($section['dispute_stale_factor'])
+                                    ? (float)$section['dispute_stale_factor']
+                                    : 0.5) * 100) . '%',
+                            'unit' => __('of its weight'),
+                            'help' => __(
+                                'A false positive filed before another'
+                                . ' organisation reasserted the value'
+                                . ' still counts against it, for this'
+                                . ' share of its weight: 1 in full, 0 not'
+                                . ' at all.'
+                            ),
+                            'path' => array('thresholds',
+                                'dispute_stale_factor'),
+                        ),
                     ),
                 ),
                 array(
                     'kind' => 'fields',
                     'id' => 'thin_record_clamp',
                     'advanced' => true,
+                    'live' => true,
                     'title' => __('Single-source cap'),
                     'axis' => __('signal strength'),
+                    'axis_keys' => array('signal_strength'),
                     'blurb' => __(
                         'Holds a value that rests on one reporter down,'
                         . ' however many points it scores. Both'
@@ -980,57 +1147,16 @@ class AnalystProfileFormTool
                     'kind' => 'fields',
                     'id' => 'thin_record_clamp_by_grade',
                     'advanced' => true,
-                    'layout' => 'dense',
+                    // A tile per grade, its cap changed in place (grade_caps.ctp).
+                    'live' => true,
+                    'display' => 'grade_caps',
                     'title' => __('Cap by the reporter\'s grade'),
                     'blurb' => __(
                         'Lets a single source you graded go further — one'
                         . ' A-graded reporter allowed up to medium, say.'
                     ),
-                    'fields' => $this->clampGradeFields($clamp),
-                ),
-                array(
-                    'kind' => 'fields',
-                    'id' => 'guards',
-                    'advanced' => true,
-                    'title' => __('Other guards'),
-                    'fields' => array(
-                        array(
-                            'key' => 'signal_strength_high_min_signals',
-                            'label' => __('Signals needed for high'),
-                            'type' => 'int',
-                            'unit' => __('signals'),
-                            'value' => isset(
-                                $section['signal_strength_high_min_signals'])
-                                ? $section['signal_strength_high_min_signals']
-                                : null,
-                            'default' => 4,
-                            'help' => __(
-                                'So that one generous signal cannot buy'
-                                . ' the high band on its own.'
-                            ),
-                            'path' => array('thresholds',
-                                'signal_strength_high_min_signals'),
-                        ),
-                        array(
-                            'key' => 'dispute_stale_factor',
-                            'label' => __('Weight of an old dispute'),
-                            'type' => 'float',
-                            'value' => isset(
-                                $section['dispute_stale_factor']
-                            )
-                                ? $section['dispute_stale_factor']
-                                : null,
-                            'default' => 0.5,
-                            'help' => __(
-                                'A false positive filed before another'
-                                . ' organisation reasserted the value'
-                                . ' counts this much against it: 1 in'
-                                . ' full, 0 not at all.'
-                            ),
-                            'path' => array('thresholds',
-                                'dispute_stale_factor'),
-                        ),
-                    ),
+                    'fields' => $this->clampGradeFields($clamp,
+                        ValueTrustTool::planFor($parameters)['scale']),
                 ),
             ),
         );
@@ -1059,17 +1185,6 @@ class AnalystProfileFormTool
             $parts[] = sprintf(__n('%d grade capped apart',
                 '%d grades capped apart', $byGrade), $byGrade);
         }
-        $signals = isset($section['signal_strength_high_min_signals'])
-            ? (int)$section['signal_strength_high_min_signals']
-            : 4;
-        $parts[] = sprintf(__n('high needs %d signal',
-            'high needs %d signals', $signals), $signals);
-        $stale = isset($section['dispute_stale_factor'])
-            && is_numeric($section['dispute_stale_factor'])
-            ? (float)$section['dispute_stale_factor']
-            : 0.5;
-        $parts[] = sprintf(__('old disputes count ×%s'),
-            rtrim(rtrim(number_format($stale, 2), '0'), '.'));
         return implode(' · ', $parts);
     }
 
@@ -1077,9 +1192,10 @@ class AnalystProfileFormTool
      * One select per grade for `max_band_by_grade`.
      *
      * @param array $clamp The stored `thin_record_clamp`
+     * @param array $factors grade => multiplier in force, for the badges' tone
      * @return array
      */
-    private function clampGradeFields(array $clamp)
+    private function clampGradeFields(array $clamp, array $factors = array())
     {
         $byGrade = isset($clamp['max_band_by_grade'])
             && is_array($clamp['max_band_by_grade'])
@@ -1090,6 +1206,11 @@ class AnalystProfileFormTool
             $fields[] = array(
                 'key' => 'max_band_by_grade_' . $grade,
                 'label' => $this->gradeLabel($grade),
+                'badge' => $this->gradeBadge($grade),
+                'meaning' => __(ValueTrustTool::GRADE_LABELS[$grade]),
+                'tone' => $this->factorTone(isset($factors[$grade])
+                    ? $factors[$grade]
+                    : ValueTrustTool::DEFAULT_SCALE[$grade]),
                 'type' => 'select',
                 'options' => array_merge(
                     array(array(
@@ -1134,8 +1255,16 @@ class AnalystProfileFormTool
                 array(
                     'kind' => 'items',
                     'id' => 'escalations',
+                    'title' => __('Rules'),
+                    'blurb' => __('Each rule can only mark the value'
+                        . ' contested, and the first ticked one that fires'
+                        . ' decides. A switch applies at once; click a value'
+                        . ' to change it.'),
                     'path' => array('escalations'),
                     'items' => $items,
+                    // A rule per row, as the exclusions are (exclusion_rules.ctp).
+                    'live' => true,
+                    'display' => 'rules',
                 ),
             ),
         );
@@ -1251,6 +1380,11 @@ class AnalystProfileFormTool
                 ? (isset($entry['emits']) ? $entry['emits'] : null)
                 : $config['emits'],
             'path' => array('escalations', $id),
+            // What a rule does when it fires, where an exclusion says what it reaches.
+            'layer' => 'contested',
+            'layer_key' => __('makes it'),
+            'layer_label' => __('contested'),
+            'layer_icon' => 'scale-unbalanced',
             'fields' => array(
                 array(
                     'key' => 'enabled',
@@ -1270,6 +1404,15 @@ class AnalystProfileFormTool
         foreach ($this->generatedFields($schema, $when,
             array('escalations', $id, 'when'), $parameters) as $field) {
             $field['map'] = 'when';
+            // A category is picked by its name, not by its key.
+            if ($field['key'] === 'warninglist_category') {
+                $field['options'] = array(
+                    array('value' => WarninglistCategory::FALSE_POSITIVE,
+                        'label' => __('false positive')),
+                    array('value' => WarninglistCategory::KNOWN,
+                        'label' => __('known infrastructure')),
+                );
+            }
             $item['fields'][] = $field;
         }
         if ($config !== null) {
@@ -1319,8 +1462,15 @@ class AnalystProfileFormTool
                 array(
                     'kind' => 'items',
                     'id' => 'exclusions',
+                    'title' => __('Rules'),
+                    'blurb' => __('Each rule leaves some evidence out'
+                        . ' before any signal counts it. A switch applies at'
+                        . ' once; click a value to change it.'),
                     'path' => array('exclusions'),
                     'items' => $this->exclusionItems($parameters),
+                    // A rule per row, switched where it is read (exclusion_rules.ctp).
+                    'live' => true,
+                    'display' => 'rules',
                 ),
             ),
         );
@@ -1345,6 +1495,23 @@ class AnalystProfileFormTool
         return isset($layers[$layer][$part])
             ? $layers[$layer][$part]
             : ($part === 'label' ? $layer : null);
+    }
+
+    /**
+     * The icon beside a layer's word: what the rule reaches, at a glance.
+     *
+     * @param string|null $layer
+     * @return string|null
+     */
+    private function layerIcon($layer)
+    {
+        $icons = array(
+            'condition' => 'globe',
+            'row_filter' => 'filter',
+            'list_fold' => 'layer-group',
+            'budget' => 'gauge-high',
+        );
+        return isset($icons[$layer]) ? $icons[$layer] : null;
     }
 
     /**
@@ -1373,6 +1540,7 @@ class AnalystProfileFormTool
                     'label'),
                 'layer_title' => $this->layerLabel($declaration['layer'],
                     'title'),
+                'layer_icon' => $this->layerIcon($declaration['layer']),
                 'path' => array('exclusions', $id),
                 'fields' => array(
                     array(
@@ -1544,6 +1712,19 @@ class AnalystProfileFormTool
 
         $entries = array();
         foreach ($overrides as $type => $days) {
+            // What the type would get without its own number.
+            $bucket = isset($assigned[$type]) ? $assigned[$type] : null;
+            $replaces = $bucket !== null && in_array($bucket, ValueRelevanceTool::BUCKETS, true)
+                ? array(
+                    'label' => $this->bucketLabel($bucket),
+                    'days' => (int)(isset($buckets[$bucket])
+                        ? $buckets[$bucket]
+                        : ValueRelevanceTool::BUCKET_DAYS[$bucket]),
+                )
+                : array(
+                    'label' => __('Every other type'),
+                    'days' => (int)$shelf['ttl_default'],
+                );
             $entries[] = array(
                 'key' => (string)$type,
                 'label' => (string)$type,
@@ -1551,10 +1732,38 @@ class AnalystProfileFormTool
                 'type' => 'int',
                 'unit' => __('days'),
                 'min' => 1,
+                'replaces' => $replaces,
                 'path' => array('relevance', 'ttl_overrides',
                     (string)$type),
             );
         }
+
+        /*
+         * The shape every lifetime follows, read once: the two lifetime
+         * cards draw each bar's current and aging stretch from it, on one
+         * scale, so a bucket and an override can be compared by eye.
+         */
+        $speed = isset($section['decay_speed'])
+            && (float)$section['decay_speed'] > 0
+                ? (float)$section['decay_speed']
+                : 1.0;
+        $aging = isset($section['aging_fraction'])
+            ? (float)$section['aging_fraction']
+            : 0.33;
+        $longest = (int)$shelf['ttl_default'];
+        foreach (ValueRelevanceTool::BUCKETS as $bucket) {
+            $longest = max($longest, (int)(isset($buckets[$bucket])
+                ? $buckets[$bucket]
+                : ValueRelevanceTool::BUCKET_DAYS[$bucket]));
+        }
+        foreach ($overrides as $days) {
+            $longest = max($longest, (int)$days);
+        }
+        $ruler = array(
+            'longest' => max(7, $longest),
+            'aging' => $aging,
+            'speed' => $speed,
+        );
         return array(
             'id' => 'relevance',
             'title' => __('Relevance'),
@@ -1565,30 +1774,71 @@ class AnalystProfileFormTool
             ),
             'blocks' => array(
                 array(
+                    'kind' => 'map',
+                    'id' => 'ttl_buckets',
+                    'title' => __('Lifetime'),
+                    'blurb' => __(
+                        'How long a report stays relevant without being'
+                        . ' confirmed again, for each bucket of attribute'
+                        . ' types. Assign only the types you have an'
+                        . ' opinion about; every other type takes the'
+                        . ' last row.'
+                    ),
+                    'key_label' => __('Bucket'),
+                    'key_field_label' => __('Days'),
+                    'value_label' => __('Attribute types'),
+                    'value_type' => 'types',
+                    'path' => array('relevance', 'ttl_types'),
+                    'entries' => $assignmentEntries,
+                    // Read as bars on one time scale; Edit shows the table.
+                    'live' => true,
+                    'read_view' => 'lifetime_ruler',
+                    'ruler' => $ruler,
+                ),
+                array(
+                    'kind' => 'map',
+                    'id' => 'ttl_overrides',
+                    'title' => __('Types with their own lifetime'),
+                    'blurb' => __(
+                        'For a type that fits none of the buckets. The'
+                        . ' shipped profile needs only one.'
+                    ),
+                    'key_label' => __('Attribute type'),
+                    'value_label' => __('Days'),
+                    'value_type' => 'int',
+                    'path' => array('relevance', 'ttl_overrides'),
+                    'entries' => $entries,
+                    'live' => true,
+                    'read_view' => 'lifetime_ruler',
+                    'ruler' => $ruler,
+                    'empty_label' => __('No type has its own lifetime'),
+                    'empty_note' => __('Every type takes the lifetime of its'
+                        . ' bucket.'),
+                    'add' => array(
+                        'title' => __('Give a type its own lifetime'),
+                        'label' => __('Override a type'),
+                        'source' => 'attribute_types',
+                        'search' => true,
+                        'placeholder' => __('Search an attribute type…'),
+                        'pick_head' => __('Following its bucket — pick one'
+                            . ' to give it its own lifetime'),
+                        'pick_none' => __('No other type matches'),
+                        'help' => __('A pick waits below with its number'
+                            . ' of days until you save.'),
+                        'options' => $this->unusedKeys($types,
+                            $overrides),
+                    ),
+                ),
+                array(
                     'kind' => 'fields',
-                    'id' => 'clock',
-                    'title' => __('The clock'),
+                    'id' => 'decay',
+                    // Each value is changed where it is read (inline_value.ctp).
+                    'live' => true,
+                    'title' => __('How relevance runs down'),
+                    'blurb' => __('The shape every lifetime above follows:'
+                        . ' how relevance falls, and where it starts to'
+                        . ' count as aging.'),
                     'fields' => array(
-                        array(
-                            'key' => 'clock',
-                            'label' => __('Measure from'),
-                            'type' => 'select',
-                            'options' => $this->clockOptions(),
-                            'value' => isset($section['clock'])
-                                ? $section['clock']
-                                : null,
-                            'default' => 'last_independent_corroboration',
-                            'help' => __(
-                                'Somebody else confirming it means'
-                                . ' anyone other than the original'
-                                . ' reporter saying it again. Any'
-                                . ' sighting counts sightings alone. Its'
-                                . ' own newest record uses the most'
-                                . ' recent time the value was recorded,'
-                                . ' which every value has.'
-                            ),
-                            'path' => array('relevance', 'clock'),
-                        ),
                         array(
                             'key' => 'decay_speed',
                             'label' => __('Decay speed'),
@@ -1606,10 +1856,13 @@ class AnalystProfileFormTool
                                 : null,
                             'default' => 1.0,
                             'help' => __(
-                                '1 is a straight line. Below 1 holds its'
-                                . ' value then drops off; above 1 drops'
-                                . ' at once then lingers.'
+                                'How the line bends on its way from full'
+                                . ' relevance to none. 1 is a straight'
+                                . ' line; below 1 holds its value then'
+                                . ' drops off; above 1 drops at once then'
+                                . ' lingers.'
                             ),
+                            'reading' => $this->decayReading($speed),
                             'path' => array('relevance', 'decay_speed'),
                         ),
                         array(
@@ -1634,7 +1887,39 @@ class AnalystProfileFormTool
                              * lands on, at the shelf life next to it.
                              */
                             'help' => $this->agingHelp(),
+                            'read_as' => round($aging * 100) . '%',
                             'path' => array('relevance', 'aging_fraction'),
+                        ),
+                    ),
+                ),
+                array(
+                    'kind' => 'fields',
+                    'id' => 'clock',
+                    // Each value is changed where it is read (inline_value.ctp).
+                    'live' => true,
+                    'title' => __('Which date, which lifetime'),
+                    'blurb' => __('What restarts a value\'s clock, and'
+                        . ' which lifetime it runs against.'),
+                    'fields' => array(
+                        array(
+                            'key' => 'clock',
+                            'label' => __('Measure from'),
+                            'type' => 'select',
+                            'options' => $this->clockOptions(),
+                            'value' => isset($section['clock'])
+                                ? $section['clock']
+                                : null,
+                            'default' => 'last_independent_corroboration',
+                            'help' => __(
+                                'Somebody else confirming it means'
+                                . ' anyone other than the original'
+                                . ' reporter saying it again. Any'
+                                . ' sighting counts sightings alone. Its'
+                                . ' own newest record uses the most'
+                                . ' recent time the value was recorded,'
+                                . ' which every value has.'
+                            ),
+                            'path' => array('relevance', 'clock'),
                         ),
                         array(
                             'key' => 'undated_assumed_days',
@@ -1700,46 +1985,24 @@ class AnalystProfileFormTool
                         ),
                     ),
                 ),
-                array(
-                    'kind' => 'map',
-                    'id' => 'ttl_buckets',
-                    'title' => __('Lifetime'),
-                    'blurb' => __(
-                        'How long a report stays relevant without being'
-                        . ' confirmed again, for each bucket of attribute'
-                        . ' types. Assign only the types you have an'
-                        . ' opinion about; every other type takes the'
-                        . ' last row.'
-                    ),
-                    'key_label' => __('Bucket'),
-                    'key_field_label' => __('Days'),
-                    'value_label' => __('Attribute types'),
-                    'value_type' => 'types',
-                    'path' => array('relevance', 'ttl_types'),
-                    'entries' => $assignmentEntries,
-                ),
-                array(
-                    'kind' => 'map',
-                    'id' => 'ttl_overrides',
-                    'title' => __('Types with their own lifetime'),
-                    'blurb' => __(
-                        'For a type that fits none of the buckets. The'
-                        . ' shipped profile needs only one.'
-                    ),
-                    'key_label' => __('Attribute type'),
-                    'value_label' => __('Days'),
-                    'value_type' => 'int',
-                    'path' => array('relevance', 'ttl_overrides'),
-                    'entries' => $entries,
-                    'add' => array(
-                        'label' => __('Override a type'),
-                        'source' => 'attribute_types',
-                        'options' => $this->unusedKeys($types,
-                            $overrides),
-                    ),
-                ),
             ),
         );
+    }
+
+    /**
+     * What a decay speed does to the line, in words, beside the number.
+     *
+     * @param float $speed
+     * @return string
+     */
+    private function decayReading($speed)
+    {
+        if (abs($speed - 1.0) < 0.001) {
+            return __('a straight line');
+        }
+        return $speed < 1
+            ? __('holds, then drops at the end')
+            : __('drops at once, then lingers');
     }
 
     /**
@@ -1865,8 +2128,8 @@ class AnalystProfileFormTool
          * getting the units right.
          */
         return __(
-            'Aging is the band between current and expired, not the end'
-            . ' of the lifetime. This is a fraction of the lifetime'
+            'Aging is the stretch between current and expired. It is not'
+            . ' the end of the lifetime. This is a fraction of the lifetime'
             . ' left, not a number of days — the value has been losing'
             . ' relevance since its clock last reset, and the curve'
             . ' beside this marks the day it works out to.'
@@ -1923,12 +2186,13 @@ class AnalystProfileFormTool
                 'label' => isset($orgs[$uuid])
                     ? $orgs[$uuid]
                     : (string)$uuid,
-                'sub_label' => isset($orgs[$uuid]) ? (string)$uuid : null,
+                // A tile names the organisation; its uuid is behind the name.
+                'title' => (string)$uuid,
+                'icon' => 'building',
                 'missing' => !isset($orgs[$uuid]),
                 'value' => $grade,
                 'type' => 'select',
                 'options' => $this->gradeOptions(),
-                'factor' => $this->factorLabel($factors, $grade),
                 'path' => array('reference', 'org_trust', (string)$uuid),
             );
         }
@@ -1943,7 +2207,10 @@ class AnalystProfileFormTool
             $scaleFields[] = array(
                 'key' => (string)$grade,
                 'label' => $this->gradeLabel((string)$grade),
+                'meaning' => __(ValueTrustTool::GRADE_LABELS[$grade]),
+                'badge' => $this->gradeBadge((string)$grade),
                 'type' => 'float',
+                'min' => 0,
                 'value' => isset($scale[$grade]) ? $scale[$grade] : null,
                 'default' => $factor,
                 'path' => array('reference', 'org_trust_scale',
@@ -1955,6 +2222,7 @@ class AnalystProfileFormTool
             $categoryEntries[] = array(
                 'key' => (string)$name,
                 'label' => (string)$name,
+                'icon' => 'list-check',
                 'missing' => !empty($lists) && !isset($lists[$name]),
                 'value' => $category,
                 'type' => 'select',
@@ -2000,14 +2268,6 @@ class AnalystProfileFormTool
                     ),
                 ),
             ),
-            'fold' => array(
-                'label' => __('Fine-tuning'),
-                'summary' => $scaleMoved === 0
-                    ? __('grade multipliers as shipped')
-                    : sprintf(__n('%d grade multiplier changed',
-                        '%d grade multipliers changed', $scaleMoved),
-                        $scaleMoved),
-            ),
             'blocks' => array(
                 array(
                     'kind' => 'map',
@@ -2030,20 +2290,19 @@ class AnalystProfileFormTool
                     'empty_label' => __('No organisation graded'),
                     'empty_note' => __('Every organisation counts at'
                         . ' face value, ×1.00.'),
+                    // A tile per organisation, under the grade it holds.
+                    'live' => true,
+                    'display' => 'chips',
+                    'group_by' => 'value',
+                    'groups' => $this->gradeGroups($factors),
                     'value_type' => 'select',
                     'value_options' => $this->gradeOptions(),
-                    'value_factors' => $factors,
-                    /*
-                     * Where the page reads a factor back from once the
-                     * analyst edits one. The block below posts to this
-                     * path, so the row's multiplier follows an edit to
-                     * the scale instead of arguing with it.
-                     */
-                    'value_factor_path' => array('reference',
-                        'org_trust_scale'),
                     'path' => array('reference', 'org_trust'),
                     'entries' => $trustEntries,
                     'add' => array(
+                        'title' => __('Grade organisations'),
+                        'help' => __('Pick one, then choose its grade. It'
+                            . ' waits below until you save.'),
                         'label' => __('Grade an organisation'),
                         'source' => 'orgs',
                         /*
@@ -2057,7 +2316,7 @@ class AnalystProfileFormTool
                          * at a time and the row keeps the uuid.
                          */
                         'search' => true,
-                        'placeholder' => __('search organisations…'),
+                        'placeholder' => __('Search an organisation…'),
                         'options' => array(),
                     ),
                 ),
@@ -2065,14 +2324,16 @@ class AnalystProfileFormTool
                 array(
                     'kind' => 'fields',
                     'id' => 'org_trust_scale',
-                    'advanced' => true,
-                    'layout' => 'dense',
                     'title' => __('What a grade is worth'),
                     'blurb' => __(
                         'The multiplier each grade applies to what a'
-                        . ' source contributes. A voice graded E counts as'
-                        . ' a quarter of one.'
+                        . ' source contributes, organisation or module.'
+                        . ' A voice graded E counts as a quarter of one.'
                     ),
+                    // A tile per grade, its multiplier changed in place (grade_scale.ctp).
+                    'live' => true,
+                    'display' => 'scale',
+                    'moved' => $scaleMoved,
                     'fields' => $scaleFields,
                 ),
                 array(
@@ -2090,12 +2351,24 @@ class AnalystProfileFormTool
                     'empty_label' => __('No list overridden'),
                     'empty_note' => __('Each list keeps the category'
                         . ' it declares.'),
+                    // The two categories side by side, the lists overridden under each.
+                    'live' => true,
+                    'display' => 'chips',
+                    'group_by' => 'value',
+                    'groups' => $this->categoryGroups(),
+                    'legend_above' => true,
                     'value_type' => 'select',
                     'value_options' => $this->categoryLabelOptions(),
                     'value_legend' => $this->categoryLegend($parameters),
                     'path' => array('reference', 'warninglist_category'),
                     'entries' => $categoryEntries,
                     'add' => array(
+                        'title' => __('Override warninglists'),
+                        'help' => __('Pick one, then choose what its hit'
+                            . ' means. It waits below until you save.'),
+                        'pick_head' => __('Keeping their own category —'
+                            . ' pick one to override it'),
+                        'pick_none' => __('No other warninglist matches'),
                         'label' => __('Override a list'),
                         'source' => 'warninglists',
                         /*
@@ -2109,7 +2382,7 @@ class AnalystProfileFormTool
                          * website from Alexa`.
                          */
                         'search' => true,
-                        'placeholder' => __('filter warninglists…'),
+                        'placeholder' => __('Search a warninglist…'),
                         'options' => $this->unusedKeys(
                             array_keys($lists), $categories),
                     ),
@@ -2146,28 +2419,88 @@ class AnalystProfileFormTool
     }
 
     /**
-     * What a grade is worth, as the row should print it.
+     * A grade's letter as a badge; `unrated` has none.
      *
-     * Two decimals always, so a column of them lines up and `1` and
-     * `1.0` do not read as different numbers. A grade the scale has no
-     * entry for prints nothing rather than `0.00` — an unresolvable
-     * grade weights nothing *because it is dropped*
-     * (`ValueTrustTool::planFor()` puts it in `invalid`), and printing
-     * a zero would claim the organisation was deliberately zeroed.
-     *
-     * @param array $factors grade => float, the scale in force
-     * @param mixed $grade
-     * @return string|null
+     * @param string $grade
+     * @return string
      */
-    private function factorLabel(array $factors, $grade)
+    private function gradeBadge($grade)
     {
-        $key = ValueTrustTool::normaliseGrade($grade);
-        if ($key === null || !isset($factors[$key])) {
-            return null;
-        }
-        return '×' . number_format((float)$factors[$key], 2);
+        return $grade === ValueTrustTool::UNRATED ? '–' : (string)$grade;
     }
 
+    /**
+     * Which way a multiplier moves what a source contributes.
+     *
+     * @param float $factor
+     * @return string `up`, `flat`, `down` or `zero`
+     */
+    private function factorTone($factor)
+    {
+        $factor = (float)$factor;
+        if ($factor <= 0) {
+            return 'zero';
+        }
+        if (abs($factor - 1.0) < 0.001) {
+            return 'flat';
+        }
+        return $factor > 1 ? 'up' : 'down';
+    }
+
+    /**
+     * The grade headings a graded source sits under: the letter, what
+     * it means and what it is worth in the scale in force.
+     *
+     * @param array $factors grade => float
+     * @return array grade => group
+     */
+    private function gradeGroups(array $factors)
+    {
+        $words = array(
+            'up' => __('counts for more'),
+            'flat' => __('counts at face value'),
+            'down' => __('counts for less'),
+            'zero' => __('counts for nothing'),
+        );
+        $groups = array();
+        $grades = array_merge(ValueTrustTool::GRADES,
+            array(ValueTrustTool::UNRATED));
+        foreach ($grades as $grade) {
+            $factor = isset($factors[$grade])
+                ? (float)$factors[$grade]
+                : (float)ValueTrustTool::DEFAULT_SCALE[$grade];
+            $tone = $this->factorTone($factor);
+            $groups[$grade] = array(
+                'label' => __(ValueTrustTool::GRADE_LABELS[$grade]),
+                'badge' => $this->gradeBadge($grade),
+                'tone' => $tone,
+                'note' => '×' . number_format($factor, 2) . ' · '
+                    . $words[$tone],
+            );
+        }
+        return $groups;
+    }
+
+    /**
+     * The two warninglist categories as headings.
+     *
+     * @return array category => group
+     */
+    private function categoryGroups()
+    {
+        return array(
+            WarninglistCategory::FALSE_POSITIVE => array(
+                'label' => __('False positive'),
+                'icon' => 'circle-xmark',
+                'note' => __('the hit refutes the report'),
+            ),
+            WarninglistCategory::KNOWN => array(
+                'label' => __('Known infrastructure'),
+                'icon' => 'server',
+                'note' => __('the hit explains the report'),
+            ),
+        );
+    }
 
     /**
      * The two warninglist categories, as a picker can offer them.
@@ -2192,11 +2525,15 @@ class AnalystProfileFormTool
                 'value' => WarninglistCategory::FALSE_POSITIVE,
                 'label' => __('false positive — the hit refutes the'
                     . ' report'),
+                'icon' => 'circle-xmark',
+                'tone' => 'missing',
             ),
             array(
                 'value' => WarninglistCategory::KNOWN,
                 'label' => __('known infrastructure — the hit explains'
                     . ' the report'),
+                'icon' => 'server',
+                'tone' => 'over',
             ),
         );
     }
@@ -2239,7 +2576,7 @@ class AnalystProfileFormTool
         $entries = array(
             array(
                 'value' => WarninglistCategory::FALSE_POSITIVE,
-                'label' => __('false positive'),
+                'label' => __('False positive'),
                 'meaning' => __(
                     'The list says the value is not an indicator at'
                     . ' all — a resolver address, an RFC1918 range, a'
@@ -2258,7 +2595,7 @@ class AnalystProfileFormTool
             ),
             array(
                 'value' => WarninglistCategory::KNOWN,
-                'label' => __('known infrastructure'),
+                'label' => __('Known infrastructure'),
                 'meaning' => __(
                     'The list says the value is shared infrastructure —'
                     . ' a CDN front, a hosting range. It does not argue'
@@ -2280,7 +2617,7 @@ class AnalystProfileFormTool
         );
 
         return array(
-            'title' => __('What a category means, and what it does here'),
+            'layout' => 'cards',
             'entries' => $entries,
             'note' => __(
                 'A list this map does not name keeps the category it'
@@ -2516,6 +2853,22 @@ class AnalystProfileFormTool
                 $reachable
             );
         }
+        // The ones this instance can run first; the others under the reason, said once.
+        $groups = $this->moduleGroups();
+        $rank = array_flip(array_keys($groups));
+        usort($autoEntries, function ($a, $b) use ($rank) {
+            return array($rank[$a['group']], $a['key'])
+                <=> array($rank[$b['group']], $b['key']);
+        });
+        $groupNotes = array();
+        $groupLooks = array();
+        foreach ($autoEntries as $i => $entry) {
+            $group = $groups[$entry['group']];
+            $groupNotes[$group['label']] = $group['note'];
+            $groupLooks[$group['label']] = array('icon' => $group['icon'],
+                'tone' => $group['tone']);
+            $autoEntries[$i]['group'] = $group['label'];
+        }
         return array(
             'id' => 'enrichment',
             'title' => __('Enrichment'),
@@ -2542,6 +2895,10 @@ class AnalystProfileFormTool
                         . ' a module tells somebody outside this'
                         . ' instance unless its row says otherwise.'
                     ),
+                    // Edited where it is read, its states as chips until Edit shows the choices.
+                    'live' => true,
+                    'filter_placeholder' => __('Filter the modules…'),
+                    'legend_above' => true,
                     'key_label' => __('Module'),
                     'value_label' => __('Attribute types'),
                     'empty_label' => __('No module declared'),
@@ -2568,19 +2925,12 @@ class AnalystProfileFormTool
                     'value_options' => $this->stateOptions(),
                     'value_rows' => $this->acceptedTypes($catalogue),
                     'unavailable_label' => __('not accepted'),
-                    /*
-                     * Past a dozen rows the table stops being
-                     * scannable. The number is the point where the
-                     * shipped default lands — twelve modules — so a
-                     * profile that has only ever been forked from it
-                     * does not get a control it has no use for.
-                     */
-                    'row_filter' => 12,
-                    'row_filter_placeholder' => __('filter these'
-                        . ' modules…'),
                     'path' => array('enrichment', 'auto_run_modules'),
                     'entries' => $autoEntries,
+                    'group_notes' => $groupNotes,
+                    'group_looks' => $groupLooks,
                     'add' => array(
+                        'title' => __('Declare modules'),
                         'label' => __('Declare a module'),
                         'source' => 'modules',
                         /*
@@ -2594,11 +2944,22 @@ class AnalystProfileFormTool
                          * that cannot resolve.
                          */
                         'search' => true,
-                        'placeholder' => __('filter modules…'),
+                        'placeholder' => __('Search a module that is not'
+                            . ' declared yet…'),
+                        'help' => __('Only modules enabled for you are'
+                            . ' offered. Pick one, then choose a state for'
+                            . ' each type it accepts; it waits below until'
+                            . ' you save.'),
+                        'pick_head' => __('Not declared yet — pick one to'
+                            . ' declare it'),
+                        'pick_none' => __('No other module matches'),
                         'options' => $this->unusedKeys(
                             $this->usableModules($catalogue),
                             $byModule
                         ),
+                        'subs' => array_map(function ($facts) {
+                            return (string)($facts['description'] ?? '');
+                        }, $catalogue),
                     ),
                 ),
                 /*
@@ -2613,13 +2974,12 @@ class AnalystProfileFormTool
                     'kind' => 'fields',
                     'id' => 'max_age_hours',
                     'title' => __('How long an answer stays good for'),
+                    // What happens to an answer, step by step, and a slider saved when let go.
+                    'live' => true,
+                    'display' => 'reuse',
                     'blurb' => __(
-                        'Once a module has answered about a value, that'
-                        . ' answer is kept and shown to everyone in your'
-                        . ' organisation rather than the module being'
-                        . ' asked again. This is how long it is used'
-                        . ' for. It bounds only what happens on its own'
-                        . ' — pressing Run always asks again.'
+                        'What happens once a module has answered about a'
+                        . ' value, and how long its answer is reused.'
                     ),
                     'fields' => array(
                         array(
@@ -2681,9 +3041,16 @@ class AnalystProfileFormTool
             : array();
         $entries = array();
         foreach ($grades as $module => $grade) {
+            $facts = isset($catalogue[(string)$module])
+                ? $catalogue[(string)$module]
+                : null;
             $entries[] = array(
                 'key' => (string)$module,
                 'label' => (string)$module,
+                'icon' => 'puzzle-piece',
+                'desc' => $facts !== null
+                    ? (string)($facts['description'] ?? '')
+                    : null,
                 /*
                  * A graded module the instance does not offer is drawn
                  * rather than dropped, the same way a graded
@@ -2696,7 +3063,6 @@ class AnalystProfileFormTool
                 'value' => $grade,
                 'type' => 'select',
                 'options' => $this->gradeOptions(),
-                'factor' => $this->factorLabel($factors, $grade),
                 'path' => array('reference', 'module_trust',
                     (string)$module),
             );
@@ -2720,20 +3086,32 @@ class AnalystProfileFormTool
             ),
             'key_label' => __('Module'),
             'value_label' => __('Grade'),
+            // A tile per module, under the grade it holds.
+            'live' => true,
+            'display' => 'chips',
+            'group_by' => 'value',
+            'groups' => $this->gradeGroups($factors),
             'value_type' => 'select',
             'value_options' => $this->gradeOptions(),
-            'value_factors' => $factors,
-            'value_factor_path' => array('reference', 'org_trust_scale'),
             'empty_label' => __('No module graded'),
             'empty_note' => __('Module verdicts are shown, and none of'
                 . ' them counts.'),
             'path' => array('reference', 'module_trust'),
             'entries' => $entries,
             'add' => array(
+                'title' => __('Grade modules'),
+                'help' => __('Pick one, then choose its grade. It waits'
+                    . ' below until you save.'),
+                'pick_head' => __('Not graded yet — pick one to grade it'),
+                'pick_none' => __('No other module matches'),
+                'subs' => array_map(function ($facts) {
+                    return (string)($facts['description'] ?? '');
+                }, $catalogue),
                 'label' => __('Grade a module'),
                 'source' => 'modules',
                 'search' => true,
-                'placeholder' => __('filter modules…'),
+                'placeholder' => __('Search a module that is not graded'
+                    . ' yet…'),
                 /*
                  * Every module the build offers rather than only the
                  * enabled ones: a grade is knowledge about a source, and an analyst
@@ -2798,17 +3176,20 @@ class AnalystProfileFormTool
                     $standing[$shape]),
             );
         }
+        // Every shape: the picker leaves out the ranked ones, so a tile removed can be picked again.
         $options = array();
+        $descriptions = array();
         foreach ($catalogue as $id => $shape) {
-            if (!in_array($id, $ranked, true)) {
-                $options[$id] = $this->shapeLabel($id);
-            }
+            $descriptions[$id] = $shape['description'] ?? '';
+            $options[$id] = $this->shapeLabel($id);
         }
         asort($options);
         return array(
             'kind' => 'order',
             'id' => 'shapes',
             'title' => __('Which visualisations come first'),
+            // Edited where it is read: tiles in the Overview's order, dragged into place.
+            'live' => true,
             'blurb' => __(
                 'The Overview draws up to five of these as widgets,'
                 . ' in this order, out of answers already held — it'
@@ -2828,10 +3209,16 @@ class AnalystProfileFormTool
             'path' => array('enrichment', 'shapes'),
             'entries' => $entries,
             'add' => array(
+                'title' => __('Add visualisations'),
                 'label' => __('Rank a visualisation'),
                 'search' => true,
-                'placeholder' => __('filter visualisations…'),
+                'placeholder' => __('Search a visualisation to rank…'),
+                'pick_head' => __('Not ranked yet — pick one to rank it'),
+                'pick_none' => __('No other visualisation matches'),
+                'help' => __('A pick joins the end of the ranking. Drag a'
+                    . ' tile to move it; nothing is stored until you save.'),
                 'options' => $options,
+                'descriptions' => $descriptions,
             ),
         );
     }
@@ -2969,12 +3356,16 @@ class AnalystProfileFormTool
             'collapse_after' => 6,
         );
         $note = $this->moduleNote($facts, $reachable);
+        $entry['group'] = $this->moduleGroup($facts, $reachable);
         if ($note !== null) {
             $entry['missing'] = true;
             $entry['missing_note'] = $note;
+            // Its group heading says why, once for every module it holds.
+            $entry['missing_in_group'] = true;
         }
         if ($facts !== null && !empty($facts['description'])) {
             $entry['sub_label'] = $facts['description'];
+            $entry['title'] = $facts['description'];
         }
         $entry['tags'] = $this->moduleTags($name, $facts);
         return $entry;
@@ -3090,6 +3481,77 @@ class AnalystProfileFormTool
     }
 
     /**
+     * Where a declared module stands here, as the key of its group.
+     * The order is `moduleNote()`'s.
+     *
+     * @param array|null $facts
+     * @param bool $reachable
+     * @return string A key of `moduleGroups()`
+     */
+    private function moduleGroup($facts, $reachable)
+    {
+        if (!$reachable) {
+            return 'unchecked';
+        }
+        if ($facts === null) {
+            return 'unknown';
+        }
+        if (empty($facts['enabled'])) {
+            return 'disabled';
+        }
+        if (!empty($facts['restricted'])) {
+            return 'reserved';
+        }
+        return 'ready';
+    }
+
+    /**
+     * The module groups, in the order they are drawn, each with the
+     * one sentence its heading says for every module under it.
+     *
+     * @return array key => label and note
+     */
+    private function moduleGroups()
+    {
+        return array(
+            'ready' => array(
+                'label' => __('Ready on this instance'),
+                'note' => '',
+                'icon' => 'circle-check',
+                'tone' => 'ok',
+            ),
+            'disabled' => array(
+                'label' => __('Disabled on this instance'),
+                'icon' => 'power-off',
+                'tone' => 'off',
+                'note' => __('Kept in the profile. An administrator turns'
+                    . ' them on under Plugin settings.'),
+            ),
+            'reserved' => array(
+                'label' => __('Reserved for another organisation'),
+                'icon' => 'lock',
+                'tone' => 'off',
+                'note' => __('Kept in the profile, and not offered to you'
+                    . ' on this instance.'),
+            ),
+            'unknown' => array(
+                'label' => __('Unknown on this instance'),
+                'icon' => 'circle-question',
+                'tone' => 'warn',
+                'note' => __('Kept in the profile. Not in this modules'
+                    . ' build, or renamed.'),
+            ),
+            'unchecked' => array(
+                'label' => __('Not checked'),
+                'icon' => 'plug-circle-xmark',
+                'tone' => 'warn',
+                'note' => __('The modules service is not answering, so'
+                    . ' they could not be checked.'),
+            ),
+        );
+    }
+
+    /**
      * The types each module accepts, for the page to draw a row it
      * adds itself.
      *
@@ -3166,14 +3628,23 @@ class AnalystProfileFormTool
             array(
                 'value' => '',
                 'label' => __('Nothing'),
+                'short' => __('Nothing'),
+                'icon' => 'minus',
+                'tone' => 'plain',
             ),
             array(
                 'value' => ValueEnrichmentTool::STATE_TICKED,
                 'label' => __('Pre-select, ready to run'),
+                'short' => __('Pre-select'),
+                'icon' => 'check',
+                'tone' => 'force',
             ),
             array(
                 'value' => ValueEnrichmentTool::STATE_NEVER,
                 'label' => __('Block, running is refused'),
+                'short' => __('Block'),
+                'icon' => 'ban',
+                'tone' => 'missing',
             ),
             /*
              * Offered again since phase 11. D23 removed it because the
@@ -3185,6 +3656,9 @@ class AnalystProfileFormTool
             array(
                 'value' => ValueEnrichmentTool::STATE_AUTO,
                 'label' => __('Auto, run it on its own'),
+                'short' => __('Auto'),
+                'icon' => 'bolt',
+                'tone' => 'over',
             ),
         );
     }
@@ -3213,6 +3687,8 @@ class AnalystProfileFormTool
     {
         return array(
             'title' => __('What each choice does on the Enrichment tab'),
+            // One line under the table: each choice's chip and its effect, the rest behind its `i`.
+            'layout' => 'inline',
             'entries' => array(
                 array(
                     'value' => '',
@@ -5070,11 +5546,22 @@ class AnalystProfileFormTool
                 ? $sources['galaxies']
                 : array(),
         );
+        $facts = array(
+            ValueLabelPriority::TAXONOMIES => isset($sources['taxonomy_facts'])
+                ? $sources['taxonomy_facts']
+                : array(),
+            ValueLabelPriority::GALAXIES => isset($sources['galaxy_facts'])
+                ? $sources['galaxy_facts']
+                : array(),
+        );
         $blocks = array(
             array(
                 'kind' => 'fields',
                 'id' => ValueLabelPriority::SHOW_ASSESSMENT,
                 'title' => __('Assessment'),
+                // A switch, saved as soon as it is flipped, beside the hover card it governs.
+                'live' => true,
+                'display' => 'assessment',
                 'blurb' => __(
                     'Whether value pages, hover cards and the value'
                     . ' worklist show the lean, relevance and signal'
@@ -5092,19 +5579,28 @@ class AnalystProfileFormTool
                             $parameters
                         ),
                         'default' => true,
+                        'on_label' => __('Shown to readers of this profile'),
+                        'off_label' => __('Hidden from readers of this profile'),
                         'path' => array('context',
                             ValueLabelPriority::SHOW_ASSESSMENT),
                     ),
                 ),
             ),
+            $this->markingsBlock(
+                $parameters,
+                $offered[ValueLabelPriority::TAXONOMIES],
+                $facts[ValueLabelPriority::TAXONOMIES]
+            ),
         );
         foreach ($offered as $scope => $available) {
+            $isTaxonomy = $scope === ValueLabelPriority::TAXONOMIES;
             $entries = array();
             $tiers = array();
             foreach (ValueLabelPriority::TIERS as $tier) {
                 foreach ($plan[$scope][$tier] as $key) {
                     $tiers[$key] = $tier;
-                    $entries[] = array(
+                    $entries[] = $this->labelFacts($scope, $key,
+                        $facts[$scope]) + array(
                         'key' => $key,
                         'label' => isset($available[$key])
                             ? $available[$key]
@@ -5135,29 +5631,34 @@ class AnalystProfileFormTool
             $blocks[] = array(
                 'kind' => 'map',
                 'id' => $scope . '_tier',
-                'title' => $scope === ValueLabelPriority::TAXONOMIES
+                'title' => $isTaxonomy
                     ? __('Taxonomies')
                     : __('Galaxies'),
-                'blurb' => $scope === ValueLabelPriority::TAXONOMIES
+                'blurb' => $isTaxonomy
                     ? __(
-                        'Pinned taxonomies are drawn first, and a value'
-                        . ' that carries none of one is shown as'
-                        . ' missing it — so keep that list short: a'
-                        . ' card listing eight absences teaches you to'
-                        . ' skip that part of the page. Taxonomies you'
-                        . ' do not rank keep the order they have today,'
-                        . ' and nothing here can hide a label.'
+                        'Which taxonomies a card with room for only a few'
+                        . ' shows first. Pinned ones are always drawn, and'
+                        . ' a value that carries none of one is shown as'
+                        . ' missing it — so keep that tier short: a card'
+                        . ' listing eight absences teaches you to skip'
+                        . ' that part of the page. Taxonomies you do not'
+                        . ' rank keep the order they have today, and'
+                        . ' nothing here can hide a label.'
                     )
                     : __(
-                        'The same three tiers, for galaxies. A compact'
-                        . ' surface such as the hover card has room for'
-                        . ' one cluster and counts the rest; this'
-                        . ' decides which one it names. Ranking a'
-                        . ' galaxy here does not make it count as an'
-                        . ' attribution — that is set under What counts'
-                        . ' as an attribution.'
+                        'Which galaxies a compact card, such as the hover'
+                        . ' card, names first. It has room for one cluster'
+                        . ' and counts the rest; these tiers decide which'
+                        . ' one it names. Ranking a galaxy here does not'
+                        . ' make it count as an attribution — that is set'
+                        . ' under What counts as an attribution.'
                     ),
-                'key_label' => $scope === ValueLabelPriority::TAXONOMIES
+                // Edited where it is read, a tile per label under its tier.
+                'live' => true,
+                'display' => 'chips',
+                'group_by' => 'value',
+                'groups' => $this->tierGroups(),
+                'key_label' => $isTaxonomy
                     ? __('Taxonomy')
                     : __('Galaxy'),
                 'value_label' => __('Tier'),
@@ -5170,7 +5671,10 @@ class AnalystProfileFormTool
                 'entries' => $entries,
                 'note' => $this->pinNote($plan, $scope),
                 'add' => array(
-                    'label' => $scope === ValueLabelPriority::TAXONOMIES
+                    'title' => $isTaxonomy
+                        ? __('Rank taxonomies')
+                        : __('Rank galaxies'),
+                    'label' => $isTaxonomy
                         ? __('Rank a taxonomy')
                         : __('Rank a galaxy'),
                     'source' => $scope,
@@ -5180,21 +5684,29 @@ class AnalystProfileFormTool
                      * of it, which is the warninglists' case exactly.
                      */
                     'search' => true,
-                    'placeholder' => $scope
-                        === ValueLabelPriority::TAXONOMIES
-                        ? __('filter taxonomies…')
-                        : __('filter galaxies…'),
+                    'placeholder' => $isTaxonomy
+                        ? __('Search a taxonomy that is not ranked yet…')
+                        : __('Search a galaxy that is not ranked yet…'),
+                    'help' => __('Pick one, then choose its tier. It waits'
+                        . ' below until you save.'),
+                    'pick_head' => __('Not ranked yet — pick one to rank it'),
+                    'pick_none' => $isTaxonomy
+                        ? __('No other taxonomy matches')
+                        : __('No other galaxy matches'),
                     'options' => $this->unusedKeys(
                         array_keys($available),
                         $tiers
                     ),
+                    'labels' => $available,
+                    'subs' => $isTaxonomy
+                        ? array_map(function ($fact) {
+                            return $fact['description'];
+                        }, $facts[$scope])
+                        : array(),
+                    'icons' => $this->labelIcons($scope, $facts[$scope]),
                 ),
             );
         }
-        $blocks[] = $this->markingsBlock(
-            $parameters,
-            $offered[ValueLabelPriority::TAXONOMIES]
-        );
         return array(
             'id' => 'context',
             'title' => __('What you look at first'),
@@ -5218,15 +5730,20 @@ class AnalystProfileFormTool
      *
      * @param array $parameters
      * @param array $available Taxonomy namespace => label
+     * @param array $facts Taxonomy namespace => id and description
      * @return array
      */
-    private function markingsBlock(array $parameters, array $available)
-    {
+    private function markingsBlock(array $parameters, array $available,
+        array $facts = array()
+    ) {
         $entries = array();
         $used = array();
         foreach (ValueLabelPriority::markings($parameters) as $namespace) {
             $used[$namespace] = true;
-            $entries[] = array(
+            // Numbered instead: the tile's rank takes the icon's place.
+            $entries[] = array('icon' => null)
+                + $this->labelFacts(ValueLabelPriority::TAXONOMIES,
+                    $namespace, $facts) + array(
                 'key' => $namespace,
                 'label' => isset($available[$namespace])
                     ? $available[$namespace]
@@ -5259,20 +5776,112 @@ class AnalystProfileFormTool
             'empty_label' => __('No marking block'),
             'empty_note' => __('The event page draws no markings beside'
                 . ' the distribution.'),
+            'live' => true,
             'display' => 'chips',
+            // The block draws them in this order: the tiles say it, and are dragged into it.
+            'numbered' => true,
+            'sortable' => true,
             'value_type' => 'select',
             'value_options' => $this->markingOptions(),
             'path' => array('context', 'markings_map'),
             'entries' => $entries,
             'add' => array(
+                'title' => __('Add markings'),
                 'label' => __('Add a marking'),
                 'source' => ValueLabelPriority::TAXONOMIES,
                 'search' => true,
-                'placeholder' => __('filter taxonomies…'),
+                'placeholder' => __('Search a taxonomy to draw as a marking…'),
+                'help' => __('A pick joins the end of the list. Drag a tile'
+                    . ' to move it; nothing is stored until you save.'),
+                'pick_head' => __('Not drawn yet — pick one to draw it'),
+                'pick_none' => __('No other taxonomy matches'),
                 'options' => $this->unusedKeys(
                     array_keys($available),
                     $used
                 ),
+                'labels' => $available,
+                'subs' => array_map(function ($fact) {
+                    return $fact['description'];
+                }, $facts),
+            ),
+        );
+    }
+
+    /**
+     * The icon each pick's tile shows, as `labelFacts()` draws it.
+     *
+     * @param string $scope ValueLabelPriority::TAXONOMIES or GALAXIES
+     * @param array $facts Key => facts
+     * @return array key => icon name
+     */
+    private function labelIcons($scope, array $facts)
+    {
+        $icons = array();
+        foreach (array_keys($facts) as $key) {
+            $icon = $this->labelFacts($scope, $key, $facts)['icon'] ?? null;
+            if ($icon !== null) {
+                $icons[$key] = $icon;
+            }
+        }
+        return $icons;
+    }
+
+    /**
+     * What a tile shows beside a label's name: an icon, a description
+     * and the page the name opens.
+     *
+     * @param string $scope ValueLabelPriority::TAXONOMIES or GALAXIES
+     * @param string $key A taxonomy namespace or a galaxy type
+     * @param array $facts Key => id, description (and icon, for galaxies)
+     * @return array
+     */
+    private function labelFacts($scope, $key, array $facts)
+    {
+        if (!isset($facts[$key])) {
+            return array();
+        }
+        $fact = $facts[$key];
+        if ($scope === ValueLabelPriority::GALAXIES) {
+            return array(
+                'icon' => $fact['icon'] !== '' ? $fact['icon'] : null,
+                'title' => $fact['description'],
+                'url' => array('controller' => 'galaxies',
+                    'action' => 'view', $fact['id']),
+            );
+        }
+        return array(
+            'icon' => 'tags',
+            'title' => $fact['description'],
+            'desc' => $fact['description'],
+            'url' => array('controller' => 'taxonomies',
+                'action' => 'view', $fact['id']),
+        );
+    }
+
+    /**
+     * The tiers as the headings of a ranked list, each saying what it
+     * does.
+     *
+     * @return array tier => label and note
+     */
+    private function tierGroups()
+    {
+        return array(
+            ValueLabelPriority::PINNED => array(
+                'label' => __('Pinned'),
+                'icon' => 'thumbtack',
+                'note' => __('Always shown, and shown as missing when a'
+                    . ' value has none'),
+            ),
+            ValueLabelPriority::PREFERRED => array(
+                'label' => __('Preferred'),
+                'icon' => 'arrow-up',
+                'note' => __('Shown before anything unranked'),
+            ),
+            ValueLabelPriority::DEMOTED => array(
+                'label' => __('Demoted'),
+                'icon' => 'arrow-down',
+                'note' => __('Shown after anything unranked, never hidden'),
             ),
         );
     }
@@ -5312,11 +5921,32 @@ class AnalystProfileFormTool
         $available = isset($sources['galaxies'])
             ? $sources['galaxies']
             : array();
+        $facts = isset($sources['galaxy_facts'])
+            ? $sources['galaxy_facts']
+            : array();
+        /*
+         * Grouped by who publishes the galaxy, which is what a reader
+         * scanning forty names recognises; MITRE's retired galaxies get
+         * a group of their own so they read as retired.
+         */
+        $publishers = array(
+            'misp' => __('MISP'),
+            'mitre' => __('MITRE ATT&CK'),
+            'tidal' => __('Tidal Cyber'),
+            '' => __('Other publishers'),
+            'deprecated' => __('Deprecated'),
+            'missing' => __('Unknown on this instance'),
+        );
         $entries = array();
         $used = array();
         foreach ((array)$declared as $type) {
             $used[$type] = true;
-            $entries[] = array(
+            $missing = !empty($available) && !isset($available[$type]);
+            $namespace = isset($facts[$type]) ? $facts[$type]['namespace'] : '';
+            $group = $missing ? 'missing'
+                : (isset($publishers[$namespace]) ? $namespace : '');
+            $entries[] = $this->labelFacts(ValueLabelPriority::GALAXIES,
+                $type, $facts) + array(
                 'key' => $type,
                 'label' => isset($available[$type])
                     ? $available[$type]
@@ -5325,12 +5955,22 @@ class AnalystProfileFormTool
                     && $available[$type] !== $type
                     ? $type
                     : null,
-                'missing' => !empty($available) && !isset($available[$type]),
+                'missing' => $missing,
+                'group' => $publishers[$group],
                 'value' => self::ATTRIBUTION_COUNTS,
                 'type' => 'select',
                 'options' => $this->attributionOptions(),
                 'path' => array('galaxies', 'attribution_map', $type),
             );
+        }
+        $order = array_flip(array_values($publishers));
+        usort($entries, function ($a, $b) use ($order) {
+            return array($order[$a['group']], mb_strtolower($a['label']))
+                <=> array($order[$b['group']], mb_strtolower($b['label']));
+        });
+        $others = array();
+        foreach ($this->unusedKeys(array_keys($available), $used) as $type) {
+            $others[] = $available[$type];
         }
         return array(
             'id' => 'galaxies',
@@ -5348,13 +5988,15 @@ class AnalystProfileFormTool
                     'kind' => 'map',
                     'id' => 'attribution_map',
                     'title' => __('Galaxies that count'),
-                    'blurb' => __(
-                        'Remove one to stop counting it. A sector, a'
-                        . ' country, a countermeasure or a typology is'
-                        . ' not an attribution — state-sponsored is a'
-                        . ' type, not a name.'
-                    ),
+                    // Edited where it is read: a set is changed a tile at a time.
+                    'live' => true,
                     'display' => 'chips',
+                    'others' => array(
+                        'label' => sprintf(__n('%s galaxy on this instance'
+                            . ' does not count', '%s galaxies on this instance'
+                            . ' do not count', count($others)), count($others)),
+                        'items' => $others,
+                    ),
                     'key_label' => __('Galaxy'),
                     'value_label' => __('Counts as'),
                     'empty_label' => __('No filter'),
@@ -5364,15 +6006,24 @@ class AnalystProfileFormTool
                     'value_options' => $this->attributionOptions(),
                     'path' => array('galaxies', 'attribution_map'),
                     'entries' => $entries,
+                    'filter_placeholder' => __('Filter the galaxies…'),
                     'add' => array(
+                        'title' => __('Add galaxies'),
                         'label' => __('Count a galaxy'),
                         'source' => 'galaxies',
                         'search' => true,
-                        'placeholder' => __('filter galaxies…'),
+                        'placeholder' => __('Search a galaxy that does not count yet…'),
+                        'help' => __('Only galaxies that do not count yet are'
+                            . ' offered. A pick waits below until you save.'),
+                        'pick_head' => __('Not counted yet — pick one to count it'),
+                        'pick_none' => __('No other galaxy to count matches'),
                         'options' => $this->unusedKeys(
                             array_keys($available),
                             $used
                         ),
+                        'labels' => $available,
+                        'icons' => $this->labelIcons(
+                            ValueLabelPriority::GALAXIES, $facts),
                         /*
                          * **Retyping a list you just wrote is how the
                          * two drift apart**, and they are meant to
@@ -5382,8 +6033,10 @@ class AnalystProfileFormTool
                          * them actually wants.
                          */
                         'copy_from' => array(
-                            'label' => __('Copy the galaxies preferred'
-                                . ' for display'),
+                            'label' => __('Add the preferred galaxies'),
+                            'help' => __('From What you look at first ›'
+                                . ' Galaxies, ranked preferred.'),
+                            'names' => $available,
                             'keys' => ValueLabelPriority::keys(
                                 $parameters,
                                 ValueLabelPriority::GALAXIES,
@@ -5398,30 +6051,18 @@ class AnalystProfileFormTool
     }
 
     /**
-     * The three tiers, each saying what it does rather than what it is
-     * called.
+     * The three tiers by name; the headings they are drawn under say
+     * what each does (`tierGroups()`).
      *
      * @return array `value`/`label` pairs
      */
     private function tierOptions()
     {
-        return array(
-            array(
-                'value' => ValueLabelPriority::PINNED,
-                'label' => __('pinned — always shown, and shown as'
-                    . ' missing when it is'),
-            ),
-            array(
-                'value' => ValueLabelPriority::PREFERRED,
-                'label' => __('preferred — shown before anything'
-                    . ' unranked'),
-            ),
-            array(
-                'value' => ValueLabelPriority::DEMOTED,
-                'label' => __('demoted — shown after anything unranked,'
-                    . ' never hidden'),
-            ),
-        );
+        $options = array();
+        foreach ($this->tierGroups() as $tier => $group) {
+            $options[] = array('value' => $tier, 'label' => $group['label']);
+        }
+        return $options;
     }
 
     /**

@@ -163,7 +163,11 @@ $overlayHtml = '
                 return;
             }
             raw = event.detail.content;
-            render(raw);
+            if (event.detail.elementsChanged) {
+                renderer.reload().then(function () { render(raw); });
+            } else {
+                render(raw);
+            }
         });
     });
 

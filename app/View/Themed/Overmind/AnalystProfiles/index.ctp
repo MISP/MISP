@@ -60,6 +60,11 @@ $canForkForOrg = !empty($me['Role']['perm_admin'])
     || !empty($me['Role']['perm_site_admin']);
 
 $this->set('headerTitle', __('Analyst Profiles'));
+// The controller's own name reads `AnalystProfiles`; the trail names the feature.
+$this->set('headerBreadcrumb', array(
+    array('label' => __('Analyst Profiles'), 'url' => array('action' => 'index')),
+    __('Index'),
+));
 $this->set('headerCount', count($profiles));
 $this->set('headerDescription', __('A profile decides what MISP makes of'
     . ' a value: which evidence counts and for how long, which labels'
