@@ -63,20 +63,21 @@ class MispZmq:
     redis: redis.StrictRedis
     namespace: str
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, supervisor_managed=False):
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self._logger = logging.getLogger()
 
         self.tmp_location = Path(__file__).parent.parent / "tmp"
-        self.pidfile = self.tmp_location / "mispzmq.pid"
-        if self.pidfile.exists():
-            with open(self.pidfile.as_posix()) as f:
-                pid = f.read()
-            if check_pid(pid):
-                raise Exception(f"mispzmq already running on PID {pid}")
-            else:
-                # Cleanup
-                self.pidfile.unlink()
+        if not supervisor_managed:
+            self.pidfile = self.tmp_location / "mispzmq.pid"
+            if self.pidfile.exists():
+                with open(self.pidfile.as_posix()) as f:
+                    pid = f.read()
+                if check_pid(pid):
+                    raise Exception(f"mispzmq already running on PID {pid}")
+                else:
+                    # Cleanup
+                    self.pidfile.unlink()
         if (self.tmp_location / "mispzmq_settings.json").exists():
             self._setup()
         else:
@@ -152,6 +153,8 @@ class MispZmq:
             self._logger.warning(f"Received invalid command '{command}'.")
 
     def _create_pid_file(self):
+        if self.pidfile is None:
+            return
         with open(self.pidfile.as_posix(), "w") as f:
             f.write(str(os.getpid()))
 
@@ -238,9 +241,11 @@ class MispZmq:
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="MISP ZeroMQ PUB server")
     arg_parser.add_argument("--debug", action="store_true", help="Enable debugging messages")
+    arg_parser.add_argument("--supervisor-managed", action="store_true",
+                            help="Disable PID file handling when managed by Supervisor")
     parsed = arg_parser.parse_args()
 
-    mzq = MispZmq(parsed.debug)
+    mzq = MispZmq(parsed.debug, supervisor_managed=parsed.supervisor_managed)
     try:
         mzq.main()
     except KeyboardInterrupt:
