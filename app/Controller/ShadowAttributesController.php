@@ -72,14 +72,10 @@ class ShadowAttributesController extends AppController
 
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
-            // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-            $activeAttribute = $this->MispAttribute->find('first', [
-                'conditions' => ['Attribute.uuid' => $shadow['uuid']],
-                'contain' => ['Event'],
-            ]);
+            $activeAttribute = $this->ShadowAttribute->findTargetAttribute($shadow);
 
             // Send those away that shouldn't be able to edit this
-            if (!$this->__canModifyEvent($activeAttribute)) {
+            if (empty($activeAttribute) || !$this->__canModifyEvent($activeAttribute)) {
                 if ($this->_isRest()) {
                     return ['false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.'];
                 } else {

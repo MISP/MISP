@@ -647,63 +647,90 @@ class ShadowAttribute extends AppModel
     }
 
     /**
+     * Save a proposal received through sync onto a local event its sender may reach.
+     *
      * @param array $proposal
-     * @return array|false
+     * @param array $user
+     * @param array $event The local event, already checked for the sender
+     * @return bool|null True when saved, false when the save failed, null when there was nothing to save
      */
-    private function __preCaptureMassage(array $proposal)
+    public function capture($proposal, array $user, array $event)
     {
-        if (empty($proposal['event_uuid']) || empty($proposal['Org'])) {
+        if (!is_array($proposal) || empty($proposal['Org'])) {
+            return null;
+        }
+        unset($proposal['id'], $proposal[$this->alias]);
+        $proposal['event_id'] = $event['Event']['id'];
+        $proposal['event_uuid'] = $event['Event']['uuid'];
+        $proposal['event_org_id'] = $event['Event']['org_id'];
+        if (empty($proposal['old_id'])) {
+            $proposal['old_id'] = 0;
+        } else {
+            if (!isset($proposal['uuid']) || !is_string($proposal['uuid'])) {
+                return null;
+            }
+            $oldAttribute = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'Attribute.event_id' => $event['Event']['id'],
+                    'Attribute.uuid' => $proposal['uuid'],
+                ],
+                'fields' => ['Attribute.id'],
+            ]);
+            if (empty($oldAttribute)) {
+                return null;
+            }
+            $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+        }
+        $oldsa = $this->findOldProposal($proposal);
+        if ($oldsa && $oldsa['timestamp'] >= $proposal['timestamp']) {
+            return null;
+        }
+        if ($oldsa) {
+            $this->delete($oldsa['id']);
+        }
+        $proposal['org_id'] = $this->Event->Orgc->captureOrg($proposal['Org'], $user);
+        unset($proposal['Org']);
+        $this->create();
+        if (!$this->save($proposal)) {
             return false;
         }
-        if (isset($proposal['id'])) {
-            unset($proposal['id']);
+        if (empty($proposal['deleted'])) {
+            $this->sendProposalAlertEmail($proposal['event_id']);
         }
-        unset($proposal[$this->alias]);
-        $event = $this->Event->find('first', array(
+        return true;
+    }
+
+    /**
+     * The local event a proposal pulled from $server is for, if that server may hold it: we would push
+     * it there, it is shared with this community (which includes synchronising servers), or the
+     * server's organisation created it (a pull downgrades distribution, so the push check misses those).
+     *
+     * @param string $eventUuid
+     * @param array $server With RemoteOrg
+     * @param array $user
+     * @return array|false
+     */
+    private function __eventSyncedWithServer($eventUuid, array $server, array $user)
+    {
+        $event = $this->Event->find('first', [
             'recursive' => -1,
-            'conditions' => array('Event.uuid' => $proposal['event_uuid']),
-            'fields' => array('Event.id', 'Event.uuid', 'Event.org_id')
-        ));
+            'conditions' => ['Event.uuid' => $eventUuid],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id'],
+        ]);
         if (empty($event)) {
             return false;
         }
-        $proposal['event_id'] = $event['Event']['id'];
-        $proposal['event_org_id'] = $event['Event']['org_id'];
-        return $proposal;
-    }
-
-    public function capture($proposal, $user)
-    {
-        $proposal = $this->__preCaptureMassage($proposal);
-        if ($proposal === false) {
-            return false;
+        if ($event['Event']['orgc_id'] == $server['Server']['remote_org_id'] || $event['Event']['distribution'] == 1) {
+            return $event;
         }
-        $oldsa = $this->findOldProposal($proposal);
-        if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-            if ($oldsa) {
-                $this->delete($oldsa['id']);
-            }
-            if (isset($proposal['old_id'])) {
-                $oldAttribute = $this->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $proposal['uuid'])));
-                if ($oldAttribute) {
-                    $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-                } else {
-                    $proposal['old_id'] = 0;
-                }
-            } else {
-                $proposal['old_id'] = 0;
-            }
-            $proposal['org_id'] = $this->Event->Orgc->captureOrg($proposal['Org'], $user);
-            unset($proposal['Org']);
-            $this->create();
-            if ($this->save($proposal)) {
-                if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                    $this->sendProposalAlertEmail($proposal['event_id']);
-                }
-                return true;
+        if ($event['Event']['distribution'] == 4) {
+            $event['SharingGroup'] = $this->Event->SharingGroup->fetchSG($event['Event']['sharing_group_id'], $user);
+            if (empty($event['SharingGroup'])) {
+                return false;
             }
         }
-        return false;
+        return $this->Event->checkDistributionForPush($event, $server) ? $event : false;
     }
 
     /**
@@ -721,6 +748,16 @@ class ShadowAttribute extends AppModel
 
         $serverSync->debug("Pulling proposals");
 
+        $server = $serverSync->server();
+        if (!isset($server['RemoteOrg'])) {
+            $remoteOrg = $this->Event->Orgc->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Orgc.id' => $server['Server']['remote_org_id']],
+                'fields' => ['Orgc.id', 'Orgc.uuid'],
+            ]);
+            $server['RemoteOrg'] = $remoteOrg ? $remoteOrg['Orgc'] : [];
+        }
+        $events = [];
         $i = 1;
         $fetchedCount = 0;
         $chunkSize = 1000;
@@ -743,8 +780,14 @@ class ShadowAttribute extends AppModel
                 return $fetchedCount;
             }
             foreach ($data as $proposal) {
-                $result = $this->capture($proposal['ShadowAttribute'], $user);
-                if ($result) {
+                $eventUuid = $proposal['ShadowAttribute']['event_uuid'] ?? null;
+                if (!is_string($eventUuid)) {
+                    continue;
+                }
+                if (!array_key_exists($eventUuid, $events)) {
+                    $events[$eventUuid] = $this->__eventSyncedWithServer($eventUuid, $server, $user);
+                }
+                if ($events[$eventUuid] && $this->capture($proposal['ShadowAttribute'], $user, $events[$eventUuid])) {
                     $fetchedCount++;
                 }
             }
@@ -941,6 +984,24 @@ class ShadowAttribute extends AppModel
 
 
     /**
+     * The attribute an edit proposal changes: its old_id, in its own event, with its uuid.
+     *
+     * @param array $shadow
+     * @return array|null
+     */
+    public function findTargetAttribute(array $shadow)
+    {
+        return $this->Attribute->find('first', [
+            'conditions' => [
+                'Attribute.id' => $shadow['old_id'],
+                'Attribute.event_id' => $shadow['event_id'],
+                'Attribute.uuid' => $shadow['uuid'],
+            ],
+            'contain' => ['Event'],
+        ]);
+    }
+
+    /**
      * acceptProposal - Accept the proposal without checking ACL.
      * @param array $user - The user object
      * @param str|array $proposal - The ID of the proposal to discard or the proposal object
@@ -971,6 +1032,12 @@ class ShadowAttribute extends AppModel
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');
 
+        if ($shadow['ShadowAttribute']['old_id'] != 0) {
+            $activeAttribute = $this->findTargetAttribute($shadow['ShadowAttribute']);
+            if (empty($activeAttribute)) {
+                return ['success' => false, 'message' => 'Proposal target not found.'];
+            }
+        }
         $this->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
         if ($this->typeIsAttachment($shadow['type']) && !$shadow['proposal_to_delete']) {
@@ -979,12 +1046,6 @@ class ShadowAttribute extends AppModel
         }
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
-            // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-            $activeAttribute = $this->Attribute->find('first', [
-                'conditions' => ['Attribute.uuid' => $shadow['uuid']],
-                'contain' => ['Event'],
-            ]);
-
             if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
                 $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $user, false);
             } else {

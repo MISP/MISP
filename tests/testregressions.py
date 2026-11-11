@@ -2904,5 +2904,218 @@ class ObjectReferenceCaptureScope(unittest.TestCase):
         self.assertEqual(objects[1]['uuid'], created[0]['referenced_uuid'])
 
 
+class ProposalSyncScope(unittest.TestCase):
+    """Proposals pushed through events/pushProposals land only on events the sync user can see,
+    carry the local event's identity rather than the sender's, and edit proposals point only at
+    an attribute of that same event.
+
+    The event was found by uuid with no ACL (a hidden event answered differently from a missing
+    one and accepted proposals), event_org_id, event_uuid and old_id were stored as sent, and an
+    edit proposal carrying another event's attribute uuid was stored with the sender's old_id.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.created_roles = []
+        cls.captured_org_uuids = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_add')
+            body = {'name': 'regression proposal sync %s' % random(), 'permission': 3,
+                    'perm_add': 1, 'perm_modify': 1, 'perm_sync': 1, 'perm_auth': 1}
+            response = cls.admin._prepare_request('POST', 'admin/roles/add', data={'Role': body})
+            created = response.json() if response.status_code == 200 else {}
+            created = created.get('Role', created)
+            if not (created.get('id') and int(created.get('perm_sync', 0))
+                    and int(created.get('perm_add', 0))):
+                raise unittest.SkipTest('could not create a sync role with perm_add')
+            cls.created_roles.append(int(created['id']))
+            cls.victim_org = make_org(cls.admin, 'regression proposal victim')
+            cls.sync_org = make_org(cls.admin, 'regression proposal sync')
+            cls.created_orgs = [cls.victim_org, cls.sync_org]
+            cls.victim_user = make_user(cls.admin, cls.victim_org.id, role)
+            cls.sync_user = make_user(cls.admin, cls.sync_org.id, int(created['id']))
+            cls.created_users = [cls.victim_user, cls.sync_user]
+            cls.victim = PyMISP(url, cls.victim_user.authkey)
+            cls.sync = PyMISP(url, cls.sync_user.authkey)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+        for org_uuid in getattr(cls, 'captured_org_uuids', []):
+            response = cls.admin._prepare_request('GET', 'organisations/view/%s' % org_uuid)
+            if response.status_code == 200:
+                found = response.json().get('Organisation', {})
+                if found.get('uuid') == org_uuid and found.get('id'):
+                    cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % found['id'])
+        for role_id in getattr(cls, 'created_roles', []):
+            cls.admin._prepare_request('POST', 'admin/roles/delete/%d' % role_id)
+
+    @classmethod
+    def _add_event(cls, distribution, attributes=2):
+        event = send(cls.victim, 'POST', 'events/add', {
+            'info': 'regression proposal %s' % random(), 'distribution': distribution,
+            'threat_level_id': 4, 'analysis': 0,
+            'Attribute': [{'type': 'domain', 'category': 'Network activity',
+                           'value': '%s.example' % random(), 'uuid': str(uuidlib.uuid4()),
+                           'distribution': 5} for _ in range(attributes)]})['Event']
+        cls.event_ids.append(int(event['id']))
+        cls.event_uuids.append(event['uuid'])
+        return event
+
+    def _proposals(self, event_id):
+        """Every proposal stored on the event, as the admin sees it."""
+        response = self.admin._prepare_request('GET', 'shadow_attributes/index/%s/all:1.json' % event_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        rows = response.json()
+        return [row['ShadowAttribute'] if 'ShadowAttribute' in row else row for row in rows]
+
+    def _stored_columns(self, proposal_id):
+        """event_org_id and event_uuid of one proposal row: no API output carries the stored
+        columns, so read them with the mysql client using this tree's own database.php."""
+        config = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app', 'Config',
+                              'database.php')
+        try:
+            with open(config) as handle:
+                text = handle.read()
+            default = text[text.index('$default'):]
+            creds = {k: re.search(r"'%s'\s*=>\s*'([^']*)'" % k, default).group(1)
+                     for k in ('host', 'login', 'password', 'database')}
+            out = subprocess.run(
+                ['mysql', '-N', '-B', '-h', creds['host'], '-u', creds['login'], '-D',
+                 creds['database'], '-e',
+                 'SELECT event_org_id, event_uuid FROM shadow_attributes WHERE id = %d'
+                 % int(proposal_id)],
+                env=dict(os.environ, MYSQL_PWD=creds['password']), check=True,
+                capture_output=True, timeout=30).stdout.decode().split()
+        except Exception:
+            raise unittest.SkipTest('stored proposal columns not readable on this instance')
+        return {'event_org_id': out[0], 'event_uuid': out[1]}
+
+    def _proposal(self, event, **override):
+        """The shape Server::syncProposals sends: a ShadowAttribute row with an Org block."""
+        org_uuid = str(uuidlib.uuid4())
+        self.captured_org_uuids.append(org_uuid)
+        proposal = {
+            'event_id': 0, 'event_uuid': event['uuid'], 'event_org_id': int(event['org_id']),
+            'old_id': 0, 'uuid': str(uuidlib.uuid4()), 'type': 'domain',
+            'category': 'Network activity', 'value': 'proposal-%s.example' % random(),
+            'to_ids': 0, 'comment': 'regression proposal %s' % random(),
+            'timestamp': int(time.time()), 'deleted': 0, 'proposal_to_delete': 0,
+            'org_id': 0, 'email': '', 'first_seen': None, 'last_seen': None,
+            'Org': {'name': 'regression proposer %s' % random(), 'uuid': org_uuid}}
+        proposal.update(override)
+        return proposal
+
+    def _push(self, uuid, proposals):
+        response = self.sync._prepare_request('POST', 'events/pushProposals/%s' % uuid,
+                                              data=proposals)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return response.json()
+
+    def test_hidden_event_answers_like_missing_event(self):
+        hidden = self._add_event(0)
+        proposal = self._proposal(hidden)
+        answer = self._push(hidden['uuid'], [proposal])
+        missing = self._push(str(uuidlib.uuid4()), [self._proposal(hidden)])
+        self.assertEqual(missing, answer)
+        self.assertEqual({'success': False, 'message': 'Event not found.', 'counter': 0}, answer)
+        self.assertEqual([], self._proposals(hidden['id']))
+
+    def test_visible_event_proposal_takes_local_identity(self):
+        event = self._add_event(3)
+        bogus_uuid = str(uuidlib.uuid4())
+        proposal = self._proposal(event, event_uuid=bogus_uuid,
+                                  event_org_id=int(self.sync_org.id))
+        answer = self._push(event['uuid'], [proposal])
+        self.assertTrue(answer['success'], answer)
+        self.assertEqual(1, answer['counter'], answer)
+        stored = self._proposals(event['id'])
+        self.assertEqual([proposal['value']], [p['value'] for p in stored])
+        self.assertEqual(event['uuid'], stored[0]['event_uuid'])
+        columns = self._stored_columns(stored[0]['id'])
+        self.assertEqual(str(event['org_id']), columns['event_org_id'])
+        self.assertEqual(event['uuid'], columns['event_uuid'])
+
+    def test_edit_proposal_for_attribute_of_other_event_is_not_stored(self):
+        event = self._add_event(3)
+        other = self._add_event(0)
+        own_attribute = event['Attribute'][0]
+        foreign_attribute = other['Attribute'][0]
+        misdirected = self._proposal(event, old_id=int(own_attribute['id']),
+                                     uuid=foreign_attribute['uuid'])
+        answer = self._push(event['uuid'], [misdirected])
+        self.assertEqual(0, answer['counter'], answer)
+        self.assertEqual('Nothing to update.', answer['message'])
+        stored = [p for p in self._proposals(event['id'])
+                  if p['uuid'] == foreign_attribute['uuid']]
+        self.assertEqual([], stored, 'the proposal for a foreign attribute uuid was stored')
+        self.assertEqual([], self._proposals(other['id']))
+
+    def test_edit_proposal_for_attribute_of_the_event_points_at_it(self):
+        event = self._add_event(3)
+        attribute = event['Attribute'][1]
+        proposal = self._proposal(event, old_id=2147480000, uuid=attribute['uuid'],
+                                  value='edited-%s.example' % random())
+        answer = self._push(event['uuid'], [proposal])
+        self.assertEqual(1, answer['counter'], answer)
+        stored = self._proposals(event['id'])
+        self.assertEqual(1, len(stored))
+        self.assertEqual(str(attribute['id']), str(stored[0]['old_id']))
+        self.assertEqual(attribute['uuid'], stored[0]['uuid'])
+
+    def test_new_attribute_proposal_keeps_old_id_zero(self):
+        event = self._add_event(3)
+        answer = self._push(event['uuid'], [self._proposal(event, old_id=0)])
+        self.assertEqual(1, answer['counter'], answer)
+        self.assertEqual(['0'], [str(p['old_id']) for p in self._proposals(event['id'])])
+
+    def test_same_proposal_pushed_twice_is_stored_once(self):
+        event = self._add_event(3)
+        proposal = self._proposal(event)
+        first = self._push(event['uuid'], [proposal])
+        self.assertEqual(1, first['counter'], first)
+        second = self._push(event['uuid'], [proposal])
+        self.assertEqual(0, second['counter'], second)
+        self.assertEqual('Nothing to update.', second['message'])
+        self.assertEqual(1, len([p for p in self._proposals(event['id'])
+                                 if p['value'] == proposal['value']]))
+
+    def test_duplicate_is_found_whatever_event_uuid_the_sender_gives(self):
+        event = self._add_event(3)
+        proposal = self._proposal(event)
+        self.assertEqual(1, self._push(event['uuid'], [proposal])['counter'])
+        again = self._push(event['uuid'], [dict(proposal, event_uuid=str(uuidlib.uuid4()))])
+        self.assertEqual(0, again['counter'], again)
+        self.assertEqual(1, len([p for p in self._proposals(event['id'])
+                                 if p['value'] == proposal['value']]))
+
+    def test_newer_version_of_a_proposal_replaces_the_older(self):
+        event = self._add_event(3)
+        proposal = self._proposal(event)
+        self._push(event['uuid'], [proposal])
+        newer = dict(proposal, timestamp=proposal['timestamp'] + 100)
+        answer = self._push(event['uuid'], [newer])
+        self.assertEqual(1, answer['counter'], answer)
+        stored = [p for p in self._proposals(event['id']) if p['value'] == proposal['value']]
+        self.assertEqual([str(newer['timestamp'])], [str(p['timestamp']) for p in stored])
+
+
 if __name__ == '__main__':
     unittest.main()
