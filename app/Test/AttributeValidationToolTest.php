@@ -181,4 +181,23 @@ class AttributeValidationToolTest extends TestCase
             $this->assertNotTrue(AttributeValidationTool::validate($type, $value), "Value `$value` of type `$type` should be invalid.");
         }
     }
+
+    public function testIpv6PortSeparators(): void
+    {
+        $this->assertEquals('2001:db8::1|80', AttributeValidationTool::modifyBeforeValidation('ip-dst|port', '2001:db8::1.80'));
+        $this->assertEquals('2001:db8::1|80', AttributeValidationTool::modifyBeforeValidation('ip-dst|port', '2001:db8::1 port 80'));
+        $this->assertEquals('2001:db8::1|80', AttributeValidationTool::modifyBeforeValidation('ip-dst|port', '2001:db8::1#80'));
+        $this->assertEquals('2001:db8::1|80', AttributeValidationTool::modifyBeforeValidation('ip-dst|port', '2001:db8::1p80'));
+        $this->assertEquals('2001:db8::1|80', AttributeValidationTool::modifyBeforeValidation('ip-dst|port', '[2001:db8::1]:80'));
+        $this->assertEquals('2001:db8::1|80', AttributeValidationTool::modifyBeforeValidation('ip-dst|port', '2001:db8::1:80'));
+    }
+
+    public function testIpv4EmbeddedIpv6Port(): void
+    {
+        foreach (['::ffff:192.0.2.1 port 443', '::ffff:192.0.2.1#443', '::ffff:192.0.2.1.443', '::ffff:192.0.2.1:443', '[::ffff:192.0.2.1]:443'] as $value) {
+            $modified = AttributeValidationTool::modifyBeforeValidation('ip-src|port', $value);
+            $this->assertEquals('::ffff:192.0.2.1|443', $modified, $value);
+            $this->assertTrue(AttributeValidationTool::validate('ip-src|port', $modified), $value);
+        }
+    }
 }
