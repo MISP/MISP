@@ -9999,7 +9999,9 @@ class Event extends AppModel
                         } else if (!is_array($result)) {
                             continue 2;
                         } else if (!isset($result['results'])) {
-                            return 0;
+                            // A module error (e.g. NXDOMAIN) only applies to
+                            // this lookup, not the remaining enrichment batch.
+                            continue;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
