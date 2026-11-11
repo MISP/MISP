@@ -1813,7 +1813,8 @@ class DelegationRequestVisibility(unittest.TestCase):
 
     def _set_theme(self, user, theme):
         """events/view2 renders only in the Overmind theme, which then also serves events/view
-        as a different page; the classic view needs the user's theme setting gone."""
+        as a different page; the classic view needs the Default theme (3.0 falls back to
+        Overmind when the user has none)."""
         listed = self.admin._prepare_request('GET', 'userSettings/index/user_id:%s' % user.id)
         for entry in listed.json():
             if int(entry['UserSetting']['user_id']) == int(user.id) \
@@ -1826,7 +1827,7 @@ class DelegationRequestVisibility(unittest.TestCase):
     def _page(self, user, page: str) -> str:
         """The rendered HTML of a page as a user. An API key is redirected to the login page
         for HTML views, so this signs in through the web form."""
-        self._set_theme(user, 'Overmind' if page == 'events/view2' else None)
+        self._set_theme(user, 'Overmind' if page == 'events/view2' else 'Default')
         session = requests.Session()
         login = session.get(url + '/users/login', allow_redirects=False)
         form = login.text[login.text.index('id="UserLoginForm"'):]
@@ -2034,6 +2035,9 @@ class EventSubviewStatsAcl(unittest.TestCase):
                 cls.list_names[key_name] = name
                 cls.list_values[key_name] = value
             cls._seed(token)
+            # Retired on 3.0: its checks skip there, the warninglist hits still run
+            probe = cls.admin._prepare_request('GET', 'events/viewEventStats/%s' % cls.event.id)
+            cls.has_stats = probe.status_code != 404
         except BaseException:
             cls.tearDownClass()
             raise
@@ -2072,6 +2076,8 @@ class EventSubviewStatsAcl(unittest.TestCase):
         return response.json()
 
     def _stats(self, api):
+        if not self.has_stats:
+            self.skipTest('events/viewEventStats is not on this line')
         return self._get(api, 'events/viewEventStats')
 
     def _hit_names(self, api):
@@ -2098,15 +2104,17 @@ class EventSubviewStatsAcl(unittest.TestCase):
         return attributes, objects
 
     def _assert_all_rows(self, api, who):
+        hits = self._hit_names(api)
+        for name in self.list_names.values():
+            self.assertIn(name, hits, 'warninglist hits for %s lack %s' % (who, name))
+        if not self.has_stats:
+            return
         stats = self._stats(api)
         categories = stats['attributes']['by_category']
         self.assertIn('Payload delivery', categories, 'stats for %s lack the hidden attribute category' % who)
         self.assertEqual(1, stats['attachments'], 'stats for %s lack the hidden attachment' % who)
         self.assertEqual(2, stats['objects']['total'], 'stats for %s lack the hidden object' % who)
         self.assertEqual(2, sum(stats['objects']['by_name'].values()))
-        hits = self._hit_names(api)
-        for name in self.list_names.values():
-            self.assertIn(name, hits, 'warninglist hits for %s lack %s' % (who, name))
 
     def test_outsider_stats_cover_visible_rows_only(self):
         stats = self._stats(self.outsider)
