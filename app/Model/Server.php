@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('AnalystData', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('SharingGroup', 'Model');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
 App::uses('GitTool', 'Tools');
@@ -612,6 +613,14 @@ class Server extends AppModel
      * @throws Exception
      */
     public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
+    {
+        $internal = !empty($server['Server']['internal']);
+        return SharingGroup::captureRemote($internal, function () use ($user, $technique, $server, $jobId, $force) {
+            return $this->__pull($user, $technique, $server, $jobId, $force);
+        });
+    }
+
+    private function __pull(array $user, $technique, array $server, $jobId, $force)
     {
         if ($jobId) {
             Configure::write('CurrentUserId', $user['id']);

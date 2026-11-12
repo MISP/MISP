@@ -4,6 +4,7 @@ use MaxMind\Exception\InvalidInputException;
 
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('SharingGroup', 'Model');
 App::uses('TmpFileTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
 
@@ -1051,7 +1052,9 @@ class Feed extends AppModel
         if (!is_array($event) || isset($event['code'])) {
             return false;
         }
-        return $this->__saveEvent($event, $user);
+        return SharingGroup::captureRemote(false, function () use ($event, $user) {
+            return $this->__saveEvent($event, $user);
+        });
     }
 
     /**
@@ -1352,7 +1355,9 @@ class Feed extends AppModel
 
             $total = count($actions['add']) + count($actions['edit']);
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
-            $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
+            $result = SharingGroup::captureRemote(false, function () use ($actions, $feed, $HttpSocket, $user, $jobId) {
+                return $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
+            });
             $this->__cleanupFile($feed, '/manifest.json');
         } else {
             $this->jobProgress($jobId, 'Fetching data.');

@@ -76,6 +76,9 @@ class SharingGroup extends AppModel
 
     private $authorizedIds = [];
 
+    /** @var bool|null True or false while a pull (internal link or not) or a feed captures data */
+    private static $remoteCapture = null;
+
     public function beforeValidate($options = array())
     {
         if (empty($this->data['SharingGroup']['uuid'])) {
@@ -677,7 +680,8 @@ class SharingGroup extends AppModel
             $forceUpdate = true;
         }
         unset($sg['Organisation']);
-        $creatorOrgFound = $this->captureSGOrgs($user, $sg, $sg_id, $forceUpdate);
+        $updateOrgDetails = $forceUpdate && $this->__mayUpdateOrgDetails($user);
+        $creatorOrgFound = $this->captureSGOrgs($user, $sg, $sg_id, $forceUpdate, $updateOrgDetails);
         $creatorOrgFound = $this->captureSGServers($user, $sg, $sg_id, $forceUpdate) || $creatorOrgFound;
         if (!$creatorOrgFound && !empty($server)) {
             $this->captureCreatorOrg($user, $sg_id);
@@ -686,6 +690,41 @@ class SharingGroup extends AppModel
             return $existingSG[$this->alias]['id'];
         }
         return $this->id;
+    }
+
+    /**
+     * Pulls and feeds run as the admin who started them, so the role cannot tell their data from the
+     * admin's own: they capture through here.
+     *
+     * @param bool $internal True for a pull over a link flagged internal
+     * @param callable $capture
+     * @return mixed What $capture returns
+     */
+    public static function captureRemote($internal, callable $capture)
+    {
+        $previous = self::$remoteCapture;
+        self::$remoteCapture = (bool)$internal;
+        try {
+            return $capture();
+        } finally {
+            self::$remoteCapture = $previous;
+        }
+    }
+
+    /**
+     * Organisation details in a sharing group (sector, nationality, contacts, ...) update existing
+     * organisations only for internal sync and site admins; regular sync, other pulls and feeds only
+     * reference them.
+     *
+     * @param array $user
+     * @return bool
+     */
+    private function __mayUpdateOrgDetails(array $user)
+    {
+        if (self::$remoteCapture !== null) {
+            return self::$remoteCapture;
+        }
+        return !empty($user['Role']['perm_site_admin']) || !empty($user['Role']['perm_sync_internal']);
     }
 
     /*
@@ -860,9 +899,10 @@ class SharingGroup extends AppModel
      * @param array $sg
      * @param int $sg_id
      * @param bool $force
+     * @param bool $updateOrgDetails
      * @return void
      */
-    public function captureSGOrgs(array $user, array $sg, int $sg_id, bool $force)
+    public function captureSGOrgs(array $user, array $sg, int $sg_id, bool $force, bool $updateOrgDetails = false)
     {
         $creatorOrgFound = false;
         if (!empty($sg['SharingGroupOrg'])) {
@@ -878,7 +918,7 @@ class SharingGroup extends AppModel
                 if (isset($org['Organisation'][0])) {
                     $org['Organisation'] = $org['Organisation'][0];
                 }
-                $sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
+                $sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $updateOrgDetails);
                 if ($sg['SharingGroupOrg'][$k]['org_id'] == $user['org_id']) {
                     $creatorOrgFound = true;
                 }

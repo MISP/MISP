@@ -3125,5 +3125,175 @@ class ProposalSyncScope(unittest.TestCase):
         self.assertEqual([str(newer['timestamp'])], [str(p['timestamp']) for p in stored])
 
 
+class OrganisationDetailsSyncScope(unittest.TestCase):
+    """Capturing an existing sharing group with a newer modified date adds the roster's
+    organisations to the group but changes the details of an existing organisation (type,
+    nationality, sector, contacts) only when the sender is a site admin or holds
+    perm_sync_internal. A regular sync user only references organisations: matching an existing
+    one by uuid or creating an unknown one.
+
+    Every sync user used to overwrite those fields on any organisation matched by uuid, the
+    host organisation included.
+    """
+
+    ORIGINAL = {'type': 'original type', 'nationality': 'LU', 'sector': 'original sector',
+                'contacts': 'original@contacts.example'}
+    POISONED = {'type': 'poisoned type', 'nationality': 'FR', 'sector': 'poisoned sector',
+                'contacts': 'poisoned@contacts.example'}
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.created_roles = []
+        cls.captured_org_uuids = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.sg_ids = []
+        try:
+            cls.plain_role = cls._make_role('regression org details plain', {})
+            cls.internal_role = cls._make_role('regression org details internal',
+                                               {'perm_sync_internal': 1})
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _make_role(cls, name, extra):
+        body = {'name': '%s %s' % (name, random()), 'permission': 3, 'perm_add': 1,
+                'perm_sync': 1, 'perm_sharing_group': 1, 'perm_tagger': 1, 'perm_auth': 1}
+        body.update(extra)
+        response = cls.admin._prepare_request('POST', 'admin/roles/add', data={'Role': body})
+        created = response.json() if response.status_code == 200 else {}
+        created = created.get('Role', created)
+        if not (created.get('id') and int(created.get('perm_sync', 0))
+                and int(created.get('perm_add', 0))
+                and int(created.get('perm_sharing_group', 0))):
+            raise unittest.SkipTest('could not create a sync role with perm_sharing_group')
+        if extra and not int(created.get('perm_sync_internal', 0)):
+            raise unittest.SkipTest('could not create a role with perm_sync_internal')
+        cls.created_roles.append(int(created['id']))
+        return int(created['id'])
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for sg_id in getattr(cls, 'sg_ids', []):
+            cls.admin._prepare_request('POST', 'sharingGroups/delete/%s' % sg_id)
+        for user in getattr(cls, 'created_users', []):
+            cls.admin.delete_user(user)
+        for org_uuid in getattr(cls, 'captured_org_uuids', []):
+            response = cls.admin._prepare_request('GET', 'organisations/view/%s' % org_uuid)
+            if response.status_code == 200:
+                found = response.json().get('Organisation', {})
+                if found.get('uuid') == org_uuid and found.get('id'):
+                    cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % found['id'])
+        for org in getattr(cls, 'created_orgs', []):
+            cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % org.id)
+        for role_id in getattr(cls, 'created_roles', []):
+            cls.admin._prepare_request('POST', 'admin/roles/delete/%d' % role_id)
+
+    def _org(self, label, **details):
+        org = MISPOrganisation()
+        org.name = 'regression org details %s %s' % (label, random())
+        for field, value in details.items():
+            org[field] = value
+        org = check_response(self.admin.add_organisation(org))
+        self.created_orgs.append(org)
+        return org
+
+    def _sync_user(self, org, role_id):
+        user = make_user(self.admin, org.id, role_id)
+        self.created_users.append(user)
+        return PyMISP(url, user.authkey)
+
+    def _details(self, org_id):
+        response = self.admin._prepare_request('GET', 'organisations/view/%s' % org_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        found = response.json()['Organisation']
+        return {field: found[field] for field in self.ORIGINAL}
+
+    def _roster_uuids(self, sg_id):
+        response = self.admin._prepare_request('GET', 'sharing_groups/view/%s' % sg_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return [row['Organisation']['uuid'] for row in response.json()['SharingGroupOrg']]
+
+    @staticmethod
+    def _roster_entry(org, details=None):
+        entry = {'uuid': org.uuid, 'name': org.name}
+        entry.update(details or {})
+        return {'Organisation': entry, 'extend': False}
+
+    def _push(self, connector, sg_uuid, modified, roster):
+        event = {'info': 'regression org details %s' % random(), 'distribution': 4,
+                 'threat_level_id': 4, 'analysis': 0,
+                 'Attribute': [{'type': 'domain', 'category': 'Network activity',
+                                'value': '%s.example' % random(), 'uuid': str(uuidlib.uuid4()),
+                                'distribution': 5}],
+                 'SharingGroup': {'uuid': sg_uuid, 'name': 'regression org details sg %s' % random(),
+                                  'releasability': 'x', 'description': 'x', 'roaming': 1,
+                                  'created': '2024-01-01 00:00:00', 'modified': modified,
+                                  'SharingGroupOrg': roster}}
+        response = connector._prepare_request('POST', 'events/add', data=event)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        created = response.json().get('Event', {})
+        self.assertTrue(created.get('id'), response.text[:300])
+        self.event_ids.append(int(created['id']))
+        self.event_uuids.append(created['uuid'])
+        return created
+
+    def _sharing_group_id(self, sg_uuid):
+        response = self.admin._prepare_request('GET', 'sharing_groups/view/%s' % sg_uuid)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        sg_id = int(response.json()['SharingGroup']['id'])
+        if sg_id not in self.sg_ids:
+            self.sg_ids.append(sg_id)
+        return sg_id
+
+    def _scenario(self, pusher_of):
+        """Create the group from a sync user's org, then capture it again with a later modified
+        date and a roster that adds the victim with poisoned details and an unknown org.
+        `pusher_of(org)` returns the connector doing the second push."""
+        org_a = self._org('sender')
+        victim = self._org('victim', **self.ORIGINAL)
+        sg_uuid = str(uuidlib.uuid4())
+        creator = self._sync_user(org_a, self.plain_role)
+        self._push(creator, sg_uuid, '2024-02-01 00:00:00', [self._roster_entry(org_a)])
+        sg_id = self._sharing_group_id(sg_uuid)
+        self.assertEqual(self.ORIGINAL, self._details(victim.id))
+        unknown_uuid = str(uuidlib.uuid4())
+        self.captured_org_uuids.append(unknown_uuid)
+        unknown = {'Organisation': {'uuid': unknown_uuid,
+                                    'name': 'regression org details unknown %s' % random()},
+                   'extend': False}
+        roster = [self._roster_entry(org_a), self._roster_entry(victim, self.POISONED), unknown]
+        self._push(pusher_of(org_a), sg_uuid, '2030-01-01 00:00:00', roster)
+        roster_uuids = self._roster_uuids(sg_id)
+        self.assertIn(victim.uuid, roster_uuids)
+        self.assertIn(unknown_uuid, roster_uuids)
+        return victim
+
+    def test_regular_sync_user_does_not_edit_organisations(self):
+        victim = self._scenario(lambda org: self._sync_user(org, self.plain_role))
+        self.assertEqual(self.ORIGINAL, self._details(victim.id))
+
+    def test_internal_sync_user_updates_organisations(self):
+        victim = self._scenario(lambda org: self._sync_user(org, self.internal_role))
+        self.assertEqual(self.POISONED, self._details(victim.id))
+
+    def test_site_admin_updates_organisations(self):
+        victim = self._scenario(lambda org: self.admin)
+        self.assertEqual(self.POISONED, self._details(victim.id))
+
+
 if __name__ == '__main__':
     unittest.main()
