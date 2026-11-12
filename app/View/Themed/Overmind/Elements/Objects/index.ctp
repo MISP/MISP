@@ -266,6 +266,9 @@ $fields = [
         'relationship_inbound_path' => 'Object.RelationshipInbound',
         'uuid_path' => 'Object.uuid',
         'object_type' => 'Object',
+        'readonly' => function ($row) {
+            return $row['ctx']['deleted'];
+        },
     ],
     [
         'element' => 'custom',
@@ -294,6 +297,8 @@ $fields = [
                 'mayGraph' => $_mayGraph,
                 'enrichmentEnabled' => $_enrichmentEnabled,
                 'cortexEnabled' => $_cortexEnabled,
+                // A deleted object is restored or deleted whole.
+                'locked' => $row['ctx']['deleted'],
             ]) . '</div>';
         },
     ],

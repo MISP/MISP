@@ -723,7 +723,7 @@ class MispAttribute extends AppModel
             $this->old = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.id' => $attribute['id']),
-                'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
+                'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id', 'deleted'],
             ));
             // An id with no row behind it is an insert, as a log recovery does.
             $insert = empty($this->old);
@@ -830,7 +830,10 @@ class MispAttribute extends AppModel
                 if ($this->Correlation->getCorrelationModelName() !== 'OnDemand') {
                     $this->Correlation->beforeSaveCorrelation($attribute);
                 }
-                if (isset($attribute['event_id'])) {
+                // Only when it turns deleted: re-saving a deleted attribute
+                // (deleteObject() does, after its own cascade) must not count again.
+                $wasLive = $created || empty($this->old) || empty($this->old['Attribute']['deleted']);
+                if (isset($attribute['event_id']) && $wasLive) {
                     $this->__alterAttributeCount($attribute['event_id'], false);
                 }
             } else if (empty($attribute['skip_correlation']) && $this->Correlation->getCorrelationModelName() !== 'OnDemand') {

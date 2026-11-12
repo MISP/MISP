@@ -87,12 +87,16 @@ $attrDeleted = !empty($attr['deleted']);
             </a>
         </li>
         <?php endif; ?>
+        <?php
+            // A soft-deleted attribute can only go for good.
+            $deleteUrl = $baseurl . '/attributes/delete/' . $attrId . ($attrDeleted ? '/1' : '');
+        ?>
         <li>
             <a class="dropdown-item text-danger justify-content-start"
-               href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
-               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'md');">
+               href="<?= $deleteUrl ?>"
+               onclick="event.preventDefault(); openModal('<?= $deleteUrl ?>', 'md');">
                 <i class="fas fa-trash me-2"></i>
-                <?= __('Delete') ?>
+                <?= $attrDeleted ? __('Delete permanently') : __('Delete') ?>
             </a>
         </li>
         <?php endif; ?>

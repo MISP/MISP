@@ -166,7 +166,14 @@ class AuthKeysController extends AppController
         if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
+        // Back to the page the edit modal was opened from; a full-page edit
+        // posts from itself, so that one still lands on the index.
+        $returnUrl = $this->referer(['action' => 'index'], true);
+        if (preg_match('#^/auth_?keys/(edit|add)(/|$)#i', $returnUrl)) {
+            $returnUrl = ['action' => 'index'];
+        }
         $this->CRUD->edit($id, [
+            'redirect' => $returnUrl,
             'conditions' => $this->__prepareConditions(),
             'afterFind' => function (array $authKey) {
                 unset($authKey['AuthKey']['authkey']);

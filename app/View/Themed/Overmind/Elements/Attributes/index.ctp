@@ -300,6 +300,16 @@ $fields = array_merge($fields, [
             ],
             [
                 'type' => 'modal',
+                'label' => __('Delete permanently'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%/1',
+                'class' => 'text-danger',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'url' => $baseurl . '/attributes/delete/%id%',

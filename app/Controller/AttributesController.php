@@ -1405,7 +1405,7 @@ class AttributesController extends AppController
         $attribute = $this->MispAttribute->find('first', array(
                 'conditions' => array('Attribute.id' => $id),
                 'recursive' => -1,
-                'fields' => array('Attribute.id', 'Attribute.event_id'),
+                'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.object_id', 'Attribute.deleted'),
                 'contain' => array(
                     'Event' => array(
                         'fields' => array('Event.orgc_id', 'Event.user_id')
@@ -1434,6 +1434,9 @@ class AttributesController extends AppController
                 $this->layout = false;
                 $this->set('id', $id);
                 $this->set('event_id', $attribute['Attribute']['event_id']);
+                // The event view's Attributes tab counts live standalone rows.
+                $this->set('counted', !empty($attribute['Attribute']['deleted'])
+                    && empty($attribute['Attribute']['object_id']));
                 $this->render('ajax/attributeRestorationForm');
             }
         } else {

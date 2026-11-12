@@ -32,6 +32,8 @@ $uuid = (string)($object['uuid'] ?? '');
                 'cortexEnabled' => $cortexEnabled ?? false,
                 'readonly' => !empty($readonly),
                 'remote' => !empty($readonly),
+                // A deleted object is restored or deleted whole.
+                'locked' => $ctx['deleted'],
             ]) ?>
             <div class="oi-card-foot">
                 <span class="oi-card-uuid">

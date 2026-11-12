@@ -25,7 +25,8 @@ $stats = is_array($stats) ? $stats : [];
 $count = function ($type) use ($stats) {
     return (int)($stats[$type]['count'] ?? 0);
 };
-$canSight = !empty($isAclSighting) && empty($attribute['is_proposal']);
+$canSight = !empty($isAclSighting) && empty($attribute['is_proposal'])
+    && empty($attribute['deleted']);
 $tally = [
     'sighting' => ['s', 'fas fa-thumbs-up', __('Sightings'), __('Add sighting'), 0],
     'false-positive' => ['f', 'fas fa-thumbs-down', __('False positives'), __('Mark as false positive'), 1],
