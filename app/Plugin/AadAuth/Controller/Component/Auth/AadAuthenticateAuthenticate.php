@@ -306,7 +306,8 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 					 */
 
 					if (self::$check_ad_groups) {
-						if ($this->_checkAdGroup($authdata)) {
+						$ad_misp_role = $this->_checkAdGroup($authdata);
+						if ($ad_misp_role) {
 							$mispUsername = $authProperty;
 							$this->_log("info", "Successful AAD group check for ${mispUsername}");
 						}
@@ -318,6 +319,12 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 						$this->_log("info", "Attempt AAD authentication for ${mispUsername}");
 						$user = $this->_findUser($mispUsername);
 						if ($user) {
+							if (self::$check_ad_groups && $ad_misp_role) {
+							        if ($user["Role"]["name"] !== $ad_misp_role) {
+							                $this->_log("warning", "AAD role (${ad_misp_role}) does not match MISP role ({$user['Role']['name']}) for ${mispUsername}. Authentication denied.");
+							                return false;
+							        }
+							}
 							$this->_log("info", "AAD authentication successful for ${mispUsername}");
 							// Rotate the session ID now that the user is authenticated, to
 							// prevent session fixation. Safe to do here since the state
