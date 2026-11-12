@@ -614,8 +614,7 @@ class Server extends AppModel
      */
     public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
     {
-        $internal = !empty($server['Server']['internal']);
-        return SharingGroup::captureRemote($internal, function () use ($user, $technique, $server, $jobId, $force) {
+        return SharingGroup::captureRemote($server, function () use ($user, $technique, $server, $jobId, $force) {
             return $this->__pull($user, $technique, $server, $jobId, $force);
         });
     }

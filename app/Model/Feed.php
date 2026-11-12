@@ -1052,7 +1052,7 @@ class Feed extends AppModel
         if (!is_array($event) || isset($event['code'])) {
             return false;
         }
-        return SharingGroup::captureRemote(false, function () use ($event, $user) {
+        return SharingGroup::captureRemote(null, function () use ($event, $user) {
             return $this->__saveEvent($event, $user);
         });
     }
@@ -1355,7 +1355,7 @@ class Feed extends AppModel
 
             $total = count($actions['add']) + count($actions['edit']);
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
-            $result = SharingGroup::captureRemote(false, function () use ($actions, $feed, $HttpSocket, $user, $jobId) {
+            $result = SharingGroup::captureRemote(null, function () use ($actions, $feed, $HttpSocket, $user, $jobId) {
                 return $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
             });
             $this->__cleanupFile($feed, '/manifest.json');
