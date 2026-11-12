@@ -1870,6 +1870,8 @@ class AppModel extends Model
             $orderRules = explode(',', $order);
         } elseif (is_array($order)) {
             $orderRules = $order; // to support multiple column order
+        } else {
+            return null;
         }
 
         $order = array();
@@ -1894,9 +1896,11 @@ class AppModel extends Model
             } else {
                 return null;
             }
+            // A list of fields has numeric keys: "0.id" must not pick one of them
+            $modelFields = $validOrderFields[$model] ?? null;
             if (
                     (in_array($field, $validOrderFields) && $model === $orderModel) ||
-                    (array_key_exists($model, $validOrderFields) && in_array($field, $validOrderFields[$model]))
+                    (is_array($modelFields) && in_array($field, $modelFields))
             ) {
                 $order[] = $model . '.' . $field . ' ' . $direction;
             } else {
