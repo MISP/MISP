@@ -245,8 +245,8 @@ class GalaxyCluster extends AppModel
             $alias = $this->alias;
             $tmp = $this->find('first', array(
                 'recursive' => -1,
-                'fields' => array("${alias}.id", "${alias}.uuid"),
-                'conditions' => array("${alias}.id" => $cluster['id'])
+                'fields' => array("{$alias}.id", "{$alias}.uuid"),
+                'conditions' => array("{$alias}.id" => $cluster['id'])
             ));
             $cluster['uuid'] = $tmp[$alias]['uuid'];
         }
@@ -919,7 +919,7 @@ class GalaxyCluster extends AppModel
     /* Return a list of all tags associated with the cluster specific cluster within the galaxy (or all clusters if $clusterValue is false)
      * The counts are restricted to the event IDs that the user is allowed to see.
     */
-    public function getTags($galaxyType, $clusterValue = false, $user)
+    public function getTags($galaxyType, $clusterValue, $user)
     {
         $this->Event = ClassRegistry::init('Event');
         $event_ids = $this->Event->fetchEventIds($user, [
@@ -1497,12 +1497,12 @@ class GalaxyCluster extends AppModel
         $clusterUUIDs = array();
         foreach ($models as $model) {
             $modelLower = strtolower($model);
-            $joinCondition2 = array('table' => "${modelLower}_tags",
-                'alias' => "${model}Tag",
+            $joinCondition2 = array('table' => "{$modelLower}_tags",
+                'alias' => "{$model}Tag",
                 'type' => 'inner',
                 'conditions' => array(
-                    "Tag.id = ${model}Tag.tag_id",
-                    "${model}Tag.event_id" => $eventId,
+                    "Tag.id = {$model}Tag.tag_id",
+                    "{$model}Tag.event_id" => $eventId,
                 )
             );
             if ($model == 'Attribute') {
@@ -1519,7 +1519,7 @@ class GalaxyCluster extends AppModel
                 } else { // no attributes accessible
                     $attributeIds = -1;
                 }
-                $joinCondition2['conditions']["${model}Tag.attribute_id"] = $attributeIds;
+                $joinCondition2['conditions']["{$model}Tag.attribute_id"] = $attributeIds;
             }
             $options = array(
                 'joins' => array(
@@ -1555,9 +1555,9 @@ class GalaxyCluster extends AppModel
     {
         $alias = $this->alias;
         if (Validation::uuid($clusterId)) {
-            $conditions = array("${alias}.uuid" => $clusterId);
+            $conditions = array("{$alias}.uuid" => $clusterId);
         } elseif (is_numeric($clusterId)) {
-            $conditions = array("${alias}.id" => $clusterId);
+            $conditions = array("{$alias}.id" => $clusterId);
         } else{
             if ($throwErrors) {
                 throw new NotFoundException(__('Invalid galaxy cluster'));
@@ -2143,7 +2143,7 @@ class GalaxyCluster extends AppModel
                 'fields' => 'id',
             ), false);
             $alias = $this->alias;
-            $gcids = Hash::extract($gcids, "{n}.${alias}.id");
+            $gcids = Hash::extract($gcids, "{n}.{$alias}.id");
             if (empty($gcids)) {
                 $gcids = array(-1);
             }

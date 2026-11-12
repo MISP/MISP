@@ -70,7 +70,7 @@ class BetterSecurityComponent extends SecurityComponent
         return parent::startup($controller);
     }
 
-    public function blackHole(Controller $controller, $error = '', SecurityException $exception = null)
+    public function blackHole(Controller $controller, $error = '', ?SecurityException $exception = null)
     {
         $action = $controller->request->params['action'];
         $unlockedActions = JsonTool::encode($this->unlockedActions);

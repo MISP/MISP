@@ -185,7 +185,7 @@ class SchemaBuilder
      * @return array Statements, in declaration order.
      * @throws InvalidArgumentException If a rawSql() has no entry for this flavour.
      */
-    public function toSql(AbstractGrammar $grammar = null)
+    public function toSql(?AbstractGrammar $grammar = null)
     {
         $grammar = $grammar === null ? $this->grammar : $grammar;
         $statements = array();

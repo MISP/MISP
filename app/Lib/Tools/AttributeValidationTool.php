@@ -726,7 +726,8 @@ class AttributeValidationTool
      */
     private static function isPositiveInteger($value)
     {
-        return (is_int($value) && $value >= 0) || ctype_digit($value);
+        return (is_int($value) && $value >= 0) ||
+            (is_string($value) && ctype_digit($value));
     }
 
     /**

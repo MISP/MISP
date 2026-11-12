@@ -313,7 +313,7 @@ class SendEmail
     /**
      * @param CryptGpgExtended|null $gpg
      */
-    public function __construct(CryptGpgExtended $gpg = null)
+    public function __construct(?CryptGpgExtended $gpg = null)
     {
         if ($gpg) {
             $gpg->clearDecryptKeys()

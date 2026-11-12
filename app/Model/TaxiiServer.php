@@ -121,7 +121,7 @@ class TaxiiServer extends AppModel
         return $filters;
     }
 
-    private function __pushEvents($user, $taxii_server, $filters, $eventids, &$i, $jobId = null, $eventCount)
+    private function __pushEvents($user, $taxii_server, $filters, $eventids, &$i, $jobId, $eventCount)
     {
         $filters['eventid'] = $eventids;
         if (!empty($filters['tags']['NOT'])) {

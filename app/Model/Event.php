@@ -4038,7 +4038,7 @@ class Event extends AppModel
      * @return array {Event: {...}, Attribute: [...], Object: [...], rejected: [{type, value, reason}], metadata: [...]}
      * @throws NotFoundException|ForbiddenException|MethodNotAllowedException|Exception with a user-facing message
      */
-    public function aiExtractIndicators(array $user, $eventId, array $onlyReportUuids = null)
+    public function aiExtractIndicators(array $user, $eventId, ?array $onlyReportUuids = null)
     {
         $event = $this->fetchSimpleEvent($user, $eventId);
         if (empty($event)) {
@@ -4122,7 +4122,7 @@ class Event extends AppModel
      * @param array|null $onlyReportUuids see aiExtractIndicators()
      * @return array {message, attributes, objects, rejected}
      */
-    public function aiExtractAndApply(array $user, $eventId, array $onlyReportUuids = null)
+    public function aiExtractAndApply(array $user, $eventId, ?array $onlyReportUuids = null)
     {
         $resolved = $this->aiExtractIndicators($user, $eventId, $onlyReportUuids);
         if (empty($resolved['Attribute']) && empty($resolved['Object'])) {
@@ -4403,7 +4403,7 @@ class Event extends AppModel
      * @return array rows: name, colour (null when unknown), exists, is_galaxy,
      *         cluster_id, tag_id, status, selectable, reason
      */
-    public static function classifyAiTagSuggestions(array $names, array $tags, array $clusters, array $eventTagNames, $canCreate, $local, callable $exclusive = null)
+    public static function classifyAiTagSuggestions(array $names, array $tags, array $clusters, array $eventTagNames, $canCreate, $local, ?callable $exclusive = null)
     {
         App::uses('Tag', 'Model');
         $present = [];
@@ -8246,7 +8246,7 @@ class Event extends AppModel
         return $this->publishSightings($id, $passAlong, $sightingUuids);
     }
 
-    public function publishRouter($id, $passAlong = null, $user)
+    public function publishRouter($id, $passAlong, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
             /** @var Job $job */
@@ -8581,7 +8581,7 @@ class Event extends AppModel
         $attribute,
         $correlatedAttributes,
         $correlatedShadowAttributes,
-        $filterType = false,
+        $filterType,
         $sightingsData
     ) {
         $attribute['objectType'] = 'attribute';
@@ -12012,7 +12012,7 @@ class Event extends AppModel
         return $all_results;
     }
 
-    public function getTrendsForTags(array $user, array $eventFilters=[], int $baseDayRange, int $rollingWindows=3, $tagFilterPrefixes=null): array
+    public function getTrendsForTags(array $user, array $eventFilters, int $baseDayRange, int $rollingWindows=3, $tagFilterPrefixes=null): array
     {
         $fullDayNumber = $baseDayRange + $baseDayRange * $rollingWindows;
         $fullRange = $this->resolveTimeDelta($fullDayNumber . 'd');

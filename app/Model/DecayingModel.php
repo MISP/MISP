@@ -161,7 +161,7 @@ class DecayingModel extends AppModel
         return $models;
     }
 
-    public function update($force=false, $user)
+    public function update($force, $user)
     {
         $new_models = $this->__load_models($force);
         if (empty($new_models)) {

@@ -49,7 +49,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
 
         $url = "$baseUrl/validate/check";
 
-        CakeLog::debug( "Sending POST request to ${url}");
+        CakeLog::debug( "Sending POST request to {$url}");
         try {
             $results = $HttpSocket->post($url, $data);
         }
@@ -63,7 +63,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
         $response = json_decode($results->body());
 
         if ($response == false) {
-            CakeLog::error("LinOTP request for user ${user} failed.");
+            CakeLog::error("LinOTP request for user {$user} failed.");
             return false;
         } else {
             if (gettype($response) !== "object") {
@@ -98,7 +98,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
                 $ret['detail'] = $result->detail;
             }
 
-            CakeLog::debug("user: ${user} - status: ${status} value: ${value}");
+            CakeLog::debug("user: {$user} - status: {$status} value: {$value}");
             // CakeLog::debug(var_dump($ret));
             return $ret;
         }
@@ -132,7 +132,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
             return false;
         }
 
-        CakeLog::debug("getUser email: ${email}");
+        CakeLog::debug("getUser email: {$email}");
 
         $linOTP_enabled = Configure::read("LinOTPAuth.enabled");
         if (is_null($linOTP_enabled)) {
@@ -221,7 +221,7 @@ class LinOTPAuthenticate extends BaseAuthenticate
                     // Set instance user to prevent OTP lookup twice
                     self::$user = $user;
                 } else {
-                    CakeLog::error("User ${email} authenticated but not found in database.");
+                    CakeLog::error("User {$email} authenticated but not found in database.");
                     self::$user = false;
                 }
             }

@@ -233,7 +233,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
     private function updateUserRole($roleChanged, array $user, $roleId, User $userModel)
     {
         if ($roleChanged && $user['role_id'] != $roleId) {
-            $message = "User role changed from ${user['role_id']} to $roleId for user ${user['email']} (${user['id']}).";
+            $message = "User role changed from {$user['role_id']} to $roleId for user {$user['email']} ({$user['id']}).";
             CakeLog::write('warning', $message);
             $userModel->updateField($user, 'role_id', $roleId);
         }
@@ -250,7 +250,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
     private function updateUserOrg($orgId, array $user, User $userModel)
     {
         if ($user['org_id'] != $orgId) {
-            $message = "User organisation changed from ${user['org_id']} to $orgId for user ${user['email']} (${user['id']}).";
+            $message = "User organisation changed from {$user['org_id']} to $orgId for user {$user['email']} ({$user['id']}).";
             CakeLog::write('warning', $message);
             $user['org_id'] = $orgId; // Different role either increase or decrease permissions
             $userModel->updateField($user, 'org_id', $orgId);

@@ -32,7 +32,7 @@ class MigrationManagerTest extends TestCase
         'Migration_20260104_000000_unrelated.php',
     );
 
-    private function manager(array $rows = array(), array $files = null)
+    private function manager(array $rows = array(), ?array $files = null)
     {
         return new TestMigrationManager(
             $files === null ? self::$allFiles : $files,

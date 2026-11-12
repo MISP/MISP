@@ -68,7 +68,7 @@ class BackgroundJob implements JsonSerializable
      * Run the job command
      * @param callable|null $runningCallback
      */
-    public function run(callable $runningCallback = null): void
+    public function run(?callable $runningCallback = null): void
     {
         $descriptorSpec = [
             1 => ["pipe", "w"], // stdout
@@ -109,7 +109,7 @@ class BackgroundJob implements JsonSerializable
      * @param callable|null $runningCallback
      * @return void
      */
-    private function pool($process, array $pipes, callable $runningCallback = null)
+    private function pool($process, array $pipes, ?callable $runningCallback = null)
     {
         stream_set_blocking($pipes[1], false);
         stream_set_blocking($pipes[2], false);

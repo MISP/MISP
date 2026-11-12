@@ -2263,7 +2263,7 @@ class AttributesController extends AppController
         ]);
     }
 
-    public function downloadAttachment($key='download', $id)
+    public function downloadAttachment($key, $id)
     {
         if ($key != null && $key != 'download') {
             $user = $this->_checkAuthUser($key);

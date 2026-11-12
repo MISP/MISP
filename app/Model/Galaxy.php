@@ -909,9 +909,9 @@ class Galaxy extends AppModel
         $galaxy_alias = $this->alias;
         $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, array(
             'first' => true,
-            'conditions' => array("${cluster_alias}.id" => $cluster_id),
+            'conditions' => array("{$cluster_alias}.id" => $cluster_id),
             'contain' => array('Galaxy'),
-            'fields' => array('tag_name', 'id', 'value', "${galaxy_alias}.local_only"),
+            'fields' => array('tag_name', 'id', 'value', "{$galaxy_alias}.local_only"),
         ));
 
         if (empty($cluster)) {

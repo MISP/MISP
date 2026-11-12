@@ -98,7 +98,7 @@ class BlocklistComponent extends Component
         }
     }
 
-    public function edit($rest = false, $id)
+    public function edit($rest, $id)
     {
         if (Validation::uuid($id)) {
             $blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', [
@@ -164,7 +164,7 @@ class BlocklistComponent extends Component
         }
     }
 
-    public function delete($rest = false, $id)
+    public function delete($rest, $id)
     {
         // Every blocklist controller routes its delete() through here, including
         // the two that resolve a uuid themselves first, so one guard covers all

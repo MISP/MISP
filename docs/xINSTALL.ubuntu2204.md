@@ -1,6 +1,13 @@
 # INSTALLATION INSTRUCTIONS
 ## for Ubuntu 22.04-server
 
+!!! warning
+    This guide is no longer maintained. MISP requires PHP 8.2 or later, and
+    Ubuntu 22.04 ships PHP 8.1, which is end of life. Use the
+    [Ubuntu 24.04 installer](https://github.com/MISP/MISP/blob/develop/INSTALL/INSTALL.ubuntu2404.sh),
+    or install a supported PHP from a third-party repository such as
+    ondrej/php.
+
 {% include_relative generic/manual-install-notes.md %}
 
 ### -1/ Installer and Manual install instructions

@@ -53,7 +53,7 @@ class HttpSocketJsonException extends Exception
     /** @var HttpSocketResponseExtended */
     private $response;
 
-    public function __construct($message, HttpSocketResponseExtended $response, Throwable $previous = null)
+    public function __construct($message, HttpSocketResponseExtended $response, ?Throwable $previous = null)
     {
         $this->response = $response;
         parent::__construct($message, 0, $previous);

@@ -481,7 +481,7 @@ class Server extends AppModel
      * @return false|void
      * @throws Exception
      */
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force = false, $response)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, Event $eventModel, $server, $user, $jobId, $force, $response)
     {
         // check if the event already exist (using the uuid)
         $existingEvent = $eventModel->find('first', [
@@ -1281,7 +1281,7 @@ class Server extends AppModel
      * @return array|bool
      * @throws Exception
      */
-    public function push($id, $technique, $jobId = false, $HttpSocket, array $user)
+    public function push($id, $technique, $jobId, $HttpSocket, array $user)
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
@@ -1608,7 +1608,7 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncProposals($HttpSocket, array $server, $sa_id = null, $event_id = null, $eventModel)
+    public function syncProposals($HttpSocket, array $server, $sa_id, $event_id, $eventModel)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
@@ -3379,7 +3379,7 @@ class Server extends AppModel
      * @return array|string
      * @throws JsonException
      */
-    public function checkVersionCompatibility(array $server, $user = [], ServerSyncTool $serverSync = null)
+    public function checkVersionCompatibility(array $server, $user = [], ?ServerSyncTool $serverSync = null)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {

@@ -902,7 +902,7 @@ class User extends AppModel
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      */
-    public function sendEmail(array $user, $body, $bodyNoEnc = false, $subject, $replyToUser = false)
+    public function sendEmail(array $user, $body, $bodyNoEnc, $subject, $replyToUser = false)
     {
         if (Configure::read('MISP.disable_emailing')) {
             return true;
