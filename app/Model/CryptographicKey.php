@@ -334,11 +334,51 @@ class CryptographicKey extends AppModel
         $pgp_signature = base64_decode($pgp_signature);
         foreach ($eventCryptoGraphicKey as $supplied_key) {
             if ($this->verifySignature($raw_data, $pgp_signature, $supplied_key['key_data'])) {
+                try {
+                    $unsigned = $this->__hasUnsignedWhitespace(JsonTool::decodeArray($raw_data));
+                } catch (Exception $e) {
+                    $unsigned = true;
+                }
+                if ($unsigned) {
+                    $message = __('The signed data has whitespace in a key or an identifier, which the signature does not cover.');
+                    $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
+                    return false;
+                }
                 return true;
             }
         }
         $message = __('Could not validate the signature.');
         $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
+        return false;
+    }
+
+    /**
+     * Signatures cover the data with all whitespace removed, so whitespace added to a key (renaming the field)
+     * or to an identifier or timestamp goes unnoticed. Galaxy cluster meta keys may legitimately contain it.
+     *
+     * @param array $data
+     * @param int|string|null $parentKey
+     * @return bool
+     */
+    private function __hasUnsignedWhitespace(array $data, $parentKey = null)
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($key) && $parentKey !== 'meta' && strpbrk($key, " \t\n\r\v\f") !== false) {
+                return true;
+            }
+            if (is_array($value)) {
+                if ($this->__hasUnsignedWhitespace($value, $key)) {
+                    return true;
+                }
+            } else if (
+                is_string($value) &&
+                is_string($key) &&
+                strpbrk($value, " \t\n\r\v\f") !== false &&
+                preg_match('/^(?:uuid|id|timestamp|distribution|date)$|_(?:uuid|id|timestamp)$/', $key)
+            ) {
+                return true;
+            }
+        }
         return false;
     }
 
