@@ -2676,6 +2676,7 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
         admin = PyMISP(url, key)
         check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
         cls.marker = "mqg" + random()
+        cls.meta_key = f"{cls.marker} note.x"
         cls.created = {"clusters": [], "galaxies": [], "keys": [], "users": [], "sgs": [], "roles": []}
         cls.org = None
         try:
@@ -2768,7 +2769,8 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
     @classmethod
     def __make_cluster(cls, name, distribution, sharing_group, galaxy, token) -> int:
         cluster = {"value": cls.__value(name), "description": cls.__text("desc", name), "source": cls.__text("src", name),
-                   "authors": [cls.__text("auth", name)], "distribution": distribution}
+                   "authors": [cls.__text("auth", name)], "distribution": distribution,
+                   "GalaxyElement": [{"key": "synonyms", "value": cls.__text("syn", name)}, {"key": cls.meta_key, "value": name}]}
         if sharing_group:
             cluster["sharing_group_id"] = sharing_group
         status, data = cls.api(token, "POST", f"galaxy_clusters/add/{galaxy['id']}", {"GalaxyCluster": cluster})
@@ -2838,6 +2840,14 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
             "id !=": (self.__anchored({"id": {"!=": c["pub"]}}), {c["sg_in"], c["own"]}),
             "NOT IN": (self.__anchored({"id": {"NOT IN": [c["pub"], c["own"]]}}), {c["sg_in"]}),
             "hidden galaxy": (self.__anchored({"galaxy_name": f"{self.marker} galaxy hid"}), set()),
+            "meta": ({"meta.synonyms": self.__text("syn", "pub")}, {c["pub"]}),
+            "meta like, key in another case": ({"meta.SYNONYMS": {"LIKE": f"%{self.__text('syn', 'own').upper()}"}}, {c["own"]}),
+            "meta key with spaces and dots": (self.__anchored({f"meta.{self.meta_key}": "sg_in"}), {c["sg_in"]}),
+            "meta in": (self.__anchored({f"meta.{self.meta_key}": {"IN": ["pub", "own"]}}), {c["pub"], c["own"]}),
+            "meta !=": (self.__anchored({"meta.synonyms": {"!=": self.__text("syn", "pub")}}), {c["sg_in"], c["own"]}),
+            "meta not like": (self.__anchored({f"meta.{self.meta_key}": {"NOT LIKE": "s%"}}), {c["pub"], c["own"]}),
+            "meta unknown key": (self.__anchored({f"meta.{self.marker} nosuch": "pub"}), set()),
+            "meta unknown key negated": (self.__anchored({f"meta.{self.marker} nosuch": {"!=": "pub"}}), self.visible),
         }
         for name, (tree, expected) in cases.items():
             with self.subTest(name):
@@ -2881,13 +2891,19 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
             "or with a hidden leaf": self.__anchored({"OR": [{"id": c["org"]}, {"id": c["pub"]}]}),
             "hidden galaxy": self.__anchored({"galaxy_uuid": self.galaxy_hid["uuid"]}),
             "hidden galaxy namespace": self.__anchored({"galaxy_namespace": f"{self.marker}-ns-hid"}),
+            "meta like": {"meta.synonyms": {"LIKE": f"syn-{self.marker}-%"}},
+            "meta key like": self.__anchored({f"meta.{self.meta_key}": {"LIKE": "s%"}}),
+            "not meta of the visible": self.__anchored(
+                {"NOT": {"meta.synonyms": {"IN": [self.__text("syn", n) for n in ("pub", "sg_in", "own")]}}}),
         })
+        cases.update({f"meta {n}": {"meta.synonyms": self.__text("syn", n)} for n in ("org", "sg_out", "hg")})
         for name, tree in cases.items():
             with self.subTest(name):
                 status, clusters, data = self.__search(tree)
                 self.assertEqual(status, 200, data)
                 self.assertEqual(set(clusters) & self.hidden, set())
-        for name in ("id org", "id sg_out", "id hg", "uuid hg", "value like", "org of the admin", "tautology", "not the visible ids"):
+        for name in ("id org", "id sg_out", "id hg", "uuid hg", "value like", "org of the admin", "tautology", "not the visible ids",
+                     "meta org", "meta hg", "meta like", "meta key like", "not meta of the visible"):
             with self.subTest(f"admin {name}"):
                 status, clusters, data = self.__search(cases[name], token=key)
                 self.assertEqual(status, 200, data)
@@ -2914,6 +2930,8 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
                                 lambda c: int(c["galaxy_id"]) == galaxy_vis and c["description"].startswith("desc-")),
             "everything": ({"id": {">=": 0}}, lambda c: True),
             "nothing": ({"NOT": {"id": {">=": 0}}}, lambda c: False),
+            "meta": ({"meta.synonyms": {"LIKE": "%-sg_in"}},
+                     lambda c: any(e["key"] == "synonyms" and e["value"].endswith("-sg_in") for e in c["GalaxyElement"])),
         }
         for name, (tree, condition) in trees.items():
             with self.subTest(name):
@@ -2931,7 +2949,8 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
 
     def test_count(self):
         trees = {"marker": {"value": {"LIKE": self.marker + "%"}}, "distribution": self.__anchored({"distribution": {"IN": [0, 3]}}),
-                 "org": self.__anchored({"org": self.admin_org_name}), "galaxy": self.__anchored({"galaxy_name": f"{self.marker} galaxy hid"})}
+                 "org": self.__anchored({"org": self.admin_org_name}), "galaxy": self.__anchored({"galaxy_name": f"{self.marker} galaxy hid"}),
+                 "meta": {"meta.synonyms": {"LIKE": f"syn-{self.marker}-%"}}}
         for token in (self.user_key, key):
             for name, tree in trees.items():
                 with self.subTest(f"{name} {token[:4]}"):
@@ -2976,6 +2995,8 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
             "sharing_group_id": ({"sharing_group_id": 1}, "unknown_field"),
             "org like": ({"org": {"LIKE": "a%"}}, "unknown_operator"),
             "uuid like": ({"uuid": {"LIKE": "a%"}}, "unknown_operator"),
+            "meta operator": ({"meta.synonyms": {">": "a"}}, "unknown_operator"),
+            "meta without a key": ({"meta.": "a"}, "unknown_field"),
         }
         for name, (tree, code) in rejected.items():
             with self.subTest(name):
@@ -2983,6 +3004,8 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
                 self.assertEqual((status, clusters), (400, None), data)
                 self.assertNotIn("response", data)
                 self.assertEqual(data["errors"][0]["code"], code)
+                if name.startswith("meta"):
+                    self.assertIn(data["errors"][0]["path"], ("query.<unknown>", "query.meta.<key>"))
         bad = {
             "string": "id=1", "list": [{"id": 1}], "empty": {}, "unknown field": {"nope": 1}, "wrong type": {"id": "1"},
             "two keys": {"id": 1, "uuid": "x"},

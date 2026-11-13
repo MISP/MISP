@@ -288,6 +288,15 @@ can see, returned as they would be without `query`.
 | `org` | galaxy_cluster | string | `= != IN NOT IN` | name or uuid of the creator organisation |
 | `galaxy_uuid` | galaxy | string | `= != IN NOT IN` | |
 | `galaxy_name`, `galaxy_namespace` | galaxy | string | `= != IN NOT IN LIKE NOT LIKE` | |
+| `meta.<key>` | galaxy_element | string | `= != IN NOT IN LIKE NOT LIKE` | one of the cluster's own meta values (`galaxy_elements`) under that key |
+
+`meta.<key>` takes any key after `meta.`, dots and spaces included
+(`meta.synonyms`, `meta.access_privilege.rule_effect`); keys and values
+compare case-insensitively. A cluster matches when one of its elements has
+that key and a matching value, so a negation (`!=`, `NOT IN`, `NOT LIKE`,
+`NOT`) selects the clusters with no such element, including those without
+the key. A key no cluster has is not an error: it matches nothing. Error
+paths name the field `meta.<key>`, never the key sent.
 
 Example: threat actors named after an APT whose description mentions China,
 in reverse name order:

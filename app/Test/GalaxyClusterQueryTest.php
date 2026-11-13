@@ -30,11 +30,13 @@ class GalaxyClusterQueryStubModel
     public $alias = 'GalaxyCluster';
     public $Orgc;
     public $Galaxy;
+    public $GalaxyElement;
 
     public function __construct()
     {
         $this->Orgc = (object)['alias' => 'Orgc'];
         $this->Galaxy = (object)['alias' => 'Galaxy'];
+        $this->GalaxyElement = (object)['alias' => 'GalaxyElement'];
     }
 
     public function subQueryGenerator($model, array $options, $lookupKey)
@@ -118,6 +120,48 @@ class GalaxyClusterQueryTest extends TestCase
         $this->assertArrayNotHasKey('OR', $this->tool()->conditions(['org' => 'MISP Partner']));
     }
 
+    public function testMetaMatchesWithinTheClustersOwnElements(): void
+    {
+        $tool = $this->tool();
+        $this->assertSame(
+            ['GalaxyCluster.id IN (GalaxyElement.galaxy_cluster_id AS GalaxyElement)' => [['AND' => [
+                ['GalaxyElement.key' => 'access_privilege.rule_effect'],
+                ['GalaxyElement.value LIKE' => '%permit%'],
+            ]]]],
+            $tool->conditions(['meta.access_privilege.rule_effect' => ['LIKE' => '%permit%']])
+        );
+        $this->assertSame(
+            ['NOT' => ['GalaxyCluster.id IN (GalaxyElement.galaxy_cluster_id AS GalaxyElement)' => [['AND' => [
+                ['GalaxyElement.key' => 'Additional Content Note'],
+                ['GalaxyElement.value' => ['a', 'b']],
+            ]]]]],
+            $tool->conditions(['meta.Additional Content Note' => ['NOT IN' => ['a', 'b']]])
+        );
+    }
+
+    public function testMetaRejectionsNeverEchoTheKey(): void
+    {
+        foreach (['meta.', 'meta', 'other.synonyms'] as $name) {
+            $error = $this->errors([$name => 'x'])[0];
+            $this->assertSame(['unknown_field', 'query.<unknown>'], [$error['code'], $error['path']], $name);
+        }
+        $errors = $this->errors(['AND' => [
+            ['meta.<script>' => ['>' => 'x']],
+            ['meta.synonyms' => 1],
+            ['meta.' . str_repeat('k', 1025) => 'x'],
+        ]]);
+        $this->assertSame(
+            [
+                ['query.AND[0].meta.<key>', 'unknown_operator'],
+                ['query.AND[1].meta.<key>', 'bad_type'],
+                ['query.AND[2].meta.<key>', 'limit_exceeded'],
+            ],
+            array_map(function ($e) {
+                return [$e['path'], $e['code']];
+            }, $errors)
+        );
+    }
+
     public function testEveryFieldCompilesAgainstItsOwnTable(): void
     {
         $samples = ['int' => 1, 'bool' => true, 'string' => 'x'];
@@ -160,5 +204,7 @@ class GalaxyClusterQueryTest extends TestCase
         $this->assertSame(GalaxyCluster::REST_SEARCH_ORDER_FIELDS['GalaxyCluster'], $table['sortable']);
         $this->assertSame(['galaxy'], $table['fields']['galaxy_name']['level']);
         $this->assertSame(['=', '!=', 'IN', 'NOT IN'], $table['fields']['org']['operators']);
+        $this->assertSame(['galaxy_element'], $table['fields']['meta.<key>']['level']);
+        $this->assertArrayNotHasKey('meta.*', $table['fields']);
     }
 }

@@ -58,6 +58,10 @@ class GalaxyCluster extends AppModel
         'locked' => ['kind' => 'bool', 'column' => 'GalaxyCluster.locked', 'level' => ['galaxy_cluster']],
         'published' => ['kind' => 'bool', 'column' => 'GalaxyCluster.published', 'level' => ['galaxy_cluster']],
         'deleted' => ['kind' => 'bool', 'column' => 'GalaxyCluster.deleted', 'level' => ['galaxy_cluster']],
+        'meta.*' => [
+            'kind' => 'string', 'column' => 'GalaxyElement.value', 'key_column' => 'GalaxyElement.key',
+            'via' => ['GalaxyElement', 'GalaxyCluster.id', 'galaxy_cluster_id'], 'level' => ['galaxy_element'],
+        ],
     ];
 
     public $useTable = 'galaxy_clusters';

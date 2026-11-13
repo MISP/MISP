@@ -37,8 +37,10 @@ class ComplexQueryTool
      * column: native condition column (int, time, bool, native string), or a
      *     list of columns any of which may match
      * lower: compare the columns in lower case, for case-sensitive ones
-     * via: [association, key]: the column belongs to the associated model, matched
-     *     through a subquery on its id, e.g. ['Orgc', 'GalaxyCluster.orgc_id']
+     * via: [association, key(, its field)]: the column belongs to the associated model,
+     *     matched through a subquery on its id (or that field), e.g. ['Orgc', 'GalaxyCluster.orgc_id']
+     * key_column: on a wildcard entry (`meta.*`, any name under `meta.`), the column the
+     *     rest of the name must equal; paths and discovery show the name as `meta.<key>`
      * reserved: [names, condition]: a value equal to one of the names in any case
      *     also matches the condition, e.g. the built-in MISP organisation, which has no row
      * handler: legacy set_filter_* method building a string field's fragment
@@ -200,6 +202,7 @@ class ComplexQueryTool
     {
         $fields = [];
         foreach ($this->fields as $name => $def) {
+            $name = str_ends_with($name, '.*') ? substr($name, 0, -1) . '<key>' : $name;
             $fields[$name] = [
                 'type' => $def['kind'] === 'time' ? 'timestamp' : ($def['kind'] === 'string' ? 'string' : $def['kind']),
                 'operators' => self::operatorsFor($def),
@@ -292,15 +295,41 @@ class ComplexQueryTool
         if ($key === 'NOT') {
             return ['NOT', $this->node($body, "$path.NOT", $depth + 1)];
         }
-        if (!is_string($key) || !isset($this->fields[$key])) {
+        $def = $this->definition($key);
+        if ($def === null) {
             return $this->fail("$path.<unknown>", 'unknown_field', 'unknown field');
         }
-        return $this->leaf($key, $body, "$path.$key");
+        // never the user's own key in a path
+        $path .= '.' . ($def['name'] ?? $key);
+        if (isset($def['key']) && strlen($def['key']) > $this->limits['max_value_length']) {
+            return $this->fail($path, 'limit_exceeded', 'field name too long');
+        }
+        return $this->leaf($key, $body, $path);
+    }
+
+    /**
+     * The field's definition, null for an unknown field. A name under a wildcard
+     * entry gets that entry's, with the rest of the name as `key`.
+     */
+    private function definition($field)
+    {
+        if (!is_string($field)) {
+            return null;
+        }
+        $dot = strpos($field, '.');
+        if ($dot === false) {
+            return $this->fields[$field] ?? null;
+        }
+        $prefix = substr($field, 0, $dot);
+        if (!isset($this->fields["$prefix.*"]) || $dot === strlen($field) - 1) {
+            return null;
+        }
+        return $this->fields["$prefix.*"] + ['key' => substr($field, $dot + 1), 'name' => "$prefix.<key>"];
     }
 
     private function leaf($field, $spec, $path)
     {
-        $def = $this->fields[$field];
+        $def = $this->definition($field);
         $op = '=';
         $operand = $spec;
         if (is_array($spec)) {
@@ -391,13 +420,14 @@ class ComplexQueryTool
             case 'NOT':
                 return ['NOT' => $this->build($node[1], "$path.NOT")];
         }
-        return $this->buildLeaf($node[1], $node[2], $node[3], "{$path}.{$node[1]}", $selectiveSiblings);
+        $name = $this->definition($node[1])['name'] ?? $node[1];
+        return $this->buildLeaf($node[1], $node[2], $node[3], "{$path}.{$name}", $selectiveSiblings);
     }
 
     private function hasSelectiveLeaf(array $children)
     {
         foreach ($children as $child) {
-            if ($child[0] === 'leaf' && !empty($this->fields[$child[1]]['selective'])) {
+            if ($child[0] === 'leaf' && !empty($this->definition($child[1])['selective'])) {
                 return true;
             }
         }
@@ -406,13 +436,16 @@ class ComplexQueryTool
 
     protected function buildLeaf($field, $op, array $values, $path, $selectiveSiblings)
     {
-        $def = $this->fields[$field];
+        $def = $this->definition($field);
         $negate = isset(self::NEGATED_OPS[$op]);
         $positive = self::NEGATED_OPS[$op] ?? $op;
         if (isset($def['column'])) {
             $fragment = $this->native($def, $positive, $values);
+            if (isset($def['key'])) {
+                $fragment = ['AND' => [[$def['key_column'] => $def['key']], $fragment]];
+            }
             if (isset($def['via'])) {
-                $fragment = $this->subquery($this->model->{$def['via'][0]}, 'id', [$fragment], $def['via'][1]);
+                $fragment = $this->subquery($this->model->{$def['via'][0]}, $def['via'][2] ?? 'id', [$fragment], $def['via'][1]);
             }
         } else {
             $fragment = $this->viaHandler($field, $def, $values, $path, $selectiveSiblings);
