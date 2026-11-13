@@ -2845,6 +2845,21 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
                 self.assertEqual(status, 200, data)
                 self.assertEqual(set(clusters), expected)
 
+    def test_misp_is_also_the_built_in_organisation(self):
+        def count(tree):
+            status, data = self.api(self.user_key, "POST", "galaxy_clusters/restSearch", {"returnFormat": "count", "query": tree})
+            self.assertEqual(status, 200, data)
+            return data
+        # MISP's own clusters have creator 0, which has no organisation row
+        threat_actor = {"galaxy_name": "Threat Actor"}
+        built_in = count({"AND": [threat_actor, {"orgc_id": 0}]})
+        self.assertGreater(built_in, 0, "no default Threat Actor clusters on this instance")
+        self.assertEqual(count({"AND": [threat_actor, {"org": "misp"}]}), built_in)
+        self.assertEqual(count({"AND": [threat_actor, {"org": {"IN": [self.org["name"], "MISP"]}}]}), built_in)
+        self.assertEqual(count({"AND": [threat_actor, {"org": {"!=": "MISP"}}]}), count(threat_actor) - built_in)
+        self.assertEqual(self.__ids({"org": "MISP"}), set())
+        self.assertEqual(self.__ids({"org": {"NOT IN": ["MISP"]}}), self.visible)
+
     def test_hidden_clusters_are_never_returned(self):
         c = self.c
         hidden = sorted(self.hidden)

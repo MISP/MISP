@@ -100,6 +100,24 @@ class GalaxyClusterQueryTest extends TestCase
         );
     }
 
+    public function testMispIsAlsoTheBuiltInOrganisation(): void
+    {
+        $byName = ['GalaxyCluster.orgc_id IN (Orgc.id AS Orgc)' => [['OR' => [
+            ['LOWER(Orgc.name)' => 'misp'],
+            ['LOWER(Orgc.uuid)' => 'misp'],
+        ]]]];
+        $this->assertSame(
+            ['OR' => [$byName, ['GalaxyCluster.orgc_id' => 0]]],
+            $this->tool()->conditions(['org' => 'misp'])
+        );
+        $this->assertSame(
+            ['NOT' => ['OR' => [$byName, ['GalaxyCluster.orgc_id' => 0]]]],
+            $this->tool()->conditions(['org' => ['!=' => 'MISP']])
+        );
+        $this->assertArrayHasKey('OR', $this->tool()->conditions(['org' => ['NOT IN' => ['CIRCL', 'Misp']]])['NOT']);
+        $this->assertArrayNotHasKey('OR', $this->tool()->conditions(['org' => 'MISP Partner']));
+    }
+
     public function testEveryFieldCompilesAgainstItsOwnTable(): void
     {
         $samples = ['int' => 1, 'bool' => true, 'string' => 'x'];

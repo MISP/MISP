@@ -37,6 +37,8 @@ class GalaxyCluster extends AppModel
         'orgc_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.orgc_id', 'level' => ['galaxy_cluster']],
         'org' => [
             'kind' => 'string', 'column' => ['Orgc.name', 'Orgc.uuid'], 'lower' => true, 'via' => ['Orgc', 'GalaxyCluster.orgc_id'],
+            // MISP's own clusters, creator 0, shown as Organisation::GENERIC_MISP_ORGANISATION
+            'reserved' => [['MISP'], ['GalaxyCluster.orgc_id' => 0]],
             'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster'],
         ],
         'galaxy_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.galaxy_id', 'level' => ['galaxy_cluster']],

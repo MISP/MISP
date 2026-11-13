@@ -269,7 +269,9 @@ can see, returned as they would be without `query`.
 - Text fields compare case-insensitively.
 - `galaxy_*` fields are conditions on the cluster's galaxy; `org` is the
   cluster's creator organisation, by name in any case or by uuid (its id is
-  `orgc_id`).
+  `orgc_id`). `MISP` is reserved for the default clusters the MISP project
+  maintains (creator `0`, shown as the MISP organisation): `org = 'MISP'`
+  selects them, and an organisation of that name if there is one.
 - `order` works as on attributes, also without `query`: the sortable fields
   are `id`, `version`, `type`, `value`, `distribution`, `orgc_id`, `org_id`,
   `tag_name` and `galaxy_id`.

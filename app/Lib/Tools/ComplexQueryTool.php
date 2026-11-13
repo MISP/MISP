@@ -39,6 +39,8 @@ class ComplexQueryTool
      * lower: compare the columns in lower case, for case-sensitive ones
      * via: [association, key]: the column belongs to the associated model, matched
      *     through a subquery on its id, e.g. ['Orgc', 'GalaxyCluster.orgc_id']
+     * reserved: [names, condition]: a value equal to one of the names in any case
+     *     also matches the condition, e.g. the built-in MISP organisation, which has no row
      * handler: legacy set_filter_* method building a string field's fragment
      * nullable: column that negation must also match when it is NULL
      * selective: counts as a selective sibling for the tag plan choice
@@ -417,6 +419,9 @@ class ComplexQueryTool
         }
         if ($fragment === null) {
             return null;
+        }
+        if (isset($def['reserved']) && array_intersect(array_map('mb_strtolower', $values), array_map('mb_strtolower', $def['reserved'][0]))) {
+            $fragment = ['OR' => [$fragment, $def['reserved'][1]]];
         }
         if (!empty($def['nullable'])) {
             // never NULL, so that any NOT above it also matches the NULL rows
