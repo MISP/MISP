@@ -1417,6 +1417,9 @@ class Server extends AppModel
                         $params['noSightings'] = 1;
                     }
                     $event = $this->Event->fetchEvent($user, $params);
+                    if (empty($event)) {
+                        continue;
+                    }
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
 
@@ -1445,9 +1448,11 @@ class Server extends AppModel
                 if (count($fails) > 0) {
                     // there are fails, take the lowest fail
                     $lastpushedid = min(array_keys($fails));
-                } else {
+                } elseif (!empty($successes)) {
                     // no fails, take the highest success
                     $lastpushedid = max($successes);
+                } else {
+                    $lastpushedid = $server['Server']['lastpushedid'];
                 }
                 // increment lastid based on the highest ID seen
                 // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
@@ -1549,11 +1554,24 @@ class Server extends AppModel
         }
 
         try {
-            return $serverSync->filterEventIdsForPush($request)->json();
+            $wanted = $serverSync->filterEventIdsForPush($request)->json();
         } catch (Exception $e) {
             $this->logException("Could not filter events for push when pushing to server {$serverSync->serverId()}", $e);
             return false;
         }
+        if (!is_array($wanted)) {
+            $this->log("Invalid reply when filtering events for push to server {$serverSync->serverId()}.", LOG_WARNING);
+            return [];
+        }
+        // The remote only picks from what was offered
+        $wanted = array_flip(array_filter($wanted, 'is_string'));
+        $eventUuids = [];
+        foreach ($request as $offered) {
+            if (isset($wanted[$offered['Event']['uuid']])) {
+                $eventUuids[] = $offered['Event']['uuid'];
+            }
+        }
+        return $eventUuids;
     }
 
     /**

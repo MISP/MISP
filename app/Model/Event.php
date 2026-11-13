@@ -978,6 +978,9 @@ class Event extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
 
+        if (empty($event['Event']['published'])) {
+            return 'The event is not published, which blocks it from being pushed.';
+        }
         if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
             return 'The server rules blocks it from being pushed.';
         }
