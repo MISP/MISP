@@ -338,6 +338,8 @@ class ACLComponent extends Component
             'aiExtractIndicators' => array('perm_ai_tools'),
             'aiSummarize' => array('perm_ai_tools'),
             'index' => array('*'),
+            'queryDescribe' => array('perm_complex_query'),
+            'restSearch' => array('perm_complex_query'),
             'getProxyMISPElements' => array('*'),
             'extractAllFromReport' => array('perm_add'),
             'extractFromReport' => array('perm_add'),

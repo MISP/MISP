@@ -33,7 +33,7 @@ class ComplexQueryTool
     const MAX_ERRORS = 10;
 
     /**
-     * kind: int | time | bool | string
+     * kind: int | time | date | bool | string
      * column: native condition column (int, time, bool, native string), or a
      *     list of columns any of which may match
      * lower: compare the columns in lower case, for case-sensitive ones
@@ -151,6 +151,24 @@ class ComplexQueryTool
             throw new ComplexQueryException($this->errors);
         }
         return $fragment;
+    }
+
+    /**
+     * @param array $tree the result of validate()
+     * @param string $field
+     * @return bool whether a leaf of the tree names the field
+     */
+    public static function mentions(array $tree, $field)
+    {
+        if ($tree[0] === 'leaf') {
+            return $tree[1] === $field;
+        }
+        foreach ($tree[0] === 'NOT' ? [$tree[1]] : $tree[1] as $child) {
+            if (self::mentions($child, $field)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -387,6 +405,11 @@ class ComplexQueryTool
                 return $this->fail($path, 'bad_type', 'this field expects an integer or a relative time such as 7d');
             case 'bool':
                 return is_bool($value) ? (int)$value : $this->fail($path, 'bad_type', 'this field expects true or false');
+            case 'date':
+                if (is_string($value) && (preg_match('/^[0-9]{1,9}d$/', $value) || self::isDate($value))) {
+                    return $value;
+                }
+                return $this->fail($path, 'bad_type', 'this field expects a YYYY-MM-DD date or a number of days such as 7d');
         }
         if (!is_string($value) || $value === '') {
             return $this->fail($path, 'bad_type', 'this field expects a non-empty string');
@@ -404,6 +427,11 @@ class ComplexQueryTool
             return $this->fail($path, 'bad_type', 'use LIKE for wildcards');
         }
         return $value;
+    }
+
+    private static function isDate($value)
+    {
+        return preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/', $value, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1]);
     }
 
     private function build(array $node, $path, $selectiveSiblings = false)
@@ -468,6 +496,10 @@ class ComplexQueryTool
         if ($def['kind'] === 'time') {
             $values = array_map(function ($v) {
                 return is_int($v) ? $v : $this->model->resolveTimeDelta($v);
+            }, $values);
+        } elseif ($def['kind'] === 'date') {
+            $values = array_map(function ($v) {
+                return self::isDate($v) ? $v : date('Y-m-d', $this->model->resolveTimeDelta($v));
             }, $values);
         }
         $columns = (array)$def['column'];

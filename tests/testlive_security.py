@@ -3046,5 +3046,274 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
         self.assertEqual(self.api(self.site_admin_key, "GET", "galaxy_clusters/queryDescribe")[0], 200)
 
 
+class TestComplexEventReportQueryAcl(unittest.TestCase):
+    """The `query` tree of /event_reports/restSearch must only narrow what /event_reports/index shows the user."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqr" + random()
+        cls.created = {"events": [], "tags": set(), "users": [], "roles": [], "sgs": [], "keys": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQR Org " + random(), "local": True})["Organisation"]
+        me = cls.admin_api("GET", "users/view/me")
+        admin_org_uuid = me["Organisation"]["uuid"]
+        cls.admin_org_id, cls.admin_sync = int(me["Organisation"]["id"]), bool(int(me["Role"]["perm_sync"]))
+        roles = {
+            "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQR {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            keys[name] = cls.__make_user(role["id"])
+        cls.user_key, cls.plain_user_key, cls.site_admin_key = keys["flagged"], keys["plain"], keys["site_admin"]
+
+        def sharing_group(label, members):
+            sg = cls.admin_api("POST", "sharingGroups/add", {
+                "SharingGroup": {"name": f"MQR SG {label} {random()}", "releasability": "test", "description": "test", "active": 1,
+                                 "organisation_uuid": admin_org_uuid, "roaming": 0},
+                "Organisation": [{"uuid": admin_org_uuid, "extend": True}]})["SharingGroup"]["id"]
+            cls.created["sgs"].append(sg)
+            for org_id in members:
+                cls.api(key, "POST", f"sharingGroups/addOrg/{sg}/{org_id}", {"extend": 0})
+            return sg
+        cls.sg_out = sharing_group("out", [])
+        cls.sg_in = sharing_group("in", [cls.org["id"]])
+
+        cls.tag_rep, cls.tag_evt = (f"{cls.marker}:{t}" for t in ("rep", "evt"))
+        tag_ids = {}
+        for tag in (cls.tag_rep, cls.tag_evt):
+            tag_ids[tag] = cls.admin_api("POST", "tags/add", {"name": tag, "colour": "#123456"})["Tag"]["id"]
+            cls.created["tags"].add(tag_ids[tag])
+
+        # events (distribution, sharing group, token, tag); "own" belongs to the test org, the others to the admin org
+        cls.events = {
+            "own": cls.__make_event("own", 0, None, cls.user_key),
+            "b1": cls.__make_event("b1", 1, None, key, cls.tag_evt),
+            "b0": cls.__make_event("b0", 0, None, key),
+            "bsg": cls.__make_event("bsg", 4, cls.sg_out, key),
+        }
+        # (event, distribution, sharing group, deleted, tag, visible to the flagged user)
+        specs = {
+            "own_0": ("own", 0, None, False, None, True), "own_5": ("own", 5, None, False, None, True),
+            "own_sgout": ("own", 4, cls.sg_out, False, None, True), "own_del": ("own", 5, None, True, None, True),
+            "b1_0": ("b1", 0, None, False, cls.tag_rep, False), "b1_1": ("b1", 1, None, False, cls.tag_rep, True),
+            "b1_5": ("b1", 5, None, False, None, True), "b1_sgin": ("b1", 4, cls.sg_in, False, None, True),
+            "b1_sgout": ("b1", 4, cls.sg_out, False, None, False), "b1_del": ("b1", 1, None, True, None, False),
+            "b0_1": ("b0", 1, None, False, None, False), "bsg_5": ("bsg", 5, None, False, None, False),
+        }
+        cls.reports = {}
+        for name, (event, distribution, sg, deleted, tag, visible) in specs.items():
+            report = {"name": f"{cls.marker} {name}", "content": f"content {cls.marker} {name}", "distribution": distribution}
+            if sg:
+                report["sharing_group_id"] = sg
+            status, data = cls.api(key, "POST", f"event_reports/add/{cls.events[event]}", report)
+            assert status == 200, (name, status, str(data)[:300])
+            report_id = int(data["EventReport"]["id"])
+            if tag:
+                status, data = cls.api(key, "POST", f"event_reports/addTag/{report_id}/{tag_ids[tag]}")
+                assert status == 200 and data.get("saved"), (name, status, data)
+            if deleted:
+                status, data = cls.api(key, "POST", f"event_reports/delete/{report_id}")
+                assert status == 200, (name, status, data)
+            cls.reports[name] = {"id": report_id, "name": report["name"], "event": event, "distribution": distribution, "deleted": deleted,
+                                 "tags": {tag} if tag else set(), "visible": visible}
+        cls.event_ids = sorted(cls.events.values())
+        cls.by_id = {r["id"]: r for r in cls.reports.values()}
+
+    @classmethod
+    def tearDownClass(cls):
+        for kind, path in (("events", "events/delete/{}"), ("tags", "tags/delete/{}"), ("keys", "authKeys/delete/{}"),
+                           ("users", "admin/users/delete/{}"), ("sgs", "sharingGroups/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqr{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __make_event(cls, name: str, distribution: int, sharing_group, token: str, tag=None) -> int:
+        event = {"info": f"{cls.marker} ev-{name}", "distribution": distribution, "threat_level_id": 4, "analysis": 0}
+        if sharing_group:
+            event["sharing_group_id"] = sharing_group
+        if tag:
+            event["Tag"] = [{"name": tag}]
+        status, data = cls.api(token, "POST", "events/add", {"Event": event})
+        assert status == 200, (name, status, str(data)[:300])
+        cls.created["events"].append(data["Event"]["id"])
+        return int(data["Event"]["id"])
+
+    def __anchored(self, tree=None):
+        anchor = {"event_id": {"IN": self.event_ids}}
+        return anchor if tree is None else {"AND": [anchor, tree]}
+
+    def __search(self, tree, token=None, extra=None, method="POST", anchored=True):
+        """Returns (status, [report] or None, raw data)."""
+        body = {"returnFormat": "json", "limit": 1000, "query": self.__anchored(tree) if anchored else tree}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "event_reports/restSearch", body)
+        reports = None
+        if status == 200 and isinstance(data, dict):
+            reports = [r["EventReport"] for r in data["response"]]
+        return status, reports, data
+
+    def __ids(self, tree, token=None, **kwargs):
+        status, reports, data = self.__search(tree, token, **kwargs)
+        self.assertEqual(status, 200, data)
+        return {int(r["id"]) for r in reports}
+
+    def __index(self, deleted: bool):
+        status, data = self.api(self.user_key, "GET", "event_reports/index" + ("/context:all" if deleted else ""))
+        self.assertEqual(status, 200, data)
+        rows = {}
+        for row in data:
+            report = row["EventReport"]
+            if int(report["id"]) in self.by_id:
+                rows[int(report["id"])] = report
+        return rows
+
+    def __admin_sees(self, report) -> bool:
+        return not report["deleted"] or self.admin_sync or report["event"] != "own"
+
+    def __cases(self):
+        """(label, tree, predicate on a fixture report, whether the tree names `deleted`)"""
+        def tags(report):
+            return report["tags"] | ({self.tag_evt} if report["event"] == "b1" else set())
+        return {
+            "no query": (None, lambda r: True, False),
+            "name like": ({"name": {"LIKE": f"%{self.marker}%"}}, lambda r: True, False),
+            "distribution in": ({"distribution": {"IN": [0, 4]}}, lambda r: r["distribution"] in (0, 4), False),
+            "report tag": ({"tags": self.tag_rep}, lambda r: self.tag_rep in tags(r), False),
+            "report tag negated": ({"tags": {"!=": self.tag_rep}}, lambda r: self.tag_rep not in tags(r), False),
+            "event tag": ({"tags": self.tag_evt}, lambda r: self.tag_evt in tags(r), False),
+            "eventinfo like": ({"eventinfo": {"LIKE": "%ev-b1"}}, lambda r: r["event"] == "b1", False),
+            "deleted": ({"deleted": True}, lambda r: r["deleted"], True),
+        }
+
+    def test_fixture_is_discriminating(self):
+        visible = {r["id"] for r in self.reports.values() if r["visible"]}
+        self.assertEqual(self.__ids(None), visible - {r["id"] for r in self.reports.values() if r["deleted"]})
+        everything = {r["id"] for r in self.reports.values() if self.__admin_sees(r) and not r["deleted"]}
+        self.assertEqual(self.__ids(None, token=key), everything)
+        self.assertEqual(len(everything - self.__ids(None)), 4)
+
+    def test_query_equals_the_index_and_the_matrix(self):
+        index = {False: self.__index(False), True: self.__index(True)}
+        for label, (tree, predicate, names_deleted) in self.__cases().items():
+            with self.subTest(label):
+                shown = {r["id"] for r in self.reports.values() if r["visible"] and predicate(r) and (names_deleted or not r["deleted"])}
+                self.assertEqual(self.__ids(tree), shown)
+                admin_shown = {r["id"] for r in self.reports.values()
+                               if self.__admin_sees(r) and predicate(r) and (names_deleted or not r["deleted"])}
+                self.assertEqual(self.__ids(tree, token=key), admin_shown)
+                self.assertTrue(admin_shown - shown, "fixture is not discriminating")
+                legacy = index[names_deleted]
+                self.assertEqual({i for i, r in legacy.items() if predicate(self.by_id[i]) and (names_deleted or not self.by_id[i]["deleted"])},
+                                 shown)
+
+    def test_count(self):
+        for token in (self.user_key, key):
+            for label, (tree, _, _) in self.__cases().items():
+                with self.subTest(f"{label} {token[:4]}"):
+                    ids = self.__ids(tree, token=token)
+                    status, count = self.api(token, "POST", "event_reports/restSearch", {
+                        "returnFormat": "count", "query": self.__anchored(tree)})
+                    self.assertEqual((status, int(count)), (200, len(ids)))
+
+    def test_hidden_reports_tags_never_match(self):
+        hidden_tagged = self.reports["b1_0"]["id"]
+        visible_tagged = self.reports["b1_1"]["id"]
+        self.assertEqual(self.__ids({"tags": self.tag_rep}), {visible_tagged})
+        self.assertEqual(self.__ids({"tags": self.tag_rep}, token=key), {visible_tagged, hidden_tagged})
+        self.assertNotIn(hidden_tagged, self.__ids({"tags": {"LIKE": f"{self.marker}:%"}}))
+        self.assertNotIn(hidden_tagged, self.__ids({"tags": {"!=": self.tag_evt}}))
+        self.assertNotIn(self.reports["b1_del"]["id"], self.__ids({"AND": [{"deleted": True}, {"tags": self.tag_evt}]}))
+        self.assertIn(self.reports["b1_del"]["id"], self.__ids({"AND": [{"deleted": True}, {"tags": self.tag_evt}]}, token=key))
+
+    def test_permission_flag(self):
+        for token in (self.plain_user_key, "x" * 40):
+            with self.subTest(token[:4]):
+                status, reports, _ = self.__search({"id": self.reports["b1_1"]["id"]}, token=token)
+                self.assertEqual((status, reports), (403, None))
+                status, data = self.api(token, "POST", "event_reports/restSearch", {"returnFormat": "json"})
+                self.assertEqual(status, 403, data)
+                self.assertEqual(self.api(token, "GET", "event_reports/queryDescribe")[0], 403)
+        status, data = self.api(self.user_key, "GET", "event_reports/queryDescribe")
+        self.assertEqual(status, 200)
+        self.assertEqual(data["tables"]["event_reports"]["endpoint"], "/event_reports/restSearch")
+        self.assertNotIn("sharing_group_id", data["tables"]["event_reports"]["fields"])
+        everything = {r["id"] for r in self.reports.values() if self.__admin_sees(r) and not r["deleted"]}
+        self.assertEqual(self.__ids(None, token=self.site_admin_key), everything)
+        self.assertEqual(self.api(self.site_admin_key, "GET", "event_reports/queryDescribe")[0], 200)
+
+    def test_rejections(self):
+        for order in ("content", "Event.info", "sharing_group_id"):
+            for query in (True, False):
+                with self.subTest(f"{order} {query}"):
+                    body = {"returnFormat": "json", "order": order}
+                    if query:
+                        body["query"] = self.__anchored()
+                    status, data = self.api(self.user_key, "POST", "event_reports/restSearch", body)
+                    self.assertEqual(status, 400, data)
+                    self.assertNotIn("response", data)
+                    self.assertEqual(data["errors"][0]["path"], "order[0]")
+        status, reports, data = self.__search({"sharing_group_id": 1})
+        self.assertEqual((status, reports), (400, None), data)
+        self.assertEqual(data["errors"][0]["code"], "unknown_field")
+        id_ = self.reports["b1_1"]["id"]
+        status, data = self.api(self.user_key, "GET", f"event_reports/restSearch?returnFormat=json&query[id]={id_}")
+        self.assertEqual(status, 400)
+        self.assertNotIn("response", data or {})
+        status, data = self.api(self.user_key, "GET", "event_reports/restSearch", {"returnFormat": "json", "query": {"id": id_}})
+        self.assertEqual(status, 400)
+        self.assertNotIn("response", data or {})
+
+    def test_paging(self):
+        for token, expected in ((self.user_key, {r["name"] for r in self.reports.values() if r["visible"] and not r["deleted"]}),
+                                (key, {r["name"] for r in self.reports.values() if self.__admin_sees(r) and not r["deleted"]})):
+            with self.subTest(token[:4]):
+                status, reports, data = self.__search(None, token, extra={"order": "name desc"})
+                self.assertEqual(status, 200, data)
+                names = [r["name"] for r in reports]
+                self.assertEqual(names, sorted(expected, reverse=True))
+                paged = []
+                for page in range(1, 6):
+                    status, reports, data = self.__search(None, token, extra={"order": "name desc", "limit": 4, "page": page})
+                    self.assertEqual(status, 200, data)
+                    self.assertLessEqual(len(reports), 4)
+                    paged += [r["name"] for r in reports]
+                self.assertEqual(paged, names)
+
+
 if __name__ == '__main__':
     unittest.main()

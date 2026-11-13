@@ -248,6 +248,13 @@ class RestSearchComponent extends Component
             'returnFormat',
             'query'
         ],
+        'EventReport' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
     );
 
     public function getFilename($filters, $scope, $responseType)

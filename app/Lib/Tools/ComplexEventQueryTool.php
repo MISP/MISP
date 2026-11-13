@@ -123,32 +123,11 @@ class ComplexEventQueryTool extends ComplexQueryTool
         return parent::operatorMessage($def, $op);
     }
 
-    protected function typed($kind, $value, $op, $field, $path)
-    {
-        if ($kind !== 'date') {
-            return parent::typed($kind, $value, $op, $field, $path);
-        }
-        if (is_string($value) && (preg_match('/^[0-9]{1,9}d$/', $value) || self::isDate($value))) {
-            return $value;
-        }
-        return $this->fail($path, 'bad_type', 'this field expects a YYYY-MM-DD date or a number of days such as 7d');
-    }
-
-    private static function isDate($value)
-    {
-        return preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/', $value, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1]);
-    }
-
     protected function buildLeaf($field, $op, array $values, $path, $selectiveSiblings)
     {
         $def = $this->fields[$field];
         if ($field === 'tags') {
             return $this->tags($op, $values);
-        }
-        if ($def['kind'] === 'date') {
-            $values = array_map(function ($value) {
-                return self::isDate($value) ? $value : date('Y-m-d', $this->model->resolveTimeDelta($value));
-            }, $values);
         }
         $fragment = parent::buildLeaf($field, $op, $values, $path, false);
         if ($fragment === null || !static::isElementField($def)) {

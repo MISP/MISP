@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('EventReportRailCards', 'Tools/RailCards');
 App::uses('AnalystData', 'Model');
+App::uses('ComplexQueryTool', 'Tools');
 
 /**
  * @property EventReport $EventReport
@@ -456,6 +457,18 @@ class EventReportsController extends AppController
                 }
             }
         }
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $tool = new ComplexQueryTool($this->EventReport, ComplexQueryTool::limitsFromConfig(), EventReport::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('event_reports', '/event_reports/restSearch', EventReport::REST_SEARCH_ORDER_FIELDS, 'EventReport'),
+            'json'
+        );
     }
 
     private function __moveTagLocality(array $reports): array

@@ -5,11 +5,13 @@
 additional `query` key carrying a boolean tree of field conditions, so that
 requests such as `type = "domain" OR (id > 50000 AND tags = "tlp:white")` can
 be expressed. Requests without `query` behave exactly as before.
+`POST /event_reports/restSearch` is built around `query` and takes no
+legacy filters.
 
 The grammar, operators, limits and errors are the same on every endpoint.
 What differs is the list of fields and what the tree selects: see
-[Attributes](#attributes), [Events](#events), [Objects](#objects) and
-[Galaxy clusters](#galaxy-clusters).
+[Attributes](#attributes), [Events](#events), [Objects](#objects),
+[Galaxy clusters](#galaxy-clusters) and [Event reports](#event-reports).
 
 ## Availability
 
@@ -20,7 +22,9 @@ What differs is the list of fields and what the tree selects: see
   as the `filters` of `/sightings/add`, reject a `query` with HTTP 400 as well.
 - The user's role needs the **Complex query** permission
   (`perm_complex_query`, off for every role by default), unless the user is
-  a site admin. Without it the request is answered with HTTP 403.
+  a site admin. Without it the request is answered with HTTP 403. On
+  `/event_reports/restSearch` this holds for every request, with or without
+  `query`.
 - `query` can be combined with the legacy filters. The result is
   `ACL AND legacy filters AND query`: the tree can only narrow what the user
   is allowed to see anyway, never widen it.
@@ -96,8 +100,9 @@ selects anything carrying a `tlp:` tag.
 ### NULL handling
 
 `object_relation` and `comment` on attributes, `object_name` and
-`object_template_uuid` on objects, and `description`, `version`,
-`extends_uuid` and `extends_version` on galaxy clusters can be NULL. Inside a `query`, `!=`,
+`object_template_uuid` on objects, `description`, `version`,
+`extends_uuid` and `extends_version` on galaxy clusters, and `content` on
+event reports can be NULL. Inside a `query`, `!=`,
 `NOT IN` and `NOT` also match rows where the column is NULL. The legacy
 filters (for example `object_relation: "!ip"`) do not. This difference is
 intentional.
@@ -111,7 +116,9 @@ same names everywhere (`event_id`, `event_timestamp`, `eventinfo`, `org`,
 ...), so they can be copied from one endpoint's query to another's, where
 that endpoint has the field. On events, `event_id` and `event_timestamp` are
 the same as `id` and `timestamp`. Galaxy clusters have no event: there,
-`org`, `org_id` and `orgc_id` are the cluster's own organisations.
+`org`, `org_id` and `orgc_id` are the cluster's own organisations. Event
+reports are searched as children of their event, with the event fields
+under the same names.
 
 ## Attributes
 
@@ -314,6 +321,63 @@ in reverse name order:
 }
 ```
 
+## Event reports
+
+`POST /event_reports/restSearch`. The body takes `query`, `page`, `limit`,
+`order` and `returnFormat` only; other keys are ignored. Without `query` it
+returns every report the user can see, as `/event_reports/index` does.
+
+- The tree selects the reports the user can see: those of a visible event
+  whose own distribution reaches the user. The organisation owning the event
+  sees all of its reports.
+- Deleted reports are left out unless the tree names `deleted`
+  (`{"deleted": true}`). Users without the sync permission only ever get the
+  deleted reports of their own organisation's events.
+- Event fields are conditions on the report's event. `tags` selects a
+  report that carries the tag or whose event does, matched as on attributes
+  (see Wildcards); negated, neither of them carries it.
+- `order` takes `id`, `event_id`, `name`, `timestamp` and `distribution`;
+  anything else is rejected with HTTP 400, with or without `query`. Without
+  `order` the reports come by `id`, and `id` breaks every tie, so pages
+  never overlap.
+- `"returnFormat": "count"` returns the number of matching reports as the
+  body. A plain request does not compute a total.
+- Each row is the report with its event (`Event`, with `Orgc` and `Org`),
+  its sharing group when it has one, its analyst data and its own tags
+  (`Tag`), under `EventReport`.
+
+| Field | Level | Type | Operators | Notes |
+|---|---|---|---|---|
+| `id`, `event_id`, `distribution` | event_report | integer | `= != > < >= <= IN NOT IN` | |
+| `timestamp` | event_report | timestamp | same | report timestamp |
+| `deleted` | event_report | boolean | `= !=` | see above |
+| `uuid` | event_report | string | `= != IN NOT IN` | |
+| `name`, `content` | event_report | string | `= != IN NOT IN LIKE NOT LIKE` | `content` is the Markdown as stored; matching it reads every visible report |
+| `tags` | event_report, event | string | `= != IN NOT IN LIKE NOT LIKE` | see above |
+| `org_id`, `orgc_id`, `threat_level_id`, `analysis` | event | integer | `= != > < >= <= IN NOT IN` | owner and creator organisation |
+| `event_timestamp`, `publish_timestamp` | event | timestamp | same | |
+| `date` | event | date | same | |
+| `published` | event | boolean | `= !=` | |
+| `eventinfo` | event | string | `= != IN NOT IN LIKE NOT LIKE` | info of the event |
+| `org` | event | string | `= != IN NOT IN` | name, uuid or id of the creator organisation |
+
+Example: reports of the last month's published events marked `tlp:clear`,
+newest first:
+
+```json
+{
+  "query": {
+    "AND": [
+      {"tags": "tlp:clear"},
+      {"published": true},
+      {"date": {">=": "30d"}}
+    ]
+  },
+  "order": "timestamp desc",
+  "limit": 20
+}
+```
+
 ## Limits
 
 Checked before the database is touched. Server settings (all in the `MISP`
@@ -358,11 +422,12 @@ Missing permission is not part of this format: it is a plain HTTP 403.
 ## Discovery
 
 `GET /attributes/queryDescribe`, `GET /events/queryDescribe`,
-`GET /objects/queryDescribe` and `GET /galaxy_clusters/queryDescribe` (API
-only, same permission as `query`) return the fields of that endpoint, their
-types and operators, the sortable fields and the limits in effect. A field's
-`level` says what it is matched against: `attribute`, `object`, `event`,
-`galaxy_cluster` or `galaxy`, or more than one (`tags`). On events and
+`GET /objects/queryDescribe`, `GET /galaxy_clusters/queryDescribe` and
+`GET /event_reports/queryDescribe` (API only, same permission as `query`)
+return the fields of that endpoint, their types and operators, the sortable
+fields and the limits in effect. A field's `level` says what it is matched
+against: `attribute`, `object`, `event`, `galaxy_cluster`, `galaxy` or
+`event_report`, or more than one (`tags`). On events and
 objects, a field whose only level is `attribute` (or `object`, on events) is
 matched against the elements inside the record and takes positive operators
 only. `sortable` is empty for objects.
