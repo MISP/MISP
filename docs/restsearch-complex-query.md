@@ -1,18 +1,19 @@
 # Complex queries in restSearch
 
-`POST /attributes/restSearch`, `POST /events/restSearch` and
-`POST /objects/restSearch` accept an additional `query` key carrying a boolean
-tree of field conditions, so that requests such as
-`type = "domain" OR (id > 50000 AND tags = "tlp:white")` can be expressed.
-Requests without `query` behave exactly as before.
+`POST /attributes/restSearch`, `POST /events/restSearch`,
+`POST /objects/restSearch` and `POST /galaxy_clusters/restSearch` accept an
+additional `query` key carrying a boolean tree of field conditions, so that
+requests such as `type = "domain" OR (id > 50000 AND tags = "tlp:white")` can
+be expressed. Requests without `query` behave exactly as before.
 
-The grammar, operators, limits and errors are the same on all three
-endpoints. What differs is the list of fields and what the tree selects: see
-[Attributes](#attributes), [Events](#events) and [Objects](#objects).
+The grammar, operators, limits and errors are the same on every endpoint.
+What differs is the list of fields and what the tree selects: see
+[Attributes](#attributes), [Events](#events), [Objects](#objects) and
+[Galaxy clusters](#galaxy-clusters).
 
 ## Availability
 
-- Only on the three restSearch endpoints above, and only as a JSON object in
+- Only on the restSearch endpoints above, and only as a JSON object in
   the body of a `POST` request. A `query` in the query string or the URL (also
   next to one in the body), in a `GET` request or of any other type is
   rejected with HTTP 400. Other endpoints that take restSearch filters, such
@@ -94,8 +95,9 @@ selects anything carrying a `tlp:` tag.
 
 ### NULL handling
 
-`object_relation` and `comment` on attributes, and `object_name` and
-`object_template_uuid` on objects, can be NULL. Inside a `query`, `!=`,
+`object_relation` and `comment` on attributes, `object_name` and
+`object_template_uuid` on objects, and `description`, `version`,
+`extends_uuid` and `extends_version` on galaxy clusters can be NULL. Inside a `query`, `!=`,
 `NOT IN` and `NOT` also match rows where the column is NULL. The legacy
 filters (for example `object_relation: "!ip"`) do not. This difference is
 intentional.
@@ -108,7 +110,8 @@ A field name means the same thing on every endpoint that has it. Only `id`,
 same names everywhere (`event_id`, `event_timestamp`, `eventinfo`, `org`,
 ...), so they can be copied from one endpoint's query to another's, where
 that endpoint has the field. On events, `event_id` and `event_timestamp` are
-the same as `id` and `timestamp`.
+the same as `id` and `timestamp`. Galaxy clusters have no event: there,
+`org`, `org_id` and `orgc_id` are the cluster's own organisations.
 
 ## Attributes
 
@@ -258,6 +261,48 @@ holding a value under `example.com`:
 }
 ```
 
+## Galaxy clusters
+
+`POST /galaxy_clusters/restSearch`. The tree selects the clusters the user
+can see, returned as they would be without `query`.
+
+- Text fields compare case-insensitively.
+- `galaxy_*` fields are conditions on the cluster's galaxy; `org` is the
+  cluster's creator organisation, by name in any case or by uuid (its id is
+  `orgc_id`).
+- `order` works as on attributes, also without `query`: the sortable fields
+  are `id`, `version`, `type`, `value`, `distribution`, `orgc_id`, `org_id`,
+  `tag_name` and `galaxy_id`.
+- `"returnFormat": "count"` returns the number of matching clusters as the
+  body, counted in the database, with legacy filters or `query`. A plain
+  request does not compute a total.
+
+| Field | Level | Type | Operators | Notes |
+|---|---|---|---|---|
+| `id`, `version`, `distribution`, `org_id`, `orgc_id`, `galaxy_id`, `extends_version` | galaxy_cluster | integer | `= != > < >= <= IN NOT IN` | |
+| `default`, `locked`, `published`, `deleted` | galaxy_cluster | boolean | `= !=` | |
+| `uuid`, `collection_uuid`, `extends_uuid` | galaxy_cluster | string | `= != IN NOT IN` | |
+| `type`, `value`, `tag_name`, `description`, `source`, `authors` | galaxy_cluster | string | `= != IN NOT IN LIKE NOT LIKE` | `authors` is the JSON list as stored |
+| `org` | galaxy_cluster | string | `= != IN NOT IN` | name or uuid of the creator organisation |
+| `galaxy_uuid` | galaxy | string | `= != IN NOT IN` | |
+| `galaxy_name`, `galaxy_namespace` | galaxy | string | `= != IN NOT IN LIKE NOT LIKE` | |
+
+Example: threat actors named after an APT whose description mentions China,
+in reverse name order:
+
+```json
+{
+  "query": {
+    "AND": [
+      {"galaxy_name": "Threat Actor"},
+      {"value": {"LIKE": "apt%"}},
+      {"description": {"LIKE": "%china%"}}
+    ]
+  },
+  "order": "value desc"
+}
+```
+
 ## Limits
 
 Checked before the database is touched. Server settings (all in the `MISP`
@@ -301,11 +346,12 @@ Missing permission is not part of this format: it is a plain HTTP 403.
 
 ## Discovery
 
-`GET /attributes/queryDescribe`, `GET /events/queryDescribe` and
-`GET /objects/queryDescribe` (API only, same permission as `query`) return
-the fields of that endpoint, their types and operators, the sortable fields
-and the limits in effect. A field's `level` says what it is matched against:
-`attribute`, `object` or `event`, or more than one (`tags`). On events and
+`GET /attributes/queryDescribe`, `GET /events/queryDescribe`,
+`GET /objects/queryDescribe` and `GET /galaxy_clusters/queryDescribe` (API
+only, same permission as `query`) return the fields of that endpoint, their
+types and operators, the sortable fields and the limits in effect. A field's
+`level` says what it is matched against: `attribute`, `object`, `event`,
+`galaxy_cluster` or `galaxy`, or more than one (`tags`). On events and
 objects, a field whose only level is `attribute` (or `object`, on events) is
 matched against the elements inside the record and takes positive operators
 only. `sortable` is empty for objects.

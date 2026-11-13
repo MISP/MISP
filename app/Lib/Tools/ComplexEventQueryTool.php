@@ -261,14 +261,4 @@ class ComplexEventQueryTool extends ComplexQueryTool
             ],
         ]];
     }
-
-    protected function subquery($model, $field, array $conditions, $lookupKey, $alias = null)
-    {
-        $alias = $alias ?? $model->alias;
-        return $this->model->subQueryGenerator($model, [
-            'alias' => $alias,
-            'fields' => ["$alias.$field"],
-            'conditions' => $conditions,
-        ], $lookupKey);
-    }
 }

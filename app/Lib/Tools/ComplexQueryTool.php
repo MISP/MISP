@@ -14,7 +14,8 @@ class ComplexQueryException extends Exception
 
 /**
  * Turns the boolean `query` tree of a restSearch request into CakePHP
- * conditions for the attribute scope.
+ * conditions: for the attribute scope by default, for another scope through
+ * that scope's field registry.
  *
  * validate() checks the whole tree without touching the database and
  * rejects it entirely on the first bad node; only then does compile() build
@@ -33,7 +34,11 @@ class ComplexQueryTool
 
     /**
      * kind: int | time | bool | string
-     * column: native condition column (int, time, bool, native string)
+     * column: native condition column (int, time, bool, native string), or a
+     *     list of columns any of which may match
+     * lower: compare the columns in lower case, for case-sensitive ones
+     * via: [association, key]: the column belongs to the associated model, matched
+     *     through a subquery on its id, e.g. ['Orgc', 'GalaxyCluster.orgc_id']
      * handler: legacy set_filter_* method building a string field's fragment
      * nullable: column that negation must also match when it is NULL
      * selective: counts as a selective sibling for the tag plan choice
@@ -68,7 +73,7 @@ class ComplexQueryTool
     private $nodes;
 
     /**
-     * @param object $model the Attribute model providing the set_filter_* handlers
+     * @param object $model the scope's model: set_filter_* handlers, associations, subqueries
      * @param array $limits max_depth, max_nodes, max_list, max_value_length
      * @param array $fields the field registry of the scope, shaped like self::FIELDS
      */
@@ -404,6 +409,9 @@ class ComplexQueryTool
         $positive = self::NEGATED_OPS[$op] ?? $op;
         if (isset($def['column'])) {
             $fragment = $this->native($def, $positive, $values);
+            if (isset($def['via'])) {
+                $fragment = $this->subquery($this->model->{$def['via'][0]}, 'id', [$fragment], $def['via'][1]);
+            }
         } else {
             $fragment = $this->viaHandler($field, $def, $values, $path, $selectiveSiblings);
         }
@@ -424,14 +432,34 @@ class ComplexQueryTool
                 return is_int($v) ? $v : $this->model->resolveTimeDelta($v);
             }, $values);
         }
-        $column = $def['column'];
-        if ($op === '=') {
-            return [$column => $values[0]];
+        $columns = (array)$def['column'];
+        if (!empty($def['lower'])) {
+            $values = array_map('mb_strtolower', $values);
+            $columns = array_map(function ($column) {
+                return "LOWER($column)";
+            }, $columns);
         }
-        if ($op === 'IN') {
-            return [$column => $values];
+        $fragments = [];
+        foreach ($columns as $column) {
+            if ($op === '=') {
+                $fragments[] = [$column => $values[0]];
+            } elseif ($op === 'IN') {
+                $fragments[] = [$column => $values];
+            } else {
+                $fragments[] = ["$column $op" => $values[0]];
+            }
         }
-        return ["$column $op" => $values[0]];
+        return count($fragments) === 1 ? $fragments[0] : ['OR' => $fragments];
+    }
+
+    protected function subquery($model, $field, array $conditions, $lookupKey, $alias = null)
+    {
+        $alias = $alias ?? $model->alias;
+        return $this->model->subQueryGenerator($model, [
+            'alias' => $alias,
+            'fields' => ["$alias.$field"],
+            'conditions' => $conditions,
+        ], $lookupKey);
     }
 
     private function viaHandler($field, array $def, array $values, $path, $selectiveSiblings)

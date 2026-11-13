@@ -2664,5 +2664,349 @@ class TestComplexObjectQueryAcl(unittest.TestCase):
         self.assertEqual(self.api(self.site_admin_key, "GET", "objects/queryDescribe")[0], 200)
 
 
+class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
+    """The `query` tree of /galaxy_clusters/restSearch must only narrow what the legacy endpoint shows the user."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqg" + random()
+        cls.created = {"clusters": [], "galaxies": [], "keys": [], "users": [], "sgs": [], "roles": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQG Org " + random(), "local": True})["Organisation"]
+        me = cls.admin_api("GET", "users/view/me")["Organisation"]
+        cls.admin_org_id, cls.admin_org_uuid, cls.admin_org_name = int(me["id"]), me["uuid"], me["name"]
+        roles = {
+            "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_galaxy_editor": 1, "perm_complex_query": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQG {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            keys[name] = cls.__make_user(role["id"])
+        cls.user_key, cls.plain_user_key, cls.site_admin_key = keys["flagged"], keys["plain"], keys["site_admin"]
+
+        def sharing_group(label, members):
+            sg = cls.admin_api("POST", "sharingGroups/add", {
+                "SharingGroup": {"name": f"MQG SG {label} {random()}", "releasability": "test", "description": "test", "active": 1,
+                                 "organisation_uuid": cls.admin_org_uuid, "roaming": 0}})["SharingGroup"]["id"]
+            cls.created["sgs"].append(sg)
+            for org_id in members:
+                cls.api(key, "POST", f"sharingGroups/addOrg/{sg}/{org_id}", {"extend": 0})
+            return sg
+        cls.sg_out = sharing_group("out", [cls.admin_org_id])
+        cls.sg_in = sharing_group("in", [cls.admin_org_id, cls.org["id"]])
+
+        # a galaxy the test org can see, and one it cannot (distribution 0, admin org)
+        cls.galaxy_vis = cls.__make_galaxy("vis", 3)
+        cls.galaxy_hid = cls.__make_galaxy("hid", 0)
+        # (distribution, sharing group, galaxy, token)
+        specs = {"pub": (3, None, cls.galaxy_vis, key), "org": (0, None, cls.galaxy_vis, key),
+                 "sg_out": (4, cls.sg_out, cls.galaxy_vis, key), "sg_in": (4, cls.sg_in, cls.galaxy_vis, key),
+                 "own": (0, None, cls.galaxy_vis, cls.user_key), "hg": (3, None, cls.galaxy_hid, key)}
+        cls.c = {name: cls.__make_cluster(name, *spec) for name, spec in specs.items()}
+        cls.visible = {cls.c[n] for n in ("pub", "sg_in", "own")}
+        cls.hidden = {cls.c[n] for n in ("org", "sg_out", "hg")}
+        cls.all_ids = cls.visible | cls.hidden
+        status, data = cls.api(key, "POST", "galaxy_clusters/restSearch", {"returnFormat": "json", "value": cls.marker + "%"})
+        assert status == 200, (status, data)
+        cls.uuids = {int(c["GalaxyCluster"]["id"]): c["GalaxyCluster"]["uuid"] for c in data["response"]}
+
+    @classmethod
+    def tearDownClass(cls):
+        for cid, cluster_uuid in list(cls.created["clusters"]):
+            try:
+                cls.api(key, "POST", f"galaxy_clusters/delete/{cid}/hard:1", {"hard": 1})
+                cls.api(key, "POST", f"galaxy_cluster_blocklists/delete/{cluster_uuid}")
+            except Exception:
+                pass
+        for kind, path in (("galaxies", "galaxies/delete/{}"), ("keys", "authKeys/delete/{}"), ("users", "admin/users/delete/{}"),
+                           ("sgs", "sharingGroups/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqg{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __make_galaxy(cls, name: str, distribution: int) -> dict:
+        galaxy = cls.admin_api("POST", "galaxies/add", {"Galaxy": {
+            "name": f"{cls.marker} galaxy {name}", "namespace": f"{cls.marker}-ns-{name}", "description": "test", "icon": "cog",
+            "distribution": distribution, "enabled": True, "version": 1}})["Galaxy"]
+        cls.created["galaxies"].append(galaxy["id"])
+        return galaxy
+
+    @classmethod
+    def __make_cluster(cls, name, distribution, sharing_group, galaxy, token) -> int:
+        cluster = {"value": cls.__value(name), "description": cls.__text("desc", name), "source": cls.__text("src", name),
+                   "authors": [cls.__text("auth", name)], "distribution": distribution}
+        if sharing_group:
+            cluster["sharing_group_id"] = sharing_group
+        status, data = cls.api(token, "POST", f"galaxy_clusters/add/{galaxy['id']}", {"GalaxyCluster": cluster})
+        assert status == 200, (name, status, str(data)[:300])
+        cls.created["clusters"].append((data["GalaxyCluster"]["id"], data["GalaxyCluster"]["uuid"]))
+        return int(data["GalaxyCluster"]["id"])
+
+    @classmethod
+    def __value(cls, name: str) -> str:
+        return f"{cls.marker}-{name}"
+
+    @classmethod
+    def __text(cls, kind: str, name: str) -> str:
+        return f"{kind}-{cls.marker}-{name}"
+
+    def __search(self, query, token=None, extra=None, method="POST"):
+        """Returns (status, {cluster id: cluster} or None, raw data)."""
+        body = {"returnFormat": "json", "query": query}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "galaxy_clusters/restSearch", body)
+        clusters = None
+        if status == 200 and isinstance(data, dict):
+            clusters = {int(c["GalaxyCluster"]["id"]): c["GalaxyCluster"] for c in data["response"]}
+        return status, clusters, data
+
+    def __anchored(self, tree):
+        return {"AND": [{"value": {"LIKE": self.marker + "%"}}, tree]}
+
+    def __ids(self, tree, token=None, **kwargs):
+        status, clusters, data = self.__search(self.__anchored(tree), token, **kwargs)
+        self.assertEqual(status, 200, data)
+        return set(clusters)
+
+    def test_fixture_is_discriminating(self):
+        status, clusters, _ = self.__search({"value": {"LIKE": self.marker + "%"}}, token=key)
+        self.assertEqual((status, set(clusters)), (200, self.all_ids))
+        status, clusters, _ = self.__search({"value": {"LIKE": self.marker + "%"}})
+        self.assertEqual((status, set(clusters)), (200, self.visible))
+
+    def test_baseline(self):
+        c = self.c
+        pub_sg = {c["pub"], c["sg_in"]}
+        cases = {
+            "id": ({"id": c["pub"]}, {c["pub"]}),
+            "uuid": ({"uuid": self.uuids[c["own"]]}, {c["own"]}),
+            "value": ({"value": self.__value("sg_in")}, {c["sg_in"]}),
+            "value like": ({"value": {"LIKE": f"{self.marker}-p%"}}, {c["pub"]}),
+            "value in another case": ({"value": self.__value("sg_in").upper()}, {c["sg_in"]}),
+            "description like": ({"description": {"LIKE": f"%{self.__text('desc', 'own')}"}}, {c["own"]}),
+            "source like": ({"source": {"LIKE": f"%{self.__text('src', 'pub')}"}}, {c["pub"]}),
+            "authors like": ({"authors": {"LIKE": f"%{self.__text('auth', 'sg_in')}%"}}, {c["sg_in"]}),
+            "distribution": (self.__anchored({"distribution": 3}), {c["pub"]}),
+            "org by name in another case": (self.__anchored({"org": self.admin_org_name.upper()}), pub_sg),
+            "org by uuid": (self.__anchored({"org": self.admin_org_uuid}), pub_sg),
+            "org in": (self.__anchored({"org": {"IN": [self.org["name"].lower()]}}), {c["own"]}),
+            "org not in": (self.__anchored({"org": {"NOT IN": [self.admin_org_name]}}), {c["own"]}),
+            "org !=": (self.__anchored({"org": {"!=": self.org["name"]}}), pub_sg),
+            "org_id": (self.__anchored({"org_id": int(self.org["id"])}), {c["own"]}),
+            "orgc_id": (self.__anchored({"orgc_id": self.admin_org_id}), pub_sg),
+            "galaxy_id": (self.__anchored({"galaxy_id": int(self.galaxy_vis["id"])}), self.visible),
+            "galaxy_uuid": (self.__anchored({"galaxy_uuid": self.galaxy_vis["uuid"]}), self.visible),
+            "galaxy_name": (self.__anchored({"galaxy_name": f"{self.marker} galaxy vis"}), self.visible),
+            "galaxy_namespace": (self.__anchored({"galaxy_namespace": f"{self.marker}-ns-vis"}), self.visible),
+            "booleans": (self.__anchored({"AND": [{"default": False}, {"deleted": False}]}), self.visible),
+            "default true": (self.__anchored({"default": True}), set()),
+            "NOT": (self.__anchored({"NOT": {"id": c["pub"]}}), {c["sg_in"], c["own"]}),
+            "id !=": (self.__anchored({"id": {"!=": c["pub"]}}), {c["sg_in"], c["own"]}),
+            "NOT IN": (self.__anchored({"id": {"NOT IN": [c["pub"], c["own"]]}}), {c["sg_in"]}),
+            "hidden galaxy": (self.__anchored({"galaxy_name": f"{self.marker} galaxy hid"}), set()),
+        }
+        for name, (tree, expected) in cases.items():
+            with self.subTest(name):
+                status, clusters, data = self.__search(tree)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(set(clusters), expected)
+
+    def test_hidden_clusters_are_never_returned(self):
+        c = self.c
+        hidden = sorted(self.hidden)
+        cases = {f"id {n}": {"id": c[n]} for n in ("org", "sg_out", "hg")}
+        cases.update({f"uuid {n}": {"uuid": self.uuids[c[n]]} for n in ("org", "sg_out", "hg")})
+        cases.update({f"value {n}": {"value": self.__value(n)} for n in ("org", "sg_out", "hg")})
+        cases.update({
+            "value like": {"value": {"LIKE": f"{self.marker}-%"}},
+            "description": {"description": {"LIKE": f"%{self.__text('desc', 'org')}"}},
+            "hidden galaxy description source": {"source": {"LIKE": f"%{self.__text('src', 'hg')}"}},
+            "org of the admin": self.__anchored({"org": self.admin_org_name}),
+            "orgc_id of the admin": self.__anchored({"orgc_id": self.admin_org_id}),
+            "distribution": self.__anchored({"distribution": {"IN": [0, 1, 2, 3, 4, 5]}}),
+            "sharing group distribution": self.__anchored({"distribution": 4}),
+            "tautology": self.__anchored({"OR": [{"id": {">=": 0}}, {"NOT": {"id": {">=": 0}}}]}),
+            "double negation": self.__anchored({"NOT": {"NOT": {"id": {">=": 0}}}}),
+            "not the visible ids": self.__anchored({"NOT": {"id": {"IN": sorted(self.visible)}}}),
+            "not in the visible ids": self.__anchored({"id": {"NOT IN": sorted(self.visible)}}),
+            "or with a hidden leaf": self.__anchored({"OR": [{"id": c["org"]}, {"id": c["pub"]}]}),
+            "hidden galaxy": self.__anchored({"galaxy_uuid": self.galaxy_hid["uuid"]}),
+            "hidden galaxy namespace": self.__anchored({"galaxy_namespace": f"{self.marker}-ns-hid"}),
+        })
+        for name, tree in cases.items():
+            with self.subTest(name):
+                status, clusters, data = self.__search(tree)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(set(clusters) & self.hidden, set())
+        for name in ("id org", "id sg_out", "id hg", "uuid hg", "value like", "org of the admin", "tautology", "not the visible ids"):
+            with self.subTest(f"admin {name}"):
+                status, clusters, data = self.__search(cases[name], token=key)
+                self.assertEqual(status, 200, data)
+                self.assertTrue(set(clusters) & self.hidden, "fixture is not discriminating")
+        tree = self.__anchored({"OR": [{"id": {">=": 0}}, {"NOT": {"id": {">=": 0}}}]})
+        for extra in ({"distribution": [0, 1, 2, 3, 4]}, {"org_id": self.admin_org_id}, {"id": hidden}, {"deleted": [0, 1]},
+                      {"published": [0, 1]}):
+            with self.subTest(extra):
+                status, clusters, _ = self.__search(tree, extra=extra)
+                self.assertIn(status, (200, 400, 403))
+                if status == 200:
+                    self.assertEqual(set(clusters) & self.hidden, set())
+
+    def test_query_equals_the_legacy_endpoint(self):
+        status, legacy, data = self.__search_legacy()
+        self.assertEqual((status, set(legacy)), (200, self.visible), data)
+        galaxy_vis = int(self.galaxy_vis["id"])
+        trees = {
+            "distribution": ({"distribution": {"IN": [0, 3]}}, lambda c: c["distribution"] in ("0", "3")),
+            "not distribution": ({"NOT": {"distribution": 3}}, lambda c: c["distribution"] != "3"),
+            "org_id or value": ({"OR": [{"org_id": int(self.org["id"])}, {"value": {"LIKE": "%-sg_in"}}]},
+                                lambda c: int(c["org_id"]) == int(self.org["id"]) or c["value"].endswith("-sg_in")),
+            "galaxy and text": ({"AND": [{"galaxy_id": galaxy_vis}, {"description": {"LIKE": "desc-%"}}]},
+                                lambda c: int(c["galaxy_id"]) == galaxy_vis and c["description"].startswith("desc-")),
+            "everything": ({"id": {">=": 0}}, lambda c: True),
+            "nothing": ({"NOT": {"id": {">=": 0}}}, lambda c: False),
+        }
+        for name, (tree, condition) in trees.items():
+            with self.subTest(name):
+                status, clusters, data = self.__search(self.__anchored(tree))
+                self.assertEqual(status, 200, data)
+                self.assertEqual(set(clusters), {i for i, c in legacy.items() if condition(c)})
+
+    def __search_legacy(self, extra=None, token=None):
+        body = {"returnFormat": "json", "value": self.marker + "%", **(extra or {})}
+        status, data = self.api(token or self.user_key, "POST", "galaxy_clusters/restSearch", body)
+        clusters = None
+        if status == 200:
+            clusters = {int(c["GalaxyCluster"]["id"]): c["GalaxyCluster"] for c in data["response"]}
+        return status, clusters, data
+
+    def test_count(self):
+        trees = {"marker": {"value": {"LIKE": self.marker + "%"}}, "distribution": self.__anchored({"distribution": {"IN": [0, 3]}}),
+                 "org": self.__anchored({"org": self.admin_org_name}), "galaxy": self.__anchored({"galaxy_name": f"{self.marker} galaxy hid"})}
+        for token in (self.user_key, key):
+            for name, tree in trees.items():
+                with self.subTest(f"{name} {token[:4]}"):
+                    status, clusters, data = self.__search(tree, token)
+                    self.assertEqual(status, 200, data)
+                    status, count = self.api(token, "POST", "galaxy_clusters/restSearch", {"returnFormat": "count", "query": tree})
+                    self.assertEqual((status, int(count)), (200, len(clusters)))
+        status, count = self.api(self.user_key, "POST", "galaxy_clusters/restSearch", {
+            "returnFormat": "count", "query": self.__anchored({"id": {"IN": sorted(self.hidden)}})})
+        self.assertEqual((status, int(count)), (200, 0))
+        status, count = self.api(key, "POST", "galaxy_clusters/restSearch", {
+            "returnFormat": "count", "query": self.__anchored({"id": {"IN": sorted(self.hidden)}})})
+        self.assertEqual((status, int(count)), (200, len(self.hidden)))
+        status, count = self.api(self.user_key, "POST", "galaxy_clusters/restSearch", {"returnFormat": "count", "value": self.marker + "%"})
+        self.assertEqual((status, int(count)), (200, len(self.visible)))
+
+    def test_order(self):
+        def order_of(extra, query=None):
+            body = {"returnFormat": "json", "order": extra}
+            body.update({"query": query} if query else {"value": self.marker + "%"})
+            status, data = self.api(self.user_key, "POST", "galaxy_clusters/restSearch", body)
+            self.assertEqual(status, 200, data)
+            return [int(c["GalaxyCluster"]["id"]) for c in data["response"]]
+        marker_query = {"value": {"LIKE": self.marker + "%"}}
+        for query in (None, marker_query):
+            with self.subTest(str(query)):
+                asc, desc = order_of("value asc", query), order_of("value desc", query)
+                self.assertEqual(set(asc), self.visible)
+                self.assertEqual(asc, desc[::-1])
+        self.assertEqual(order_of("id", marker_query), sorted(self.visible))
+        for order in ("0.id", "event_id", "sharing_group_id"):
+            with self.subTest(order):
+                status, clusters, data = self.__search(marker_query, extra={"order": order})
+                self.assertEqual((status, clusters), (400, None), data)
+                self.assertNotIn("response", data)
+                self.assertEqual(data["errors"][0]["path"], "order[0]")
+                status, _, data = self.__search_legacy({"order": order})
+                self.assertEqual(status, 200, data)
+
+    def test_rejections(self):
+        rejected = {
+            "sharing_group_id": ({"sharing_group_id": 1}, "unknown_field"),
+            "org like": ({"org": {"LIKE": "a%"}}, "unknown_operator"),
+            "uuid like": ({"uuid": {"LIKE": "a%"}}, "unknown_operator"),
+        }
+        for name, (tree, code) in rejected.items():
+            with self.subTest(name):
+                status, clusters, data = self.__search(tree)
+                self.assertEqual((status, clusters), (400, None), data)
+                self.assertNotIn("response", data)
+                self.assertEqual(data["errors"][0]["code"], code)
+        bad = {
+            "string": "id=1", "list": [{"id": 1}], "empty": {}, "unknown field": {"nope": 1}, "wrong type": {"id": "1"},
+            "two keys": {"id": 1, "uuid": "x"},
+            "too deep": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"id": 1}}}}}}},
+        }
+        for name, tree in bad.items():
+            with self.subTest(name):
+                status, clusters, data = self.__search(tree)
+                self.assertEqual((status, clusters), (400, None), data)
+                self.assertNotIn("response", data)
+
+    def test_query_is_only_accepted_in_a_post_body(self):
+        status, data = self.api(self.user_key, "GET", f"galaxy_clusters/restSearch?returnFormat=json&query[id]={self.c['pub']}")
+        self.assertEqual(status, 400)
+        self.assertNotIn("response", data or {})
+        status, data = self.api(self.user_key, "GET", "galaxy_clusters/restSearch", {"returnFormat": "json", "query": {"id": self.c["pub"]}})
+        self.assertEqual(status, 400)
+        self.assertNotIn("response", data or {})
+        for path in (f"galaxy_clusters/restSearch?query[id]={self.c['org']}", "galaxy_clusters/restSearch/query:x"):
+            with self.subTest(path):
+                status, data = self.api(self.user_key, "POST", path, {"returnFormat": "json", "query": {"id": self.c["pub"]}})
+                self.assertEqual(status, 400)
+                self.assertNotIn("response", data or {})
+
+    def test_permission_flag(self):
+        for token in (self.plain_user_key, "x" * 40):
+            with self.subTest(token[:4]):
+                status, clusters, _ = self.__search({"id": self.c["pub"]}, token=token)
+                self.assertEqual((status, clusters), (403, None))
+                self.assertEqual(self.api(token, "GET", "galaxy_clusters/queryDescribe")[0], 403)
+        status, data = self.api(self.user_key, "GET", "galaxy_clusters/queryDescribe")
+        self.assertEqual(status, 200)
+        table = data["tables"]["galaxy_clusters"]
+        self.assertEqual(table["endpoint"], "/galaxy_clusters/restSearch")
+        self.assertNotIn("sharing_group_id", table["fields"])
+        status, clusters, data = self.__search({"value": {"LIKE": self.marker + "%"}}, token=self.site_admin_key)
+        self.assertEqual((status, set(clusters)), (200, self.all_ids), data)
+        self.assertEqual(self.api(self.site_admin_key, "GET", "galaxy_clusters/queryDescribe")[0], 200)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1330,4 +1330,17 @@ class GalaxyClustersController extends AppController
         }
         return $this->RestResponse->viewData($payload, 'json');
     }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        App::uses('ComplexQueryTool', 'Tools');
+        $tool = new ComplexQueryTool($this->GalaxyCluster, ComplexQueryTool::limitsFromConfig(), GalaxyCluster::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('galaxy_clusters', '/galaxy_clusters/restSearch', GalaxyCluster::REST_SEARCH_ORDER_FIELDS, 'GalaxyCluster'),
+            'json'
+        );
+    }
 }

@@ -575,6 +575,7 @@ class ACLComponent extends Component
             'index' => array('*'),
             'pickerSearch' => array('*'),
             'publish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
+            'queryDescribe' => array('perm_complex_query'),
             'railCard' => array('*'),
             'restore' => array('perm_galaxy_editor'),
             'relatedClusters' => array('*'),

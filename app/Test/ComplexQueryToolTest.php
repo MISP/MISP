@@ -22,6 +22,7 @@ class ComplexQueryStubEvent
 class ComplexQueryStubModel
 {
     public $Event;
+    public $Org;
     public $tagParams = [];
 
     public function __construct()
@@ -38,6 +39,11 @@ class ComplexQueryStubModel
     public function resolveTimeDelta($delta)
     {
         return 1000000 - (int)$delta;
+    }
+
+    public function subQueryGenerator($model, array $options, $lookupKey)
+    {
+        return ["$lookupKey IN ({$options['fields'][0]} AS {$options['alias']})" => $options['conditions']];
     }
 }
 
@@ -312,5 +318,32 @@ class ComplexQueryToolTest extends TestCase
         $this->assertSame(['Event.info' => 'x'], $tool->conditions(['info' => 'x']));
         $this->expectException(ComplexQueryException::class);
         $tool->validate(['type' => 'x']);
+    }
+
+    public function testLowerComparesEveryColumnInLowerCase(): void
+    {
+        $fields = ['org' => ['kind' => 'string', 'column' => ['Org.name', 'Org.uuid'], 'lower' => true]];
+        $tool = new ComplexQueryTool($this->model, [], $fields);
+        $this->assertSame(
+            ['OR' => [['LOWER(Org.name)' => 'acmé'], ['LOWER(Org.uuid)' => 'acmé']]],
+            $tool->conditions(['org' => 'ACMÉ'])
+        );
+        $this->assertSame(
+            ['NOT' => ['OR' => [['LOWER(Org.name) LIKE' => 'ac%'], ['LOWER(Org.uuid) LIKE' => 'ac%']]]],
+            $tool->conditions(['org' => ['NOT LIKE' => 'AC%']])
+        );
+        $this->assertSame(['LOWER(Org.name)' => ['a', 'b']], (new ComplexQueryTool($this->model, [], [
+            'name' => ['kind' => 'string', 'column' => 'Org.name', 'lower' => true],
+        ]))->conditions(['name' => ['IN' => ['A', 'b']]]));
+    }
+
+    public function testViaMatchesTheAssociatedRecordThroughItsId(): void
+    {
+        $this->model->Org = (object)['alias' => 'Org'];
+        $fields = ['org_name' => ['kind' => 'string', 'column' => 'Org.name', 'via' => ['Org', 'Thing.org_id']]];
+        $tool = new ComplexQueryTool($this->model, [], $fields);
+        $subquery = ['Thing.org_id IN (Org.id AS Org)' => [['Org.name LIKE' => 'ac%']]];
+        $this->assertSame($subquery, $tool->conditions(['org_name' => ['LIKE' => 'ac%']]));
+        $this->assertSame(['NOT' => $subquery], $tool->conditions(['org_name' => ['NOT LIKE' => 'ac%']]));
     }
 }

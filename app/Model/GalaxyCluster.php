@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ComplexQueryTool', 'Tools');
 
 /**
  * @property Tag $Tag
@@ -12,6 +13,50 @@ App::uses('TmpFileTool', 'Tools');
 class GalaxyCluster extends AppModel
 {
     const GRAPH_RELATION_BUDGET = 500;
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'GalaxyCluster' => ['id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id'],
+    ];
+
+    /**
+     * The fields of the restSearch `query` tree (ComplexQueryTool). As in the
+     * other scopes, sharing_group_id is not one of them.
+     */
+    const QUERY_FIELDS = [
+        'id' => ['kind' => 'int', 'column' => 'GalaxyCluster.id', 'level' => ['galaxy_cluster']],
+        'uuid' => ['kind' => 'string', 'column' => 'GalaxyCluster.uuid', 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster']],
+        'type' => ['kind' => 'string', 'column' => 'GalaxyCluster.type', 'level' => ['galaxy_cluster']],
+        'value' => ['kind' => 'string', 'column' => 'GalaxyCluster.value', 'level' => ['galaxy_cluster']],
+        'tag_name' => ['kind' => 'string', 'column' => 'GalaxyCluster.tag_name', 'level' => ['galaxy_cluster']],
+        'description' => ['kind' => 'string', 'column' => 'GalaxyCluster.description', 'nullable' => 'GalaxyCluster.description', 'level' => ['galaxy_cluster']],
+        'source' => ['kind' => 'string', 'column' => 'GalaxyCluster.source', 'level' => ['galaxy_cluster']],
+        'authors' => ['kind' => 'string', 'column' => 'GalaxyCluster.authors', 'level' => ['galaxy_cluster']],
+        'version' => ['kind' => 'int', 'column' => 'GalaxyCluster.version', 'nullable' => 'GalaxyCluster.version', 'level' => ['galaxy_cluster']],
+        'distribution' => ['kind' => 'int', 'column' => 'GalaxyCluster.distribution', 'level' => ['galaxy_cluster']],
+        'org_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.org_id', 'level' => ['galaxy_cluster']],
+        'orgc_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.orgc_id', 'level' => ['galaxy_cluster']],
+        'org' => [
+            'kind' => 'string', 'column' => ['Orgc.name', 'Orgc.uuid'], 'lower' => true, 'via' => ['Orgc', 'GalaxyCluster.orgc_id'],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster'],
+        ],
+        'galaxy_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.galaxy_id', 'level' => ['galaxy_cluster']],
+        'galaxy_uuid' => [
+            'kind' => 'string', 'column' => 'Galaxy.uuid', 'via' => ['Galaxy', 'GalaxyCluster.galaxy_id'],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy'],
+        ],
+        'galaxy_name' => ['kind' => 'string', 'column' => 'Galaxy.name', 'via' => ['Galaxy', 'GalaxyCluster.galaxy_id'], 'level' => ['galaxy']],
+        'galaxy_namespace' => ['kind' => 'string', 'column' => 'Galaxy.namespace', 'via' => ['Galaxy', 'GalaxyCluster.galaxy_id'], 'level' => ['galaxy']],
+        'collection_uuid' => ['kind' => 'string', 'column' => 'GalaxyCluster.collection_uuid', 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster']],
+        'extends_uuid' => [
+            'kind' => 'string', 'column' => 'GalaxyCluster.extends_uuid', 'nullable' => 'GalaxyCluster.extends_uuid',
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster'],
+        ],
+        'extends_version' => ['kind' => 'int', 'column' => 'GalaxyCluster.extends_version', 'nullable' => 'GalaxyCluster.extends_version', 'level' => ['galaxy_cluster']],
+        'default' => ['kind' => 'bool', 'column' => 'GalaxyCluster.default', 'level' => ['galaxy_cluster']],
+        'locked' => ['kind' => 'bool', 'column' => 'GalaxyCluster.locked', 'level' => ['galaxy_cluster']],
+        'published' => ['kind' => 'bool', 'column' => 'GalaxyCluster.published', 'level' => ['galaxy_cluster']],
+        'deleted' => ['kind' => 'bool', 'column' => 'GalaxyCluster.deleted', 'level' => ['galaxy_cluster']],
+    ];
 
     public $useTable = 'galaxy_clusters';
 
@@ -100,6 +145,7 @@ class GalaxyCluster extends AppModel
 
     public $validFormats = array(
         'json' => array('json', 'JsonExport', 'json'),
+        'count' => array('txt', 'CountExport', 'txt'),
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -1175,7 +1221,7 @@ class GalaxyCluster extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'GalaxyCluster',
-                ['id', 'event_id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id']
+                self::REST_SEARCH_ORDER_FIELDS['GalaxyCluster']
             );
         }
         if (isset($options['page'])) {
@@ -1325,19 +1371,39 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly=false, $jobId = false, &$elementCounter = 0)
+    /**
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly=false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
+        $conditions = $this->buildFilterConditions($user, $filters);
+        if ($complexQuery !== null) {
+            $tool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig(), self::QUERY_FIELDS);
+            if (!empty($filters['order'])) {
+                $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'GalaxyCluster');
+            }
+            $conditions['AND'][] = $tool->conditions($complexQuery);
+        }
+        if ($returnFormat === 'count' && !$paramsOnly) {
+            // one COUNT rather than CountExport's walk over every cluster
+            $elementCounter = $this->fetchGalaxyClusters($user, ['conditions' => $conditions, 'count' => true]);
+            $tmpfile = new TmpFileTool();
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
-        $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
             'conditions' => $conditions,
             'full' => !empty($filters['full']) ? $filters['full'] : (!empty($filters['minimal']) ? !$filters['minimal'] : true),
             'minimal' => !empty($filters['minimal']) ? $filters['minimal'] : (!empty($filters['full']) ? !$filters['full'] : false),
         );
+        if (!empty($filters['order'])) {
+            $params['order'] = $filters['order'];
+        }
 
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];

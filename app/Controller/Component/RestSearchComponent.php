@@ -244,7 +244,9 @@ class RestSearchComponent extends Component
             'order',
             'elements',
             'value',
-            'type'
+            'type',
+            'returnFormat',
+            'query'
         ],
     );
 
