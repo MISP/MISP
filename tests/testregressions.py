@@ -10,6 +10,7 @@ that needs a freshly seeded database cannot tell a regression from a dirty insta
 Each class covers one fixed finding and states what the defect was, so a failure here says
 which protection regressed rather than only which assertion broke.
 """
+import base64
 import os
 import sys
 import html
@@ -3293,6 +3294,165 @@ class OrganisationDetailsSyncScope(unittest.TestCase):
     def test_site_admin_updates_organisations(self):
         victim = self._scenario(lambda org: self.admin)
         self.assertEqual(self.POISONED, self._details(victim.id))
+
+
+class ProtectedEventAdd(unittest.TestCase):
+    """A protected event can be created through events/add, keeping the key it lists: by a site
+    admin, an internal sync user and a regular user without a signature, and by an external sync
+    user only with a signature from that key; without a signature, or signed by an unlisted key,
+    it is refused with a 405 and nothing is stored.
+
+    The controller never passed the verified signer on to the model, which therefore refused
+    every protected event added through the API, whoever sent it and however it was signed. A
+    key entry holding only its type and key data was also dropped, leaving the event keyless.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.created_roles = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.gnupg_homes = []
+        try:
+            ext_role = None
+            user_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if int(role['perm_site_admin']):
+                    continue
+                if (int(role['perm_sync']) and not int(role.get('perm_sync_internal', 0) or 0)
+                        and int(role['perm_add']) and int(role['perm_auth'])):
+                    ext_role = ext_role or role
+                if role['name'] == 'User' and int(role['perm_add']) and not int(role['perm_sync']):
+                    user_role = role
+            if ext_role is None or user_role is None:
+                raise unittest.SkipTest('no external sync role or User role')
+            body = {k: v for k, v in ext_role.items()
+                    if k.startswith('perm_') and k != 'perm_sync_internal'}
+            body['perm_sync_internal'] = 1
+            body['permission'] = 3
+            body['name'] = 'regression internal sync %s' % random()
+            response = cls.admin._prepare_request('POST', 'admin/roles/add', data={'Role': body})
+            created = response.json() if response.status_code == 200 else {}
+            created = created.get('Role', created)
+            if not created.get('id') or not int(created.get('perm_sync_internal', 0)):
+                raise unittest.SkipTest('no internal sync role could be created')
+            cls.created_roles.append(int(created['id']))
+            cls.org = make_org(cls.admin, 'regression protected add org')
+            cls.created_orgs = [cls.org]
+            cls.ext_user = make_user(cls.admin, cls.org.id, int(ext_role['id']))
+            cls.int_user = make_user(cls.admin, cls.org.id, cls.created_roles[0])
+            cls.reg_user = make_user(cls.admin, cls.org.id, int(user_role['id']))
+            cls.created_users = [cls.ext_user, cls.int_user, cls.reg_user]
+            cls.listed = cls._make_pgp_key()
+            cls.unlisted = cls._make_pgp_key()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _make_pgp_key(cls):
+        base = os.environ.get('REGRESSION_TMP') or tempfile.gettempdir()
+        home = tempfile.mkdtemp(prefix='regression-gnupg-', dir=base)
+        cls.gnupg_homes.append(home)
+        os.chmod(home, 0o700)
+        env = dict(os.environ, GNUPGHOME=home)
+        subprocess.run(['gpg', '--batch', '--pinentry-mode', 'loopback', '--passphrase', '',
+                        '--quick-generate-key', 'regression-%s@test.local' % random(), 'rsa2048',
+                        'sign', '1d'], env=env, check=True, capture_output=True, timeout=120)
+        exported = subprocess.run(['gpg', '--batch', '--armor', '--export'], env=env,
+                                  check=True, capture_output=True, timeout=30).stdout.decode()
+        colons = subprocess.run(['gpg', '--batch', '--with-colons', '--fingerprint'], env=env,
+                                check=True, capture_output=True, timeout=30
+                                ).stdout.decode().splitlines()
+        fingerprint = None
+        for i, line in enumerate(colons):
+            if line.startswith('pub:'):
+                fingerprint = colons[i + 1].split(':')[9].upper()
+                break
+        return {'env': env, 'pub': exported, 'fingerprint': fingerprint}
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+        for role_id in getattr(cls, 'created_roles', []):
+            cls.admin._prepare_request('POST', 'admin/roles/delete/%d' % role_id)
+        for home in getattr(cls, 'gnupg_homes', []):
+            shutil.rmtree(home, ignore_errors=True)
+
+    def _add(self, user_key, signer=None):
+        uuid = str(uuidlib.uuid4())
+        event = {'uuid': uuid, 'info': 'regression protected add %s' % random(),
+                 'distribution': 0, 'threat_level_id': 4, 'analysis': 0,
+                 'date': time.strftime('%Y-%m-%d'), 'protected': True,
+                 'Attribute': [{'type': 'comment', 'category': 'Other', 'value': random()}],
+                 'CryptographicKey': [{'type': 'pgp', 'key_data': self.listed['pub'],
+                                       'fingerprint': self.listed['fingerprint']}]}
+        raw = json.dumps({'Event': event}).encode()
+        headers = {'Authorization': user_key, 'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        if signer:
+            signature = subprocess.run(
+                ['gpg', '--batch', '--pinentry-mode', 'loopback', '--passphrase', '',
+                 '--detach-sign'], input=re.sub(rb'\s+', b'', raw), env=signer['env'],
+                check=True, capture_output=True, timeout=30).stdout
+            headers['x-pgp-signature'] = base64.b64encode(signature).decode()
+        type(self).event_uuids.append(uuid)
+        response = requests.post(url + '/events/add', data=raw, headers=headers, timeout=120,
+                                 verify=False)
+        found = self.admin._prepare_request('POST', 'events/restSearch',
+            data={'uuid': uuid, 'returnFormat': 'json'}).json().get('response', [])
+        stored = found[0]['Event'] if found else None
+        if stored:
+            type(self).event_ids.append(int(stored['id']))
+        return response, stored
+
+    def _created_protected(self, response, stored):
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertIsNotNone(stored, 'the event was not stored')
+        self.assertTrue(int(stored['protected']))
+        self.assertEqual([self.listed['fingerprint']],
+                         [k['fingerprint'].upper() for k in stored.get('CryptographicKey', [])],
+                         'the event did not keep its key')
+        return stored
+
+    def _refused(self, response, stored, text):
+        self.assertEqual(405, response.status_code, response.text[:300])
+        self.assertIn(text, response.text)
+        self.assertIsNone(stored, 'the refused event was stored')
+
+    def test_external_sync_user_signed(self):
+        self._created_protected(*self._add(self.ext_user.authkey, self.listed))
+
+    def test_external_sync_user_unsigned(self):
+        response, stored = self._add(self.ext_user.authkey)
+        self._refused(response, stored, 'no key was provided')
+
+    def test_external_sync_user_unlisted_signer(self):
+        response, stored = self._add(self.ext_user.authkey, self.unlisted)
+        self._refused(response, stored, 'failed signature validation')
+
+    def test_site_admin_unsigned(self):
+        self._created_protected(*self._add(key))
+
+    def test_internal_sync_user_unsigned(self):
+        self._created_protected(*self._add(self.int_user.authkey))
+
+    def test_regular_user_unsigned(self):
+        stored = self._created_protected(*self._add(self.reg_user.authkey))
+        self.assertEqual(int(self.org.id), int(stored['orgc_id']))
 
 
 if __name__ == '__main__':

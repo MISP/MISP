@@ -201,7 +201,7 @@ class CryptographicKey extends AppModel
      * @param string $data
      * @param string $signature
      * @param string $key
-     * @return bool
+     * @return string|false Fingerprint of $key when it made the signature
      */
     public function verifySignature($data, $signature, $key)
     {
@@ -227,7 +227,7 @@ class CryptographicKey extends AppModel
             return false;
         }
         if ($verifiedSignature[0]->getKeyFingerprint() === $fingerprint) {
-            return true;
+            return $fingerprint;
         } else {
             $this->error = self::ERROR_WRONG_KEY;
             return false;
@@ -315,6 +315,9 @@ class CryptographicKey extends AppModel
         }
     }
 
+    /**
+     * @return string|false Fingerprint of the event's key that made the signature
+     */
     public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
     {
         if (empty($user)) {
@@ -333,7 +336,8 @@ class CryptographicKey extends AppModel
         }
         $pgp_signature = base64_decode($pgp_signature);
         foreach ($eventCryptoGraphicKey as $supplied_key) {
-            if ($this->verifySignature($raw_data, $pgp_signature, $supplied_key['key_data'])) {
+            $fingerprint = $this->verifySignature($raw_data, $pgp_signature, $supplied_key['key_data']);
+            if ($fingerprint) {
                 try {
                     $unsigned = $this->__hasUnsignedWhitespace(JsonTool::decodeArray($raw_data));
                 } catch (Exception $e) {
@@ -344,7 +348,7 @@ class CryptographicKey extends AppModel
                     $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
                     return false;
                 }
-                return true;
+                return $fingerprint;
             }
         }
         $message = __('Could not validate the signature.');
@@ -425,18 +429,19 @@ class CryptographicKey extends AppModel
         }
         foreach ($cryptographicKeys as $cryptographicKey) {
             $this->create();
-            $this->save(
+            // beforeSave() sets uuid and fingerprint; an entry built by hand has only type and key_data
+            $saved = $this->save(
                 [
-                    'uuid' => $cryptographicKey['uuid'],
                     'key_data' => $cryptographicKey['key_data'],
-                    'fingerprint' => $cryptographicKey['fingerprint'],
-                    'revoked' => $cryptographicKey['revoked'],
-                    'parent_type' => $cryptographicKey['parent_type'],
+                    'revoked' => empty($cryptographicKey['revoked']) ? 0 : 1,
+                    'parent_type' => $type,
                     'parent_id' => $parent_id,
                     'type' => $cryptographicKey['type']
                 ]
             );
-            $results['add'][$cryptographicKey['id']] = $cryptographicKey['fingerprint'];
+            if ($saved) {
+                $results['add'][$this->id] = $saved['CryptographicKey']['fingerprint'];
+            }
         }
         $message = __(
             'Added %s (%s) and removed %s (%s) keys for %s #%s.',
@@ -444,11 +449,11 @@ class CryptographicKey extends AppModel
             implode (',', $results['add']),
             count($results['remove']),
             implode (',', $results['remove']),
-            $cryptographicKey['parent_type'],
+            $type,
             $parent_id
         );
         $this->deleteAll(['CryptographicKey.id' => $toRemove]);
-        $this->loadLog()->createLogEntry($user, 'updateCryptoKeys', $cryptographicKey['parent_type'], $cryptographicKey['parent_id'], $message);
+        $this->loadLog()->createLogEntry($user, 'updateCryptoKeys', $type, $parent_id, $message);
     }
 
     /**

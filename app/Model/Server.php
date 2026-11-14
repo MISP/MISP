@@ -494,20 +494,18 @@ class Server extends AppModel
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
+            // An internal link needs no signature
+            $fingerprint = true;
             if (!$server['Server']['internal'] && isset($event['Event']['protected']) && $event['Event']['protected']) {
-                if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
+                $fingerprint = $eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event);
+                if (!$fingerprint) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
                 }
             }
-            if(isset($event['Event']['protected']) && $event['Event']['protected'] && isset($event['Event']['CryptographicKey'][0])) {
-                $fingerprint = $event['Event']['CryptographicKey'][0]['fingerprint'];
-                $created_id = 0;
-                $validationIssues = array();
-                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
-            }else{
-                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
-            }
+            $created_id = 0;
+            $validationIssues = array();
+            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
             if ($result) {
                 $successes[] = $eventId;
                 if ($this->pubToZmq('event')) {

@@ -7274,6 +7274,7 @@ class Event extends AppModel
      * @param int|null $jobId
      * @param int $created_id
      * @param array $validationErrors
+     * @param string|bool $fingerprint Of the key that verified a protected event's signature, or true when the caller trusts the input
      * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
      * @throws Exception
      */
@@ -7307,14 +7308,9 @@ class Event extends AppModel
             if (empty($fingerprint)) {
                 throw new MethodNotAllowedException(__('Cannot add a protected event via the API, without the input being signed properly.'));
             }
-            $found = false;
             // Does any of the event\'s keys match the fingerprint?
-            foreach ($data['Event']['CryptographicKey'] as $key) {
-                if ($key['fingerprint'] === $fingerprint) {
-                    $found = true;
-                }
-            }
-            if (!$found) {
+            $listed = array_column($data['Event']['CryptographicKey'], 'fingerprint');
+            if ($fingerprint !== true && !in_array($fingerprint, $listed, true)) {
                 throw new MethodNotAllowedException(__('Cannot add the protected event, whilst the input was signed, the signing key was not found in the event\'s approved list of fingerprints..'));
             }
         }
