@@ -3,6 +3,9 @@ App::uses('AppModel', 'Model');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SyncTool', 'Tools');
 App::uses('Validation', 'Utility');
+App::uses('ComplexQueryTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class AnalystData extends AppModel
 {
@@ -75,6 +78,22 @@ class AnalystData extends AppModel
         'sharing_group_id',
     ];
     public const EDITABLE_FIELDS = [];
+
+    /** The restSearch `query` fields of a type beyond those every type has (queryFields()) */
+    const QUERY_FIELDS = [];
+
+    const REST_SEARCH_ORDER_FIELDS = [];
+
+    const REST_SEARCH_CHUNK = 1000;
+
+    const SHARING_GROUP_FIELDS = [
+        'id', 'name', 'uuid', 'releasability', 'description', 'org_id', 'active', 'roaming', 'local'
+    ];
+
+    public $validFormats = [
+        'json' => ['json', 'JsonExport', 'json'],
+        'count' => ['txt', 'CountExport', 'txt'],
+    ];
 
     /** @var object|null */
     protected $Note;
@@ -436,6 +455,151 @@ class AnalystData extends AppModel
         return $conditions;
     }
 
+    /**
+     * The fields of the restSearch `query` tree (ComplexQueryTool): those every
+     * type has, then the type's own QUERY_FIELDS. The target is matched by its
+     * address only, as the target's own ACL is not part of the visible set.
+     *
+     * @return array
+     */
+    public function queryFields(): array
+    {
+        $alias = $this->alias;
+        $exact = ComplexQueryTool::EXACT_STRING_OPS;
+        $fields = [
+            'id' => ['kind' => 'int', 'column' => "$alias.id"],
+            'uuid' => ['kind' => 'string', 'column' => "$alias.uuid", 'ops' => $exact],
+            'object_type' => ['kind' => 'string', 'column' => "$alias.object_type", 'ops' => $exact],
+            'object_uuid' => ['kind' => 'string', 'column' => "$alias.object_uuid", 'nullable' => "$alias.object_uuid", 'ops' => $exact],
+            'object_sha256' => [
+                'kind' => 'string', 'column' => "$alias.object_sha256", 'nullable' => "$alias.object_sha256",
+                'lower' => 'value', 'ops' => $exact,
+            ],
+            'authors' => ['kind' => 'string', 'column' => "$alias.authors", 'nullable' => "$alias.authors"],
+            // $this->Orgc is the shared Organisation model, not an aliased association
+            'org' => [
+                'kind' => 'string', 'column' => ['Organisation.name', 'Organisation.uuid'], 'lower' => true,
+                'via' => ['Orgc', "$alias.orgc_uuid", 'uuid'], 'ops' => $exact,
+            ],
+            'org_uuid' => ['kind' => 'string', 'column' => "$alias.org_uuid", 'ops' => $exact],
+            'orgc_uuid' => ['kind' => 'string', 'column' => "$alias.orgc_uuid", 'ops' => $exact],
+            'created' => ['kind' => 'datetime', 'column' => "$alias.created"],
+            'modified' => ['kind' => 'datetime', 'column' => "$alias.modified"],
+            'distribution' => ['kind' => 'int', 'column' => "$alias.distribution"],
+            'locked' => ['kind' => 'bool', 'column' => "$alias.locked"],
+        ] + static::QUERY_FIELDS;
+        foreach ($fields as &$def) {
+            $def['level'] = [Inflector::underscore($alias)];
+        }
+        return $fields;
+    }
+
+    /**
+     * Takes only `query`, paging, `order` and `returnFormat` (json or count).
+     *
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
+    {
+        if (!isset($this->validFormats[$returnFormat])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        $alias = $this->alias;
+        $tool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig(), $this->queryFields());
+        $order = [];
+        if (!empty($filters['order'])) {
+            $tool->validateOrder($filters['order'], static::REST_SEARCH_ORDER_FIELDS, $alias);
+            $order = $this->findOrder($filters['order'], $alias, static::REST_SEARCH_ORDER_FIELDS[$alias]) ?? [];
+        }
+        // a unique last key, or OFFSET paging can repeat or skip rows
+        if (!preg_grep("/^$alias\.id /", $order)) {
+            $order[] = "$alias.id asc";
+        }
+        $limit = (int)($filters['limit'] ?? 0);
+        if ($limit < 0) {
+            throw new BadRequestException(__('The limit must be a positive integer.'));
+        }
+        $conditions = $this->buildConditions($user);
+        if ($complexQuery !== null) {
+            $conditions['AND'][] = $tool->compile($tool->validate($complexQuery));
+        }
+        // beforeFind still withholds what a pre-3.0 requester may not receive
+        $find = ['conditions' => $conditions, 'recursive' => -1, 'callbacks' => 'before'];
+        $tmpfile = new TmpFileTool();
+        if ($returnFormat === 'count') {
+            $elementCounter = $this->find('count', $find);
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
+        $offset = $limit && !empty($filters['page']) ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        $elementCounter = 0;
+        $separator = '';
+        $tmpfile->write('{"response": [');
+        do {
+            $size = $limit ? min(self::REST_SEARCH_CHUNK, $limit - $elementCounter) : self::REST_SEARCH_CHUNK;
+            $rows = $this->find('all', $find + [
+                'order' => $order,
+                'limit' => $size,
+                'offset' => $offset + $elementCounter,
+            ]);
+            foreach ($this->restSearchRows($user, $rows) as $row) {
+                $tmpfile->write($separator . JsonTool::encode($row));
+                $separator = ',';
+            }
+            $elementCounter += count($rows);
+        } while (count($rows) === $size && (!$limit || $elementCounter < $limit));
+        $tmpfile->write(']}' . PHP_EOL);
+        return $tmpfile;
+    }
+
+    /**
+     * Rows as the REST index returns them (afterFind), with one organisation
+     * lookup for all instead of two per row.
+     *
+     * @param array $user
+     * @param array $rows
+     * @return array
+     */
+    protected function restSearchRows(array $user, array $rows)
+    {
+        $alias = $this->alias;
+        $records = array_column($rows, $alias);
+        if (empty($records)) {
+            return [];
+        }
+        $orgs = $this->Orgc->find('all', [
+            'conditions' => ['uuid' => array_values(array_unique(array_merge(
+                array_column($records, 'orgc_uuid'),
+                array_column($records, 'org_uuid')
+            )))],
+            'fields' => ['id', 'name', 'uuid'],
+            'recursive' => -1,
+        ]);
+        $orgs = Hash::combine($orgs, '{n}.' . $this->Orgc->alias . '.uuid', '{n}.' . $this->Orgc->alias);
+        $sharingGroups = [];
+        $out = [];
+        foreach ($records as $record) {
+            $record['note_type'] = $this->current_type_id;
+            $record['note_type_name'] = $this->current_type;
+            foreach (['Orgc' => 'orgc_uuid', 'Org' => 'org_uuid'] as $key => $column) {
+                if (isset($orgs[$record[$column]])) {
+                    $record[$key] = $orgs[$record[$column]];
+                }
+            }
+            if ($record['distribution'] == 4) {
+                $id = $record['sharing_group_id'];
+                if (!array_key_exists($id, $sharingGroups)) {
+                    $sharingGroups[$id] = $this->SharingGroup->fetchSG($id, $user, true);
+                }
+                if (!empty($sharingGroups[$id])) {
+                    $record['SharingGroup'] = array_intersect_key($sharingGroups[$id]['SharingGroup'], array_flip(self::SHARING_GROUP_FIELDS));
+                }
+            }
+            $out[] = [$alias => $record];
+        }
+        return $out;
+    }
+
     protected function setUser()
     {
         if (empty($this->current_user)) {
@@ -492,14 +656,7 @@ class AnalystData extends AppModel
                     $this->SharingGroup = ClassRegistry::init('SharingGroup');
                     $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
                     if (!empty($sg)) {
-                        $sgData = array_intersect_key(
-                            $sg['SharingGroup'], array_flip(
-                                [
-                                    'id', 'name', 'uuid', 'releasability', 'description', 'org_id',
-                                    'active', 'roaming', 'local'
-                                ]
-                            )
-                        );
+                        $sgData = array_intersect_key($sg['SharingGroup'], array_flip(self::SHARING_GROUP_FIELDS));
                         $analystData[$this->alias]['SharingGroup'] = $sgData;
                     }
                 } else {

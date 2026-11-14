@@ -255,6 +255,27 @@ class RestSearchComponent extends Component
             'returnFormat',
             'query'
         ],
+        'Note' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Opinion' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Relationship' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
     );
 
     public function getFilename($filters, $scope, $responseType)

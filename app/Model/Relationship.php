@@ -27,6 +27,27 @@ class Relationship extends AnalystData
         'relationship_type',
     ];
 
+    const QUERY_FIELDS = [
+        'relationship_type' => [
+            'kind' => 'string', 'column' => 'Relationship.relationship_type', 'nullable' => 'Relationship.relationship_type',
+        ],
+        'related_object_type' => [
+            'kind' => 'string', 'column' => 'Relationship.related_object_type', 'ops' => ComplexQueryTool::EXACT_STRING_OPS,
+        ],
+        'related_object_uuid' => [
+            'kind' => 'string', 'column' => 'Relationship.related_object_uuid', 'nullable' => 'Relationship.related_object_uuid',
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS,
+        ],
+        'related_object_sha256' => [
+            'kind' => 'string', 'column' => 'Relationship.related_object_sha256', 'nullable' => 'Relationship.related_object_sha256',
+            'lower' => 'value', 'ops' => ComplexQueryTool::EXACT_STRING_OPS,
+        ],
+    ];
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Relationship' => ['id', 'created', 'modified', 'distribution', 'relationship_type'],
+    ];
+
     const ADDRESS_ENDS = [
         'object',
         'related_object',
@@ -126,6 +147,28 @@ class Relationship extends AnalystData
             }
         }
         return $results;
+    }
+
+    /**
+     * The REST index rows also carry the target as the user sees it (afterFind).
+     */
+    protected function restSearchRows(array $user, array $rows)
+    {
+        $targets = [];
+        $rows = parent::restSearchRows($user, $rows);
+        foreach ($rows as &$row) {
+            $type = $row[$this->alias]['related_object_type'] ?? null;
+            $address = $row[$this->alias][self::addressColumn($type, 'related_object')] ?? null;
+            if (!empty($type) && !empty($address)) {
+                $key = $type . ':' . $address;
+                if (!isset($targets[$key])) {
+                    $targets[$key] = $this->getRelatedElement($user, $type, $address);
+                }
+                $row[$this->alias]['related_object'] = $targets[$key];
+            }
+        }
+        unset($row);
+        return $rows;
     }
 
     /**

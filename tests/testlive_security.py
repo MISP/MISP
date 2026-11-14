@@ -3315,5 +3315,295 @@ class TestComplexEventReportQueryAcl(unittest.TestCase):
                 self.assertEqual(paged, names)
 
 
+class TestComplexAnalystDataQueryAcl(unittest.TestCase):
+    """The `query` tree of /analyst_data/restSearch must only narrow what /analyst_data/index shows the user."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+    TYPES = {"Note": ("notes", "note"), "Opinion": ("opinions", "comment"), "Relationship": ("relationships", "relationship_type")}
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqd" + random()
+        cls.created = {"records": [], "events": [], "users": [], "roles": [], "sgs": [], "keys": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQD Org " + random(), "local": True})["Organisation"]
+        me = cls.admin_api("GET", "users/view/me")
+        admin_org_uuid = me["Organisation"]["uuid"]
+        cls.admin_org_name = me["Organisation"]["name"]
+        roles = {
+            "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1, "perm_analyst_data": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQD {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            keys[name] = cls.__make_user(role["id"])
+        cls.user_key, cls.plain_user_key, cls.site_admin_key = keys["flagged"], keys["plain"], keys["site_admin"]
+
+        def sharing_group(label, members):
+            sg = cls.admin_api("POST", "sharingGroups/add", {
+                "SharingGroup": {"name": f"MQD SG {label} {random()}", "releasability": "test", "description": "test", "active": 1,
+                                 "organisation_uuid": admin_org_uuid, "roaming": 0},
+                "Organisation": [{"uuid": admin_org_uuid, "extend": True}]})["SharingGroup"]["id"]
+            cls.created["sgs"].append(sg)
+            for org_id in members:
+                cls.api(key, "POST", f"sharingGroups/addOrg/{sg}/{org_id}", {"extend": 0})
+            return sg
+        cls.sg_out = sharing_group("out", [cls.org["id"]])  # membership is needed to add; removed below
+        cls.sg_in = sharing_group("in", [cls.org["id"]])
+
+        # `hidden` is the anchor target; a relationship cannot point at its own target, so it points at `hidden2` instead
+        cls.hidden, cls.hidden2, cls.visible = (cls.__make_event(n, d) for n, d in (("hidden", 0), ("hidden2", 0), ("visible", 1)))
+        # (holder, distribution, sharing group, visible to the flagged user, relationship target)
+        specs = {
+            "own_0": ("own", 0, None, True, cls.hidden2), "own_sgout": ("own", 4, cls.sg_out, True, cls.visible),
+            "b_0": ("b", 0, None, False, cls.hidden2), "b_1": ("b", 1, None, True, cls.visible),
+            "b_2": ("b", 2, None, True, cls.hidden2), "b_3": ("b", 3, None, True, cls.visible),
+            "b_sgin": ("b", 4, cls.sg_in, True, cls.visible), "b_sgout": ("b", 4, cls.sg_out, False, cls.hidden2),
+        }
+        cls.records = {ty: {} for ty in cls.TYPES}
+        for ty, (_, text_field) in cls.TYPES.items():
+            for n, (name, (holder, distribution, sg, visible, target)) in enumerate(specs.items()):
+                body = {"object_uuid": cls.hidden["uuid"], "object_type": "Event", "distribution": distribution,
+                        text_field: f"{cls.marker} {name}"}
+                if sg:
+                    body["sharing_group_id"] = sg
+                if ty == "Note":
+                    body["language"] = "fr" if name == "b_3" else "en"
+                elif ty == "Opinion":
+                    body["opinion"] = n * 10
+                else:
+                    body.update({"related_object_type": "Event", "related_object_uuid": target["uuid"]})
+                status, data = cls.api(cls.user_key if holder == "own" else key, "POST", f"analyst_data/add/{ty}", body)
+                assert status == 200, (ty, name, status, str(data)[:300])
+                record = data[ty]
+                cls.created["records"].append((ty, record["id"]))
+                if holder == "own":
+                    assert record["org_uuid"] == cls.org["uuid"], record
+                cls.records[ty][name] = {"id": int(record["id"]), "name": name, "holder": holder, "distribution": distribution,
+                                         "sg": sg, "visible": visible, "target": target, "text": body[text_field],
+                                         "language": body.get("language"), "opinion": body.get("opinion")}
+        status, data = cls.api(key, "POST", f"sharingGroups/removeOrg/{cls.sg_out}/{cls.org['id']}")
+        assert status == 200, (status, data)
+        cls.by_id = {ty: {r["id"]: r for r in recs.values()} for ty, recs in cls.records.items()}
+
+    @classmethod
+    def tearDownClass(cls):
+        for ty, record_id in cls.created["records"]:
+            try:
+                cls.api(key, "POST", f"analyst_data/delete/{ty}/{record_id}")
+            except Exception:
+                pass
+        for kind, path in (("events", "events/delete/{}"), ("keys", "authKeys/delete/{}"), ("users", "admin/users/delete/{}"),
+                           ("sgs", "sharingGroups/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqd{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __make_event(cls, name: str, distribution: int) -> dict:
+        event = {"info": f"{cls.marker} ev-{name}", "distribution": distribution, "threat_level_id": 4, "analysis": 0}
+        data = cls.admin_api("POST", "events/add", {"Event": event})
+        cls.created["events"].append(data["Event"]["id"])
+        return {"id": int(data["Event"]["id"]), "uuid": data["Event"]["uuid"]}
+
+    def __anchored(self, tree=None):
+        anchor = {"object_uuid": self.hidden["uuid"]}
+        return anchor if tree is None else {"AND": [anchor, tree]}
+
+    def __search(self, ty, tree, token=None, extra=None, method="POST", anchored=True):
+        """Returns (status, [row] or None, raw data)."""
+        body = {"returnFormat": "json", "limit": 1000, "query": self.__anchored(tree) if anchored else tree}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, f"analyst_data/restSearch/{ty}", body)
+        rows = None
+        if status == 200 and isinstance(data, dict):
+            rows = [r[ty] for r in data["response"]]
+        return status, rows, data
+
+    def __ids(self, ty, tree, token=None, **kwargs):
+        status, rows, data = self.__search(ty, tree, token, **kwargs)
+        self.assertEqual(status, 200, data)
+        return {int(r["id"]) for r in rows}
+
+    def __index(self, ty, token):
+        status, data = self.api(token, "GET", f"analyst_data/index/{ty}/limit:1000")
+        self.assertEqual(status, 200, data)
+        return {int(row[ty]["id"]): row[ty] for row in data if int(row[ty]["id"]) in self.by_id[ty]}
+
+    def __cases(self, ty):
+        """(tree, predicate on a fixture record)"""
+        field = self.TYPES[ty][1]
+        holder_org = {"own": self.org["name"], "b": self.admin_org_name}
+        cases = {
+            "no query": (None, lambda r: True),
+            "distribution in": ({"distribution": {"IN": [0, 4]}}, lambda r: r["distribution"] in (0, 4)),
+            "org upper": ({"org": self.org["name"].upper()}, lambda r: r["holder"] == "own"),
+            "org admin": ({"org": self.admin_org_name}, lambda r: r["holder"] == "b"),
+            "not text like": ({"NOT": {field: {"LIKE": "%b_1"}}}, lambda r: r["name"] != "b_1"),
+            "modified recent": ({"modified": {">": "1d"}}, lambda r: True),
+        }
+        if ty == "Note":
+            cases["language"] = ({"language": {"!=": "en"}}, lambda r: r["language"] != "en")
+        elif ty == "Opinion":
+            cases["opinion"] = ({"opinion": {">=": 40}}, lambda r: r["opinion"] >= 40)
+        else:
+            cases["related"] = ({"related_object_uuid": self.visible["uuid"]}, lambda r: r["target"] == self.visible)
+        return cases
+
+    def test_fixture_is_discriminating(self):
+        for ty, recs in self.records.items():
+            with self.subTest(ty):
+                visible = {r["id"] for r in recs.values() if r["visible"]}
+                self.assertEqual(self.__ids(ty, None), visible)
+                self.assertEqual(self.__ids(ty, None, token=key), {r["id"] for r in recs.values()})
+                self.assertEqual(len(recs) - len(visible), 2)
+
+    def test_query_equals_the_index_and_the_matrix(self):
+        for ty, recs in self.records.items():
+            for label, (tree, predicate) in self.__cases(ty).items():
+                with self.subTest(f"{ty} {label}"):
+                    shown = {r["id"] for r in recs.values() if r["visible"] and predicate(r)}
+                    self.assertEqual(self.__ids(ty, tree), shown)
+                    admin_shown = {r["id"] for r in recs.values() if predicate(r)}
+                    self.assertEqual(self.__ids(ty, tree, token=key), admin_shown)
+                    if label in ("no query", "distribution in", "org admin", "not text like", "modified recent"):
+                        self.assertTrue(admin_shown - shown, "fixture is not discriminating")
+                    index = self.__index(ty, self.user_key)
+                    self.assertEqual({i for i in index if predicate(self.by_id[ty][i])}, shown)
+
+    def test_rows_equal_the_index_rows(self):
+        for ty, recs in self.records.items():
+            for token in (self.user_key, key):
+                with self.subTest(f"{ty} {token[:4]}"):
+                    status, rows, data = self.__search(ty, None, token)
+                    self.assertEqual(status, 200, data)
+                    index = self.__index(ty, token)
+                    self.assertEqual({int(r["id"]): r for r in rows}, index)
+                    self.assertEqual(len(index), 8 if token == key else 6)
+
+    def test_row_details(self):
+        for ty, recs in self.records.items():
+            with self.subTest(ty):
+                user_rows = {r["id"]: r for r in self.__search(ty, None)[1]}
+                admin_rows = {r["id"]: r for r in self.__search(ty, None, key)[1]}
+                own_sgout, b_sgin = str(recs["own_sgout"]["id"]), str(recs["b_sgin"]["id"])
+                self.assertNotIn("SharingGroup", user_rows[own_sgout])
+                self.assertEqual(int(user_rows[b_sgin]["SharingGroup"]["id"]), int(self.sg_in))
+                self.assertIn("SharingGroup", admin_rows[own_sgout])
+                self.assertEqual(user_rows[str(recs["own_0"]["id"])]["Orgc"]["name"], self.org["name"])
+                if ty == "Relationship":
+                    for name in ("own_0", "b_2"):
+                        self.assertEqual(user_rows[str(recs[name]["id"])]["related_object"], [])
+                        self.assertTrue(admin_rows[str(recs[name]["id"])]["related_object"])
+
+    def test_count(self):
+        for ty in self.records:
+            for token in (self.user_key, key):
+                for label, (tree, _) in self.__cases(ty).items():
+                    with self.subTest(f"{ty} {label} {token[:4]}"):
+                        ids = self.__ids(ty, tree, token=token)
+                        status, count = self.api(token, "POST", f"analyst_data/restSearch/{ty}", {
+                            "returnFormat": "count", "query": self.__anchored(tree)})
+                        self.assertEqual((status, int(count)), (200, len(ids)))
+
+    def test_permission_flag(self):
+        for ty, (table, _) in self.TYPES.items():
+            for token in (self.plain_user_key, "x" * 40):
+                with self.subTest(f"{ty} {token[:4]}"):
+                    status, rows, _ = self.__search(ty, None, token=token)
+                    self.assertEqual((status, rows), (403, None))
+                    status, data = self.api(token, "POST", f"analyst_data/restSearch/{ty}", {"returnFormat": "json"})
+                    self.assertEqual(status, 403, data)
+                    self.assertEqual(self.api(token, "GET", f"analyst_data/queryDescribe/{ty}")[0], 403)
+            with self.subTest(ty):
+                status, data = self.api(self.user_key, "GET", f"analyst_data/queryDescribe/{ty}")
+                self.assertEqual(status, 200)
+                self.assertEqual(data["tables"][table]["endpoint"], f"/analyst_data/restSearch/{ty}")
+                for hidden_field in ("sharing_group_id", "content", "node_count"):
+                    self.assertNotIn(hidden_field, data["tables"][table]["fields"])
+                self.assertEqual(self.__ids(ty, None, token=self.site_admin_key), {r["id"] for r in self.records[ty].values()})
+                self.assertEqual(self.api(self.site_admin_key, "GET", f"analyst_data/queryDescribe/{ty}")[0], 200)
+
+    def test_rejections(self):
+        self.assertEqual(self.api(self.user_key, "POST", "analyst_data/restSearch/Workspace", {"returnFormat": "json"})[0], 404)
+        self.assertEqual(self.api(self.user_key, "GET", "analyst_data/queryDescribe/Workspace")[0], 404)
+        for ty in self.TYPES:
+            for field in ("node_count", "sharing_group_id"):
+                with self.subTest(f"{ty} {field}"):
+                    status, rows, data = self.__search(ty, {field: 1})
+                    self.assertEqual((status, rows), (400, None), data)
+                    self.assertEqual(data["errors"][0]["code"], "unknown_field")
+            for order in ("note", "sharing_group_id", "Event.id"):
+                for query in (True, False):
+                    with self.subTest(f"{ty} {order} {query}"):
+                        body = {"returnFormat": "json", "order": order}
+                        if query:
+                            body["query"] = self.__anchored()
+                        status, data = self.api(self.user_key, "POST", f"analyst_data/restSearch/{ty}", body)
+                        self.assertEqual(status, 400, data)
+                        self.assertNotIn("response", data)
+                        self.assertEqual(data["errors"][0]["path"], "order[0]")
+            with self.subTest(f"{ty} limit and format"):
+                self.assertEqual(self.__search(ty, None, extra={"limit": -1})[0], 400)
+                self.assertEqual(self.__search(ty, None, extra={"returnFormat": "csv"})[0], 404)
+            with self.subTest(f"{ty} query by GET"):
+                status, data = self.api(self.user_key, "GET", f"analyst_data/restSearch/{ty}", {"returnFormat": "json", "query": self.__anchored()})
+                self.assertEqual(status, 400)
+                self.assertNotIn("response", data or {})
+                status, data = self.api(self.user_key, "POST", f"analyst_data/restSearch/{ty}?returnFormat=json&query[id]=1")
+                self.assertEqual(status, 400)
+                self.assertNotIn("response", data or {})
+
+    def test_paging(self):
+        for ty, recs in self.records.items():
+            orders = ["id desc"] + (["opinion desc"] if ty == "Opinion" else [])
+            for token, expected in ((self.user_key, {r["id"] for r in recs.values() if r["visible"]}), (key, {r["id"] for r in recs.values()})):
+                for order in orders:
+                    with self.subTest(f"{ty} {order} {token[:4]}"):
+                        status, rows, data = self.__search(ty, None, token, extra={"order": order})
+                        self.assertEqual(status, 200, data)
+                        ids = [int(r["id"]) for r in rows]
+                        self.assertEqual(set(ids), expected)
+                        self.assertEqual(len(ids), len(expected))
+                        paged = []
+                        for page in range(1, 6):
+                            status, rows, data = self.__search(ty, None, token, extra={"order": order, "limit": 3, "page": page})
+                            self.assertEqual(status, 200, data)
+                            self.assertLessEqual(len(rows), 3)
+                            paged += [int(r["id"]) for r in rows]
+                        self.assertEqual(paged, ids)
+
+
 if __name__ == '__main__':
     unittest.main()

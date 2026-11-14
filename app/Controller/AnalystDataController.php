@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('AnalystDataRailCards', 'Tools/RailCards');
 App::uses('AnalystData', 'Model');
+App::uses('ComplexQueryTool', 'Tools');
 
 class AnalystDataController extends AppController
 {
@@ -759,6 +760,39 @@ class AnalystDataController extends AppController
             }
         }
         return $rows;
+    }
+
+    public function restSearch($type = null)
+    {
+        $this->__queryType($type);
+        return parent::restSearch();
+    }
+
+    public function queryDescribe($type = null)
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $model = $this->__queryType($type);
+        $tool = new ComplexQueryTool($model, ComplexQueryTool::limitsFromConfig(), $model->queryFields());
+        return $this->RestResponse->viewData(
+            $tool->discovery(Inflector::tableize($type), '/analyst_data/restSearch/' . $type, $model::REST_SEARCH_ORDER_FIELDS, $type),
+            'json'
+        );
+    }
+
+    /**
+     * Unlike __typeSelector(), leaves the request body as sent, for restSearch
+     * to harvest. Workspaces are not searchable.
+     */
+    private function __queryType($type)
+    {
+        if (!in_array($type, AnalystData::ANALYST_DATA_TYPES, true)) {
+            throw new NotFoundException(__('Invalid type.'));
+        }
+        $this->loadModel($type);
+        $this->modelClass = $type;
+        return $this->{$type};
     }
 
     private function __typeSelector($type) {

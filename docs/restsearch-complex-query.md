@@ -5,13 +5,14 @@
 additional `query` key carrying a boolean tree of field conditions, so that
 requests such as `type = "domain" OR (id > 50000 AND tags = "tlp:white")` can
 be expressed. Requests without `query` behave exactly as before.
-`POST /event_reports/restSearch` is built around `query` and takes no
-legacy filters.
+`POST /event_reports/restSearch` and `POST /analyst_data/restSearch/<Type>`
+are built around `query` and take no legacy filters.
 
 The grammar, operators, limits and errors are the same on every endpoint.
 What differs is the list of fields and what the tree selects: see
 [Attributes](#attributes), [Events](#events), [Objects](#objects),
-[Galaxy clusters](#galaxy-clusters) and [Event reports](#event-reports).
+[Galaxy clusters](#galaxy-clusters), [Event reports](#event-reports) and
+[Analyst data](#analyst-data).
 
 ## Availability
 
@@ -23,8 +24,8 @@ What differs is the list of fields and what the tree selects: see
 - The user's role needs the **Complex query** permission
   (`perm_complex_query`, off for every role by default), unless the user is
   a site admin. Without it the request is answered with HTTP 403. On
-  `/event_reports/restSearch` this holds for every request, with or without
-  `query`.
+  `/event_reports/restSearch` and `/analyst_data/restSearch/<Type>` this
+  holds for every request, with or without `query`.
 - `query` can be combined with the legacy filters. The result is
   `ACL AND legacy filters AND query`: the tree can only narrow what the user
   is allowed to see anyway, never widen it.
@@ -70,7 +71,7 @@ Example, on attributes:
 | Operator | Meaning |
 |---|---|
 | `=`, `!=` | equals, not equals |
-| `>`, `<`, `>=`, `<=` | numeric, timestamp and date fields only |
+| `>`, `<`, `>=`, `<=` | numeric, timestamp, date and datetime fields only |
 | `IN`, `NOT IN` | operand is a non-empty list |
 | `LIKE`, `NOT LIKE` | string fields only; see below |
 
@@ -84,7 +85,9 @@ for numeric fields (`"50000"` for `id` is an error) and `true`/`false` for
 booleans. Timestamp fields take an integer (Unix time) or a relative string
 made of digits and one of `d`, `h`, `m`, `s` (`"7d"` is seven days ago).
 Date fields (`date`, the event date) take a `"YYYY-MM-DD"` string or a number
-of days (`"30d"`); `h`, `m` and `s` are rejected there.
+of days (`"30d"`); `h`, `m` and `s` are rejected there. Datetime fields
+(`created` and `modified` on analyst data) take what timestamp fields take,
+or a `"YYYY-MM-DD"` or `"YYYY-MM-DD HH:MM:SS"` string, all in UTC.
 
 ### Wildcards
 
@@ -101,8 +104,11 @@ selects anything carrying a `tlp:` tag.
 
 `object_relation` and `comment` on attributes, `object_name` and
 `object_template_uuid` on objects, `description`, `version`,
-`extends_uuid` and `extends_version` on galaxy clusters, and `content` on
-event reports can be NULL. Inside a `query`, `!=`,
+`extends_uuid` and `extends_version` on galaxy clusters, `content` on
+event reports, and on analyst data the addresses (`object_uuid`,
+`object_sha256` and their `related_object_` forms), `authors`, `note`,
+`language`, `opinion`, `comment` and `relationship_type` can be NULL. Inside a
+`query`, `!=`,
 `NOT IN` and `NOT` also match rows where the column is NULL. The legacy
 filters (for example `object_relation: "!ip"`) do not. This difference is
 intentional.
@@ -116,7 +122,8 @@ same names everywhere (`event_id`, `event_timestamp`, `eventinfo`, `org`,
 ...), so they can be copied from one endpoint's query to another's, where
 that endpoint has the field. On events, `event_id` and `event_timestamp` are
 the same as `id` and `timestamp`. Galaxy clusters have no event: there,
-`org`, `org_id` and `orgc_id` are the cluster's own organisations. Event
+`org`, `org_id` and `orgc_id` are the cluster's own organisations, and
+analyst data's `org`, `org_uuid` and `orgc_uuid` are its own. Event
 reports are searched as children of their event, with the event fields
 under the same names.
 
@@ -378,6 +385,61 @@ newest first:
 }
 ```
 
+## Analyst data
+
+`POST /analyst_data/restSearch/Note`, `/Opinion` and `/Relationship`, one
+endpoint per type. The body takes `query`, `page`, `limit`, `order` and
+`returnFormat` only; other keys are ignored. Without `query` it returns every
+record of that type the user can see, as `/analyst_data/index/<Type>` does.
+Workspaces cannot be searched.
+
+- The tree selects the records the user can see: those held by the user's
+  organisation, and those whose own distribution reaches the user. Whether
+  the user can see the record they are attached to is not checked, as in
+  the index; the target is therefore matched by its address
+  (`object_type`, `object_uuid`, `object_sha256`) only.
+- `order` takes `id`, `created`, `modified` and `distribution`, plus
+  `opinion` on opinions and `relationship_type` on relationships; anything
+  else is rejected with HTTP 400, with or without `query`. Without `order`
+  the records come by `id`, and `id` breaks every tie.
+- `"returnFormat": "count"` returns the number of matching records as the
+  body. A plain request does not compute a total.
+- Each row is the record as the index returns it, under its type (`Note`,
+  `Opinion`, `Relationship`): its organisations (`Orgc`, `Org`) when known
+  locally, its sharing group when the user can see it, and on relationships
+  the related record as the user sees it (`related_object`, empty when
+  hidden).
+
+| Field | Types | Type | Operators | Notes |
+|---|---|---|---|---|
+| `id`, `distribution` | all | integer | `= != > < >= <= IN NOT IN` | |
+| `created`, `modified` | all | datetime | same | see Types |
+| `locked` | all | boolean | `= !=` | |
+| `uuid`, `object_type`, `object_uuid`, `org_uuid`, `orgc_uuid` | all | string | `= != IN NOT IN` | `org_uuid` holds the record locally, `orgc_uuid` created it |
+| `object_sha256` | all | string | `= != IN NOT IN` | a value target, in any case |
+| `org` | all | string | `= != IN NOT IN` | name in any case, or uuid, of the creator organisation |
+| `authors` | all | string | `= != IN NOT IN LIKE NOT LIKE` | |
+| `note`, `language` | notes | string | same | |
+| `opinion` | opinions | integer | `= != > < >= <= IN NOT IN` | |
+| `comment` | opinions | string | `= != IN NOT IN LIKE NOT LIKE` | |
+| `relationship_type` | relationships | string | same | |
+| `related_object_type`, `related_object_uuid`, `related_object_sha256` | relationships | string | `= != IN NOT IN` | the related record's address |
+
+Example: the opinions below 50 on one event, created this month:
+
+```json
+{
+  "query": {
+    "AND": [
+      {"object_uuid": "5f1b2c3d-..."},
+      {"opinion": {"<": 50}},
+      {"created": {">=": "2026-11-01"}}
+    ]
+  },
+  "order": "opinion"
+}
+```
+
 ## Limits
 
 Checked before the database is touched. Server settings (all in the `MISP`
@@ -422,12 +484,13 @@ Missing permission is not part of this format: it is a plain HTTP 403.
 ## Discovery
 
 `GET /attributes/queryDescribe`, `GET /events/queryDescribe`,
-`GET /objects/queryDescribe`, `GET /galaxy_clusters/queryDescribe` and
-`GET /event_reports/queryDescribe` (API only, same permission as `query`)
-return the fields of that endpoint, their types and operators, the sortable
-fields and the limits in effect. A field's `level` says what it is matched
-against: `attribute`, `object`, `event`, `galaxy_cluster`, `galaxy` or
-`event_report`, or more than one (`tags`). On events and
+`GET /objects/queryDescribe`, `GET /galaxy_clusters/queryDescribe`,
+`GET /event_reports/queryDescribe` and `GET /analyst_data/queryDescribe/<Type>`
+(API only, same permission as `query`) return the fields of that endpoint,
+their types and operators, the sortable fields and the limits in effect. A
+field's `level` says what it is matched against: `attribute`, `object`,
+`event`, `galaxy_cluster`, `galaxy`, `event_report`, `note`, `opinion` or
+`relationship`, or more than one (`tags`). On events and
 objects, a field whose only level is `attribute` (or `object`, on events) is
 matched against the elements inside the record and takes positive operators
 only. `sortable` is empty for objects.

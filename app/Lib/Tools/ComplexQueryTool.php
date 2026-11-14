@@ -33,10 +33,11 @@ class ComplexQueryTool
     const MAX_ERRORS = 10;
 
     /**
-     * kind: int | time | date | bool | string
+     * kind: int | time | date | datetime | bool | string
      * column: native condition column (int, time, bool, native string), or a
      *     list of columns any of which may match
-     * lower: compare the columns in lower case, for case-sensitive ones
+     * lower: compare the columns in lower case, for case-sensitive ones; 'value'
+     *     lowercases only the value, for columns stored in lower case
      * via: [association, key(, its field)]: the column belongs to the associated model,
      *     matched through a subquery on its id (or that field), e.g. ['Orgc', 'GalaxyCluster.orgc_id']
      * key_column: on a wildcard entry (`meta.*`, any name under `meta.`), the column the
@@ -410,6 +411,11 @@ class ComplexQueryTool
                     return $value;
                 }
                 return $this->fail($path, 'bad_type', 'this field expects a YYYY-MM-DD date or a number of days such as 7d');
+            case 'datetime':
+                if (is_int($value) || (is_string($value) && (preg_match('/^[0-9]{1,9}[dhms]$/', $value) || self::isDateTime($value)))) {
+                    return $value;
+                }
+                return $this->fail($path, 'bad_type', 'this field expects an integer, a relative time such as 7d or a YYYY-MM-DD[ HH:MM:SS] date');
         }
         if (!is_string($value) || $value === '') {
             return $this->fail($path, 'bad_type', 'this field expects a non-empty string');
@@ -432,6 +438,14 @@ class ComplexQueryTool
     private static function isDate($value)
     {
         return preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/', $value, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1]);
+    }
+
+    private static function isDateTime($value)
+    {
+        if (self::isDate($value)) {
+            return true;
+        }
+        return preg_match('/^([0-9]{4}-[0-9]{2}-[0-9]{2}) ([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/', $value, $m) && self::isDate($m[1]);
     }
 
     private function build(array $node, $path, $selectiveSiblings = false)
@@ -501,13 +515,23 @@ class ComplexQueryTool
             $values = array_map(function ($v) {
                 return self::isDate($v) ? $v : date('Y-m-d', $this->model->resolveTimeDelta($v));
             }, $values);
+        } elseif ($def['kind'] === 'datetime') {
+            // stored as UTC
+            $values = array_map(function ($v) {
+                if (is_string($v) && self::isDateTime($v)) {
+                    return $v;
+                }
+                return gmdate('Y-m-d H:i:s', is_int($v) ? $v : $this->model->resolveTimeDelta($v));
+            }, $values);
         }
         $columns = (array)$def['column'];
         if (!empty($def['lower'])) {
             $values = array_map('mb_strtolower', $values);
-            $columns = array_map(function ($column) {
-                return "LOWER($column)";
-            }, $columns);
+            if ($def['lower'] !== 'value') {
+                $columns = array_map(function ($column) {
+                    return "LOWER($column)";
+                }, $columns);
+            }
         }
         $fragments = [];
         foreach ($columns as $column) {
