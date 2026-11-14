@@ -6,15 +6,16 @@ additional `query` key carrying a boolean tree of field conditions, so that
 requests such as `type = "domain" OR (id > 50000 AND tags = "tlp:white")` can
 be expressed. Requests without `query` behave exactly as before.
 `POST /event_reports/restSearch`, `POST /analyst_data/restSearch/<Type>`,
-`POST /collections/restSearch` and `POST /tags/restSearch` are built around
-`query` and take no legacy filters.
+`POST /collections/restSearch`, `POST /tags/restSearch` and
+`POST /organisations/restSearch` are built around `query` and take no legacy
+filters.
 
 The grammar, operators, limits and errors are the same on every endpoint.
 What differs is the list of fields and what the tree selects: see
 [Attributes](#attributes), [Events](#events), [Objects](#objects),
 [Galaxy clusters](#galaxy-clusters), [Event reports](#event-reports),
-[Analyst data](#analyst-data), [Collections](#collections) and
-[Tags](#tags).
+[Analyst data](#analyst-data), [Collections](#collections), [Tags](#tags)
+and [Organisations](#organisations).
 
 ## Availability
 
@@ -27,8 +28,9 @@ What differs is the list of fields and what the tree selects: see
   (`perm_complex_query`, off for every role by default), unless the user is
   a site admin. Without it the request is answered with HTTP 403. On
   `/event_reports/restSearch`, `/analyst_data/restSearch/<Type>`,
-  `/collections/restSearch` and `/tags/restSearch` this holds for every
-  request, with or without `query`.
+  `/collections/restSearch`, `/tags/restSearch` and
+  `/organisations/restSearch` this holds for every request, with or without
+  `query`.
 - `query` can be combined with the legacy filters. The result is
   `ACL AND legacy filters AND query`: the tree can only narrow what the user
   is allowed to see anyway, never widen it.
@@ -89,10 +91,11 @@ booleans. Timestamp fields take an integer (Unix time) or a relative string
 made of digits and one of `d`, `h`, `m`, `s` (`"7d"` is seven days ago).
 Date fields (`date`, the event date) take a `"YYYY-MM-DD"` string or a number
 of days (`"30d"`); `h`, `m` and `s` are rejected there. Datetime fields
-(`created` and `modified` on analyst data and collections) take what
-timestamp fields take, or a `"YYYY-MM-DD"` or `"YYYY-MM-DD HH:MM:SS"`
-string, in UTC on analyst data and in the server's time zone on collections,
-as each stores them.
+(`created` and `modified` on analyst data and collections, `date_created`
+and `date_modified` on organisations) take what timestamp fields take, or a
+`"YYYY-MM-DD"` or `"YYYY-MM-DD HH:MM:SS"` string, in UTC on analyst data
+and in the server's time zone on collections and organisations, as each
+stores them.
 
 ### Wildcards
 
@@ -113,7 +116,8 @@ selects anything carrying a `tlp:` tag.
 event reports, and on analyst data the addresses (`object_uuid`,
 `object_sha256` and their `related_object_` forms), `authors`, `note`,
 `language`, `opinion`, `comment` and `relationship_type`, and `description`
-on collections and `numerical_value` on tags can be NULL. Inside a
+on collections, `numerical_value` on tags, and `description`, `contacts`
+and `landingpage` on organisations can be NULL. Inside a
 `query`, `!=`,
 `NOT IN` and `NOT` also match rows where the column is NULL. The legacy
 filters (for example `object_relation: "!ip"`) do not. This difference is
@@ -552,6 +556,51 @@ Example: the visible galaxy tags with an ATT&CK name, by name:
 }
 ```
 
+## Organisations
+
+`POST /organisations/restSearch`. The body takes `query`, `page`, `limit`,
+`order` and `returnFormat` only; other keys are ignored. Without `query` it
+returns every organisation, as `/organisations/index/scope:all` does.
+
+- The tree selects among all organisations, local and external (`local`).
+  When `Security.hide_organisation_index_from_users` hides the index from
+  roles without the sharing group permission, both endpoints refuse those
+  roles with HTTP 403 as well.
+- `name` and the other text fields compare case-insensitively; `uuid`
+  matches exactly, in any case. The creator (`created_by`), the user count
+  and `restricted_to_domain` cannot be searched.
+- `order` takes `id`, `name`, `date_created` and `date_modified`; `name`
+  sorts case-insensitively, as on the index. Anything else is rejected with
+  HTTP 400, with or without `query`. Without `order` the organisations come
+  by `id` (the index sorts by name), and `id` breaks every tie.
+- `"returnFormat": "count"` returns the number of matching organisations as
+  the body. A plain request does not compute a total.
+- Each row is the organisation as the index returns it, under
+  `Organisation`, with its `user_count`; for a site admin also `created_by`
+  and `created_by_email`.
+
+| Field | Level | Type | Operators | Notes |
+|---|---|---|---|---|
+| `id` | organisation | integer | `= != > < >= <= IN NOT IN` | |
+| `date_created`, `date_modified` | organisation | datetime | same | see Types |
+| `local` | organisation | boolean | `= !=` | an organisation of this instance |
+| `uuid` | organisation | string | `= != IN NOT IN` | |
+| `name`, `type`, `nationality`, `sector`, `description`, `contacts`, `landingpage` | organisation | string | `= != IN NOT IN LIKE NOT LIKE` | |
+
+Example: the external organisations of the financial sector, by name:
+
+```json
+{
+  "query": {
+    "AND": [
+      {"local": false},
+      {"sector": {"IN": ["Financial", "Banking"]}}
+    ]
+  },
+  "order": "name"
+}
+```
+
 ## Limits
 
 Checked before the database is touched. Server settings (all in the `MISP`
@@ -598,13 +647,14 @@ Missing permission is not part of this format: it is a plain HTTP 403.
 `GET /attributes/queryDescribe`, `GET /events/queryDescribe`,
 `GET /objects/queryDescribe`, `GET /galaxy_clusters/queryDescribe`,
 `GET /event_reports/queryDescribe`, `GET /analyst_data/queryDescribe/<Type>`
-`GET /collections/queryDescribe` and `GET /tags/queryDescribe` (API only,
-same permission as `query`)
+`GET /collections/queryDescribe`, `GET /tags/queryDescribe` and
+`GET /organisations/queryDescribe` (API only, same permission as `query`)
 return the fields of that endpoint,
 their types and operators, the sortable fields and the limits in effect. A
 field's `level` says what it is matched against: `attribute`, `object`,
 `event`, `galaxy_cluster`, `galaxy`, `event_report`, `note`, `opinion`,
-`relationship`, `collection`, `collection_element` or `tag`, or more than one
+`relationship`, `collection`, `collection_element`, `tag` or
+`organisation`, or more than one
 (`tags`). On events and
 objects, a field whose only level is `attribute` (or `object`, on events) is
 matched against the elements inside the record and takes positive operators

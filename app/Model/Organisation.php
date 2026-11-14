@@ -2,6 +2,9 @@
 App::uses('AppModel', 'Model');
 App::uses('ConnectionManager', 'Model');
 App::uses('FileAccessTool', 'Tools');
+App::uses('ComplexQueryTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -114,6 +117,39 @@ class Organisation extends AppModel
         'local' => true,
         'restricted_to_domain' => [],
         'landingpage' => null
+    ];
+
+    /**
+     * The fields of the restSearch `query` tree (ComplexQueryTool); every organisation is
+     * visible, as on the index, which the ACL gates as a whole.
+     */
+    const QUERY_FIELDS = [
+        'id' => ['kind' => 'int', 'column' => 'Organisation.id', 'level' => ['organisation']],
+        'uuid' => [
+            'kind' => 'string', 'column' => 'Organisation.uuid', 'lower' => 'value',
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['organisation'],
+        ],
+        'name' => ['kind' => 'string', 'column' => 'Organisation.name', 'lower' => true, 'level' => ['organisation']],
+        'type' => ['kind' => 'string', 'column' => 'Organisation.type', 'level' => ['organisation']],
+        'nationality' => ['kind' => 'string', 'column' => 'Organisation.nationality', 'level' => ['organisation']],
+        'sector' => ['kind' => 'string', 'column' => 'Organisation.sector', 'level' => ['organisation']],
+        'description' => ['kind' => 'string', 'column' => 'Organisation.description', 'nullable' => 'Organisation.description', 'level' => ['organisation']],
+        'contacts' => ['kind' => 'string', 'column' => 'Organisation.contacts', 'nullable' => 'Organisation.contacts', 'level' => ['organisation']],
+        'landingpage' => ['kind' => 'string', 'column' => 'Organisation.landingpage', 'nullable' => 'Organisation.landingpage', 'level' => ['organisation']],
+        'local' => ['kind' => 'bool', 'column' => 'Organisation.local', 'level' => ['organisation']],
+        'date_created' => ['kind' => 'datetime', 'column' => 'Organisation.date_created', 'local' => true, 'level' => ['organisation']],
+        'date_modified' => ['kind' => 'datetime', 'column' => 'Organisation.date_modified', 'local' => true, 'level' => ['organisation']],
+    ];
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Organisation' => ['id', 'name', 'date_created', 'date_modified'],
+    ];
+
+    const REST_SEARCH_CHUNK = 1000;
+
+    public $validFormats = [
+        'json' => ['json', 'JsonExport', 'json'],
+        'count' => ['txt', 'CountExport', 'txt'],
     ];
 
     public function beforeValidate($options = array())
@@ -647,5 +683,94 @@ class Organisation extends AppModel
         array_unshift($countries, 'International');
         array_unshift($countries, 'Europe');
         return $countries;
+    }
+
+    /**
+     * Takes only `query`, paging, `order` and `returnFormat` (json or count).
+     *
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
+    {
+        if (!isset($this->validFormats[$returnFormat])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        $tool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig(), self::QUERY_FIELDS);
+        $order = [];
+        if (!empty($filters['order'])) {
+            $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'Organisation');
+            $order = $this->findOrder($filters['order'], 'Organisation', self::REST_SEARCH_ORDER_FIELDS['Organisation']) ?? [];
+            // a binary column: sorted in any case, as the index does
+            $order = preg_replace('/^Organisation\.name /', 'LOWER(Organisation.name) ', $order);
+        }
+        // a unique last key, or OFFSET paging can repeat or skip rows
+        if (!preg_grep('/^Organisation\.id /', $order)) {
+            $order[] = 'Organisation.id asc';
+        }
+        $limit = (int)($filters['limit'] ?? 0);
+        if ($limit < 0) {
+            throw new BadRequestException(__('The limit must be a positive integer.'));
+        }
+        $conditions = [];
+        if ($complexQuery !== null) {
+            $conditions['AND'][] = $tool->compile($tool->validate($complexQuery));
+        }
+        $tmpfile = new TmpFileTool();
+        if ($returnFormat === 'count') {
+            $elementCounter = $this->find('count', ['conditions' => $conditions, 'recursive' => -1]);
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
+        $this->addCountField('user_count', $this->User, ['User.org_id = Organisation.id']);
+        $offset = $limit && !empty($filters['page']) ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        $elementCounter = 0;
+        $separator = '';
+        $tmpfile->write('{"response": [');
+        do {
+            $size = $limit ? min(self::REST_SEARCH_CHUNK, $limit - $elementCounter) : self::REST_SEARCH_CHUNK;
+            $orgs = $this->find('all', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'order' => $order,
+                'limit' => $size,
+                'offset' => $offset + $elementCounter,
+            ]);
+            foreach ($this->restSearchRows($orgs, $user) as $row) {
+                $tmpfile->write($separator . JsonTool::encode($row));
+                $separator = ',';
+            }
+            $elementCounter += count($orgs);
+        } while (count($orgs) === $size && (!$limit || $elementCounter < $limit));
+        unset($this->virtualFields['user_count']);
+        $tmpfile->write(']}' . PHP_EOL);
+        return $tmpfile;
+    }
+
+    /**
+     * Rows as the REST index returns them: the creator only for site admins.
+     */
+    private function restSearchRows(array $orgs, array $user)
+    {
+        if (empty($orgs)) {
+            return [];
+        }
+        $emails = [];
+        if ($user['Role']['perm_site_admin']) {
+            $emails = $this->User->find('list', [
+                'conditions' => ['User.id' => array_unique(array_column(array_column($orgs, 'Organisation'), 'created_by'))],
+                'fields' => ['User.id', 'User.email'],
+            ]);
+        }
+        $rows = [];
+        foreach ($orgs as $org) {
+            $record = $org['Organisation'];
+            if ($user['Role']['perm_site_admin']) {
+                $record['created_by_email'] = $emails[$record['created_by']] ?? __('Unknown');
+            } else {
+                unset($record['created_by']);
+            }
+            $rows[] = ['Organisation' => $record];
+        }
+        return $rows;
     }
 }

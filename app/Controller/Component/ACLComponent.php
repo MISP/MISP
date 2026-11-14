@@ -737,7 +737,9 @@ class ACLComponent extends Component
             'getOrgLogo' => array('*'),
             'index' => ['organisation_index'],
             'pickerSearch' => array('*'),
+            'queryDescribe' => ['AND' => ['perm_complex_query', 'organisation_index']],
             'railCard' => array('*'),
+            'restSearch' => ['AND' => ['perm_complex_query', 'organisation_index']],
             'view' => array('*'),
         ),
         'pages' => array(

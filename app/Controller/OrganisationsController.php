@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('OrganisationRailCards', 'Tools/RailCards');
+App::uses('ComplexQueryTool', 'Tools');
 
 /**
  * @property Organisation $Organisation
@@ -82,6 +83,18 @@ class OrganisationsController extends AppController
             $this->loadModel('AnalystProfile');
             $this->set('orgGrading', $this->AnalystProfile->gradingFor($this->Auth->user()));
         }
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $tool = new ComplexQueryTool($this->Organisation, ComplexQueryTool::limitsFromConfig(), Organisation::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('organisations', '/organisations/restSearch', Organisation::REST_SEARCH_ORDER_FIELDS, 'Organisation'),
+            'json'
+        );
     }
 
     public function admin_add()

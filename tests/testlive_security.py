@@ -4284,5 +4284,358 @@ class TestComplexTagQueryAcl(unittest.TestCase):
             self.assertEqual(self.__ids(None, extra=ordered), expected)
 
 
+class TestComplexOrganisationQueryAcl(unittest.TestCase):
+    """The `query` tree of /organisations/restSearch must only narrow what /organisations/index/scope:all shows."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+    HIDE = "Security.hide_organisation_index_from_users"
+    FIELDS = ["id", "uuid", "name", "type", "nationality", "sector", "description", "contacts",
+              "landingpage", "local", "date_created", "date_modified"]
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqo" + random()
+        cls.created = {"orgs": [], "users": [], "roles": [], "keys": []}
+        cls.org = None
+        cls.hide_to_restore = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        m = cls.marker
+        me = cls.admin_api("GET", "users/view/me")
+        cls.admin_user_id, cls.admin_email = int(me["User"]["id"]), me["User"]["email"]
+        specs = {
+            "home": (f"{m} alpha", {"local": True, "type": "Company", "nationality": "Lux", "sector": "Finance",
+                                    "description": "Home org"}),
+            "bravo": (f"{m} Bravo", {"local": False, "type": "CERT", "nationality": "FR", "sector": "Telecom",
+                                     "contacts": "bravo@x.test"}),
+            "charlie": (f"{m} charlie", {"local": False, "type": "company", "nationality": "DE", "sector": "finance",
+                                         "description": "Third", "landingpage": "https://c.test"}),
+            "delta": (f"{m} DELTA", {"local": True, "type": "NGO", "nationality": "lux", "sector": "Energy",
+                                     "restricted_to_domain": ["d.test"]}),
+            "echo": (f"{m} echo", {"local": False, "type": "CERT", "nationality": "FR", "sector": "Health",
+                                   "description": "Fifth"}),
+        }
+        cls.orgs = {}
+        for n, (label, (name, columns)) in enumerate(specs.items()):
+            added = cls.admin_api("POST", "admin/organisations/add", {"name": name, **columns})
+            org_id = int(added["Organisation"]["id"])
+            cls.created["orgs"].append(org_id)
+            stored = cls.admin_api("GET", f"organisations/view/{org_id}")
+            stored = stored.get("Organisation", stored)
+            record = {"key": label, "id": org_id, "name": stored["name"], "uuid": stored["uuid"],
+                      "local": bool(stored["local"]), "date_created": stored["date_created"],
+                      "date_modified": stored["date_modified"]}
+            for column in ("type", "nationality", "sector", "description", "contacts"):
+                record[column] = stored.get(column)
+            record["landingpage"] = added["Organisation"].get("landingpage")
+            assert record["name"] == name and record["local"] == columns["local"], (label, stored)
+            for column, value in columns.items():
+                if column not in ("local", "restricted_to_domain"):
+                    assert record[column] == value, (label, column, stored)
+            if "restricted_to_domain" in columns:
+                assert added["Organisation"]["restricted_to_domain"] == columns["restricted_to_domain"], added
+            cls.orgs[label] = record
+            if n == 0:
+                cls.org = {"id": org_id}
+                time.sleep(2)
+        o = cls.orgs
+        assert o["home"]["date_created"] < o["bravo"]["date_created"], o
+        assert o["bravo"]["description"] is None and o["delta"]["description"] is None, o
+        assert o["home"]["contacts"] is None and o["bravo"]["contacts"] and o["charlie"]["landingpage"], o
+        cls.by_id = {r["id"]: r for r in o.values()}
+
+        roles = {
+            "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1, "perm_sharing_group": 0},
+            "flagged_sg": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1, "perm_sharing_group": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        cls.user_ids = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQO {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            stored = cls.admin_api("GET", f"roles/view/{role['id']}")
+            stored = stored.get("Role", stored)
+            for perm in ("perm_complex_query", "perm_sharing_group", "perm_site_admin"):
+                if perm in perms:
+                    assert int(stored[perm]) == perms[perm], (name, perm, stored)
+            keys[name] = cls.__make_user(role["id"], name)
+        cls.user_key, cls.sg_key, cls.plain_user_key, cls.site_admin_key = (
+            keys["flagged"], keys["flagged_sg"], keys["plain"], keys["site_admin"])
+        index = cls.admin_api("GET", f"organisations/index/scope:all/searchall:{m}")
+        assert {int(r["Organisation"]["id"]) for r in index} == set(cls.by_id), index
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.hide_to_restore is not None:
+            try:
+                PyMISP(url, key).set_server_setting(cls.HIDE, cls.hide_to_restore, force=True)
+            except Exception:
+                pass
+        for kind, path in (("keys", "authKeys/delete/{}"), ("users", "admin/users/delete/{}"),
+                           ("roles", "admin/roles/delete/{}"), ("orgs", "admin/organisations/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+
+    @classmethod
+    def __make_user(cls, role_id, label) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqo{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        cls.user_ids[label] = int(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    def __anchored(self, tree=None):
+        anchor = {"name": {"LIKE": self.marker + "%"}}
+        return anchor if tree is None else {"AND": [anchor, tree]}
+
+    def __search(self, tree, token=None, extra=None, method="POST", anchored=True):
+        """Returns (status, [row] or None, raw data)."""
+        body = {"returnFormat": "json", "limit": 1000, "query": self.__anchored(tree) if anchored else tree}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "organisations/restSearch", body)
+        rows = data["response"] if status == 200 and isinstance(data, dict) else None
+        return status, rows, data
+
+    def __ids(self, tree, token=None, **kwargs):
+        status, rows, data = self.__search(tree, token, **kwargs)
+        self.assertEqual(status, 200, data)
+        return [int(r["Organisation"]["id"]) for r in rows]
+
+    def __index(self, token):
+        status, data = self.api(token, "GET", f"organisations/index/scope:all/searchall:{self.marker}")
+        self.assertEqual(status, 200, str(data)[:300])
+        return {int(row["Organisation"]["id"]): row["Organisation"] for row in data if int(row["Organisation"]["id"]) in self.by_id}
+
+    def __setting(self):
+        status, data = self.api(key, "GET", f"servers/getSetting/{self.HIDE}")
+        self.assertEqual(status, 200, data)
+        return bool(data["value"])
+
+    def __cases(self):
+        """(tree, predicate on a fixture record)"""
+        o, m = self.orgs, self.marker
+        lower = lambda v: None if v is None else v.lower()
+        first = o["home"]["date_created"]
+        return {
+            "no query": (None, lambda r: True),
+            "id in": ({"id": {"IN": [o["home"]["id"], o["charlie"]["id"]]}}, lambda r: r["key"] in ("home", "charlie")),
+            "uuid upper": ({"uuid": o["charlie"]["uuid"].upper()}, lambda r: r["key"] == "charlie"),
+            "uuid not in": ({"uuid": {"NOT IN": [o["bravo"]["uuid"]]}}, lambda r: r["key"] != "bravo"),
+            "name = other case": ({"name": f"{m} BRAVO"}, lambda r: r["key"] == "bravo"),
+            "name like": ({"name": {"LIKE": "%a"}}, lambda r: r["name"].lower().endswith("a")),
+            "name not like": ({"name": {"NOT LIKE": "% echo"}}, lambda r: r["key"] != "echo"),
+            "type": ({"type": "COMPANY"}, lambda r: lower(r["type"]) == "company"),
+            "nationality in": ({"nationality": {"IN": ["LUX", "fr"]}}, lambda r: lower(r["nationality"]) in ("lux", "fr")),
+            "sector like": ({"sector": {"LIKE": "FIN%"}}, lambda r: lower(r["sector"]).startswith("fin")),
+            "description !=": ({"description": {"!=": "THIRD"}}, lambda r: r["description"] is None or lower(r["description"]) != "third"),
+            "contacts not like": ({"contacts": {"NOT LIKE": "%BRAVO%"}}, lambda r: r["contacts"] is None or "bravo" not in lower(r["contacts"])),
+            "landingpage": ({"landingpage": "HTTPS://C.TEST"}, lambda r: lower(r["landingpage"]) == "https://c.test"),
+            "landingpage not in": ({"landingpage": {"NOT IN": ["https://c.test"]}}, lambda r: r["landingpage"] is None),
+            "local true": ({"local": True}, lambda r: r["local"]),
+            "local false": ({"local": False}, lambda r: not r["local"]),
+            "date_created <=": ({"date_created": {"<=": first}}, lambda r: r["date_created"] <= first),
+            "date_modified >=": ({"date_modified": {">=": "1d"}}, lambda r: True),
+            "and or": ({"AND": [{"OR": [{"local": False}, {"sector": {"LIKE": "en%"}}]}, {"NOT": {"type": "CERT"}}]},
+                       lambda r: (not r["local"] or lower(r["sector"]).startswith("en")) and lower(r["type"]) != "cert"),
+        }
+
+    def test_fixture_is_discriminating(self):
+        user_index, admin_index = self.__index(self.user_key), self.__index(key)
+        self.assertEqual(set(user_index), set(self.by_id))
+        self.assertEqual(set(admin_index), set(self.by_id))
+        home = self.orgs["home"]["id"]
+        for row in admin_index.values():
+            self.assertEqual(int(row["created_by"]), self.admin_user_id)
+            self.assertEqual(row["created_by_email"], self.admin_email)
+        for row in user_index.values():
+            self.assertNotIn("created_by", row)
+            self.assertNotIn("created_by_email", row)
+        self.assertEqual(int(user_index[home]["user_count"]), 4)
+        self.assertEqual(int(admin_index[home]["user_count"]), 4)
+        names = [r["name"] for r in self.orgs.values()]
+        self.assertNotEqual(sorted(names), sorted(names, key=str.lower))
+
+    def test_query_equals_the_index_and_the_matrix(self):
+        tokens = {"flagged": self.user_key, "site_admin": self.site_admin_key, "admin": key}
+        index = self.__index(self.user_key)
+        cases = self.__cases()
+        for label, (tree, predicate) in cases.items():
+            with self.subTest(label):
+                expected = sorted(r["id"] for r in self.orgs.values() if predicate(r))
+                self.assertTrue(expected, "empty expectation")
+                for who, token in tokens.items():
+                    self.assertEqual(self.__ids(tree, token=token), expected, who)
+                self.assertEqual(sorted(i for i in index if predicate(self.by_id[i])), expected)
+        with self.subTest("discriminating"):
+            for label in ("id in", "uuid not in", "name not like", "description !=", "contacts not like",
+                          "landingpage not in", "local false", "date_created <=", "and or"):
+                self.assertTrue(any(not cases[label][1](r) for r in self.orgs.values()), label)
+            self.assertTrue(any(r["description"] is None for r in self.orgs.values()))
+            self.assertTrue(any(r["contacts"] is None for r in self.orgs.values()))
+
+    def test_rows_equal_the_index_rows(self):
+        for token in (self.user_key, self.site_admin_key, key):
+            with self.subTest(token[:4]):
+                status, rows, data = self.__search(None, token)
+                self.assertEqual(status, 200, data)
+                index = self.__index(token)
+                self.assertEqual({int(r["Organisation"]["id"]): r["Organisation"] for r in rows}, index)
+                self.assertEqual(len(index), 5)
+
+    def test_row_details(self):
+        rows = {tok: {int(r["Organisation"]["id"]): r["Organisation"] for r in self.__search(None, tok)[1]}
+                for tok in (self.user_key, key)}
+        user_rows, admin_rows = rows[self.user_key], rows[key]
+        for row in user_rows.values():
+            self.assertNotIn("created_by", row)
+            self.assertNotIn("created_by_email", row)
+        for row in admin_rows.values():
+            self.assertEqual(int(row["created_by"]), self.admin_user_id)
+            self.assertEqual(row["created_by_email"], self.admin_email)
+        for row in list(user_rows.values()) + list(admin_rows.values()):
+            self.assertIsInstance(row["restricted_to_domain"], (list, type(None)))
+        for rows_by_id in (user_rows, admin_rows):
+            self.assertEqual(rows_by_id[self.orgs["delta"]["id"]]["restricted_to_domain"], ["d.test"])
+        home = self.orgs["home"]["id"]
+        self.assertEqual((int(user_rows[home]["user_count"]), int(admin_rows[home]["user_count"])), (4, 4))
+
+    def test_count(self):
+        for label, (tree, _) in self.__cases().items():
+            with self.subTest(label):
+                ids = self.__ids(tree)
+                status, count = self.api(self.user_key, "POST", "organisations/restSearch", {
+                    "returnFormat": "count", "query": self.__anchored(tree)})
+                self.assertEqual((status, int(count)), (200, len(ids)))
+
+    def test_permission_flag(self):
+        for with_query in (True, False):
+            body = {"returnFormat": "json"}
+            if with_query:
+                body["query"] = self.__anchored()
+            status, data = self.api(self.plain_user_key, "POST", "organisations/restSearch", body)
+            self.assertEqual(status, 403, data)
+        self.assertEqual(self.api(self.plain_user_key, "GET", "organisations/queryDescribe")[0], 403)
+        self.assertEqual(self.api(self.plain_user_key, "GET", "organisations/index")[0], 200)
+        for token in (self.user_key, self.sg_key, self.site_admin_key):
+            self.assertEqual(len(self.__ids(None, token=token)), 5)
+            status, data = self.api(token, "GET", "organisations/queryDescribe")
+            self.assertEqual(status, 200)
+            table = data["tables"]["organisations"]
+            self.assertEqual(sorted(table["fields"]), sorted(self.FIELDS))
+            self.assertEqual(len(table["fields"]), 12)
+            self.assertEqual(table["sortable"], ["id", "name", "date_created", "date_modified"])
+
+    def test_hidden_index_gate(self):
+        original = self.__setting()
+        admin = PyMISP(url, key)
+        type(self).hide_to_restore = original
+        try:
+            check_response(admin.set_server_setting(self.HIDE, True, force=True))
+            for _ in range(10):
+                if self.api(self.user_key, "GET", "organisations/index")[0] == 403:
+                    break
+                time.sleep(1)
+            body = {"returnFormat": "json", "query": self.__anchored()}
+            with self.subTest("flagged"):
+                self.assertEqual(self.api(self.user_key, "POST", "organisations/restSearch", body)[0], 403)
+                self.assertEqual(self.api(self.user_key, "GET", "organisations/queryDescribe")[0], 403)
+                self.assertEqual(self.api(self.user_key, "GET", "organisations/index")[0], 403)
+            with self.subTest("flagged_sg"):
+                status, data = self.api(self.sg_key, "POST", "organisations/restSearch", body)
+                self.assertEqual(status, 200, data)
+                self.assertEqual(self.api(self.sg_key, "GET", "organisations/queryDescribe")[0], 200)
+                self.assertEqual(self.api(self.sg_key, "GET", "organisations/index")[0], 200)
+                self.assertEqual({int(r["Organisation"]["id"]): r["Organisation"] for r in data["response"]},
+                                 self.__index(self.sg_key))
+            with self.subTest("site_admin"):
+                self.assertEqual(self.api(self.site_admin_key, "POST", "organisations/restSearch", body)[0], 200)
+                self.assertEqual(self.api(self.site_admin_key, "GET", "organisations/queryDescribe")[0], 200)
+                self.assertEqual(self.api(self.site_admin_key, "GET", "organisations/index")[0], 200)
+        finally:
+            check_response(admin.set_server_setting(self.HIDE, original, force=True))
+            type(self).hide_to_restore = None
+            for _ in range(10):
+                if self.__setting() == original and self.api(self.user_key, "GET", "organisations/index")[0] == 200:
+                    break
+                time.sleep(1)
+        self.assertEqual(self.__setting(), original)
+
+    def test_rejections(self):
+        for field in ("created_by", "created_by_email", "user_count", "restricted_to_domain", "org"):
+            with self.subTest(field):
+                status, rows, data = self.__search({field: 1})
+                self.assertEqual((status, rows), (400, None), data)
+                self.assertEqual(data["errors"][0]["code"], "unknown_field")
+        with self.subTest("uuid like"):
+            status, rows, data = self.__search({"uuid": {"LIKE": "a%"}})
+            self.assertEqual((status, rows), (400, None), data)
+            self.assertEqual(data["errors"][0]["code"], "unknown_operator")
+        with self.subTest("empty string"):
+            status, rows, data = self.__search({"sector": ""})
+            self.assertEqual((status, rows), (400, None), data)
+            self.assertEqual(data["errors"][0]["code"], "bad_type")
+        for order in ("user_count", "sector", "created_by desc"):
+            for query in (True, False):
+                with self.subTest(f"{order} {query}"):
+                    body = {"returnFormat": "json", "order": order}
+                    if query:
+                        body["query"] = self.__anchored()
+                    status, data = self.api(self.user_key, "POST", "organisations/restSearch", body)
+                    self.assertEqual(status, 400, data)
+                    self.assertNotIn("response", data)
+        with self.subTest("limit and format"):
+            self.assertEqual(self.__search(None, extra={"limit": -1})[0], 400)
+            self.assertEqual(self.__search(None, extra={"returnFormat": "csv"})[0], 404)
+        with self.subTest("query by GET"):
+            status, data = self.api(self.user_key, "GET", "organisations/restSearch", {"returnFormat": "json", "query": self.__anchored()})
+            self.assertEqual(status, 400)
+            self.assertNotIn("response", data or {})
+            status, data = self.api(self.user_key, "POST", "organisations/restSearch?returnFormat=json&query[id]=1")
+            self.assertEqual(status, 400)
+            self.assertNotIn("response", data or {})
+
+    def test_paging_and_order(self):
+        o = self.orgs
+        full = sorted(self.by_id)
+        self.assertEqual(self.__ids(None), full)
+        paged = []
+        for page in range(1, 5):
+            ids = self.__ids(None, extra={"limit": 2, "page": page})
+            self.assertLessEqual(len(ids), 2)
+            paged += ids
+        self.assertEqual(paged, full)
+        insensitive = [r["id"] for r in sorted(o.values(), key=lambda r: r["name"].lower())]
+        binary = [r["id"] for r in sorted(o.values(), key=lambda r: r["name"])]
+        self.assertNotEqual(insensitive, binary)
+        with self.subTest("name"):
+            ids = self.__ids(None, extra={"order": "name"})
+            self.assertEqual(ids, insensitive)
+            self.assertNotEqual(ids, binary)
+        with self.subTest("name desc page 2"):
+            self.assertEqual(self.__ids(None, extra={"order": "name desc", "limit": 2, "page": 2}),
+                             insensitive[::-1][2:4])
+        with self.subTest("date_created"):
+            ids = self.__ids(None, extra={"order": "date_created"})
+            self.assertEqual(ids[0], o["home"]["id"])
+            self.assertEqual(sorted(ids), full)
+
+
 if __name__ == '__main__':
     unittest.main()
