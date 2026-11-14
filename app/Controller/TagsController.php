@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ComplexQueryTool', 'Tools');
 
 /**
  * @property Tag $Tag
@@ -82,6 +83,18 @@ class TagsController extends AppController
             throw new NotFoundException(__('Invalid taxonomy.'));
         }
         return $this->RestResponse->viewData($tree, 'json');
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $tool = new ComplexQueryTool($this->Tag, ComplexQueryTool::limitsFromConfig(), Tag::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('tags', '/tags/restSearch', Tag::REST_SEARCH_ORDER_FIELDS, 'Tag'),
+            'json'
+        );
     }
 
     public function index()

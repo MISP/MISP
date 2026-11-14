@@ -283,6 +283,13 @@ class RestSearchComponent extends Component
             'returnFormat',
             'query'
         ],
+        'Tag' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
     );
 
     public function getFilename($filters, $scope, $responseType)

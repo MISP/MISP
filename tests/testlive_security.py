@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import re
 import sys
 import time
 import json
@@ -3930,6 +3931,357 @@ class TestComplexCollectionQueryAcl(unittest.TestCase):
                         self.assertLessEqual(len(rows), 3)
                         paged += [int(r["Collection"]["id"]) for r in rows]
                     self.assertEqual(paged, ids)
+
+
+class TestComplexTagQueryAcl(unittest.TestCase):
+    """The `query` tree of /tags/restSearch must only narrow what /tags/index shows the user."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+    FIELDS = ["id", "org_id", "user_id", "numerical_value", "name", "colour",
+              "exportable", "hide_tag", "is_galaxy", "is_custom_galaxy", "local_only"]
+    BOOLS = ("exportable", "hide_tag", "is_galaxy", "is_custom_galaxy", "local_only")
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqt" + random()
+        cls.created = {"tags": [], "events": [], "users": [], "roles": [], "keys": [], "settings": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQT Org " + random(), "local": True})["Organisation"]
+        me = cls.admin_api("GET", "users/view/me")
+        cls.admin_org_id, cls.admin_user_id = int(me["Organisation"]["id"]), int(me["User"]["id"])
+        roles = {
+            "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        cls.user_ids = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQT {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            keys[name] = cls.__make_user(role["id"], name)
+        cls.user_key, cls.plain_user_key, cls.site_admin_key = keys["flagged"], keys["plain"], keys["site_admin"]
+
+        m = cls.marker
+        specs = {
+            "plain": (f"{m} alpha", {"colour": "#AbCdEf", "numerical_value": 40}),
+            "hidden": (f"{m} bravo", {"colour": "#111111", "hide_tag": 1}),
+            "org": (f"{m} charlie", {"colour": "#222222", "org_id": cls.admin_org_id}),
+            "user": (f"{m} delta", {"colour": "#333333", "user_id": cls.admin_user_id}),
+            "num": (f"{m} echo", {"colour": "#444444", "numerical_value": 70}),
+            "local": (f"{m} foxtrot", {"colour": "#555555", "local_only": 1, "exportable": 0}),
+            "galaxy": (f'misp-galaxy:{m}="golf"', {"colour": "#666666"}),
+            "custom": (f'misp-galaxy:{m}="{uuid.uuid4()}"', {"colour": "#777777"}),
+        }
+        cls.tags = {}
+        for label, (name, columns) in specs.items():
+            added = cls.admin_api("POST", "tags/add", {"name": name, **columns})
+            tag_id = int(added["Tag"]["id"])
+            cls.created["tags"].append(tag_id)
+            stored = cls.admin_api("GET", f"tags/view/{tag_id}")
+            stored = stored.get("Tag", stored)
+            record = {"key": label, "id": tag_id, "name": stored["name"], "colour": stored["colour"],
+                      "org_id": int(stored["org_id"]), "user_id": int(stored["user_id"]),
+                      "numerical_value": None if stored["numerical_value"] is None else int(stored["numerical_value"])}
+            for field in cls.BOOLS:
+                record[field] = bool(int(stored[field]))
+            assert record["name"] == name, (label, stored)
+            for column, value in columns.items():
+                expected = value if column in ("colour",) else (bool(value) if column in cls.BOOLS else int(value))
+                assert record[column] == expected, (label, column, record)
+            cls.tags[label] = record
+        t = cls.tags
+        assert not t["plain"]["hide_tag"] and t["plain"]["exportable"] and not t["plain"]["is_galaxy"], t["plain"]
+        assert t["galaxy"]["is_galaxy"] and not t["galaxy"]["is_custom_galaxy"], t["galaxy"]
+        assert t["custom"]["is_galaxy"] and t["custom"]["is_custom_galaxy"], t["custom"]
+        assert [r["key"] for r in t.values() if r["numerical_value"] is not None] == ["plain", "num"], t
+        cls.by_id = {r["id"]: r for r in t.values()}
+
+        # the flagged user overrides the numerical value of one tag and favourites another
+        flagged_id = cls.user_ids["flagged"]
+        status, data = cls.api(key, "POST", f"user_settings/setSetting/{flagged_id}/tag_numerical_value_override",
+                               {"value": {t["num"]["name"]: 10}})
+        assert status == 200, (status, data)
+        cls.created["settings"].append(data["id"])
+        status, data = cls.api(cls.user_key, "POST", "favourite_tags/toggle", {"FavouriteTag": {"data": t["plain"]["id"]}})
+        assert status == 200 and data.get("saved") is True, (status, data)
+
+        cls.hidden_event = cls.__make_event("hidden", 0)
+        cls.visible_event = cls.__make_event("visible", 1)
+        for event in (cls.hidden_event, cls.visible_event):
+            cls.__attach(f"events/addTag/{event['id']}/{t['plain']['id']}")
+        cls.__attach(f"events/addTag/{cls.hidden_event['id']}/{t['org']['id']}")
+        attribute = cls.admin_api("POST", f"attributes/add/{cls.hidden_event['id']}", {
+            "type": "ip-dst", "category": "Network activity", "value": "10.77.0.%d" % (int(random(), 16) % 250 + 1)})["Attribute"]
+        cls.__attach(f"attributes/addTag/{attribute['id']}/{t['plain']['id']}")
+
+        index = cls.admin_api("GET", f"tags/index/searchall:{m}")
+        assert len(index["Tag"]) == 8, index
+        row = [r for r in cls.__get(cls.user_key, f"tags/index/searchall:{m}")["Tag"] if int(r["id"]) == t["num"]["id"]][0]
+        assert (int(row["numerical_value"]), int(row["original_numerical_value"])) == (10, 70), row
+
+    @classmethod
+    def __get(cls, token, path):
+        status, data = cls.api(token, "GET", path)
+        assert status == 200, (path, status, str(data)[:300])
+        return data
+
+    @classmethod
+    def __attach(cls, path):
+        status, data = cls.api(key, "POST", path, {})
+        assert status == 200 and not (isinstance(data, dict) and data.get("errors")), (path, status, data)
+        assert "success" in json.dumps(data).lower() or data.get("saved") is True, (path, data)
+
+    @classmethod
+    def tearDownClass(cls):
+        for kind, path in (("events", "events/delete/{}"), ("settings", "user_settings/delete/{}"),
+                           ("tags", "tags/delete/{}"), ("keys", "authKeys/delete/{}"),
+                           ("users", "admin/users/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id, label) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqt{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        cls.user_ids[label] = int(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __make_event(cls, name: str, distribution: int) -> dict:
+        event = {"info": f"{cls.marker} ev-{name}", "distribution": distribution, "threat_level_id": 4, "analysis": 0}
+        data = cls.admin_api("POST", "events/add", {"Event": event})
+        cls.created["events"].append(data["Event"]["id"])
+        return {"id": int(data["Event"]["id"]), "uuid": data["Event"]["uuid"]}
+
+    def __anchored(self, tree=None):
+        anchor = {"name": {"LIKE": "%" + self.marker + "%"}}
+        return anchor if tree is None else {"AND": [anchor, tree]}
+
+    def __search(self, tree, token=None, extra=None, method="POST", anchored=True):
+        """Returns (status, [row] or None, raw data)."""
+        body = {"returnFormat": "json", "limit": 1000, "query": self.__anchored(tree) if anchored else tree}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "tags/restSearch", body)
+        rows = data["response"] if status == 200 and isinstance(data, dict) else None
+        return status, rows, data
+
+    def __ids(self, tree, token=None, **kwargs):
+        status, rows, data = self.__search(tree, token, **kwargs)
+        self.assertEqual(status, 200, data)
+        return [int(r["Tag"]["id"]) for r in rows]
+
+    def __index(self, token, search=None):
+        status, data = self.api(token, "GET", f"tags/index/searchall:{search or self.marker}")
+        self.assertEqual(status, 200, str(data)[:300])
+        return {int(row["id"]): row for row in data["Tag"]}
+
+    def __cases(self):
+        """(tree, predicate on a fixture record)"""
+        m, admin_org, admin_user = self.marker, self.admin_org_id, self.admin_user_id
+        null = lambda r: r["numerical_value"] is None
+        return {
+            "no query": (None, lambda r: True),
+            "id in": ({"id": {"IN": [self.tags["plain"]["id"], self.tags["org"]["id"]]}}, lambda r: r["key"] in ("plain", "org")),
+            "name = other case": ({"name": f"{m} ALPHA".upper()}, lambda r: r["key"] == "plain"),
+            "name like": ({"name": {"LIKE": f"%{m} b%"}}, lambda r: r["key"] == "hidden"),
+            "name not like": ({"name": {"NOT LIKE": "% alpha"}}, lambda r: r["key"] != "plain"),
+            "colour other case": ({"colour": "#ABCDEF"}, lambda r: r["key"] == "plain"),
+            "colour in": ({"colour": {"IN": ["#abcdef", "#222222"]}}, lambda r: r["key"] in ("plain", "org")),
+            "colour !=": ({"colour": {"!=": "#ABCDEF"}}, lambda r: r["key"] != "plain"),
+            "exportable false": ({"exportable": False}, lambda r: not r["exportable"]),
+            "org_id": ({"org_id": admin_org}, lambda r: r["org_id"] == admin_org),
+            "user_id !=": ({"user_id": {"!=": 0}}, lambda r: r["user_id"] != 0),
+            "user_id": ({"user_id": admin_user}, lambda r: r["user_id"] == admin_user),
+            "hide_tag": ({"hide_tag": True}, lambda r: r["hide_tag"]),
+            "numerical_value >=": ({"numerical_value": {">=": 40}}, lambda r: not null(r) and r["numerical_value"] >= 40),
+            "numerical_value !=": ({"numerical_value": {"!=": 40}}, lambda r: null(r) or r["numerical_value"] != 40),
+            "numerical_value not in": ({"numerical_value": {"NOT IN": [40]}}, lambda r: null(r) or r["numerical_value"] != 40),
+            "not numerical_value <": ({"NOT": {"numerical_value": {"<": 50}}}, lambda r: null(r) or not r["numerical_value"] < 50),
+            "is_galaxy": ({"is_galaxy": True}, lambda r: r["is_galaxy"]),
+            "is_custom_galaxy": ({"is_custom_galaxy": True}, lambda r: r["is_custom_galaxy"]),
+            "local_only": ({"local_only": True}, lambda r: r["local_only"]),
+            "and or": ({"AND": [{"OR": [{"hide_tag": True}, {"is_galaxy": True}]}, {"NOT": {"is_custom_galaxy": True}}]},
+                       lambda r: (r["hide_tag"] or r["is_galaxy"]) and not r["is_custom_galaxy"]),
+        }
+
+    def test_fixture_is_discriminating(self):
+        t = self.tags
+        user_index, admin_index = self.__index(self.user_key), self.__index(key)
+        self.assertEqual(set(user_index), set(self.by_id))
+        self.assertEqual(set(admin_index), set(self.by_id))
+        self.assertEqual(len(user_index), 8)
+        self.assertEqual((int(admin_index[t["plain"]["id"]]["count"]), int(user_index[t["plain"]["id"]]["count"])), (2, 1))
+        self.assertEqual((int(admin_index[t["org"]["id"]]["count"]), int(user_index[t["org"]["id"]]["count"])), (1, 0))
+        self.assertTrue(user_index[t["plain"]["id"]]["favourite"])
+        self.assertFalse(admin_index[t["plain"]["id"]]["favourite"])
+        for label in ("hidden", "org", "user"):
+            self.assertIn(t[label]["id"], user_index)
+
+    def test_query_equals_the_index_and_the_matrix(self):
+        tokens = {"flagged": self.user_key, "site_admin": self.site_admin_key, "admin": key}
+        for label, (tree, predicate) in self.__cases().items():
+            with self.subTest(label):
+                expected = sorted(r["id"] for r in self.tags.values() if predicate(r))
+                self.assertTrue(expected, "empty expectation")
+                for who, token in tokens.items():
+                    self.assertEqual(self.__ids(tree, token=token), expected, who)
+                index = self.__index(self.user_key)
+                self.assertEqual(sorted(i for i in index if predicate(self.by_id[i])), expected)
+        with self.subTest("discriminating"):
+            for label in ("id in", "colour !=", "numerical_value !=", "not numerical_value <"):
+                tree, predicate = self.__cases()[label]
+                self.assertTrue(any(not predicate(r) for r in self.tags.values()))
+
+    def test_rows_equal_the_index_rows(self):
+        for token in (self.user_key, key):
+            with self.subTest(token[:4]):
+                status, rows, data = self.__search(None, token)
+                self.assertEqual(status, 200, data)
+                index = self.__index(token)
+                self.assertEqual({int(r["Tag"]["id"]): r["Tag"] for r in rows}, index)
+                self.assertEqual(len(index), 8)
+        with self.subTest("taxonomy"):
+            status, data = self.api(self.user_key, "GET", "taxonomies/index")
+            self.assertEqual(status, 200)
+            checked = False
+            for item in data:
+                taxonomy = item["Taxonomy"]
+                ns = taxonomy["namespace"]
+                if not taxonomy.get("enabled") or not re.fullmatch(r"[A-Za-z0-9-]+", ns):
+                    continue
+                status, count = self.api(self.user_key, "POST", "tags/restSearch", {
+                    "returnFormat": "count", "query": {"name": {"LIKE": f"{ns}:%"}}})
+                self.assertEqual(status, 200, count)
+                if not 0 < int(count) <= 500:
+                    continue
+                status, rows, data = self.__search({"name": {"LIKE": f"{ns}:%"}}, anchored=False)
+                self.assertEqual(status, 200, data)
+                index = {i: row for i, row in self.__index(self.user_key, f"{ns}:").items()
+                         if row["name"].lower().startswith(ns.lower() + ":")}
+                self.assertEqual({int(r["Tag"]["id"]): r["Tag"] for r in rows}, index)
+                self.assertTrue(any("Taxonomy" in r["Tag"] for r in rows), ns)
+                checked = True
+                break
+            if not checked:
+                self.skipTest("no enabled taxonomy with tags")
+
+    def test_row_details(self):
+        t = self.tags
+        rows = {tok: {int(r["Tag"]["id"]): r["Tag"] for r in self.__search(None, tok)[1]} for tok in (self.user_key, key)}
+        user_rows, admin_rows = rows[self.user_key], rows[key]
+        plain = t["plain"]["id"]
+        self.assertEqual((user_rows[plain]["favourite"], int(user_rows[plain]["count"]), int(user_rows[plain]["attribute_count"])), (True, 1, 1))
+        self.assertEqual((admin_rows[plain]["favourite"], int(admin_rows[plain]["count"]), int(admin_rows[plain]["attribute_count"])), (False, 2, 1))
+        org = t["org"]["id"]
+        self.assertEqual((int(user_rows[org]["count"]), int(admin_rows[org]["count"])), (0, 1))
+        num = t["num"]["id"]
+        self.assertEqual((int(user_rows[num]["numerical_value"]), int(user_rows[num]["original_numerical_value"])), (10, 70))
+        self.assertEqual(int(admin_rows[num]["numerical_value"]), 70)
+        self.assertNotIn("original_numerical_value", admin_rows[num])
+        self.assertEqual(self.__ids({"numerical_value": 70}), [num])
+        self.assertEqual(self.__ids({"numerical_value": 10}), [])
+
+    def test_count(self):
+        for label, (tree, _) in self.__cases().items():
+            with self.subTest(label):
+                ids = self.__ids(tree)
+                status, count = self.api(self.user_key, "POST", "tags/restSearch", {
+                    "returnFormat": "count", "query": self.__anchored(tree)})
+                self.assertEqual((status, int(count)), (200, len(ids)))
+
+    def test_permission_flag(self):
+        for with_query in (True, False):
+            body = {"returnFormat": "json"}
+            if with_query:
+                body["query"] = self.__anchored()
+            status, data = self.api(self.plain_user_key, "POST", "tags/restSearch", body)
+            self.assertEqual(status, 403, data)
+        self.assertEqual(self.api(self.plain_user_key, "GET", "tags/queryDescribe")[0], 403)
+        self.assertEqual(self.api(self.plain_user_key, "GET", "tags/index")[0], 200)
+        for token in (self.user_key, self.site_admin_key):
+            self.assertEqual(len(self.__ids(None, token=token)), 8)
+            status, data = self.api(token, "GET", "tags/queryDescribe")
+            self.assertEqual(status, 200)
+            table = data["tables"]["tags"]
+            self.assertEqual(sorted(table["fields"]), sorted(self.FIELDS))
+            self.assertEqual(table["sortable"], ["id", "name", "numerical_value"])
+
+    def test_rejections(self):
+        for field in ("count", "attribute_count", "favourite", "Taxonomy", "original_numerical_value", "org"):
+            with self.subTest(field):
+                status, rows, data = self.__search({field: 1})
+                self.assertEqual((status, rows), (400, None), data)
+                self.assertEqual(data["errors"][0]["code"], "unknown_field")
+        with self.subTest("colour like"):
+            status, rows, data = self.__search({"colour": {"LIKE": "#ab%"}})
+            self.assertEqual((status, rows), (400, None), data)
+            self.assertEqual(data["errors"][0]["code"], "unknown_operator")
+        for order in ("count", "colour", "attribute_count desc"):
+            for query in (True, False):
+                with self.subTest(f"{order} {query}"):
+                    body = {"returnFormat": "json", "order": order}
+                    if query:
+                        body["query"] = self.__anchored()
+                    status, data = self.api(self.user_key, "POST", "tags/restSearch", body)
+                    self.assertEqual(status, 400, data)
+                    self.assertNotIn("response", data)
+        with self.subTest("limit and format"):
+            self.assertEqual(self.__search(None, extra={"limit": -1})[0], 400)
+            self.assertEqual(self.__search(None, extra={"returnFormat": "csv"})[0], 404)
+        with self.subTest("query by GET"):
+            status, data = self.api(self.user_key, "GET", "tags/restSearch", {"returnFormat": "json", "query": self.__anchored()})
+            self.assertEqual(status, 400)
+            self.assertNotIn("response", data or {})
+            status, data = self.api(self.user_key, "POST", "tags/restSearch?returnFormat=json&query[id]=1")
+            self.assertEqual(status, 400)
+            self.assertNotIn("response", data or {})
+
+    def test_paging_and_order(self):
+        t = self.tags
+        full = sorted(self.by_id)
+        self.assertEqual(self.__ids(None), full)
+        paged = []
+        for page in range(1, 6):
+            ids = self.__ids(None, extra={"limit": 2, "page": page})
+            self.assertLessEqual(len(ids), 2)
+            paged += ids
+        self.assertEqual(paged, full)
+        with self.subTest("name desc"):
+            names = sorted((r for r in t.values() if not r["is_galaxy"]), key=lambda r: r["name"], reverse=True)
+            self.assertEqual(self.__ids({"is_galaxy": False}, extra={"order": "name desc"}), [r["id"] for r in names])
+        nulls = [r for r in t.values() if r["numerical_value"] is None]
+        with self.subTest("numerical_value desc"):
+            expected = [t["num"]["id"], t["plain"]["id"]] + sorted(r["id"] for r in nulls)
+            self.assertEqual(self.__ids(None, extra={"order": "numerical_value desc"}), expected)
+        with self.subTest("numerical_value, name desc"):
+            expected = [r["id"] for r in sorted(nulls, key=lambda r: r["name"], reverse=True)] + [t["plain"]["id"], t["num"]["id"]]
+            ordered = {"order": ["numerical_value", "name desc"]}
+            self.assertEqual(self.__ids(None, extra={**ordered, "limit": 3, "page": 2}), expected[3:6])
+            self.assertEqual(self.__ids(None, extra=ordered), expected)
 
 
 if __name__ == '__main__':

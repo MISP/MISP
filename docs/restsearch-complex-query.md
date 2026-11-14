@@ -5,15 +5,16 @@
 additional `query` key carrying a boolean tree of field conditions, so that
 requests such as `type = "domain" OR (id > 50000 AND tags = "tlp:white")` can
 be expressed. Requests without `query` behave exactly as before.
-`POST /event_reports/restSearch`, `POST /analyst_data/restSearch/<Type>` and
-`POST /collections/restSearch` are built around `query` and take no legacy
-filters.
+`POST /event_reports/restSearch`, `POST /analyst_data/restSearch/<Type>`,
+`POST /collections/restSearch` and `POST /tags/restSearch` are built around
+`query` and take no legacy filters.
 
 The grammar, operators, limits and errors are the same on every endpoint.
 What differs is the list of fields and what the tree selects: see
 [Attributes](#attributes), [Events](#events), [Objects](#objects),
 [Galaxy clusters](#galaxy-clusters), [Event reports](#event-reports),
-[Analyst data](#analyst-data) and [Collections](#collections).
+[Analyst data](#analyst-data), [Collections](#collections) and
+[Tags](#tags).
 
 ## Availability
 
@@ -25,9 +26,9 @@ What differs is the list of fields and what the tree selects: see
 - The user's role needs the **Complex query** permission
   (`perm_complex_query`, off for every role by default), unless the user is
   a site admin. Without it the request is answered with HTTP 403. On
-  `/event_reports/restSearch`, `/analyst_data/restSearch/<Type>` and
-  `/collections/restSearch` this holds for every request, with or without
-  `query`.
+  `/event_reports/restSearch`, `/analyst_data/restSearch/<Type>`,
+  `/collections/restSearch` and `/tags/restSearch` this holds for every
+  request, with or without `query`.
 - `query` can be combined with the legacy filters. The result is
   `ACL AND legacy filters AND query`: the tree can only narrow what the user
   is allowed to see anyway, never widen it.
@@ -112,7 +113,7 @@ selects anything carrying a `tlp:` tag.
 event reports, and on analyst data the addresses (`object_uuid`,
 `object_sha256` and their `related_object_` forms), `authors`, `note`,
 `language`, `opinion`, `comment` and `relationship_type`, and `description`
-on collections can be NULL. Inside a
+on collections and `numerical_value` on tags can be NULL. Inside a
 `query`, `!=`,
 `NOT IN` and `NOT` also match rows where the column is NULL. The legacy
 filters (for example `object_relation: "!ip"`) do not. This difference is
@@ -503,6 +504,54 @@ Example: the campaign collections holding one event, last changed first:
 }
 ```
 
+## Tags
+
+`POST /tags/restSearch`. The body takes `query`, `page`, `limit`, `order`
+and `returnFormat` only; other keys are ignored. Without `query` it returns
+every tag, as `/tags/index` does.
+
+- The tree selects among all tags: the index shows every tag to every user,
+  including hidden ones and those restricted to another organisation or
+  user, so the tree can reach them too.
+- `name` compares case-insensitively; `colour` matches exactly but in any
+  case. `org_id` and `user_id` restrict the tag to that organisation or
+  user, 0 meaning no restriction.
+- `numerical_value` is the tag's own value. A user's override (the
+  `tag_numerical_value_override` setting) is not searched: the row shows
+  the overriding value, and the tag's own as `original_numerical_value`.
+- `order` takes `id`, `name` and `numerical_value`; anything else is
+  rejected with HTTP 400, with or without `query`. Without `order` the
+  tags come by `id` (the index sorts by name), and `id` breaks every tie.
+- `"returnFormat": "count"` returns the number of matching tags as the
+  body. A plain request does not compute a total.
+- Each row is the tag as the index returns it, under `Tag`: its columns,
+  `favourite` (the user's own), `Taxonomy` when the tag is an entry of an
+  enabled taxonomy, `count` (the events the user can see that carry it) and
+  `attribute_count` (every attribute carrying it). None of these can be
+  searched or sorted on.
+
+| Field | Level | Type | Operators | Notes |
+|---|---|---|---|---|
+| `id`, `org_id`, `user_id`, `numerical_value` | tag | integer | `= != > < >= <= IN NOT IN` | |
+| `name` | tag | string | `= != IN NOT IN LIKE NOT LIKE` | |
+| `colour` | tag | string | `= != IN NOT IN` | `#rrggbb`, in any case |
+| `exportable`, `hide_tag`, `is_galaxy`, `is_custom_galaxy`, `local_only` | tag | boolean | `= !=` | |
+
+Example: the visible galaxy tags with an ATT&CK name, by name:
+
+```json
+{
+  "query": {
+    "AND": [
+      {"is_galaxy": true},
+      {"hide_tag": false},
+      {"name": {"LIKE": "misp-galaxy:mitre-attack-pattern=%"}}
+    ]
+  },
+  "order": "name"
+}
+```
+
 ## Limits
 
 Checked before the database is touched. Server settings (all in the `MISP`
@@ -549,12 +598,13 @@ Missing permission is not part of this format: it is a plain HTTP 403.
 `GET /attributes/queryDescribe`, `GET /events/queryDescribe`,
 `GET /objects/queryDescribe`, `GET /galaxy_clusters/queryDescribe`,
 `GET /event_reports/queryDescribe`, `GET /analyst_data/queryDescribe/<Type>`
-and `GET /collections/queryDescribe` (API only, same permission as `query`)
+`GET /collections/queryDescribe` and `GET /tags/queryDescribe` (API only,
+same permission as `query`)
 return the fields of that endpoint,
 their types and operators, the sortable fields and the limits in effect. A
 field's `level` says what it is matched against: `attribute`, `object`,
 `event`, `galaxy_cluster`, `galaxy`, `event_report`, `note`, `opinion`,
-`relationship`, `collection` or `collection_element`, or more than one
+`relationship`, `collection`, `collection_element` or `tag`, or more than one
 (`tags`). On events and
 objects, a field whose only level is `attribute` (or `object`, on events) is
 matched against the elements inside the record and takes positive operators
