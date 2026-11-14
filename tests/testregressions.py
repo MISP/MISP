@@ -3455,5 +3455,186 @@ class ProtectedEventAdd(unittest.TestCase):
         self.assertEqual(int(self.org.id), int(stored['orgc_id']))
 
 
+class ProtectedEventKeyRevocation(unittest.TestCase):
+    """A key stored as revoked no longer validates a protected event's signature, and a sync
+    user's edit applies the key list it pushes: revocations are stored (and never lifted by a
+    push), keys missing from the list are removed, and an entry holding only its type and key
+    data keeps its stored key. A signed protected add without any key is refused with a 405.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.gnupg_homes = []
+        try:
+            ext_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if int(role['perm_site_admin']):
+                    continue
+                if (int(role['perm_sync']) and not int(role.get('perm_sync_internal', 0) or 0)
+                        and int(role['perm_add']) and int(role['perm_auth'])
+                        and int(role.get('perm_modify_org', 0) or 0)):
+                    ext_role = ext_role or role
+            if ext_role is None:
+                raise unittest.SkipTest('no external sync role')
+            cls.org = make_org(cls.admin, 'regression key revocation org')
+            cls.created_orgs = [cls.org]
+            cls.ext_user = make_user(cls.admin, cls.org.id, int(ext_role['id']))
+            cls.created_users = [cls.ext_user]
+            cls.key_a = cls._make_pgp_key()
+            cls.key_b = cls._make_pgp_key()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    _make_pgp_key = classmethod(ProtectedEventAdd._make_pgp_key.__func__)
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+        for home in getattr(cls, 'gnupg_homes', []):
+            shutil.rmtree(home, ignore_errors=True)
+
+    def _post(self, path, event, signer):
+        raw = json.dumps({'Event': event}).encode()
+        signature = subprocess.run(
+            ['gpg', '--batch', '--pinentry-mode', 'loopback', '--passphrase', '',
+             '--detach-sign'], input=re.sub(rb'\s+', b'', raw), env=signer['env'],
+            check=True, capture_output=True, timeout=30).stdout
+        headers = {'Authorization': self.ext_user.authkey, 'Content-Type': 'application/json',
+                   'Accept': 'application/json',
+                   'x-pgp-signature': base64.b64encode(signature).decode()}
+        return requests.post('%s/%s' % (url, path), data=raw, headers=headers, timeout=120,
+                             verify=False)
+
+    def _lookup(self, uuid):
+        found = self.admin._prepare_request('POST', 'events/restSearch',
+            data={'uuid': uuid, 'returnFormat': 'json'}).json().get('response', [])
+        stored = found[0]['Event'] if found else None
+        if stored and int(stored['id']) not in type(self).event_ids:
+            type(self).event_ids.append(int(stored['id']))
+        return stored
+
+    def _entry(self, pgp, revoked=False, fingerprint=True):
+        entry = {'type': 'pgp', 'key_data': pgp['pub']}
+        if fingerprint:
+            entry['fingerprint'] = pgp['fingerprint']
+            entry['revoked'] = revoked
+        return entry
+
+    def _fixture(self, revoked_a=False):
+        uuid = str(uuidlib.uuid4())
+        type(self).event_uuids.append(uuid)
+        event = {'uuid': uuid, 'info': 'regression key revocation %s' % random(),
+                 'distribution': 0, 'threat_level_id': 4, 'analysis': 0,
+                 'date': time.strftime('%Y-%m-%d'), 'protected': True,
+                 'Attribute': [{'type': 'comment', 'category': 'Other', 'value': random()}],
+                 'CryptographicKey': [self._entry(self.key_a, revoked_a),
+                                      self._entry(self.key_b)]}
+        response = self._post('events/add', event, self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        stored = self._lookup(uuid)
+        self.assertIsNotNone(stored, 'the fixture event was not stored')
+        self.assertEqual({self.key_a['fingerprint']: int(revoked_a), self.key_b['fingerprint']: 0},
+                         self._keys(stored))
+        return stored
+
+    def _keys(self, stored):
+        return {k['fingerprint'].upper(): int(k['revoked'])
+                for k in stored.get('CryptographicKey', [])}
+
+    def _edit(self, stored, entries, signer):
+        event = dict(stored)
+        event['info'] = stored['info'] + ' edited'
+        event['timestamp'] = str(int(time.time()) + 5)
+        event['CryptographicKey'] = entries
+        response = self._post('events/edit/%s' % stored['uuid'], event, signer)
+        return response, self._lookup(stored['uuid'])
+
+    def _fp(self, pgp):
+        return pgp['fingerprint']
+
+    def test_edit_signed_by_revoked_key_is_refused(self):
+        stored = self._fixture(revoked_a=True)
+        response, after = self._edit(stored, [self._entry(self.key_a, True),
+                                              self._entry(self.key_b)], self.key_a)
+        self.assertEqual(405, response.status_code, response.text[:300])
+        self.assertIn('signature validation', response.text)
+        self.assertEqual(stored['info'], after['info'])
+
+    def test_edit_signed_by_unrevoked_key_is_accepted(self):
+        stored = self._fixture(revoked_a=True)
+        response, after = self._edit(stored, [self._entry(self.key_a, True),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual(stored['info'] + ' edited', after['info'])
+
+    def test_pushed_revocation_of_first_key_is_stored(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a, True),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 1, self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_pushed_revocation_of_second_key_is_stored(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a),
+                                              self._entry(self.key_b, True)], self.key_a)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 0, self._fp(self.key_b): 1}, self._keys(after))
+
+    def test_pushed_unrevoked_flag_does_not_lift_a_revocation(self):
+        stored = self._fixture(revoked_a=True)
+        response, after = self._edit(stored, [self._entry(self.key_a, False),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 1, self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_key_missing_from_pushed_list_is_removed_first(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_key_missing_from_pushed_list_is_removed_second(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a)], self.key_a)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 0}, self._keys(after))
+
+    def test_entry_without_fingerprint_keeps_its_stored_key(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a, fingerprint=False),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 0, self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_signed_protected_add_without_keys_is_refused(self):
+        uuid = str(uuidlib.uuid4())
+        type(self).event_uuids.append(uuid)
+        event = {'uuid': uuid, 'info': 'regression key revocation %s' % random(),
+                 'distribution': 0, 'threat_level_id': 4, 'analysis': 0,
+                 'date': time.strftime('%Y-%m-%d'), 'protected': True,
+                 'Attribute': [{'type': 'comment', 'category': 'Other', 'value': random()}]}
+        response = self._post('events/add', event, self.key_a)
+        stored = self._lookup(uuid)
+        self.assertEqual(405, response.status_code, response.text[:300])
+        self.assertIsNone(stored, 'the refused event was stored')
+
+
 if __name__ == '__main__':
     unittest.main()
