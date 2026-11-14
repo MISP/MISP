@@ -151,6 +151,8 @@ class ACLComponent extends Component
             'getCollectionsForElements' => ['*'],
             'index' => ['*'],
             'indexMinimal' => ['*'],
+            'queryDescribe' => ['perm_complex_query'],
+            'restSearch' => ['perm_complex_query'],
             'view' => ['*']
         ],
         'collectionElements' => [

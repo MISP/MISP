@@ -4,6 +4,7 @@ App::uses('AnalystData', 'Model');
 App::uses('Collection', 'Model');
 App::uses('CollectionRailCards', 'Tools/RailCards');
 App::uses('SyncTool', 'Tools');
+App::uses('ComplexQueryTool', 'Tools');
 
 class CollectionsController extends AppController
 {
@@ -504,6 +505,18 @@ class CollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $tool = new ComplexQueryTool($this->Collection, ComplexQueryTool::limitsFromConfig(), Collection::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('collections', '/collections/restSearch', Collection::REST_SEARCH_ORDER_FIELDS, 'Collection'),
+            'json'
+        );
     }
 
     /**

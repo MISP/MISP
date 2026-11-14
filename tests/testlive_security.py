@@ -10,6 +10,7 @@ from typing import Union, List, Optional
 import urllib3  # type: ignore
 import logging
 import uuid
+import hashlib
 import warnings
 import requests
 import subprocess
@@ -3603,6 +3604,332 @@ class TestComplexAnalystDataQueryAcl(unittest.TestCase):
                             self.assertLessEqual(len(rows), 3)
                             paged += [int(r["id"]) for r in rows]
                         self.assertEqual(paged, ids)
+
+
+class TestComplexCollectionQueryAcl(unittest.TestCase):
+    """The `query` tree of /collections/restSearch must only narrow what /collections/index shows the user."""
+
+    api = staticmethod(TestComplexQueryAcl.api)
+    admin_api = staticmethod(TestComplexQueryAcl.admin_api)
+    ELEMENT_TYPES = ["Event", "GalaxyCluster", "Attribute", "Object", "AttributeValue"]
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqc" + random()
+        cls.created = {"collections": [], "notes": [], "events": [], "users": [], "roles": [], "sgs": [], "keys": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQC Org " + random(), "local": True})["Organisation"]
+        me = cls.admin_api("GET", "users/view/me")
+        admin_org_uuid = me["Organisation"]["uuid"]
+        cls.admin_org_name = me["Organisation"]["name"]
+        roles = {
+            "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
+            "plain": {"permission": "0", "perm_auth": 1},
+            "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
+        }
+        keys = {}
+        for name, perms in roles.items():
+            role = cls.admin_api("POST", "admin/roles/add", {"Role": {"name": f"MQC {name} {random()}", **perms}})["Role"]
+            cls.created["roles"].append(role["id"])
+            keys[name] = cls.__make_user(role["id"])
+        cls.user_key, cls.plain_user_key, cls.site_admin_key = keys["flagged"], keys["plain"], keys["site_admin"]
+
+        def sharing_group(label, members):
+            sg = cls.admin_api("POST", "sharingGroups/add", {
+                "SharingGroup": {"name": f"MQC SG {label} {random()}", "releasability": "test", "description": "test", "active": 1,
+                                 "organisation_uuid": admin_org_uuid, "roaming": 0},
+                "Organisation": [{"uuid": admin_org_uuid, "extend": True}]})["SharingGroup"]["id"]
+            cls.created["sgs"].append(sg)
+            for org_id in members:
+                cls.api(key, "POST", f"sharingGroups/addOrg/{sg}/{org_id}", {"extend": 0})
+            return sg
+        cls.sg_out = sharing_group("out", [cls.org["id"]])  # membership is needed to add; removed below
+        cls.sg_in = sharing_group("in", [cls.org["id"]])
+
+        cls.hidden, cls.visible = (cls.__make_event(n, d) for n, d in (("hidden", 0), ("visible", 1)))
+        status, data = cls.api(key, "POST", "galaxy_clusters/restSearch", {"returnFormat": "json", "limit": 1, "default": True})
+        assert status == 200 and data["response"], (status, str(data)[:300])
+        cls.cluster = data["response"][0]["GalaxyCluster"]["uuid"]
+        cls.sha_a, cls.sha_b = (hashlib.sha256(random().encode()).hexdigest() for _ in range(2))
+
+        H, V, C = cls.hidden["uuid"], cls.visible["uuid"], cls.cluster
+        ev = lambda uuid_, desc=None: {"element_type": "Event", "element_uuid": uuid_, "description": desc}
+        cl = lambda desc=None: {"element_type": "GalaxyCluster", "element_uuid": C, "description": desc}
+        av = lambda sha, desc=None: {"element_type": "AttributeValue", "element_sha256": sha, "description": desc}
+        probe = f"{cls.marker} probe"
+        # (holder, distribution, sharing group, type, description, elements, visible to the flagged user)
+        specs = {
+            "own_0": ("own", 0, None, "campaign", "probe", [ev(V, "own ev"), av(cls.sha_a)], True),
+            "own_sgout": ("own", 4, cls.sg_out, "other", None, [cl()], True),
+            "b_0": ("b", 0, None, "other", "probe", [ev(H), av(cls.sha_a)], False),
+            "b_1": ("b", 1, None, "other", None, [], True),
+            "b_2": ("b", 2, None, "other", "probe", [ev(H), cl(probe)], True),
+            "b_3": ("b", 3, None, "campaign", None, [av(cls.sha_b, probe)], True),
+            "b_sgin": ("b", 4, cls.sg_in, "other", "probe", [ev(V)], True),
+            "b_sgout": ("b", 4, cls.sg_out, "other", None, [ev(H), cl()], False),
+            "b_stale": ("b", 2, cls.sg_out, "other", None, [], True),
+        }
+        cls.records = {}
+        for name, (holder, distribution, sg, ctype, description, elements, visible) in specs.items():
+            body = {"name": f"{cls.marker} {name}", "type": ctype, "distribution": distribution, "description": description,
+                    "CollectionElement": elements}
+            if sg:
+                body["sharing_group_id"] = sg
+            status, data = cls.api(cls.user_key if holder == "own" else key, "POST", "collections/add", body)
+            assert status == 200, (name, status, str(data)[:300])
+            record = data["Collection"]
+            cls.created["collections"].append(record["id"])
+            if holder == "own":
+                assert str(record["org_id"]) == str(cls.org["id"]), record
+            stored = cls.admin_api("GET", f"collections/view/{record['id']}.json")
+            assert len(stored["Collection"]["CollectionElement"]) == len(elements), (name, stored)
+            cls.records[name] = {"id": int(record["id"]), "uuid": record["uuid"], "name": name, "holder": holder,
+                                 "distribution": distribution, "sg": sg, "type": ctype, "description": description,
+                                 "elements": elements, "visible": visible}
+        note = cls.admin_api("POST", "analyst_data/add/Note", {
+            "object_uuid": cls.records["b_2"]["uuid"], "object_type": "Collection", "note": cls.marker, "distribution": 3})["Note"]
+        cls.created["notes"].append(note["id"])
+        status, data = cls.api(key, "POST", f"sharingGroups/removeOrg/{cls.sg_out}/{cls.org['id']}")
+        assert status == 200, (status, data)
+        cls.by_id = {r["id"]: r for r in cls.records.values()}
+
+    @classmethod
+    def tearDownClass(cls):
+        for collection_id in cls.created["collections"]:
+            try:
+                cls.api(key, "POST", f"collections/delete/{collection_id}")
+            except Exception:
+                pass
+        for note_id in cls.created["notes"]:
+            try:
+                cls.api(key, "POST", f"analyst_data/delete/Note/{note_id}")
+            except Exception:
+                pass
+        for kind, path in (("events", "events/delete/{}"), ("keys", "authKeys/delete/{}"), ("users", "admin/users/delete/{}"),
+                           ("sgs", "sharingGroups/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqc{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __make_event(cls, name: str, distribution: int) -> dict:
+        event = {"info": f"{cls.marker} ev-{name}", "distribution": distribution, "threat_level_id": 4, "analysis": 0}
+        data = cls.admin_api("POST", "events/add", {"Event": event})
+        cls.created["events"].append(data["Event"]["id"])
+        return {"id": int(data["Event"]["id"]), "uuid": data["Event"]["uuid"]}
+
+    def __anchored(self, tree=None):
+        anchor = {"name": {"LIKE": self.marker + "%"}}
+        return anchor if tree is None else {"AND": [anchor, tree]}
+
+    def __search(self, tree, token=None, extra=None, method="POST", anchored=True):
+        """Returns (status, [row] or None, raw data)."""
+        body = {"returnFormat": "json", "limit": 1000, "query": self.__anchored(tree) if anchored else tree}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "collections/restSearch", body)
+        rows = data["response"] if status == 200 and isinstance(data, dict) else None
+        return status, rows, data
+
+    def __ids(self, tree, token=None, **kwargs):
+        status, rows, data = self.__search(tree, token, **kwargs)
+        self.assertEqual(status, 200, data)
+        return {int(r["Collection"]["id"]) for r in rows}
+
+    def __index(self, token):
+        status, data = self.api(token, "GET", "collections/index/limit:5000")
+        self.assertEqual(status, 200, str(data)[:300])
+        return {int(row["Collection"]["id"]): row for row in data if int(row["Collection"]["id"]) in self.by_id}
+
+    @staticmethod
+    def __search_shape(index_row):
+        row = json.loads(json.dumps(index_row))
+        for t in ("Note", "Opinion", "Relationship", "RelationshipInbound"):
+            if t in row:
+                row["Collection"][t] = row.pop(t)
+        if str(row["Collection"]["distribution"]) != "4":
+            row["SharingGroup"] = {"id": None, "uuid": None, "name": None}
+        return row
+
+    @staticmethod
+    def __trim_orgs(row):
+        """The attached analyst data may carry the full organisation record; compare id, name and uuid only."""
+        for t in ("Note", "Opinion", "Relationship"):
+            for item in row["Collection"].get(t, []):
+                for o in ("Org", "Orgc"):
+                    if isinstance(item.get(o), dict):
+                        item[o] = {k: item[o].get(k) for k in ("id", "name", "uuid")}
+        return row
+
+    def __cases(self):
+        """(tree, predicate on a fixture record)"""
+        H, C = self.hidden["uuid"], self.cluster
+        any_element = lambda r, test: any(test(e) for e in r["elements"])
+        no_element = lambda r, test: not any_element(r, test)
+        holder_org = {"own": self.org["name"], "b": self.admin_org_name}
+        return {
+            "no query": (None, lambda r: True),
+            "distribution in": ({"distribution": {"IN": [0, 4]}}, lambda r: r["distribution"] in (0, 4)),
+            "org upper": ({"org": self.org["name"].upper()}, lambda r: r["holder"] == "own"),
+            "org admin": ({"org": self.admin_org_name}, lambda r: r["holder"] == "b"),
+            "type": ({"type": "campaign"}, lambda r: r["type"] == "campaign"),
+            "not name like": ({"NOT": {"name": {"LIKE": "%b_1"}}}, lambda r: r["name"] != "b_1"),
+            "description !=": ({"description": {"!=": "probe"}}, lambda r: r["description"] != "probe"),
+            "modified recent": ({"modified": {">": "1d"}}, lambda r: True),
+            "element_uuid": ({"element_uuid": H}, lambda r: any_element(r, lambda e: e.get("element_uuid") == H)),
+            "element_uuid !=": ({"element_uuid": {"!=": H}}, lambda r: no_element(r, lambda e: e.get("element_uuid") == H)),
+            "element_type": ({"element_type": "GalaxyCluster"}, lambda r: any_element(r, lambda e: e["element_type"] == "GalaxyCluster")),
+            "element_sha256": ({"element_sha256": self.sha_a.upper()}, lambda r: any_element(r, lambda e: e.get("element_sha256") == self.sha_a)),
+            "element_description like": ({"element_description": {"LIKE": "%probe%"}},
+                                         lambda r: any_element(r, lambda e: "probe" in (e["description"] or ""))),
+            "not element_type in": ({"NOT": {"element_type": {"IN": self.ELEMENT_TYPES}}}, lambda r: not r["elements"]),
+            "and or": ({"AND": [{"OR": [{"type": "campaign"}, {"distribution": 4}]}, {"NOT": {"org": self.org["name"]}}]},
+                       lambda r: (r["type"] == "campaign" or r["distribution"] == 4) and r["holder"] != "own"),
+        }
+
+    def test_fixture_is_discriminating(self):
+        visible = {r["id"] for r in self.records.values() if r["visible"]}
+        self.assertEqual(len(visible), 7)
+        self.assertEqual(self.__ids(None), visible)
+        self.assertEqual(self.__ids(None, token=key), {r["id"] for r in self.records.values()})
+        self.assertEqual(len(self.records), 9)
+
+    def test_query_equals_the_index_and_the_matrix(self):
+        for label, (tree, predicate) in self.__cases().items():
+            with self.subTest(label):
+                shown = {r["id"] for r in self.records.values() if r["visible"] and predicate(r)}
+                self.assertEqual(self.__ids(tree), shown)
+                admin_shown = {r["id"] for r in self.records.values() if predicate(r)}
+                self.assertEqual(self.__ids(tree, token=key), admin_shown)
+                if label in ("no query", "distribution in", "org admin", "element_uuid", "element_type",
+                             "element_sha256"):
+                    self.assertTrue(admin_shown - shown, "fixture is not discriminating")
+                index = self.__index(self.user_key)
+                self.assertEqual({i for i in index if predicate(self.by_id[i])}, shown)
+
+    def test_rows_equal_the_index_rows(self):
+        for token in (self.user_key, key):
+            with self.subTest(token[:4]):
+                status, rows, data = self.__search(None, token)
+                self.assertEqual(status, 200, data)
+                index = {i: self.__trim_orgs(self.__search_shape(row)) for i, row in self.__index(token).items()}
+                self.assertEqual({int(r["Collection"]["id"]): self.__trim_orgs(r) for r in rows}, index)
+                self.assertEqual(len(index), 9 if token == key else 7)
+
+    def test_row_details(self):
+        rows = {}
+        for token in (self.user_key, key):
+            rows[token] = {int(r["Collection"]["id"]): r for r in self.__search(None, token)[1]}
+        user_rows, admin_rows = rows[self.user_key], rows[key]
+        rec = self.records
+        null_sg = {"id": None, "uuid": None, "name": None}
+        self.assertEqual(user_rows[rec["b_stale"]["id"]]["SharingGroup"], null_sg)
+        self.assertEqual(admin_rows[rec["b_stale"]["id"]]["SharingGroup"], null_sg)
+        self.assertEqual(int(user_rows[rec["b_sgin"]["id"]]["SharingGroup"]["id"]), int(self.sg_in))
+        self.assertEqual(int(user_rows[rec["own_sgout"]["id"]]["SharingGroup"]["id"]), int(self.sg_out))
+        b_2 = user_rows[rec["b_2"]["id"]]
+        self.assertEqual(b_2["Collection"]["element_count"], 2)
+        self.assertIn(self.hidden["uuid"], {e.get("element_uuid") for e in b_2["CollectionElement"]})
+        self.assertIn(self.marker, [n["note"] for n in b_2["Collection"]["Note"]])
+        me = self.admin_api("GET", "users/view/me")["Organisation"]
+        orgc = b_2["Collection"]["Note"][0]["Orgc"]
+        self.assertEqual({k: orgc[k] for k in ("id", "name", "uuid")}, {k: me[k] for k in ("id", "name", "uuid")})
+
+    def test_count(self):
+        for token in (self.user_key, key):
+            for label, (tree, _) in self.__cases().items():
+                with self.subTest(f"{label} {token[:4]}"):
+                    ids = self.__ids(tree, token=token)
+                    status, count = self.api(token, "POST", "collections/restSearch", {
+                        "returnFormat": "count", "query": self.__anchored(tree)})
+                    self.assertEqual((status, int(count)), (200, len(ids)))
+
+    def test_permission_flag(self):
+        for token in (self.plain_user_key, "x" * 40):
+            with self.subTest(token[:4]):
+                status, rows, _ = self.__search(None, token=token)
+                self.assertEqual((status, rows), (403, None))
+                status, data = self.api(token, "POST", "collections/restSearch", {"returnFormat": "json"})
+                self.assertEqual(status, 403, data)
+                self.assertEqual(self.api(token, "GET", "collections/queryDescribe")[0], 403)
+        status, data = self.api(self.user_key, "GET", "collections/queryDescribe")
+        self.assertEqual(status, 200)
+        self.assertEqual(data["tables"]["collections"]["endpoint"], "/collections/restSearch")
+        for hidden_field in ("sharing_group_id", "element_count"):
+            self.assertNotIn(hidden_field, data["tables"]["collections"]["fields"])
+        self.assertEqual(self.__ids(None, token=self.site_admin_key), {r["id"] for r in self.records.values()})
+        self.assertEqual(self.api(self.site_admin_key, "GET", "collections/queryDescribe")[0], 200)
+
+    def test_rejections(self):
+        for field in ("sharing_group_id", "element_count"):
+            with self.subTest(field):
+                status, rows, data = self.__search({field: 1})
+                self.assertEqual((status, rows), (400, None), data)
+                self.assertEqual(data["errors"][0]["code"], "unknown_field")
+        for order in ("element_count", "user_id", "Orgc.name"):
+            for query in (True, False):
+                with self.subTest(f"{order} {query}"):
+                    body = {"returnFormat": "json", "order": order}
+                    if query:
+                        body["query"] = self.__anchored()
+                    status, data = self.api(self.user_key, "POST", "collections/restSearch", body)
+                    self.assertEqual(status, 400, data)
+                    self.assertNotIn("response", data)
+                    self.assertEqual(data["errors"][0]["path"], "order[0]")
+        with self.subTest("limit and format"):
+            self.assertEqual(self.__search(None, extra={"limit": -1})[0], 400)
+            self.assertEqual(self.__search(None, extra={"returnFormat": "csv"})[0], 404)
+        with self.subTest("query by GET"):
+            status, data = self.api(self.user_key, "GET", "collections/restSearch", {"returnFormat": "json", "query": self.__anchored()})
+            self.assertEqual(status, 400)
+            self.assertNotIn("response", data or {})
+            status, data = self.api(self.user_key, "POST", "collections/restSearch?returnFormat=json&query[id]=1")
+            self.assertEqual(status, 400)
+            self.assertNotIn("response", data or {})
+
+    def test_paging(self):
+        for token, expected in ((self.user_key, {r["id"] for r in self.records.values() if r["visible"]}),
+                                (key, {r["id"] for r in self.records.values()})):
+            for order in ("id desc", "name desc"):
+                with self.subTest(f"{order} {token[:4]}"):
+                    status, rows, data = self.__search(None, token, extra={"order": order})
+                    self.assertEqual(status, 200, data)
+                    ids = [int(r["Collection"]["id"]) for r in rows]
+                    self.assertEqual(set(ids), expected)
+                    self.assertEqual(len(ids), len(expected))
+                    paged = []
+                    for page in range(1, 5):
+                        status, rows, data = self.__search(None, token, extra={"order": order, "limit": 3, "page": page})
+                        self.assertEqual(status, 200, data)
+                        self.assertLessEqual(len(rows), 3)
+                        paged += [int(r["Collection"]["id"]) for r in rows]
+                    self.assertEqual(paged, ids)
 
 
 if __name__ == '__main__':

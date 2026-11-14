@@ -42,6 +42,7 @@ class ComplexQueryTool
      *     matched through a subquery on its id (or that field), e.g. ['Orgc', 'GalaxyCluster.orgc_id']
      * key_column: on a wildcard entry (`meta.*`, any name under `meta.`), the column the
      *     rest of the name must equal; paths and discovery show the name as `meta.<key>`
+     * local: a datetime column written in the server's time zone (date()), not in UTC
      * reserved: [names, condition]: a value equal to one of the names in any case
      *     also matches the condition, e.g. the built-in MISP organisation, which has no row
      * handler: legacy set_filter_* method building a string field's fragment
@@ -516,12 +517,12 @@ class ComplexQueryTool
                 return self::isDate($v) ? $v : date('Y-m-d', $this->model->resolveTimeDelta($v));
             }, $values);
         } elseif ($def['kind'] === 'datetime') {
-            // stored as UTC
-            $values = array_map(function ($v) {
+            $format = empty($def['local']) ? 'gmdate' : 'date';
+            $values = array_map(function ($v) use ($format) {
                 if (is_string($v) && self::isDateTime($v)) {
                     return $v;
                 }
-                return gmdate('Y-m-d H:i:s', is_int($v) ? $v : $this->model->resolveTimeDelta($v));
+                return $format('Y-m-d H:i:s', is_int($v) ? $v : $this->model->resolveTimeDelta($v));
             }, $values);
         }
         $columns = (array)$def['column'];
