@@ -2355,6 +2355,12 @@ class TestComplexObjectQueryAcl(unittest.TestCase):
         cls.e4, cls.o4 = cls.__make_event("e4", 0, [("o4", 5, [("p", 0, None)])], token=cls.user_key)
         cls.all_events = [cls.e1, cls.e2, cls.e3, cls.e4]
         cls.visible = {cls.o1: {cls.__value("o1-a")}, cls.o2a: {cls.__value("o2a-vis")}, cls.o4: {cls.__value("o4-p")}}
+        # kept out of all_events: other tests rely on its five objects
+        cls.e5, (cls.o5_live, cls.o5_gone) = cls.__make_event("e5", 3, [("o5a", 5, [("a", 5, None)]), ("o5b", 5, [("a", 5, None)])])
+        status, data = cls.api(key, "POST", f"objects/delete/{cls.o5_gone}")
+        assert status == 200, (status, data)
+        status, data = cls.api(key, "POST", "objects/restSearch", {"returnFormat": "json", "deleted": "only", "eventid": cls.e5})
+        assert status == 200 and [int(o["Object"]["id"]) for o in data["response"]] == [cls.o5_gone], (status, str(data)[:300])
         cls.hidden_values = {cls.__value(n) for n in ("o2a-hid", "o2a-sg", "o2b-b", "o3-x")}
 
     @classmethod
@@ -2664,6 +2670,80 @@ class TestComplexObjectQueryAcl(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(set(objects), {self.o2a})
         self.assertEqual(self.api(self.site_admin_key, "GET", "objects/queryDescribe")[0], 200)
+
+    def __count(self, extra, token=None):
+        """Returns (status, body as int or None, X-Result-Count as int or None) for a count request."""
+        headers = {"Authorization": token or self.user_key, "Content-Type": "application/json"}
+        r = requests.post(f"{url}/objects/restSearch", json={"returnFormat": "count", **extra}, headers=headers, verify=False)
+        as_int = lambda v: int(v) if v is not None and v.strip().isdigit() else None
+        return r.status_code, as_int(r.text), as_int(r.headers.get("X-Result-Count"))
+
+    def __assert_count(self, extra, expected, token=None, rows=None):
+        token = token or self.user_key
+        status, body, header = self.__count(extra, token)
+        self.assertEqual(status, 200)
+        self.assertEqual(body, header)
+        status, data = self.api(token, "POST", "objects/restSearch", {"returnFormat": "json", **extra})
+        self.assertEqual(status, 200, data)
+        ids = {int(o["Object"]["id"]) for o in data["response"]}
+        self.assertEqual(body, len(data["response"]), f"count disagrees with the JSON rows {sorted(ids)}")
+        self.assertEqual(body, expected)
+        if rows is not None:
+            self.assertEqual(ids, rows)
+
+    def test_count_matches_the_rows(self):
+        tautology = {"OR": [{"id": {">=": 0}}, {"NOT": {"id": {">=": 0}}}]}
+        events = {"event_id": {"IN": self.all_events}}
+        cases = {
+            "flagged user, query": ({"query": events}, 3, None, None),
+            "admin, query": ({"query": events}, 5, key, None),
+            "site admin, legacy filter": ({"eventid": self.all_events}, 5, self.site_admin_key, None),
+            "plain user, legacy filter": ({"eventid": self.all_events}, 3, self.plain_user_key, set(self.visible)),
+            "hidden value": ({"query": {"value": self.__value("o2a-hid")}}, 0, None, None),
+            "hidden value, admin": ({"query": {"value": self.__value("o2a-hid")}}, 1, key, None),
+            "hidden tag": ({"tags": self.tag_hid}, 0, None, None),
+            "hidden tag, admin": ({"tags": self.tag_hid}, 1, key, None),
+            "visible tag": ({"tags": self.tag_vis}, 1, None, None),
+            "tautology": ({"query": self.__anchored(tautology)}, 3, None, None),
+            "legacy filter and query": ({"eventid": self.all_events, "query": {"tags": self.tag_vis}}, 1, None, None),
+            "limit and page": ({"query": events, "limit": 1, "page": 2}, 3, None, None),
+        }
+        for name, (extra, expected, token, rows) in cases.items():
+            with self.subTest(name):
+                if "limit" in extra:
+                    status, body, header = self.__count(extra, token)
+                    self.assertEqual((status, body, header), (200, expected, expected))
+                else:
+                    self.__assert_count(extra, expected, token, rows)
+
+    def test_json_pages_keep_their_result_count(self):
+        headers = {"Authorization": self.user_key, "Content-Type": "application/json", "Accept": "application/json"}
+        r = requests.post(f"{url}/objects/restSearch", json={"returnFormat": "json", "query": {"event_id": {"IN": self.all_events}}, "limit": 1},
+                          headers=headers, verify=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.json()["response"]), 1)
+        self.assertEqual(r.headers.get("X-Result-Count"), "1")
+
+    def test_count_deleted_rule(self):
+        status, me = self.api(key, "GET", "users/view/me")
+        self.assertEqual(status, 200)
+        sync = bool(int(me["Role"]["perm_sync"]))
+        query = {"event_id": self.e5}
+        # no `deleted` key, deleted [0, 1], deleted "only"
+        cases = {
+            "flagged user": (None, (1, 1, 0)),
+            "admin": (key, (1, 2, 1) if sync else (1, 1, 0)),
+        }
+        for name, (token, expected) in cases.items():
+            for extra, count in zip(({}, {"deleted": [0, 1]}, {"deleted": "only"}), expected):
+                with self.subTest(f"{name} {extra}"):
+                    self.__assert_count({"query": query, **extra}, count, token)
+
+    def test_count_permission(self):
+        for token in (self.plain_user_key, "x" * 40):
+            with self.subTest(token[:4]):
+                status, body, header = self.__count({"query": {"id": self.o1}}, token)
+                self.assertEqual((status, body), (403, None))
 
 
 class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):

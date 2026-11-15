@@ -66,7 +66,8 @@ class MispObject extends AppModel
 
     public $validFormats = array(
         'json' => ['json', 'JsonExport', 'json'],
-        'stix2' => ['json', 'Stix2Export', 'json']
+        'stix2' => ['json', 'Stix2Export', 'json'],
+        'count' => ['txt', 'CountExport', 'txt']
     );
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
@@ -1156,6 +1157,10 @@ class MispObject extends AppModel
         }
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
+        }
+        if (!empty($options['count'])) {
+            unset($params['contain']['Attribute'], $params['fields']);
+            return $this->find('count', $params);
         }
         if (isset($options['order'])) {
             $params['order'] = $options['order'];
@@ -2435,6 +2440,13 @@ class MispObject extends AppModel
             }
         } elseif (!$user['Role']['perm_sync'] || empty($filters['deleted'])) {
             $conditions['AND'][] = ['Object.deleted' => 0];
+        }
+        if ($returnFormat === 'count' && !$paramsOnly) {
+            // counted in the database: CountExport only counts attributes and events
+            $elementCounter = $this->fetchObjects($user, ['conditions' => $conditions, 'count' => true]);
+            $tmpfile = new TmpFileTool();
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
         }
         $params = array(
             'conditions' => $conditions,

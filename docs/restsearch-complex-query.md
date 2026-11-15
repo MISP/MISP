@@ -251,6 +251,10 @@ may see.
   `tags` is only allowed under `AND`, as on events.
 - Objects cannot be sorted: an `order` next to `query` is rejected with
   HTTP 400. Without `query`, `order` is ignored, as it always was.
+- `"returnFormat": "count"` returns the number of matching objects as the
+  body and in `X-Result-Count`, counted in the database, with legacy filters
+  or `query`; `limit` and `page` are ignored. A plain request does not
+  compute a total: its `X-Result-Count` is the number of objects returned.
 
 | Field | Level | Type | Operators | Notes |
 |---|---|---|---|---|
