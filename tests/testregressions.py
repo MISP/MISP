@@ -3729,11 +3729,10 @@ class GalaxyClusterDetachScope(unittest.TestCase):
     def tearDown(self):
         self._admin_call('POST', 'events/delete/%s' % self.event_id, {'hard': 1})
         uuids = self.event_uuids
-        rows = self._admin_call('GET', 'eventBlocklists/index').json()
-        for row in rows if isinstance(rows, list) else []:
-            row = row.get('EventBlocklist', row)
+        for row in send(self.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
             if row.get('event_uuid') in uuids:
-                self._admin_call('POST', 'eventBlocklists/delete/%s' % row['id'])
+                send(self.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
 
     def _stored(self):
         response = self._admin_call('GET', 'events/view/%s' % self.event_id)
