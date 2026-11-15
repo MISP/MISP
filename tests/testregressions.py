@@ -3636,5 +3636,152 @@ class ProtectedEventKeyRevocation(unittest.TestCase):
         self.assertIsNone(stored, 'the refused event was stored')
 
 
+class GalaxyClusterDetachScope(unittest.TestCase):
+    """Detaching a galaxy cluster from an event or an attribute needs the tagger permission and
+    an organisation that owns or created the event. A role with the sync permission gets no
+    exemption from that organisation check.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.tag_id = None
+        cls.tag_created = False
+        try:
+            sync_role = user_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if int(role['perm_site_admin']):
+                    continue
+                if int(role['perm_sync']) and int(role['perm_tagger']):
+                    if role['name'] == 'Sync user' or sync_role is None:
+                        sync_role = role
+                if role['name'] == 'User':
+                    user_role = role
+            if sync_role is None or user_role is None:
+                raise unittest.SkipTest('no sync or user role')
+            found = cls._admin_call('POST', 'galaxy_clusters/restSearch',
+                                    {'limit': 1, 'returnFormat': 'json'}).json()
+            if not found.get('response'):
+                raise unittest.SkipTest('no galaxy cluster on this instance')
+            cluster = found['response'][0]['GalaxyCluster']
+            cls.cluster_id, cls.tag_name = int(cluster['id']), cluster['tag_name']
+            tags = cls._admin_call('GET', 'tags/index').json()
+            tags = tags['Tag'] if isinstance(tags, dict) and 'Tag' in tags else tags
+            cls.tag_created = not any(
+                t.get('Tag', t)['name'] == cls.tag_name for t in tags)
+            cls.org_a = make_org(cls.admin, 'regression detach org a')
+            cls.org_b = make_org(cls.admin, 'regression detach org b')
+            cls.created_orgs = [cls.org_a, cls.org_b]
+            cls.sync_a = make_user(cls.admin, cls.org_a.id, int(sync_role['id']))
+            cls.user_a = make_user(cls.admin, cls.org_a.id, int(user_role['id']))
+            cls.user_b = make_user(cls.admin, cls.org_b.id, int(user_role['id']))
+            cls.sync_b = make_user(cls.admin, cls.org_b.id, int(sync_role['id']))
+            cls.created_users = [cls.sync_a, cls.user_a, cls.user_b, cls.sync_b]
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _admin_call(cls, method, path, data=None):
+        return cls._call(key, method, path, data)
+
+    @staticmethod
+    def _call(authkey, method, path, data=None, xhr=False):
+        headers = {'Authorization': authkey, 'Accept': 'application/json',
+                   'Content-Type': 'application/json'}
+        if xhr:
+            headers['X-Requested-With'] = 'XMLHttpRequest'
+        return requests.request(method, '%s/%s' % (url, path), json=data, headers=headers,
+                                timeout=120, verify=False, allow_redirects=False)
+
+    @classmethod
+    def tearDownClass(cls):
+        if getattr(cls, 'tag_created', False) and getattr(cls, 'tag_id', None):
+            cls._admin_call('POST', 'tags/delete/%s' % cls.tag_id)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+
+    def setUp(self):
+        response = self._call(self.user_b.authkey, 'POST', 'events/add', {'Event': {
+            'info': 'regression detach scope %s' % random(), 'distribution': 3,
+            'threat_level_id': 4, 'analysis': 0, 'protected': False,
+            'Attribute': [{'type': 'ip-dst', 'value': '198.51.100.19',
+                           'category': 'Network activity', 'distribution': 3}]}})
+        self.assertEqual(200, response.status_code, response.text[:300])
+        event = response.json()['Event']
+        self.event_id = int(event['id'])
+        self.attribute_id = int(event['Attribute'][0]['id'])
+        type(self).event_ids.append(self.event_id)
+        type(self).event_uuids.append(event['uuid'])
+        for target, target_id in (('event', self.event_id), ('attribute', self.attribute_id)):
+            response = self._call(self.user_b.authkey, 'POST',
+                                  'galaxies/attachCluster/%s/%s' % (target_id, target),
+                                  {'Galaxy': {'target_id': self.cluster_id}})
+            self.assertEqual(200, response.status_code, response.text[:300])
+        stored = self._stored()
+        self.assertTrue(self._on_event(stored))
+        self.assertTrue(self._on_attribute(stored))
+        for tag in stored.get('Tag', []):
+            if tag['name'] == self.tag_name:
+                type(self).tag_id = int(tag['id'])
+        self.assertIsNotNone(self.tag_id)
+
+    def tearDown(self):
+        self._admin_call('POST', 'events/delete/%s' % self.event_id, {'hard': 1})
+        uuids = self.event_uuids
+        rows = self._admin_call('GET', 'eventBlocklists/index').json()
+        for row in rows if isinstance(rows, list) else []:
+            row = row.get('EventBlocklist', row)
+            if row.get('event_uuid') in uuids:
+                self._admin_call('POST', 'eventBlocklists/delete/%s' % row['id'])
+
+    def _stored(self):
+        response = self._admin_call('GET', 'events/view/%s' % self.event_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return response.json()['Event']
+
+    def _on_event(self, stored):
+        return any(t['name'] == self.tag_name for t in stored.get('Tag', []))
+
+    def _on_attribute(self, stored):
+        return any(t['name'] == self.tag_name
+                   for a in stored.get('Attribute', []) for t in a.get('Tag', []))
+
+    def _detach(self, user, target, target_id):
+        return self._call(user.authkey, 'POST', 'galaxy_clusters/detach/%s/%s/%s' % (
+            target_id, target, self.tag_id), xhr=True)
+
+    def test_sync_user_of_another_org_cannot_detach_from_event(self):
+        response = self._detach(self.sync_a, 'event', self.event_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertTrue(self._on_event(self._stored()), 'the cluster was detached')
+
+    def test_sync_user_of_another_org_cannot_detach_from_attribute(self):
+        response = self._detach(self.sync_a, 'attribute', self.attribute_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertTrue(self._on_attribute(self._stored()), 'the cluster was detached')
+
+    def test_sync_user_of_the_event_org_can_detach(self):
+        response = self._detach(self.sync_b, 'event', self.event_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertFalse(self._on_event(self._stored()), 'the cluster is still attached')
+
+    def test_user_of_another_org_cannot_detach(self):
+        response = self._detach(self.user_a, 'event', self.event_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertTrue(self._on_event(self._stored()), 'the cluster was detached')
+
+    def test_event_creator_can_detach(self):
+        response = self._detach(self.user_b, 'event', self.event_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertFalse(self._on_event(self._stored()), 'the cluster is still attached')
+
+
 if __name__ == '__main__':
     unittest.main()
