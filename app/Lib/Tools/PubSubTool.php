@@ -201,7 +201,7 @@ class PubSubTool
         $settings = $this->getSetSettings();
         $this->saveSettingToFile($settings);
 
-        if ($this->checkIfRunning()) {
+        if ($settings['supervisor_managed'] || $this->checkIfRunning()) {
             $redis = $this->createRedisConnection($settings);
             $redis->rPush( 'command', 'reload');
         } else {
