@@ -157,7 +157,7 @@ $valueCell = function ($attr) {
                                     <code class="user-select-all"><?= h($object['uuid']) ?></code>
                                     <button type="button" class="btn btn-sm btn-link p-0 text-muted lh-1"
                                             title="<?= h(__('Copy UUID')) ?>"
-                                            onclick="copyValueToClipboard('<?= h($object['uuid']) ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
+                                            onclick="copyValueToClipboard(<?= h(json_encode($object['uuid'])) ?>, <?= h(json_encode(__('UUID copied to clipboard'))) ?>);">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </span>
