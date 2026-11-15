@@ -5854,7 +5854,7 @@ function parseGpxToLayers(xmlString, map) {
         var nameEl = wpts[i].querySelector('name');
         var marker = L.marker(ll).addTo(map);
         if (nameEl && nameEl.textContent) {
-            marker.bindPopup(nameEl.textContent);
+            marker.bindPopup(escapeHtml(nameEl.textContent));
         }
         bounds.extend(ll);
         hasData = true;
@@ -6038,9 +6038,9 @@ $(document).on("click", ".geojson-map-icon", function() {
                             for (var key in feature.properties) {
                                 if (feature.properties[key] !== null) {
                                     props.push(
-                                        '<strong>' + key +
+                                        '<strong>' + escapeHtml(key) +
                                         '</strong>: ' +
-                                        feature.properties[key]
+                                        escapeHtml(String(feature.properties[key]))
                                     );
                                 }
                             }
