@@ -3783,5 +3783,153 @@ class GalaxyClusterDetachScope(unittest.TestCase):
         self.assertFalse(self._on_event(self._stored()), 'the cluster is still attached')
 
 
+class CollectionStaleSharingGroup(unittest.TestCase):
+    """A collection keeps a sharing group only when it is distributed to one: a save at any
+    other distribution clears it, and the index shows a sharing group only on distribution 4
+    collections.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.collection_ids = []
+        cls.sharing_group_id = None
+        try:
+            user_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if role['name'] == 'User' and int(role['perm_modify']) \
+                        and not int(role['perm_site_admin']):
+                    user_role = role
+            if user_role is None:
+                raise unittest.SkipTest('no User role')
+            cls.org_a = make_org(cls.admin, 'regression collection org a')
+            cls.created_orgs.append(cls.org_a)
+            cls.org_b = make_org(cls.admin, 'regression collection org b')
+            cls.created_orgs.append(cls.org_b)
+            cls.user_a = make_user(cls.admin, cls.org_a.id, int(user_role['id']))
+            cls.created_users.append(cls.user_a)
+            cls.user_b = make_user(cls.admin, cls.org_b.id, int(user_role['id']))
+            cls.created_users.append(cls.user_b)
+            cls.connector_a = PyMISP(url, cls.user_a.authkey)
+            cls.connector_b = PyMISP(url, cls.user_b.authkey)
+            cls.token = random()
+            made = send(cls.admin, 'POST', 'sharingGroups/add', data={
+                'name': 'regression collection group %s' % cls.token, 'releasability': 'x',
+                'roaming': False,
+                'SharingGroupOrg': [{'Organisation': {'uuid': cls.org_b.uuid,
+                                                      'name': cls.org_b.name},
+                                     'extend': False}]})
+            cls.sharing_group = made['SharingGroup']
+            cls.sharing_group_id = int(cls.sharing_group['id'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for collection_id in getattr(cls, 'collection_ids', []):
+            send(cls.admin, 'POST', 'collections/delete/%d' % collection_id, check_errors=False)
+        if getattr(cls, 'sharing_group_id', None):
+            send(cls.admin, 'POST', 'sharingGroups/delete/%d' % cls.sharing_group_id,
+                 check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+
+    def _name(self):
+        return 'regression collection %s' % random()
+
+    def _body(self, name, distribution, sharing_group_id=None):
+        collection = {'name': name, 'type': 'other', 'description': 'regression',
+                      'distribution': distribution}
+        if sharing_group_id is not None:
+            collection['sharing_group_id'] = sharing_group_id
+        return {'Collection': collection}
+
+    def _index(self, connector):
+        response = connector._prepare_request('GET', 'collections/index.json')
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return response.json()
+
+    def _entry(self, connector, name):
+        for entry in self._index(connector):
+            if entry['Collection']['name'] == name:
+                return entry
+        return None
+
+    def _add(self, connector, name, distribution, sharing_group_id=None):
+        response = connector._prepare_request(
+            'POST', 'collections/add', data=self._body(name, distribution, sharing_group_id))
+        entry = self._entry(self.admin, name)
+        if entry is not None:
+            type(self).collection_ids.append(int(entry['Collection']['id']))
+        return response, entry
+
+    def _edit(self, connector, collection_id, name, distribution, sharing_group_id=None):
+        return connector._prepare_request(
+            'POST', 'collections/edit/%d' % collection_id,
+            data=self._body(name, distribution, sharing_group_id))
+
+    def _stored(self, collection_id):
+        response = self.admin._prepare_request('GET', 'collections/view/%d.json' % collection_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        body = response.json()
+        return body.get('Collection', body)['sharing_group_id']
+
+    def assertNoGroupShown(self, connector, name):
+        entry = self._entry(connector, name)
+        self.assertIsNotNone(entry, 'the collection is not in the index')
+        text = json.dumps(entry)
+        self.assertNotIn(self.sharing_group['name'], text)
+        self.assertNotIn(self.sharing_group['uuid'], text)
+
+    def test_distribution_0_add_drops_the_sharing_group(self):
+        name = self._name()
+        response, entry = self._add(self.connector_a, name, 0, self.sharing_group_id)
+        self.assertIsNotNone(entry, 'the collection was not created: %s' % response.text[:300])
+        self.assertIsNone(self._stored(int(entry['Collection']['id'])))
+        self.assertNoGroupShown(self.connector_a, name)
+
+    def test_distribution_0_edit_drops_the_sharing_group(self):
+        name = self._name()
+        response, entry = self._add(self.connector_a, name, 0)
+        self.assertIsNotNone(entry, 'the collection was not created: %s' % response.text[:300])
+        collection_id = int(entry['Collection']['id'])
+        self._edit(self.connector_a, collection_id, name, 0, self.sharing_group_id)
+        self.assertIsNone(self._stored(collection_id))
+        self.assertNoGroupShown(self.connector_a, name)
+
+    def test_edit_away_from_the_sharing_group_drops_it(self):
+        name = self._name()
+        response, entry = self._add(self.connector_b, name, 4, self.sharing_group_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertIsNotNone(entry, 'the collection was not created')
+        collection_id = int(entry['Collection']['id'])
+        self.assertEqual(self.sharing_group_id, int(self._stored(collection_id)))
+        self._edit(self.connector_b, collection_id, name, 2)
+        self.assertIsNone(self._stored(collection_id))
+        self.assertNoGroupShown(self.connector_a, name)
+
+    def test_member_keeps_the_sharing_group_on_distribution_4(self):
+        name = self._name()
+        response, entry = self._add(self.connector_b, name, 4, self.sharing_group_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertIsNotNone(entry, 'the collection was not created')
+        self.assertEqual(self.sharing_group_id,
+                         int(self._stored(int(entry['Collection']['id']))))
+        own = self._entry(self.connector_b, name)
+        self.assertIsNotNone(own, 'the collection is not in the member index')
+        self.assertEqual(self.sharing_group['name'], own['SharingGroup']['name'])
+
+    def test_non_member_cannot_use_the_sharing_group(self):
+        name = self._name()
+        response, entry = self._add(self.connector_a, name, 4, self.sharing_group_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertIsNone(entry, 'a collection was created with a sharing group the user cannot use')
+
+
 if __name__ == '__main__':
     unittest.main()
