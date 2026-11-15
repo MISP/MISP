@@ -1041,7 +1041,8 @@ class Galaxy extends AppModel
             $orgc_id = $org_id;
         }
 
-        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+        // No sync exemption: replication never detaches through here
+        if (!$user['Role']['perm_site_admin']) {
             if (
                 ($target_type === 'tag_collection' && !$user['Role']['perm_tag_editor']) ||
                 ($target_type !== 'tag_collection' && !$user['Role']['perm_tagger']) ||
@@ -1156,7 +1157,8 @@ class Galaxy extends AppModel
             if (empty($event)) {
                 throw new NotFoundException('Invalid Event.');
             }
-            if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+            // No sync exemption: replication never detaches through here
+            if (!$user['Role']['perm_site_admin']) {
                 if (!$user['Role']['perm_tagger'] || ($user['org_id'] !== $event['Event']['org_id'] && $user['org_id'] !== $event['Event']['orgc_id'])) {
                     throw new NotFoundException('Invalid Event.');
                 }

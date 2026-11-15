@@ -5377,6 +5377,8 @@ class EventsController extends AppController
                 // Distribution, reporter for the events pushed will be the owner of the authentication key
                 $this->request->data['Event']['user_id'] = $this->Auth->user('id');
             }
+            // Local users, site admins and internal sync need no signature, as on edit
+            $fingerprint = true;
             if (
                 !empty($this->request->data['Event']['protected']) &&
                 $this->Auth->user('Role')['perm_sync'] &&
@@ -5388,14 +5390,13 @@ class EventsController extends AppController
                     throw new MethodNotAllowedException(__('Protected event failed signature validation as no key was provided.'));
                 }
                 $raw_data = $this->request->input();
-                if (
-                    !$this->Event->CryptographicKey->validateProtectedEvent(
-                        $raw_data,
-                        $this->Auth->user(),
-                        $pgp_signature,
-                        $this->request->data
-                    )
-                ) {
+                $fingerprint = $this->Event->CryptographicKey->validateProtectedEvent(
+                    $raw_data,
+                    $this->Auth->user(),
+                    $pgp_signature,
+                    $this->request->data
+                );
+                if (!$fingerprint) {
                     throw new MethodNotAllowedException(__('Protected event failed signature validation.'));
                 }
             }
@@ -5435,7 +5436,7 @@ class EventsController extends AppController
                 }
                 $validationErrors = array();
                 $created_id = 0;
-                $add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
+                $add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors, $fingerprint);
                 if ($add === true) {
                     if ($this->_isRest()) {
                         // REST users want to see the newly created event

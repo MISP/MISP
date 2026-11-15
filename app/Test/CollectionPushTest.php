@@ -716,6 +716,28 @@ class CollectionPushTest extends TestCase
         $this->assertArrayHasKey('SharingGroupServer', $sgOut, 'SG carries the full org/server struct for remote captureSG');
     }
 
+    public function testCollectDropsSharingGroupBelowDist4(): void
+    {
+        ClassRegistry::$instances['Event'] = new CollectionPushFakeEvent();
+        $sg = new CollectionPushFakeSharingGroup();
+        $sg->firstResult = array(
+            'SharingGroup' => array('id' => 55, 'uuid' => 'sg-uuid', 'name' => 'SG'),
+            'Organisation' => array('id' => 3, 'uuid' => 'org-uuid'),
+            'SharingGroupOrg' => array(),
+            'SharingGroupServer' => array(array('server_id' => 7)),
+        );
+        ClassRegistry::$instances['SharingGroup'] = $sg;
+
+        $row = $this->corpusRow('u1', array('distribution' => 2, 'sharing_group_id' => 55));
+        $row['SharingGroup'] = array('id' => 55, 'uuid' => 'sg-uuid', 'name' => 'SG');
+        $this->collection->findAllResult = array($row);
+
+        $out = $this->collection->collectDataForPush($this->collectServer());
+
+        $this->assertCount(1, $out);
+        $this->assertArrayNotHasKey('SharingGroup', $out[0]['Collection'], 'a stale SG never travels below dist=4');
+    }
+
     // ============ push() — value elements by remote version ============
 
     public function valueVersionProvider()

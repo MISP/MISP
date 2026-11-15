@@ -4,6 +4,7 @@ App::uses('MispLanguage', 'Tools');
 App::uses('AnalystData', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('SharingGroup', 'Model');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
 App::uses('GitTool', 'Tools');
@@ -494,20 +495,18 @@ class Server extends AppModel
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
+            // An internal link needs no signature
+            $fingerprint = true;
             if (!$server['Server']['internal'] && isset($event['Event']['protected']) && $event['Event']['protected']) {
-                if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
+                $fingerprint = $eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event);
+                if (!$fingerprint) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
                 }
             }
-            if(isset($event['Event']['protected']) && $event['Event']['protected'] && isset($event['Event']['CryptographicKey'][0])) {
-                $fingerprint = $event['Event']['CryptographicKey'][0]['fingerprint'];
-                $created_id = 0;
-                $validationIssues = array();
-                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
-            }else{
-                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
-            }
+            $created_id = 0;
+            $validationIssues = array();
+            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
             if ($result) {
                 $successes[] = $eventId;
                 if ($this->pubToZmq('event')) {
@@ -613,6 +612,13 @@ class Server extends AppModel
      * @throws Exception
      */
     public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
+    {
+        return SharingGroup::captureRemote($server, function () use ($user, $technique, $server, $jobId, $force) {
+            return $this->__pull($user, $technique, $server, $jobId, $force);
+        });
+    }
+
+    private function __pull(array $user, $technique, array $server, $jobId, $force)
     {
         if ($jobId) {
             Configure::write('CurrentUserId', $user['id']);
@@ -1361,6 +1367,9 @@ class Server extends AppModel
                         $params['noSightings'] = 1;
                     }
                     $event = $this->Event->fetchEvent($user, $params);
+                    if (empty($event)) {
+                        continue;
+                    }
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
 
@@ -1389,9 +1398,11 @@ class Server extends AppModel
                 if (count($fails) > 0) {
                     // there are fails, take the lowest fail
                     $lastpushedid = min(array_keys($fails));
-                } else {
+                } elseif (!empty($successes)) {
                     // no fails, take the highest success
                     $lastpushedid = max($successes);
+                } else {
+                    $lastpushedid = $server['Server']['lastpushedid'];
                 }
                 // increment lastid based on the highest ID seen
                 // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
@@ -1493,11 +1504,24 @@ class Server extends AppModel
         }
 
         try {
-            return $serverSync->filterEventIdsForPush($request)->json();
+            $wanted = $serverSync->filterEventIdsForPush($request)->json();
         } catch (Exception $e) {
             $this->logException("Could not filter events for push when pushing to server {$serverSync->serverId()}", $e);
             return false;
         }
+        if (!is_array($wanted)) {
+            $this->log("Invalid reply when filtering events for push to server {$serverSync->serverId()}.", LOG_WARNING);
+            return [];
+        }
+        // The remote only picks from what was offered
+        $wanted = array_flip(array_filter($wanted, 'is_string'));
+        $eventUuids = [];
+        foreach ($request as $offered) {
+            if (isset($wanted[$offered['Event']['uuid']])) {
+                $eventUuids[] = $offered['Event']['uuid'];
+            }
+        }
+        return $eventUuids;
     }
 
     /**

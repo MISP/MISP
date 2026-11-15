@@ -4,6 +4,7 @@ use MaxMind\Exception\InvalidInputException;
 
 App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
+App::uses('SharingGroup', 'Model');
 App::uses('TmpFileTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
 
@@ -1141,11 +1142,15 @@ class Feed extends AppModel
      */
     public function downloadAndSaveEventFromFeed(array $feed, $uuid, array $user)
     {
-        $event = $this->downloadEventFromFeed($feed, $uuid);
+        $errorMessage = null;
+        $fingerprint = false;
+        $event = $this->downloadEventFromFeed($feed, $uuid, false, $errorMessage, $fingerprint);
         if (!is_array($event) || isset($event['code'])) {
             return false;
         }
-        return $this->__saveEvent($event, $user);
+        return SharingGroup::captureRemote(null, function () use ($event, $user, $fingerprint) {
+            return $this->__saveEvent($event, $user, $fingerprint);
+        });
     }
 
     /**
@@ -1154,11 +1159,11 @@ class Feed extends AppModel
      * @return bool|string|array
      * @throws Exception
      */
-    public function downloadEventFromFeed(array $feed, $uuid, $permissive = false, &$error_message = null)
+    public function downloadEventFromFeed(array $feed, $uuid, $permissive = false, &$error_message = null, &$fingerprint = false)
     {
         $filerRules = $this->__prepareFilterRules($feed);
         $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
-        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket, $permissive, $error_message);
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket, $permissive, $error_message, $fingerprint);
         if ($permissive) {
             $event['Event']['error_message'] = $error_message;
         }
@@ -1168,9 +1173,10 @@ class Feed extends AppModel
     /**
      * @param array $event
      * @param array $user
+     * @param string|false $fingerprint Of the key that verified a protected event's signature
      * @return array
      */
-    private function __saveEvent(array $event, array $user)
+    private function __saveEvent(array $event, array $user, $fingerprint = false)
     {
         $this->Event = ClassRegistry::init('Event');
         $existingEvent = $this->Event->find('first', array(
@@ -1188,7 +1194,9 @@ class Feed extends AppModel
             }
         } else {
             $result['action'] = 'add';
-            $result['result'] = $this->Event->_add($event, true, $user);
+            $createdId = 0;
+            $validationErrors = [];
+            $result['result'] = $this->Event->_add($event, true, $user, 0, null, false, null, $createdId, $validationErrors, $fingerprint);
         }
         return $result;
     }
@@ -1355,10 +1363,14 @@ class Feed extends AppModel
      */
     private function __addEventFromFeed(?HttpSocket $HttpSocket, $feed, $uuid, $user, $filterRules)
     {
-        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
+        $errorMessage = null;
+        $fingerprint = false;
+        $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket, false, $errorMessage, $fingerprint);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
         if (is_array($event)) {
-            return $this->Event->_add($event, true, $user);
+            $createdId = 0;
+            $validationErrors = [];
+            return $this->Event->_add($event, true, $user, 0, null, false, null, $createdId, $validationErrors, $fingerprint);
         } else {
             return $event;
         }
@@ -1446,7 +1458,9 @@ class Feed extends AppModel
 
             $total = count($actions['add']) + count($actions['edit']);
             $this->jobProgress($jobId, __("Fetching %s events.", $total));
-            $result = $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
+            $result = SharingGroup::captureRemote(null, function () use ($actions, $feed, $HttpSocket, $user, $jobId) {
+                return $this->downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId);
+            });
             $this->__cleanupFile($feed, '/manifest.json');
         } else {
             $this->jobProgress($jobId, 'Fetching data.');
@@ -2385,10 +2399,13 @@ class Feed extends AppModel
      * @param array $feed
      * @param string $eventUuid
      * @param HttpSocket|null $HttpSocket Null can be for local feed
+     * @param bool $permissive
+     * @param string|null $error_message
+     * @param string|false $fingerprint Set to the key that verified a protected event's signature
      * @return array
      * @throws Exception
      */
-    private function downloadAndParseEventFromFeed($feed, $eventUuid, ?HttpSocket $HttpSocket = null, $permissive = false, &$error_message = null)
+    private function downloadAndParseEventFromFeed($feed, $eventUuid, ?HttpSocket $HttpSocket = null, $permissive = false, &$error_message = null, &$fingerprint = false)
     {
         if (!Validation::uuid($eventUuid)) {
             throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
@@ -2410,7 +2427,8 @@ class Feed extends AppModel
                     }
                 }
                 $this->Event = ClassRegistry::init('Event');
-                if (!$this->Event->CryptographicKey->validateAndCheckLocalProtectedEvent($raw_data, [], $sig, $data)) {
+                $fingerprint = $this->Event->CryptographicKey->validateAndCheckLocalProtectedEvent($raw_data, [], $sig, $data);
+                if (!$fingerprint) {
                     $error_message = __('Protected event %s signature validation failed.', $eventUuid);
                     if (!$permissive) {
                         throw new InvalidInputException($error_message);

@@ -10,6 +10,7 @@ that needs a freshly seeded database cannot tell a regression from a dirty insta
 Each class covers one fixed finding and states what the defect was, so a failure here says
 which protection regressed rather than only which assertion broke.
 """
+import base64
 import os
 import sys
 import html
@@ -3117,6 +3118,811 @@ class ProposalSyncScope(unittest.TestCase):
         self.assertEqual(1, answer['counter'], answer)
         stored = [p for p in self._proposals(event['id']) if p['value'] == proposal['value']]
         self.assertEqual([str(newer['timestamp'])], [str(p['timestamp']) for p in stored])
+
+
+class OrganisationDetailsSyncScope(unittest.TestCase):
+    """Capturing an existing sharing group with a newer modified date adds the roster's
+    organisations to the group but changes the details of an existing organisation (type,
+    nationality, sector, contacts) only when the sender is a site admin or holds
+    perm_sync_internal. A regular sync user only references organisations: matching an existing
+    one by uuid or creating an unknown one.
+
+    Every sync user used to overwrite those fields on any organisation matched by uuid, the
+    host organisation included.
+    """
+
+    ORIGINAL = {'type': 'original type', 'nationality': 'LU', 'sector': 'original sector',
+                'contacts': 'original@contacts.example'}
+    POISONED = {'type': 'poisoned type', 'nationality': 'FR', 'sector': 'poisoned sector',
+                'contacts': 'poisoned@contacts.example'}
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.created_roles = []
+        cls.captured_org_uuids = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.sg_ids = []
+        try:
+            cls.plain_role = cls._make_role('regression org details plain', {})
+            cls.internal_role = cls._make_role('regression org details internal',
+                                               {'perm_sync_internal': 1})
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _make_role(cls, name, extra):
+        body = {'name': '%s %s' % (name, random()), 'permission': 3, 'perm_add': 1,
+                'perm_sync': 1, 'perm_sharing_group': 1, 'perm_tagger': 1, 'perm_auth': 1}
+        body.update(extra)
+        response = cls.admin._prepare_request('POST', 'admin/roles/add', data={'Role': body})
+        created = response.json() if response.status_code == 200 else {}
+        created = created.get('Role', created)
+        if not (created.get('id') and int(created.get('perm_sync', 0))
+                and int(created.get('perm_add', 0))
+                and int(created.get('perm_sharing_group', 0))):
+            raise unittest.SkipTest('could not create a sync role with perm_sharing_group')
+        if extra and not int(created.get('perm_sync_internal', 0)):
+            raise unittest.SkipTest('could not create a role with perm_sync_internal')
+        cls.created_roles.append(int(created['id']))
+        return int(created['id'])
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for sg_id in getattr(cls, 'sg_ids', []):
+            cls.admin._prepare_request('POST', 'sharingGroups/delete/%s' % sg_id)
+        for user in getattr(cls, 'created_users', []):
+            cls.admin.delete_user(user)
+        for org_uuid in getattr(cls, 'captured_org_uuids', []):
+            response = cls.admin._prepare_request('GET', 'organisations/view/%s' % org_uuid)
+            if response.status_code == 200:
+                found = response.json().get('Organisation', {})
+                if found.get('uuid') == org_uuid and found.get('id'):
+                    cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % found['id'])
+        for org in getattr(cls, 'created_orgs', []):
+            cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % org.id)
+        for role_id in getattr(cls, 'created_roles', []):
+            cls.admin._prepare_request('POST', 'admin/roles/delete/%d' % role_id)
+
+    def _org(self, label, **details):
+        org = MISPOrganisation()
+        org.name = 'regression org details %s %s' % (label, random())
+        for field, value in details.items():
+            org[field] = value
+        org = check_response(self.admin.add_organisation(org))
+        self.created_orgs.append(org)
+        return org
+
+    def _sync_user(self, org, role_id):
+        user = make_user(self.admin, org.id, role_id)
+        self.created_users.append(user)
+        return PyMISP(url, user.authkey)
+
+    def _details(self, org_id):
+        response = self.admin._prepare_request('GET', 'organisations/view/%s' % org_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        found = response.json()['Organisation']
+        return {field: found[field] for field in self.ORIGINAL}
+
+    def _roster_uuids(self, sg_id):
+        response = self.admin._prepare_request('GET', 'sharing_groups/view/%s' % sg_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return [row['Organisation']['uuid'] for row in response.json()['SharingGroupOrg']]
+
+    @staticmethod
+    def _roster_entry(org, details=None):
+        entry = {'uuid': org.uuid, 'name': org.name}
+        entry.update(details or {})
+        return {'Organisation': entry, 'extend': False}
+
+    def _push(self, connector, sg_uuid, modified, roster):
+        event = {'info': 'regression org details %s' % random(), 'distribution': 4,
+                 'threat_level_id': 4, 'analysis': 0,
+                 'Attribute': [{'type': 'domain', 'category': 'Network activity',
+                                'value': '%s.example' % random(), 'uuid': str(uuidlib.uuid4()),
+                                'distribution': 5}],
+                 'SharingGroup': {'uuid': sg_uuid, 'name': 'regression org details sg %s' % random(),
+                                  'releasability': 'x', 'description': 'x', 'roaming': 1,
+                                  'created': '2024-01-01 00:00:00', 'modified': modified,
+                                  'SharingGroupOrg': roster}}
+        response = connector._prepare_request('POST', 'events/add', data=event)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        created = response.json().get('Event', {})
+        self.assertTrue(created.get('id'), response.text[:300])
+        self.event_ids.append(int(created['id']))
+        self.event_uuids.append(created['uuid'])
+        return created
+
+    def _sharing_group_id(self, sg_uuid):
+        response = self.admin._prepare_request('GET', 'sharing_groups/view/%s' % sg_uuid)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        sg_id = int(response.json()['SharingGroup']['id'])
+        if sg_id not in self.sg_ids:
+            self.sg_ids.append(sg_id)
+        return sg_id
+
+    def _scenario(self, pusher_of):
+        """Create the group from a sync user's org, then capture it again with a later modified
+        date and a roster that adds the victim with poisoned details and an unknown org.
+        `pusher_of(org)` returns the connector doing the second push."""
+        org_a = self._org('sender')
+        victim = self._org('victim', **self.ORIGINAL)
+        sg_uuid = str(uuidlib.uuid4())
+        creator = self._sync_user(org_a, self.plain_role)
+        self._push(creator, sg_uuid, '2024-02-01 00:00:00', [self._roster_entry(org_a)])
+        sg_id = self._sharing_group_id(sg_uuid)
+        self.assertEqual(self.ORIGINAL, self._details(victim.id))
+        unknown_uuid = str(uuidlib.uuid4())
+        self.captured_org_uuids.append(unknown_uuid)
+        unknown = {'Organisation': {'uuid': unknown_uuid,
+                                    'name': 'regression org details unknown %s' % random()},
+                   'extend': False}
+        roster = [self._roster_entry(org_a), self._roster_entry(victim, self.POISONED), unknown]
+        self._push(pusher_of(org_a), sg_uuid, '2030-01-01 00:00:00', roster)
+        roster_uuids = self._roster_uuids(sg_id)
+        self.assertIn(victim.uuid, roster_uuids)
+        self.assertIn(unknown_uuid, roster_uuids)
+        return victim
+
+    def test_regular_sync_user_does_not_edit_organisations(self):
+        victim = self._scenario(lambda org: self._sync_user(org, self.plain_role))
+        self.assertEqual(self.ORIGINAL, self._details(victim.id))
+
+    def test_internal_sync_user_updates_organisations(self):
+        victim = self._scenario(lambda org: self._sync_user(org, self.internal_role))
+        self.assertEqual(self.POISONED, self._details(victim.id))
+
+    def test_site_admin_updates_organisations(self):
+        victim = self._scenario(lambda org: self.admin)
+        self.assertEqual(self.POISONED, self._details(victim.id))
+
+
+class ProtectedEventAdd(unittest.TestCase):
+    """A protected event can be created through events/add, keeping the key it lists: by a site
+    admin, an internal sync user and a regular user without a signature, and by an external sync
+    user only with a signature from that key; without a signature, or signed by an unlisted key,
+    it is refused with a 405 and nothing is stored.
+
+    The controller never passed the verified signer on to the model, which therefore refused
+    every protected event added through the API, whoever sent it and however it was signed. A
+    key entry holding only its type and key data was also dropped, leaving the event keyless.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.created_roles = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.gnupg_homes = []
+        try:
+            ext_role = None
+            user_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if int(role['perm_site_admin']):
+                    continue
+                if (int(role['perm_sync']) and not int(role.get('perm_sync_internal', 0) or 0)
+                        and int(role['perm_add']) and int(role['perm_auth'])):
+                    ext_role = ext_role or role
+                if role['name'] == 'User' and int(role['perm_add']) and not int(role['perm_sync']):
+                    user_role = role
+            if ext_role is None or user_role is None:
+                raise unittest.SkipTest('no external sync role or User role')
+            body = {k: v for k, v in ext_role.items()
+                    if k.startswith('perm_') and k != 'perm_sync_internal'}
+            body['perm_sync_internal'] = 1
+            body['permission'] = 3
+            body['name'] = 'regression internal sync %s' % random()
+            response = cls.admin._prepare_request('POST', 'admin/roles/add', data={'Role': body})
+            created = response.json() if response.status_code == 200 else {}
+            created = created.get('Role', created)
+            if not created.get('id') or not int(created.get('perm_sync_internal', 0)):
+                raise unittest.SkipTest('no internal sync role could be created')
+            cls.created_roles.append(int(created['id']))
+            cls.org = make_org(cls.admin, 'regression protected add org')
+            cls.created_orgs = [cls.org]
+            cls.ext_user = make_user(cls.admin, cls.org.id, int(ext_role['id']))
+            cls.int_user = make_user(cls.admin, cls.org.id, cls.created_roles[0])
+            cls.reg_user = make_user(cls.admin, cls.org.id, int(user_role['id']))
+            cls.created_users = [cls.ext_user, cls.int_user, cls.reg_user]
+            cls.listed = cls._make_pgp_key()
+            cls.unlisted = cls._make_pgp_key()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _make_pgp_key(cls):
+        base = os.environ.get('REGRESSION_TMP') or tempfile.gettempdir()
+        home = tempfile.mkdtemp(prefix='regression-gnupg-', dir=base)
+        cls.gnupg_homes.append(home)
+        os.chmod(home, 0o700)
+        env = dict(os.environ, GNUPGHOME=home)
+        subprocess.run(['gpg', '--batch', '--pinentry-mode', 'loopback', '--passphrase', '',
+                        '--quick-generate-key', 'regression-%s@test.local' % random(), 'rsa2048',
+                        'sign', '1d'], env=env, check=True, capture_output=True, timeout=120)
+        exported = subprocess.run(['gpg', '--batch', '--armor', '--export'], env=env,
+                                  check=True, capture_output=True, timeout=30).stdout.decode()
+        colons = subprocess.run(['gpg', '--batch', '--with-colons', '--fingerprint'], env=env,
+                                check=True, capture_output=True, timeout=30
+                                ).stdout.decode().splitlines()
+        fingerprint = None
+        for i, line in enumerate(colons):
+            if line.startswith('pub:'):
+                fingerprint = colons[i + 1].split(':')[9].upper()
+                break
+        return {'env': env, 'pub': exported, 'fingerprint': fingerprint}
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+        for role_id in getattr(cls, 'created_roles', []):
+            cls.admin._prepare_request('POST', 'admin/roles/delete/%d' % role_id)
+        for home in getattr(cls, 'gnupg_homes', []):
+            shutil.rmtree(home, ignore_errors=True)
+
+    def _add(self, user_key, signer=None):
+        uuid = str(uuidlib.uuid4())
+        event = {'uuid': uuid, 'info': 'regression protected add %s' % random(),
+                 'distribution': 0, 'threat_level_id': 4, 'analysis': 0,
+                 'date': time.strftime('%Y-%m-%d'), 'protected': True,
+                 'Attribute': [{'type': 'comment', 'category': 'Other', 'value': random()}],
+                 'CryptographicKey': [{'type': 'pgp', 'key_data': self.listed['pub'],
+                                       'fingerprint': self.listed['fingerprint']}]}
+        raw = json.dumps({'Event': event}).encode()
+        headers = {'Authorization': user_key, 'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        if signer:
+            signature = subprocess.run(
+                ['gpg', '--batch', '--pinentry-mode', 'loopback', '--passphrase', '',
+                 '--detach-sign'], input=re.sub(rb'\s+', b'', raw), env=signer['env'],
+                check=True, capture_output=True, timeout=30).stdout
+            headers['x-pgp-signature'] = base64.b64encode(signature).decode()
+        type(self).event_uuids.append(uuid)
+        response = requests.post(url + '/events/add', data=raw, headers=headers, timeout=120,
+                                 verify=False)
+        found = self.admin._prepare_request('POST', 'events/restSearch',
+            data={'uuid': uuid, 'returnFormat': 'json'}).json().get('response', [])
+        stored = found[0]['Event'] if found else None
+        if stored:
+            type(self).event_ids.append(int(stored['id']))
+        return response, stored
+
+    def _created_protected(self, response, stored):
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertIsNotNone(stored, 'the event was not stored')
+        self.assertTrue(int(stored['protected']))
+        self.assertEqual([self.listed['fingerprint']],
+                         [k['fingerprint'].upper() for k in stored.get('CryptographicKey', [])],
+                         'the event did not keep its key')
+        return stored
+
+    def _refused(self, response, stored, text):
+        self.assertEqual(405, response.status_code, response.text[:300])
+        self.assertIn(text, response.text)
+        self.assertIsNone(stored, 'the refused event was stored')
+
+    def test_external_sync_user_signed(self):
+        self._created_protected(*self._add(self.ext_user.authkey, self.listed))
+
+    def test_external_sync_user_unsigned(self):
+        response, stored = self._add(self.ext_user.authkey)
+        self._refused(response, stored, 'no key was provided')
+
+    def test_external_sync_user_unlisted_signer(self):
+        response, stored = self._add(self.ext_user.authkey, self.unlisted)
+        self._refused(response, stored, 'failed signature validation')
+
+    def test_site_admin_unsigned(self):
+        self._created_protected(*self._add(key))
+
+    def test_internal_sync_user_unsigned(self):
+        self._created_protected(*self._add(self.int_user.authkey))
+
+    def test_regular_user_unsigned(self):
+        stored = self._created_protected(*self._add(self.reg_user.authkey))
+        self.assertEqual(int(self.org.id), int(stored['orgc_id']))
+
+
+class ProtectedEventKeyRevocation(unittest.TestCase):
+    """A key stored as revoked no longer validates a protected event's signature, and a sync
+    user's edit applies the key list it pushes: revocations are stored (and never lifted by a
+    push), keys missing from the list are removed, and an entry holding only its type and key
+    data keeps its stored key. A signed protected add without any key is refused with a 405.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.gnupg_homes = []
+        try:
+            ext_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if int(role['perm_site_admin']):
+                    continue
+                if (int(role['perm_sync']) and not int(role.get('perm_sync_internal', 0) or 0)
+                        and int(role['perm_add']) and int(role['perm_auth'])
+                        and int(role.get('perm_modify_org', 0) or 0)):
+                    ext_role = ext_role or role
+            if ext_role is None:
+                raise unittest.SkipTest('no external sync role')
+            cls.org = make_org(cls.admin, 'regression key revocation org')
+            cls.created_orgs = [cls.org]
+            cls.ext_user = make_user(cls.admin, cls.org.id, int(ext_role['id']))
+            cls.created_users = [cls.ext_user]
+            cls.key_a = cls._make_pgp_key()
+            cls.key_b = cls._make_pgp_key()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    _make_pgp_key = classmethod(ProtectedEventAdd._make_pgp_key.__func__)
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id, data={'hard': 1})
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+        for home in getattr(cls, 'gnupg_homes', []):
+            shutil.rmtree(home, ignore_errors=True)
+
+    def _post(self, path, event, signer):
+        raw = json.dumps({'Event': event}).encode()
+        signature = subprocess.run(
+            ['gpg', '--batch', '--pinentry-mode', 'loopback', '--passphrase', '',
+             '--detach-sign'], input=re.sub(rb'\s+', b'', raw), env=signer['env'],
+            check=True, capture_output=True, timeout=30).stdout
+        headers = {'Authorization': self.ext_user.authkey, 'Content-Type': 'application/json',
+                   'Accept': 'application/json',
+                   'x-pgp-signature': base64.b64encode(signature).decode()}
+        return requests.post('%s/%s' % (url, path), data=raw, headers=headers, timeout=120,
+                             verify=False)
+
+    def _lookup(self, uuid):
+        found = self.admin._prepare_request('POST', 'events/restSearch',
+            data={'uuid': uuid, 'returnFormat': 'json'}).json().get('response', [])
+        stored = found[0]['Event'] if found else None
+        if stored and int(stored['id']) not in type(self).event_ids:
+            type(self).event_ids.append(int(stored['id']))
+        return stored
+
+    def _entry(self, pgp, revoked=False, fingerprint=True):
+        entry = {'type': 'pgp', 'key_data': pgp['pub']}
+        if fingerprint:
+            entry['fingerprint'] = pgp['fingerprint']
+            entry['revoked'] = revoked
+        return entry
+
+    def _fixture(self, revoked_a=False):
+        uuid = str(uuidlib.uuid4())
+        type(self).event_uuids.append(uuid)
+        event = {'uuid': uuid, 'info': 'regression key revocation %s' % random(),
+                 'distribution': 0, 'threat_level_id': 4, 'analysis': 0,
+                 'date': time.strftime('%Y-%m-%d'), 'protected': True,
+                 'Attribute': [{'type': 'comment', 'category': 'Other', 'value': random()}],
+                 'CryptographicKey': [self._entry(self.key_a, revoked_a),
+                                      self._entry(self.key_b)]}
+        response = self._post('events/add', event, self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        stored = self._lookup(uuid)
+        self.assertIsNotNone(stored, 'the fixture event was not stored')
+        self.assertEqual({self.key_a['fingerprint']: int(revoked_a), self.key_b['fingerprint']: 0},
+                         self._keys(stored))
+        return stored
+
+    def _keys(self, stored):
+        return {k['fingerprint'].upper(): int(k['revoked'])
+                for k in stored.get('CryptographicKey', [])}
+
+    def _edit(self, stored, entries, signer):
+        event = dict(stored)
+        event['info'] = stored['info'] + ' edited'
+        event['timestamp'] = str(int(time.time()) + 5)
+        event['CryptographicKey'] = entries
+        response = self._post('events/edit/%s' % stored['uuid'], event, signer)
+        return response, self._lookup(stored['uuid'])
+
+    def _fp(self, pgp):
+        return pgp['fingerprint']
+
+    def test_edit_signed_by_revoked_key_is_refused(self):
+        stored = self._fixture(revoked_a=True)
+        response, after = self._edit(stored, [self._entry(self.key_a, True),
+                                              self._entry(self.key_b)], self.key_a)
+        self.assertEqual(405, response.status_code, response.text[:300])
+        self.assertIn('signature validation', response.text)
+        self.assertEqual(stored['info'], after['info'])
+
+    def test_edit_signed_by_unrevoked_key_is_accepted(self):
+        stored = self._fixture(revoked_a=True)
+        response, after = self._edit(stored, [self._entry(self.key_a, True),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual(stored['info'] + ' edited', after['info'])
+
+    def test_pushed_revocation_of_first_key_is_stored(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a, True),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 1, self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_pushed_revocation_of_second_key_is_stored(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a),
+                                              self._entry(self.key_b, True)], self.key_a)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 0, self._fp(self.key_b): 1}, self._keys(after))
+
+    def test_pushed_unrevoked_flag_does_not_lift_a_revocation(self):
+        stored = self._fixture(revoked_a=True)
+        response, after = self._edit(stored, [self._entry(self.key_a, False),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 1, self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_key_missing_from_pushed_list_is_removed_first(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_key_missing_from_pushed_list_is_removed_second(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a)], self.key_a)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 0}, self._keys(after))
+
+    def test_entry_without_fingerprint_keeps_its_stored_key(self):
+        stored = self._fixture()
+        response, after = self._edit(stored, [self._entry(self.key_a, fingerprint=False),
+                                              self._entry(self.key_b)], self.key_b)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertEqual({self._fp(self.key_a): 0, self._fp(self.key_b): 0}, self._keys(after))
+
+    def test_signed_protected_add_without_keys_is_refused(self):
+        uuid = str(uuidlib.uuid4())
+        type(self).event_uuids.append(uuid)
+        event = {'uuid': uuid, 'info': 'regression key revocation %s' % random(),
+                 'distribution': 0, 'threat_level_id': 4, 'analysis': 0,
+                 'date': time.strftime('%Y-%m-%d'), 'protected': True,
+                 'Attribute': [{'type': 'comment', 'category': 'Other', 'value': random()}]}
+        response = self._post('events/add', event, self.key_a)
+        stored = self._lookup(uuid)
+        self.assertEqual(405, response.status_code, response.text[:300])
+        self.assertIsNone(stored, 'the refused event was stored')
+
+
+class GalaxyClusterDetachScope(unittest.TestCase):
+    """Detaching a galaxy cluster from an event or an attribute needs the tagger permission and
+    an organisation that owns or created the event. A role with the sync permission gets no
+    exemption from that organisation check.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.tag_id = None
+        cls.tag_created = False
+        try:
+            sync_role = user_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if int(role['perm_site_admin']):
+                    continue
+                if int(role['perm_sync']) and int(role['perm_tagger']):
+                    if role['name'] == 'Sync user' or sync_role is None:
+                        sync_role = role
+                if role['name'] == 'User':
+                    user_role = role
+            if sync_role is None or user_role is None:
+                raise unittest.SkipTest('no sync or user role')
+            found = cls._admin_call('POST', 'galaxy_clusters/restSearch',
+                                    {'limit': 1, 'returnFormat': 'json'}).json()
+            if not found.get('response'):
+                raise unittest.SkipTest('no galaxy cluster on this instance')
+            cluster = found['response'][0]['GalaxyCluster']
+            cls.cluster_id, cls.tag_name = int(cluster['id']), cluster['tag_name']
+            tags = cls._admin_call('GET', 'tags/index').json()
+            tags = tags['Tag'] if isinstance(tags, dict) and 'Tag' in tags else tags
+            cls.tag_created = not any(
+                t.get('Tag', t)['name'] == cls.tag_name for t in tags)
+            cls.org_a = make_org(cls.admin, 'regression detach org a')
+            cls.org_b = make_org(cls.admin, 'regression detach org b')
+            cls.created_orgs = [cls.org_a, cls.org_b]
+            cls.sync_a = make_user(cls.admin, cls.org_a.id, int(sync_role['id']))
+            cls.user_a = make_user(cls.admin, cls.org_a.id, int(user_role['id']))
+            cls.user_b = make_user(cls.admin, cls.org_b.id, int(user_role['id']))
+            cls.sync_b = make_user(cls.admin, cls.org_b.id, int(sync_role['id']))
+            cls.created_users = [cls.sync_a, cls.user_a, cls.user_b, cls.sync_b]
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _admin_call(cls, method, path, data=None):
+        return cls._call(key, method, path, data)
+
+    @staticmethod
+    def _call(authkey, method, path, data=None, xhr=False):
+        headers = {'Authorization': authkey, 'Accept': 'application/json',
+                   'Content-Type': 'application/json'}
+        if xhr:
+            headers['X-Requested-With'] = 'XMLHttpRequest'
+        return requests.request(method, '%s/%s' % (url, path), json=data, headers=headers,
+                                timeout=120, verify=False, allow_redirects=False)
+
+    @classmethod
+    def tearDownClass(cls):
+        if getattr(cls, 'tag_created', False) and getattr(cls, 'tag_id', None):
+            cls._admin_call('POST', 'tags/delete/%s' % cls.tag_id)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+
+    def setUp(self):
+        response = self._call(self.user_b.authkey, 'POST', 'events/add', {'Event': {
+            'info': 'regression detach scope %s' % random(), 'distribution': 3,
+            'threat_level_id': 4, 'analysis': 0, 'protected': False,
+            'Attribute': [{'type': 'ip-dst', 'value': '198.51.100.19',
+                           'category': 'Network activity', 'distribution': 3}]}})
+        self.assertEqual(200, response.status_code, response.text[:300])
+        event = response.json()['Event']
+        self.event_id = int(event['id'])
+        self.attribute_id = int(event['Attribute'][0]['id'])
+        type(self).event_ids.append(self.event_id)
+        type(self).event_uuids.append(event['uuid'])
+        for target, target_id in (('event', self.event_id), ('attribute', self.attribute_id)):
+            response = self._call(self.user_b.authkey, 'POST',
+                                  'galaxies/attachCluster/%s/%s' % (target_id, target),
+                                  {'Galaxy': {'target_id': self.cluster_id}})
+            self.assertEqual(200, response.status_code, response.text[:300])
+        stored = self._stored()
+        self.assertTrue(self._on_event(stored))
+        self.assertTrue(self._on_attribute(stored))
+        for tag in stored.get('Tag', []):
+            if tag['name'] == self.tag_name:
+                type(self).tag_id = int(tag['id'])
+        self.assertIsNotNone(self.tag_id)
+
+    def tearDown(self):
+        self._admin_call('POST', 'events/delete/%s' % self.event_id, {'hard': 1})
+        uuids = self.event_uuids
+        rows = self._admin_call('GET', 'eventBlocklists/index').json()
+        for row in rows if isinstance(rows, list) else []:
+            row = row.get('EventBlocklist', row)
+            if row.get('event_uuid') in uuids:
+                self._admin_call('POST', 'eventBlocklists/delete/%s' % row['id'])
+
+    def _stored(self):
+        response = self._admin_call('GET', 'events/view/%s' % self.event_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return response.json()['Event']
+
+    def _on_event(self, stored):
+        return any(t['name'] == self.tag_name for t in stored.get('Tag', []))
+
+    def _on_attribute(self, stored):
+        return any(t['name'] == self.tag_name
+                   for a in stored.get('Attribute', []) for t in a.get('Tag', []))
+
+    def _detach(self, user, target, target_id):
+        return self._call(user.authkey, 'POST', 'galaxy_clusters/detach/%s/%s/%s' % (
+            target_id, target, self.tag_id), xhr=True)
+
+    def test_sync_user_of_another_org_cannot_detach_from_event(self):
+        response = self._detach(self.sync_a, 'event', self.event_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertTrue(self._on_event(self._stored()), 'the cluster was detached')
+
+    def test_sync_user_of_another_org_cannot_detach_from_attribute(self):
+        response = self._detach(self.sync_a, 'attribute', self.attribute_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertTrue(self._on_attribute(self._stored()), 'the cluster was detached')
+
+    def test_sync_user_of_the_event_org_can_detach(self):
+        response = self._detach(self.sync_b, 'event', self.event_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertFalse(self._on_event(self._stored()), 'the cluster is still attached')
+
+    def test_user_of_another_org_cannot_detach(self):
+        response = self._detach(self.user_a, 'event', self.event_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertTrue(self._on_event(self._stored()), 'the cluster was detached')
+
+    def test_event_creator_can_detach(self):
+        response = self._detach(self.user_b, 'event', self.event_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertFalse(self._on_event(self._stored()), 'the cluster is still attached')
+
+
+class CollectionStaleSharingGroup(unittest.TestCase):
+    """A collection keeps a sharing group only when it is distributed to one: a save at any
+    other distribution clears it, and the index shows a sharing group only on distribution 4
+    collections.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.collection_ids = []
+        cls.sharing_group_id = None
+        try:
+            user_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if role['name'] == 'User' and int(role['perm_modify']) \
+                        and not int(role['perm_site_admin']):
+                    user_role = role
+            if user_role is None:
+                raise unittest.SkipTest('no User role')
+            cls.org_a = make_org(cls.admin, 'regression collection org a')
+            cls.created_orgs.append(cls.org_a)
+            cls.org_b = make_org(cls.admin, 'regression collection org b')
+            cls.created_orgs.append(cls.org_b)
+            cls.user_a = make_user(cls.admin, cls.org_a.id, int(user_role['id']))
+            cls.created_users.append(cls.user_a)
+            cls.user_b = make_user(cls.admin, cls.org_b.id, int(user_role['id']))
+            cls.created_users.append(cls.user_b)
+            cls.connector_a = PyMISP(url, cls.user_a.authkey)
+            cls.connector_b = PyMISP(url, cls.user_b.authkey)
+            cls.token = random()
+            made = send(cls.admin, 'POST', 'sharingGroups/add', data={
+                'name': 'regression collection group %s' % cls.token, 'releasability': 'x',
+                'roaming': False,
+                'SharingGroupOrg': [{'Organisation': {'uuid': cls.org_b.uuid,
+                                                      'name': cls.org_b.name},
+                                     'extend': False}]})
+            cls.sharing_group = made['SharingGroup']
+            cls.sharing_group_id = int(cls.sharing_group['id'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for collection_id in getattr(cls, 'collection_ids', []):
+            send(cls.admin, 'POST', 'collections/delete/%d' % collection_id, check_errors=False)
+        if getattr(cls, 'sharing_group_id', None):
+            send(cls.admin, 'POST', 'sharingGroups/delete/%d' % cls.sharing_group_id,
+                 check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []), getattr(cls, 'created_users', []))
+
+    def _name(self):
+        return 'regression collection %s' % random()
+
+    def _body(self, name, distribution, sharing_group_id=None):
+        collection = {'name': name, 'type': 'other', 'description': 'regression',
+                      'distribution': distribution}
+        if sharing_group_id is not None:
+            collection['sharing_group_id'] = sharing_group_id
+        return {'Collection': collection}
+
+    def _index(self, connector):
+        response = connector._prepare_request('GET', 'collections/index.json')
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return response.json()
+
+    def _entry(self, connector, name):
+        for entry in self._index(connector):
+            if entry['Collection']['name'] == name:
+                return entry
+        return None
+
+    def _add(self, connector, name, distribution, sharing_group_id=None):
+        response = connector._prepare_request(
+            'POST', 'collections/add', data=self._body(name, distribution, sharing_group_id))
+        entry = self._entry(self.admin, name)
+        if entry is not None:
+            type(self).collection_ids.append(int(entry['Collection']['id']))
+        return response, entry
+
+    def _edit(self, connector, collection_id, name, distribution, sharing_group_id=None):
+        return connector._prepare_request(
+            'POST', 'collections/edit/%d' % collection_id,
+            data=self._body(name, distribution, sharing_group_id))
+
+    def _stored(self, collection_id):
+        response = self.admin._prepare_request('GET', 'collections/view/%d.json' % collection_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        body = response.json()
+        return body.get('Collection', body)['sharing_group_id']
+
+    def assertNoGroupShown(self, connector, name):
+        entry = self._entry(connector, name)
+        self.assertIsNotNone(entry, 'the collection is not in the index')
+        text = json.dumps(entry)
+        self.assertNotIn(self.sharing_group['name'], text)
+        self.assertNotIn(self.sharing_group['uuid'], text)
+
+    def test_distribution_0_add_drops_the_sharing_group(self):
+        name = self._name()
+        response, entry = self._add(self.connector_a, name, 0, self.sharing_group_id)
+        self.assertIsNotNone(entry, 'the collection was not created: %s' % response.text[:300])
+        self.assertIsNone(self._stored(int(entry['Collection']['id'])))
+        self.assertNoGroupShown(self.connector_a, name)
+
+    def test_distribution_0_edit_drops_the_sharing_group(self):
+        name = self._name()
+        response, entry = self._add(self.connector_a, name, 0)
+        self.assertIsNotNone(entry, 'the collection was not created: %s' % response.text[:300])
+        collection_id = int(entry['Collection']['id'])
+        self._edit(self.connector_a, collection_id, name, 0, self.sharing_group_id)
+        self.assertIsNone(self._stored(collection_id))
+        self.assertNoGroupShown(self.connector_a, name)
+
+    def test_edit_away_from_the_sharing_group_drops_it(self):
+        name = self._name()
+        response, entry = self._add(self.connector_b, name, 4, self.sharing_group_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertIsNotNone(entry, 'the collection was not created')
+        collection_id = int(entry['Collection']['id'])
+        self.assertEqual(self.sharing_group_id, int(self._stored(collection_id)))
+        self._edit(self.connector_b, collection_id, name, 2)
+        self.assertIsNone(self._stored(collection_id))
+        self.assertNoGroupShown(self.connector_a, name)
+
+    def test_member_keeps_the_sharing_group_on_distribution_4(self):
+        name = self._name()
+        response, entry = self._add(self.connector_b, name, 4, self.sharing_group_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertIsNotNone(entry, 'the collection was not created')
+        self.assertEqual(self.sharing_group_id,
+                         int(self._stored(int(entry['Collection']['id']))))
+        own = self._entry(self.connector_b, name)
+        self.assertIsNotNone(own, 'the collection is not in the member index')
+        self.assertEqual(self.sharing_group['name'], own['SharingGroup']['name'])
+
+    def test_non_member_cannot_use_the_sharing_group(self):
+        name = self._name()
+        response, entry = self._add(self.connector_a, name, 4, self.sharing_group_id)
+        self.assertNotEqual(200, response.status_code, response.text[:300])
+        self.assertIsNone(entry, 'a collection was created with a sharing group the user cannot use')
 
 
 if __name__ == '__main__':
