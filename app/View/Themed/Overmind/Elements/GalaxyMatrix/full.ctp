@@ -8,7 +8,9 @@
  * @var bool $heat optional: shade the used techniques by how many events carry them
  * @var array $marks optional: cluster tag name => self|similar, ringed and kept out of the heat
  * @var bool $counts optional: print the event count in the used cells
+ * @var bool $loneTab optional, default true: draw the tab strip of a galaxy that has a single tab
  */
+App::uses('GalaxyColour', 'Tools');
 $origins = $matrix['origins'];
 $marks = $marks ?? [];
 $markOf = function (array $item) use ($marks) {
@@ -101,6 +103,7 @@ $button = function (array $item, $state, $index) use ($lightIcon, $eventsOf, $ma
 };
 ?>
 <div class="mx-full" data-mx-full-galaxy="<?= (int)$matrix['galaxy']['id'] ?>" data-mx-tab="<?= h($current) ?>"<?= $maxEvents > 0 ? ' data-mx-heat' : '' ?>>
+    <?php if (count($matrix['tabs']) > 1 || ($loneTab ?? true)): ?>
     <div class="mx-full-tabs" role="tablist" aria-label="<?= h(__('Matrix tabs')) ?>">
         <?php foreach ($active as $tab): ?>
         <button type="button" class="mx-full-tab" role="tab" data-mx-tab-pick="<?= h($tab['key']) ?>"
@@ -123,6 +126,7 @@ $button = function (array $item, $state, $index) use ($lightIcon, $eventsOf, $ma
         </div>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
     <div class="mx-full-scroll">
         <?php if (empty($matrix['columns'])): ?>
         <div class="mx-full-empty"><?= __('This tab has no techniques.') ?></div>
@@ -131,8 +135,11 @@ $button = function (array $item, $state, $index) use ($lightIcon, $eventsOf, $ma
         <div class="mx-full-empty mx-full-none"><?= __('No technique of this tab is used.') ?></div>
         <?php endif; ?>
         <div class="mx-full-grid">
+            <?php $columnIndex = 0; ?>
             <?php foreach ($matrix['columns'] as $column): ?>
-            <section class="mx-col<?= $column['active'] > 0 ? '' : ' is-unused' ?>">
+            <?php $tone = GalaxyColour::paletteFromHue(GalaxyColour::stepHue($columnIndex++, count($matrix['columns']))); ?>
+            <section class="mx-col<?= $column['active'] > 0 ? '' : ' is-unused' ?>"
+                     style="--mx-col-bg:<?= h($tone['tintBg']) ?>;--mx-col-fg:<?= h($tone['headerText']) ?>;--mx-col-sub:<?= h($tone['subText']) ?>;--mx-col-edge:<?= h($tone['solidBg']) ?>;">
                 <div class="mx-col-h" title="<?= h($column['label']) ?>">
                     <span><?= h($column['label']) ?></span>
                     <span class="mx-col-n"><?= $column['active'] > 0 ? (int)$column['active'] . ' / ' : '' ?><?= count($column['groups']) ?></span>
