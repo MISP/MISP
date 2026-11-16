@@ -8,6 +8,9 @@
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/ViewTemplateHarness.php';
+if (!class_exists('Hash', false)) {
+    require_once __DIR__ . '/../Lib/cakephp/lib/Cake/Utility/Hash.php';
+}
 
 class RemoteEventPreviewEscapingTest extends TestCase
 {
@@ -151,5 +154,41 @@ class RemoteEventPreviewEscapingTest extends TestCase
         }));
         $this->assertCount(1, $copies);
         $this->assertStringStartsWith('copyValueToClipboard(' . json_encode(self::REMOTE) . ', ', $copies[0]);
+    }
+
+    public function analystDataProvider()
+    {
+        return [
+            'none yet' => [[]],
+            'with a note' => [['Note' => [['uuid' => 'n']]]],
+        ];
+    }
+
+    /**
+     * @dataProvider analystDataProvider
+     */
+    public function testOvermindPreviewAnalystDataOpensTheRemoteUuidAsAString(array $data)
+    {
+        $html = $this->render(
+            'Themed/Overmind/Elements/genericElementsBS5/IndexTable/Fields/analyst_data_badges.ctp',
+            [
+                'baseurl' => '/misp',
+                'row' => $this->remoteAttribute('uuid') + $data,
+                'field' => [
+                    'note_path' => 'Note',
+                    'opinion_path' => 'Opinion',
+                    'relationship_path' => 'Relationship',
+                    'relationship_inbound_path' => 'RelationshipInbound',
+                    'uuid_path' => 'uuid',
+                    'object_type' => 'Attribute',
+                ],
+            ]
+        );
+        $this->assertStringNotContainsString('<i>', $html);
+        $url = '/misp/analystData/viewForObject/Attribute/' . rawurlencode(self::REMOTE);
+        $this->assertSame(
+            ['event.stopPropagation(); openModal(' . json_encode($url) . ');'],
+            $this->handlers($html)
+        );
     }
 }
