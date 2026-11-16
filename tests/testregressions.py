@@ -4646,5 +4646,134 @@ class BulkSightingsEventScope(unittest.TestCase):
             send(self.admin, 'POST', 'sightings/delete/%d' % row['id'], check_errors=False)
 
 
+
+class UserSettingPrefillAccess(unittest.TestCase):
+    """The setSetting form prefills the stored value only when the caller may read it."""
+
+    SETTING = 'dashboard_theme'
+    V_VALUE = 'dark'
+    A_VALUE = 'light'
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.orgs = []
+        cls.users = []
+        cls.setting_ids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_add')
+            org_v = make_org(cls.admin, 'regression prefill victim org')
+            cls.orgs.append(org_v)
+            org_a = make_org(cls.admin, 'regression prefill caller org')
+            cls.orgs.append(org_a)
+            cls.password = 'Rg%s-%sAa1!' % (random(), random())
+            cls.v = make_user(cls.admin, org_v.id, role)
+            cls.users.append(cls.v)
+            cls.a = make_user(cls.admin, org_a.id, role)
+            cls.users.append(cls.a)
+            for user in (cls.v, cls.a):
+                send(cls.admin, 'POST', 'admin/users/edit/%s' % user.id,
+                     data={'password': cls.password, 'confirm_password': cls.password,
+                           'change_pw': 0, 'termsaccepted': 1})
+            cls._store(cls.v, cls.SETTING, cls.V_VALUE)
+            cls._store(cls.a, cls.SETTING, cls.A_VALUE)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _store(cls, user, setting, value):
+        send(cls.admin, 'POST', 'userSettings/setSetting/%s/%s' % (user.id, setting),
+             data={'value': value})
+        listed = send(cls.admin, 'GET', 'userSettings/index/user_id:%s' % user.id)
+        for entry in listed:
+            e = entry['UserSetting']
+            if int(e['user_id']) == int(user.id) and e['setting'] == setting:
+                if int(e['id']) not in cls.setting_ids:
+                    cls.setting_ids.append(int(e['id']))
+
+    @classmethod
+    def tearDownClass(cls):
+        for user in cls.users:
+            try:
+                listed = cls.admin._prepare_request(
+                    'GET', 'userSettings/index/user_id:%s' % user.id).json()
+                for entry in listed:
+                    if int(entry['UserSetting']['user_id']) == int(user.id):
+                        cls.setting_ids.append(int(entry['UserSetting']['id']))
+            except Exception:
+                pass
+        for sid in set(cls.setting_ids):
+            cls.admin._prepare_request('POST', 'userSettings/delete/%s' % sid)
+        for user in cls.users:
+            cls.admin.delete_user(user)
+        for org in cls.orgs:
+            cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % org.id)
+
+    def _login(self):
+        session = requests.Session()
+        login = session.get(url + '/users/login', allow_redirects=False)
+        form = login.text[login.text.index('id="UserLoginForm"'):]
+        form = form[:form.index('</form>')]
+        fields = {}
+        for tag in re.findall(r'<input[^>]*>', form):
+            name = re.search(r'name="([^"]+)"', tag)
+            value = re.search(r'value="([^"]*)"', tag)
+            if name and value:
+                fields[name.group(1)] = html.unescape(value.group(1))
+        fields['data[User][email]'] = self.a.email
+        fields['data[User][password]'] = self.password
+        session.post(url + '/users/login', data=fields, allow_redirects=False)
+        return session
+
+    def _selected(self, theme, user_id):
+        """The selected option of the value select, as rendered under the caller's theme."""
+        self._store_theme(theme)
+        page = self._login().get('%s/user_settings/setSetting/%s/%s'
+                                 % (url, user_id, self.SETTING), allow_redirects=False)
+        self.assertEqual(200, page.status_code)
+        marker = ('UserSettingValueSelect-%s' % self.SETTING if theme == 'Overmind'
+                  else 'UserSettingValueSelect')
+        if theme == 'Overmind':
+            self.assertIn('data-setting-choices="%s"' % self.SETTING, page.text)
+        start = page.text.index('id="%s"' % marker)
+        start = page.text.rindex('<select', 0, start)
+        select = page.text[start:page.text.index('</select>', start)]
+        options = re.findall(r'<option[^>]*>', select)
+        self.assertEqual(len(options), 3, select)
+        return [re.search(r'value="([^"]*)"', o).group(1) for o in options
+                if re.search(r'\sselected(=|\s|>)', o)]
+
+    def _store_theme(self, theme):
+        self._store(self.a, 'ui_theme', theme)
+
+    def _own(self, theme):
+        if theme == 'Default':
+            # the Default theme's select is keyed 0..n, so a prefilled string never matches
+            # an option: the page cannot show the prefill, only render the select
+            self.assertNotIn(self.V_VALUE, self._selected(theme, self.a.id))
+            return
+        self.assertEqual([self.A_VALUE], self._selected(theme, self.a.id),
+                         'own value not preselected under %s' % theme)
+
+    def _cross(self, theme):
+        other = self._selected(theme, self.v.id)
+        self.assertNotIn(self.V_VALUE, other, "%s: another org's stored value was prefilled" % theme)
+
+    def test_default_own_value_preselected(self):
+        self._own('Default')
+
+    def test_overmind_own_value_preselected(self):
+        self._own('Overmind')
+
+    def test_default_other_orgs_value_not_prefilled(self):
+        self._cross('Default')
+
+    def test_overmind_other_orgs_value_not_prefilled(self):
+        self._cross('Overmind')
+
+
 if __name__ == '__main__':
     unittest.main()
