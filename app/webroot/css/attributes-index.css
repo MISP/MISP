@@ -62,17 +62,26 @@
 }
 /* A smaller chip than an object's, centred on the two lines beside it; the
    event's icon takes the same slot. */
-.ai-tile-head > :is(.ov-obj-dist, .ev-peek) {
+.ai-tile-head > .ov-obj-dist,
+.ai-tile-head > .ev-ref .ev-peek {
     width: 1.75rem;
     height: 1.75rem;
-    margin-top: .25rem;
     border-radius: .5rem;
     font-size: .8rem;
 }
-.ai-tile-head > .ev-peek {
-    align-self: flex-start;
+.ai-tile-head > .ov-obj-dist { margin-top: .25rem; }
+.ai-tile-head > .ev-ref .ev-peek .misp-icon { width: 14px; height: 14px; }
+/* In a card the event's id sits under its icon. */
+.ai-tile-head > .ev-ref {
+    flex: none;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: .25rem;
 }
-.ai-tile-head > .ev-peek .misp-icon { width: 14px; height: 14px; }
+.ai-tile-head > .ev-ref .ev-ref-id {
+    order: 1;
+    font-size: .66rem;
+}
 .ai-tile-sel {
     position: absolute;
     inset: 0;
@@ -273,6 +282,12 @@
 .ai-table td:is(.idx-col-tag_list, .idx-col-galaxy, .idx-col-relatedEvents, .idx-col-feedHits):not(:has(*))::before {
     content: "—";
     color: var(--bs-tertiary-color);
+}
+/* The event's id and icon, right-aligned so the icons line up before the value. */
+.ai-table :is(td, th).ai-col-event {
+    width: 1%;
+    padding-right: .25rem;
+    text-align: right;
 }
 /* Only the value wraps; every other cell keeps to one line. */
 .ai-table tbody td:not(.idx-col-attribute_value) { white-space: nowrap; }

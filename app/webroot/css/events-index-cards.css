@@ -1,6 +1,8 @@
 /* Overmind events index — card view (Elements/Events/index_card.ctp). */
 
-.dk-index {
+/* The tokens also serve the event peek of the attribute index (Attributes/event_peek). */
+.dk-index,
+.ev-peek-popover {
     --dk-card-h: 252px;
     --dk-gap: 12px;
     --dk-radius: 10px;
@@ -20,7 +22,7 @@
     --dk-gx-hair: #dacbfc;
     --dk-mk-clear: #c9ccd1;
 }
-[data-misp-mode="dark"] .dk-index {
+[data-misp-mode="dark"] :is(.dk-index, .ev-peek-popover) {
     --dk-amber-ink: #f0a02a;
     --dk-amber-bg: #3a2c10;
     --dk-amber-line: #a8741a;

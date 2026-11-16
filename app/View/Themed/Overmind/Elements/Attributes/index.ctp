@@ -113,16 +113,20 @@ $fields = [
     ]
 ];
 
-// A card shows its event in its head, where the event's own tab shows the distribution.
+// Rows from any event say which, before their value: its id and icon, a peek of it on hover.
+// A card has it in its head, where the event's own tab shows the distribution.
 if (!empty($show_event_id)) {
     $fields[] = [
         'name' => __('Event'),
+        'sort' => 'Attribute.event_id',
         'element' => 'custom',
         'function' => function ($row) {
             return empty($row['Event']) ? '' : $this->element('Attributes/event_peek', ['event' => $row['Event']]);
         },
+        'class' => 'ai-col-event',
+        'header_class' => 'ai-col-event',
         'card_section' => 'event',
-        'display_in' => ['card'],
+        'display_in' => ['table', 'card'],
     ];
 }
 
@@ -145,8 +149,6 @@ $fields = array_merge($fields, [
         'data_path' => $path(''),
         'element' => 'attribute_value',
         'show_distribution' => false,
-        // Rows from any event lead with their event: its title, state and orgs on hover.
-        'event_peek' => !empty($show_event_id),
         // The one cell that wraps, up to about two lines.
         'value_cap' => 128,
         'card_section' => 'value',

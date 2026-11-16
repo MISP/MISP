@@ -3198,6 +3198,128 @@ function initSharingGroupForm(container) {
 })();
 
 /*******************************
+ * Event peeks (Attributes/event_peek.ctp)
+ * A row's event, cloned from the page's template for that event. The peek
+ * stays open while the pointer is on it, so its links and the UUID's copy
+ * button can be reached; moving to another event's id swaps it at once.
+ *******************************/
+(function () {
+    var REF = '.ev-ref[data-ev-peek]';
+    var POP = '.ev-peek-popover';
+    var OPEN_DELAY = 150;
+    var CLOSE_DELAY = 200;
+    var current = null;
+    var openTimer = null;
+    var closeTimer = null;
+
+    function open(ref) {
+        clearTimeout(openTimer);
+        clearTimeout(closeTimer);
+        if (current === ref) return;
+        close();
+        var tpl = document.querySelector('template.ev-peek-tpl[data-ev-peek="' + ref.dataset.evPeek + '"]');
+        if (!tpl || !tpl.content.firstElementChild) return;
+        var popover = bootstrap.Popover.getOrCreateInstance(ref, {
+            trigger: 'manual',
+            html: true,
+            // Shown and hidden at once: a fading peek racing the next one is what this avoids.
+            animation: false,
+            placement: 'right',
+            fallbackPlacements: ['top', 'bottom', 'left'],
+            container: 'body',
+            customClass: 'ev-peek-popover',
+            // An element is placed as is, past the sanitizer: the template is the server's markup.
+            content: function () { return tpl.content.firstElementChild.cloneNode(true); },
+        });
+        current = ref;
+        ref.classList.add('is-open');
+        popover.show();
+    }
+
+    function close() {
+        clearTimeout(closeTimer);
+        if (!current) return;
+        var ref = current;
+        current = null;
+        ref.classList.remove('is-open');
+        var popover = bootstrap.Popover.getInstance(ref);
+        if (popover) popover.hide();
+    }
+
+    function closeSoon() {
+        clearTimeout(openTimer);
+        clearTimeout(closeTimer);
+        if (current) closeTimer = setTimeout(close, CLOSE_DELAY);
+    }
+
+    document.addEventListener('mouseover', function (e) {
+        var target = e.target && e.target.closest ? e.target : null;
+        if (!target) return;
+        var ref = target.closest(REF);
+        if (ref) {
+            clearTimeout(closeTimer);
+            if (ref === current) return;
+            clearTimeout(openTimer);
+            if (current) {
+                open(ref);
+            } else {
+                openTimer = setTimeout(function () { open(ref); }, OPEN_DELAY);
+            }
+            return;
+        }
+        if (current && target.closest(POP)) clearTimeout(closeTimer);
+    });
+
+    document.addEventListener('mouseout', function (e) {
+        var from = e.target && e.target.closest ? e.target.closest(REF + ', ' + POP) : null;
+        if (!from) return;
+        var to = e.relatedTarget;
+        if (to && from.contains(to)) return;
+        closeSoon();
+    });
+
+    document.addEventListener('focusin', function (e) {
+        var target = e.target && e.target.closest ? e.target : null;
+        if (!target) return;
+        var ref = target.closest(REF);
+        if (ref) {
+            open(ref);
+        } else if (current && target.closest(POP)) {
+            clearTimeout(closeTimer);
+        }
+    });
+
+    document.addEventListener('focusout', function (e) {
+        if (!current) return;
+        var to = e.relatedTarget;
+        if (to && to.closest && (to === current || to.closest(POP))) return;
+        if (e.target.closest && e.target.closest(REF + ', ' + POP)) closeSoon();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !current) return;
+        var ref = current;
+        var inside = document.activeElement && document.activeElement.closest
+            && document.activeElement.closest(POP);
+        close();
+        if (inside) ref.focus();
+    });
+
+    document.addEventListener('click', function (e) {
+        var button = e.target.closest ? e.target.closest('.ev-pop-copy') : null;
+        if (!button) return;
+        copyValueToClipboard(button.dataset.copyValue, button.dataset.copyMsg);
+        var icon = button.querySelector('i');
+        button.classList.add('is-done');
+        if (icon) icon.className = 'fas fa-check';
+        setTimeout(function () {
+            button.classList.remove('is-done');
+            if (icon) icon.className = 'fas fa-copy';
+        }, 1500);
+    });
+})();
+
+/*******************************
  * Attribute values (Attributes/value_display.ctp)
  *******************************/
 (function () {

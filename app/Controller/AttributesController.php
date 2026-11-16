@@ -247,7 +247,10 @@ class AttributesController extends AppController
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
             // On top of fetchAttributes()' own, for the event popover (Attributes/event_peek).
-            $params['fields'] = ['Event.published', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.attribute_count'];
+            $params['fields'] = [
+                'Event.published', 'Event.publish_timestamp', 'Event.sharing_group_id',
+                'Event.attribute_count', 'Event.extends_uuid',
+            ];
             $this->paginate['conditions'] = $conditions;
             $hasNextPage = null;
             if ($excludeWarninglistHits) {
@@ -311,6 +314,18 @@ class AttributesController extends AppController
             }
             $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
         }
+        unset($attribute);
+
+        App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+        $profile = ClassRegistry::init('AnalystProfile')->resolveFor($user);
+        $labelPlan = ValueLabelPriority::planFor($profile);
+        $peeks = $this->__eventPeeks($user, $attributes, $profile, $labelPlan);
+        foreach ($attributes as $k => $row) {
+            $peek = $peeks[(int)($row['Event']['id'] ?? 0)] ?? null;
+            if ($peek !== null) {
+                $attributes[$k]['Event']['EventPeek'] = $peek;
+            }
+        }
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
         if (!empty($attributes)) {
@@ -348,10 +363,7 @@ class AttributesController extends AppController
         $this->set('export_filters', $export_filters);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
-        App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
-        $this->set('labelPlan', ValueLabelPriority::planFor(
-            ClassRegistry::init('AnalystProfile')->resolveFor($user)
-        ));
+        $this->set('labelPlan', $labelPlan);
         $this->set('shortDist', $this->MispAttribute->shortDist);
         $this->set('attributes', $attributes);
         $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
@@ -360,6 +372,99 @@ class AttributesController extends AppController
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
         $this->__setIndexFilterOptions();
         $this->set('menuData',  ['menuList' => 'event-collection', 'menuItem' => 'listAttributes']);
+    }
+
+    /**
+     * What an attribute's event peek (Attributes/event_peek) shows of each
+     * event of the page: its card on the events index (context lanes,
+     * markings, publish state, distribution), its object and report counts
+     * and its extension. A fixed number of queries for the page.
+     *
+     * @param array $user
+     * @param array $attributes rows whose Event carries its Orgc and SharingGroup
+     * @param array|null $profile the reader's analyst profile
+     * @param array $plan ValueLabelPriority::planFor($profile)
+     * @return array event id => peek
+     */
+    private function __eventPeeks(array $user, array $attributes, $profile, array $plan)
+    {
+        $events = [];
+        foreach ($attributes as $row) {
+            $id = (int)($row['Event']['id'] ?? 0);
+            if ($id && !isset($events[$id])) {
+                $events[$id] = [
+                    'Event' => $row['Event'],
+                    'Orgc' => $row['Event']['Orgc'] ?? [],
+                    'SharingGroup' => $row['Event']['SharingGroup'] ?? null,
+                    'EventTag' => [],
+                ];
+                unset($events[$id]['Event']['RelatedAttribute']);
+            }
+        }
+        if (empty($events)) {
+            return [];
+        }
+        $Event = $this->MispAttribute->Event;
+        $eventTags = $Event->EventTag->find('all', [
+            'conditions' => ['EventTag.event_id' => array_keys($events)],
+            'fields' => ['EventTag.event_id', 'EventTag.tag_id', 'EventTag.local', 'EventTag.relationship_type'],
+            'recursive' => -1,
+        ]);
+        foreach ($eventTags as $eventTag) {
+            $events[(int)$eventTag['EventTag']['event_id']]['EventTag'][] = $eventTag['EventTag'];
+        }
+        $events = $Event->attachTagsToEvents($events);
+        $events = ClassRegistry::init('GalaxyCluster')->attachClustersToEventIndex($user, $events, true);
+        $events = $Event->attachObjectCountToEvents($events, $Event::INDEX_OBJECT_LIMIT);
+        $events = $Event->attachAttributesInObjectsOnlyToEvents($events);
+        $events = $Event->EventReport->attachReportCountsToEvents($user, $events);
+
+        App::uses('EventCardBatch', 'Tools/EventOverview');
+        $cards = EventCardBatch::cards($events, $user, $profile, $plan);
+
+        $eventRows = array_column($events, 'Event');
+        $parentUuids = array_values(array_unique(array_filter(array_column($eventRows, 'extends_uuid'))));
+        $parents = empty($parentUuids) ? [] : array_column(
+            array_column($Event->fetchSimpleEvents($user, ['conditions' => ['Event.uuid' => $parentUuids]]), 'Event'),
+            null,
+            'uuid'
+        );
+        $children = $Event->find('all', [
+            'conditions' => ['AND' => [
+                ['Event.extends_uuid' => array_column($eventRows, 'uuid')],
+                $Event->createEventConditions($user),
+            ]],
+            'fields' => ['Event.extends_uuid', 'COUNT(*) AS children'],
+            'group' => ['Event.extends_uuid'],
+            'recursive' => -1,
+        ]);
+        $extendedBy = [];
+        foreach ($children as $child) {
+            $extendedBy[$child['Event']['extends_uuid']] = (int)$child[0]['children'];
+        }
+
+        $peeks = [];
+        foreach ($events as $id => $event) {
+            $e = $event['Event'];
+            $extends = null;
+            if (!empty($e['extends_uuid'])) {
+                $parent = $parents[$e['extends_uuid']] ?? null;
+                $extends = [
+                    'id' => $parent ? (int)$parent['id'] : null,
+                    'info' => $parent['info'] ?? null,
+                    'uuid' => $e['extends_uuid'],
+                ];
+            }
+            $peeks[$id] = $cards[$id] + [
+                'object_count' => (int)($e['object_count'] ?? 0),
+                'object_count_more' => !empty($e['object_count_more']),
+                'report_count' => (int)($e['report_count'] ?? 0),
+                'attributes_in_objects_only' => !empty($e['attributes_in_objects_only']),
+                'extends' => $extends,
+                'extended_by' => $extendedBy[$e['uuid']] ?? 0,
+            ];
+        }
+        return $peeks;
     }
 
     /**
