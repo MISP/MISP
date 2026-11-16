@@ -9,6 +9,8 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/ViewTemplateHarness.php';
 require_once __DIR__ . '/../View/Helper/TextColourHelper.php';
+require_once __DIR__ . '/../Lib/Tools/TagChipTool.php';
+require_once __DIR__ . '/../View/Helper/TagChipHelper.php';
 
 class PreviewTagColourTest extends TestCase
 {
@@ -136,6 +138,13 @@ class PreviewTagColourTest extends TestCase
 
     public function testOvermindBadge()
     {
+        // The chip prints a tag's own colour only for a semantic namespace
+        $this->view->helpers['TagChip'] = new class extends TagChipHelper {
+            public function semanticNamespaces()
+            {
+                return ['tlp'];
+            }
+        };
         $render = function ($colour) {
             return $this->view->render('Themed/Overmind/Elements/genericElementsBS5/Badges/tag.ctp', [
                 'tag' => $this->tag($colour),
@@ -145,8 +154,10 @@ class PreviewTagColourTest extends TestCase
         };
 
         $html = $render(self::COLOUR);
+        $this->assertStringContainsString('hg-chip', $html);
         $this->assertStringNotContainsString('border:0', $html);
-        $this->assertStringContainsString('background-color:#0088cc;', $html);
-        $this->assertStringContainsString('background-color:#3300ff;', $render('#3300ff'));
+        $this->assertStringNotContainsString('--hg-c:', $html);
+        $this->assertStringContainsString('--hg-c:#0088cc"', $render(''));
+        $this->assertStringContainsString('--hg-c:#3300ff"', $render('#3300ff'));
     }
 }
