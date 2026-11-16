@@ -8,6 +8,9 @@ class AttachmentTool
     const ZIP_PASSWORD = 'infected';
     const ADVANCED_EXTRACTION_SCRIPT_PATH = APP . 'files/scripts/generate_file_objects.py';
 
+    // GD allocates 4 bytes per pixel outside memory_limit
+    const MAX_IMAGE_PIXELS = 50000000;
+
     /** @var AWSS3Client */
     private $s3client;
 
@@ -449,6 +452,26 @@ class AttachmentTool
     }
 
     /**
+     * Decodes an image only when its header reports sane dimensions.
+     *
+     * @param string $data
+     * @return resource|GdImage|false
+     */
+    public static function createImageFromString($data)
+    {
+        $size = is_string($data) ? @getimagesizefromstring($data) : false;
+        if (!$size || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > self::MAX_IMAGE_PIXELS) {
+            return false;
+        }
+        return static::decodeImage($data);
+    }
+
+    protected static function decodeImage($data)
+    {
+        return imagecreatefromstring($data);
+    }
+
+    /**
      * @param string $data
      * @param int $maxWidth
      * @param int $maxHeight
@@ -458,7 +481,7 @@ class AttachmentTool
      */
     public function resizeImage($data, $maxWidth, $maxHeight, $outputFormat = 'png')
     {
-        $image = imagecreatefromstring($data);
+        $image = static::createImageFromString($data);
         if ($image === false) {
             throw new Exception("Image is not valid.");
         }
