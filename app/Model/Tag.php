@@ -228,6 +228,33 @@ class Tag extends AppModel
     }
 
     /**
+     * Tags among $tagIds that $user may attach, restricted tags included only for their org/user.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array Tag.id => local_only flag
+     */
+    public function attachableTagIdsForUser(array $user, array $tagIds)
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+        $conditions = $this->createConditions($user);
+        $conditions['Tag.id'] = $tagIds;
+        $tags = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.local_only'],
+            'callbacks' => false,
+        ]);
+        $result = [];
+        foreach ($tags as $tag) {
+            $result[(int)$tag['Tag']['id']] = !empty($tag['Tag']['local_only']);
+        }
+        return $result;
+    }
+
+    /**
      * @param string $tagName
      * @return int|mixed
      */

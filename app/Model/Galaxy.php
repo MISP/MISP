@@ -435,21 +435,13 @@ class Galaxy extends AppModel
             $galaxy['org_id'] = $user['Organisation']['id'];
         }
 
-        if (!isset($galaxy['orgc_id']) && !isset($galaxy['Orgc'])) {
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+            // Only sync users and site admins create galaxies on behalf of other organisations;
+            // captureOrganisationAndSG() would take the creator from Orgc
+            unset($galaxy['Orgc']);
             $galaxy['orgc_id'] = $galaxy['org_id'];
-        } else {
-            if (!isset($galaxy['Orgc'])) {
-                if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            } else {
-                if ($galaxy['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            }
-            if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-            }
+        } elseif (!isset($galaxy['orgc_id']) && !isset($galaxy['Orgc'])) {
+            $galaxy['orgc_id'] = $galaxy['org_id'];
         }
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
@@ -701,7 +693,7 @@ class Galaxy extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation with publishing capabilities can publish the galaxy');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);

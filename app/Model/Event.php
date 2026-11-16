@@ -7966,6 +7966,29 @@ class Event extends AppModel
     }
 
     /**
+     * Is the creator organisation that _add() will store the user's own? With $fromXml, __captureObjects()
+     * takes it from `Orgc`, else from `orgc`, and only otherwise keeps `orgc_id`.
+     * @param array $event
+     * @param array $user
+     * @param bool $fromXml
+     * @return bool
+     */
+    private function __isOwnCreatorOrg(array $event, array $user, $fromXml)
+    {
+        if ($fromXml && (isset($event['Orgc']) || isset($event['orgc']))) {
+            $org = $event['Orgc'] ?? $event['orgc'];
+            if (!is_array($org)) {
+                return $org === $user['Organisation']['name'];
+            }
+            if (empty($org['uuid'])) {
+                return ($org['name'] ?? null) === $user['Organisation']['name'];
+            }
+            return strtolower((string)$org['uuid']) === strtolower($user['Organisation']['uuid']);
+        }
+        return !isset($event['orgc_id']) || $event['orgc_id'] == $user['org_id'];
+    }
+
+    /**
      * When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
      * or which we need to update. All of that is controlled in this method.
      * @param array $event
@@ -8369,14 +8392,9 @@ class Event extends AppModel
         // Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
         if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
             $data['Event']['orgc_id'] = $data['Event']['org_id'];
-        } else {
-            $orgc_id = $data['Event']['orgc_id'] ?? null;
-            $orgc_uuid = $data['Event']['Orgc']['uuid'] ?? null;
-            if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                if ($orgc_uuid != $user['Organisation']['uuid'] && $orgc_id != $user['org_id']) {
-                    throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
-                }
-            }
+        }
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin'] && !$this->__isOwnCreatorOrg($data['Event'], $user, $fromXml)) {
+            throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
             if (!isset($data['Event']['Orgc']['uuid'])) {
@@ -9199,6 +9217,38 @@ class Event extends AppModel
         $this->Attribute->AttributeTag->create();
         $this->Attribute->AttributeTag->save($attribute_tag);
         return true;
+    }
+
+    /**
+     * The local event that data pulled from $server is for, if that server may hold it: we would push
+     * it there, it is shared with this community (which includes synchronising servers), or the
+     * server's organisation created it (a pull downgrades distribution, so the push check misses those).
+     *
+     * @param string $eventUuid
+     * @param array $server With RemoteOrg
+     * @param array $user
+     * @return array|false
+     */
+    public function syncedWithServer($eventUuid, array $server, array $user)
+    {
+        $event = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.uuid' => $eventUuid],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id'],
+        ]);
+        if (empty($event)) {
+            return false;
+        }
+        if ($event['Event']['orgc_id'] == $server['Server']['remote_org_id'] || $event['Event']['distribution'] == 1) {
+            return $event;
+        }
+        if ($event['Event']['distribution'] == 4) {
+            $event['SharingGroup'] = $this->SharingGroup->fetchSG($event['Event']['sharing_group_id'], $user);
+            if (empty($event['SharingGroup'])) {
+                return false;
+            }
+        }
+        return $this->checkDistributionForPush($event, $server) ? $event : false;
     }
 
     // pass an event or an attribute together with the server id.

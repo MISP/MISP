@@ -317,6 +317,13 @@ class EventReportsController extends AppController
             if (empty($tag_id_list)) {
                 $tag_id_list = [$tag_id];
             }
+            $attachable = $this->EventReport->EventReportTag->Tag->attachableTagIdsForUser(
+                $this->Auth->user(), array_map('intval', $tag_id_list));
+            foreach ($tag_id_list as $listedTagId) {
+                if (!isset($attachable[(int)$listedTagId]) || (!$local && $attachable[(int)$listedTagId])) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                }
+            }
             $saveResult = $this->EventReport->attachTags($this->Auth->user(), $report, $tag_id_list, $local);
             $fails = $saveResult['fails'];
             $successes = $saveResult['successes'];

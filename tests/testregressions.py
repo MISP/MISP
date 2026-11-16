@@ -3924,5 +3924,931 @@ class CollectionStaleSharingGroup(unittest.TestCase):
         self.assertIsNone(entry, 'a collection was created with a sharing group the user cannot use')
 
 
+
+UUID_PATTERN = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+
+
+def stored_rows(query, *params):
+    """Rows of a read-only query, for state no API output carries: read with the mysql client
+    using this tree's own database.php. Parameters are ints or uuids (or lists of them) only,
+    substituted for %s; skips where the database cannot be read."""
+    def literal(value):
+        if isinstance(value, (list, tuple)):
+            return ', '.join(literal(v) for v in value)
+        if isinstance(value, int):
+            return str(value)
+        if isinstance(value, str) and UUID_PATTERN.match(value):
+            return "'%s'" % value
+        raise ValueError('only ints and uuids may be substituted into a query')
+    config = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app', 'Config',
+                          'database.php')
+    try:
+        with open(config) as handle:
+            text = handle.read()
+        default = text[text.index('$default'):]
+        creds = {k: re.search(r"'%s'\s*=>\s*'([^']*)'" % k, default).group(1)
+                 for k in ('host', 'login', 'password', 'database')}
+        out = subprocess.run(
+            ['mysql', '-N', '-B', '-h', creds['host'], '-u', creds['login'], '-D',
+             creds['database'], '-e', query % tuple(literal(p) for p in params)],
+            env=dict(os.environ, MYSQL_PWD=creds['password']), check=True,
+            capture_output=True, timeout=30).stdout.decode()
+    except Exception:
+        raise unittest.SkipTest('stored rows not readable on this instance')
+    return [line.split('\t') for line in out.splitlines()]
+
+
+class CreatorOrgCapture(unittest.TestCase):
+    """A user who is neither a sync user nor a site admin can only store their own organisation as
+    the creator organisation of the events, galaxies, clusters and analyst data they create.
+
+    Event::_add() took Event.Orgc / Event.orgc from an uploaded export, and the cluster, galaxy and
+    analyst data capture took a nested Orgc, creating the organisation from the payload on the way.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_modify', 'perm_galaxy_editor')
+            cls.org_a = make_org(cls.admin, 'regression creator org A')
+            cls.org_v = make_org(cls.admin, 'regression creator org V')
+            cls.created_orgs = [cls.org_a, cls.org_v]
+            cls.user_a = make_user(cls.admin, cls.org_a.id, role)
+            cls.created_users = [cls.user_a]
+            cls.user = PyMISP(url, cls.user_a.authkey)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def setUp(self):
+        self.event_uuids = []
+        self.cluster_uuids = []
+        self.galaxy_uuids = []
+        self.note_uuids = []
+        self.payload_org_uuids = []
+
+    def tearDown(self):
+        admin = self.admin
+        for event_uuid in self.event_uuids:
+            found = self._get('events/view/%s' % event_uuid)
+            if found:
+                admin._prepare_request('POST', 'events/delete/%s' % found['Event']['id'])
+            self._drop_blocklist('event_blocklists', 'event_uuid', event_uuid)
+        for cluster_uuid in self.cluster_uuids:
+            found = self._get('galaxy_clusters/view/%s' % cluster_uuid)
+            if found:
+                admin._prepare_request(
+                    'POST', 'galaxy_clusters/delete/%s/1' % found['GalaxyCluster']['id'],
+                    data={'hard': 1})
+            self._drop_blocklist('galaxy_cluster_blocklists', 'cluster_uuid', cluster_uuid)
+        for galaxy_uuid in self.galaxy_uuids:
+            found = self._get('galaxies/view/%s' % galaxy_uuid)
+            if found:
+                admin._prepare_request('POST', 'galaxies/delete/%s' % found['Galaxy']['id'])
+        for note_uuid in self.note_uuids:
+            found = self._get('analyst_data/view/Note/%s' % note_uuid)
+            if found:
+                admin._prepare_request('POST', 'analyst_data/delete/Note/%s' % found['Note']['id'])
+        for org_uuid in self.payload_org_uuids:
+            found = self._get('organisations/view/%s' % org_uuid)
+            if found:
+                admin._prepare_request(
+                    'POST', 'admin/organisations/delete/%s' % found['Organisation']['id'])
+
+    def _get(self, path):
+        response = self.admin._prepare_request('GET', path)
+        return response.json() if response.status_code == 200 else None
+
+    def _drop_blocklist(self, controller, field, value):
+        response = self.admin._prepare_request('GET', '%s/index/%s:%s' % (controller, field, value))
+        if response.status_code != 200:
+            return
+        rows = response.json()
+        for row in rows if isinstance(rows, list) else []:
+            if row.get(field) == value:
+                self.admin._prepare_request('POST', '%s/delete/%s' % (controller, row['id']))
+
+    def _org_exists(self, org_uuid):
+        return self._get('organisations/view/%s' % org_uuid) is not None
+
+    def _unknown_org(self):
+        org = {'uuid': str(uuidlib.uuid4()), 'name': 'regression unknown creator %s' % random()}
+        self.payload_org_uuids.append(org['uuid'])
+        return org
+
+    def _event(self, orgc=None, **extra):
+        event = {'uuid': str(uuidlib.uuid4()), 'info': 'regression creator %s' % random(),
+                 'date': '2026-01-01', 'threat_level_id': '4', 'analysis': '0', 'distribution': '0',
+                 'published': False, 'timestamp': '1700000000'}
+        if orgc is not None:
+            event['Orgc'] = orgc
+        event.update(extra)
+        self.event_uuids.append(event['uuid'])
+        return event
+
+    def _upload(self, event):
+        # The result page has no JSON view, so the answer is judged on what got stored
+        return self.user._prepare_request(
+            'POST', 'events/add_misp_export',
+            data={'Event': {'filecontent': json.dumps({'Event': event})}})
+
+    def _org_dict(self, org):
+        return {'uuid': org.uuid, 'name': org.name}
+
+    # events
+
+    def test_export_naming_other_org_in_orgc_is_refused(self):
+        event = self._event(self._org_dict(self.org_v))
+        self._upload(event)
+        self.assertIsNone(self._get('events/view/%s' % event['uuid']),
+                          'an export naming another organisation as creator was stored')
+
+    def test_export_with_own_orgc_id_and_other_orgc_is_refused(self):
+        event = self._event(self._org_dict(self.org_v), orgc_id=str(self.org_a.id))
+        self._upload(event)
+        self.assertIsNone(self._get('events/view/%s' % event['uuid']),
+                          'an export with the orgc_id of the user and the Orgc of another '
+                          'organisation was stored')
+
+    def test_export_naming_unknown_org_is_refused(self):
+        unknown = self._unknown_org()
+        event = self._event(unknown)
+        self._upload(event)
+        self.assertIsNone(self._get('events/view/%s' % event['uuid']),
+                          'an export naming an unknown organisation as creator was stored')
+        self.assertFalse(self._org_exists(unknown['uuid']),
+                         'an organisation was created from the Orgc of an export')
+
+    def test_export_naming_own_org_is_accepted(self):
+        event = self._event(self._org_dict(self.org_a))
+        self._upload(event)
+        stored = self._get('events/view/%s' % event['uuid'])
+        self.assertIsNotNone(stored, 'an export naming the user\'s own organisation was refused')
+        self.assertEqual(str(self.org_a.id), str(stored['Event']['orgc_id']))
+
+    def test_rest_add_naming_other_org_stores_own_org(self):
+        event = self._event(self._org_dict(self.org_v), orgc_id=str(self.org_v.id))
+        event['Attribute'] = []
+        response = self.user._prepare_request('POST', 'events/add', data=event)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        stored = self._get('events/view/%s' % event['uuid'])
+        self.assertIsNotNone(stored)
+        self.assertEqual(str(self.org_a.id), str(stored['Event']['orgc_id']))
+
+    # galaxies and clusters
+
+    def _import_cluster(self, cluster_orgc, galaxy_orgc):
+        token = random()
+        galaxy = {'uuid': str(uuidlib.uuid4()), 'type': 'regression-creator-%s' % token,
+                  'name': 'regression creator %s' % token, 'description': 'regression',
+                  'version': 1, 'namespace': 'regression', 'Orgc': galaxy_orgc}
+        cluster = {'uuid': str(uuidlib.uuid4()), 'type': galaxy['type'],
+                   'value': 'regression %s' % token,
+                   'description': 'regression', 'version': 1, 'distribution': 0,
+                   'Orgc': cluster_orgc, 'Galaxy': galaxy}
+        self.cluster_uuids.append(cluster['uuid'])
+        self.galaxy_uuids.append(galaxy['uuid'])
+        response = self.user._prepare_request('POST', 'galaxies/import',
+                                              data=[{'GalaxyCluster': cluster}])
+        self.assertEqual(200, response.status_code, response.text[:300])
+        stored = self._get('galaxy_clusters/view/%s' % cluster['uuid'])
+        self.assertIsNotNone(stored, 'the cluster was not stored: %s' % response.text[:300])
+        stored_galaxy = self._get('galaxies/view/%s' % galaxy['uuid'])
+        self.assertIsNotNone(stored_galaxy, 'the galaxy was not stored')
+        return stored['GalaxyCluster'], stored_galaxy['Galaxy']
+
+    def test_import_naming_other_org_stores_own_org(self):
+        other = self._org_dict(self.org_v)
+        cluster, galaxy = self._import_cluster(other, other)
+        self.assertEqual(str(self.org_a.id), str(cluster['orgc_id']), 'cluster creator organisation')
+        self.assertEqual(str(self.org_a.id), str(galaxy['orgc_id']), 'galaxy creator organisation')
+
+    def test_import_naming_unknown_org_stores_own_org(self):
+        unknown = self._unknown_org()
+        cluster, galaxy = self._import_cluster(unknown, unknown)
+        self.assertEqual(str(self.org_a.id), str(cluster['orgc_id']), 'cluster creator organisation')
+        self.assertEqual(str(self.org_a.id), str(galaxy['orgc_id']), 'galaxy creator organisation')
+        self.assertFalse(self._org_exists(unknown['uuid']),
+                         'an organisation was created from the Orgc of a cluster or galaxy')
+
+    # analyst data
+
+    def _note(self, note_uuid, text, modified, orgc=None):
+        note = {'uuid': note_uuid, 'note_type_name': 'Note', 'note': text, 'language': 'en',
+                'distribution': '0', 'created': '2026-01-01 00:00:00', 'modified': modified}
+        if orgc is not None:
+            note['Orgc'] = orgc
+        return note
+
+    def _upload_with_note(self, note):
+        event = self._event(self._org_dict(self.org_a), Note=[note])
+        self._upload(event)
+
+    def _stored_note(self, note_uuid):
+        stored = self._get('analyst_data/view/Note/%s' % note_uuid)
+        self.assertIsNotNone(stored, 'the note was not stored')
+        return stored['Note']
+
+    # An export locks every analyst data it carries, so a second export reaches the update branch
+    def test_update_of_own_locked_note_keeps_own_org(self):
+        note_uuid = str(uuidlib.uuid4())
+        self.note_uuids.append(note_uuid)
+        self._upload_with_note(self._note(note_uuid, 'first', '2026-01-01 00:00:00'))
+        self.assertEqual(self.org_a.uuid, self._stored_note(note_uuid)['orgc_uuid'])
+        self._upload_with_note(self._note(note_uuid, 'second', '2026-06-01 00:00:00',
+                                          self._org_dict(self.org_v)))
+        stored = self._stored_note(note_uuid)
+        self.assertEqual('second', stored['note'], 'the update was not applied')
+        self.assertEqual(self.org_a.uuid, stored['orgc_uuid'],
+                         'the update changed the creator organisation')
+
+    def test_update_of_own_locked_note_creates_no_organisation(self):
+        note_uuid = str(uuidlib.uuid4())
+        self.note_uuids.append(note_uuid)
+        unknown = self._unknown_org()
+        self._upload_with_note(self._note(note_uuid, 'first', '2026-01-01 00:00:00'))
+        self._upload_with_note(self._note(note_uuid, 'second', '2026-06-01 00:00:00', unknown))
+        self.assertEqual('second', self._stored_note(note_uuid)['note'], 'the update was not applied')
+        self.assertFalse(self._org_exists(unknown['uuid']),
+                         'an organisation was created from the Orgc of analyst data')
+
+    # sightings
+
+    def _stored_sighting_org(self, sighting_uuid):
+        rows = stored_rows('SELECT org_id FROM sightings WHERE uuid = %s', sighting_uuid)
+        return int(rows[0][0]) if rows else None
+
+    def _add_with_sighting(self, sighting_org):
+        event = self._event()
+        sighting_uuid = str(uuidlib.uuid4())
+        sighting = {'uuid': sighting_uuid, 'type': '0', 'date_sighting': '1700000000',
+                    'Organisation': sighting_org}
+        event['Attribute'] = [{'uuid': str(uuidlib.uuid4()), 'type': 'ip-dst',
+                               'category': 'Network activity', 'value': '192.0.2.77',
+                               'Sighting': [sighting]}]
+        response = self.user._prepare_request('POST', 'events/add', data=event)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertIsNotNone(self._get('events/view/%s' % event['uuid']), 'the event was not stored')
+        return sighting_uuid
+
+    def test_rest_add_sighting_naming_other_org_stores_own_org(self):
+        sighting_uuid = self._add_with_sighting(self._org_dict(self.org_v))
+        self.assertEqual(int(self.org_a.id), self._stored_sighting_org(sighting_uuid),
+                         'the sighting was not stored under the organisation of the user')
+
+    def test_rest_add_sighting_naming_unknown_org_stores_own_org(self):
+        unknown = self._unknown_org()
+        sighting_uuid = self._add_with_sighting(unknown)
+        self.assertEqual(int(self.org_a.id), self._stored_sighting_org(sighting_uuid),
+                         'the sighting was not stored under the organisation of the user')
+        self.assertFalse(self._org_exists(unknown['uuid']),
+                         'an organisation was created from the Organisation of a sighting')
+
+
+
+class RestrictedTagAttachById(unittest.TestCase):
+    """A tag restricted to an organisation cannot be attached by numeric id by anyone else.
+
+    events/addTag resolved ids through Tag::createConditions(); editEventTags,
+    editAttributeTags and eventReports/addTag handed ids straight to the attach call.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.tag_ids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_tagger', 'perm_add')
+            cls.org_v = make_org(cls.admin, 'regression restricted tag org V')
+            cls.org_a = make_org(cls.admin, 'regression restricted tag org A')
+            cls.created_orgs = [cls.org_v, cls.org_a]
+            user_v = make_user(cls.admin, cls.org_v.id, role)
+            user_a = make_user(cls.admin, cls.org_a.id, role)
+            cls.created_users = [user_v, user_a]
+            cls.v = PyMISP(url, user_v.authkey)
+            cls.v.global_pythonify = False
+            cls.a = PyMISP(url, user_a.authkey)
+            cls.a.global_pythonify = False
+            token = random()
+            made = send(cls.admin, 'POST', 'tags/add', data={
+                'name': 'regression-restricted-%s' % token, 'org_id': int(cls.org_v.id)})
+            cls.restricted = int(made['Tag']['id'])
+            cls.tag_ids.append(cls.restricted)
+            made = send(cls.admin, 'POST', 'tags/add', data={'name': 'regression-open-%s' % token})
+            cls.open = int(made['Tag']['id'])
+            cls.tag_ids.append(cls.open)
+            cls.a_event, cls.a_attr = cls._event(cls.a, 'A', token)
+            cls.v_event, _ = cls._event(cls.v, 'V', token)
+            report = MISPEventReport()
+            report.name = 'report %s' % token
+            report.content = 'x'
+            report.distribution = 5
+            cls.report = int(send(cls.a, 'POST', 'eventReports/add/%d' % cls.a_event,
+                                  data={'EventReport': {'name': report.name, 'content': 'x',
+                                                        'distribution': 5}})['EventReport']['id'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _event(cls, connector, label, token):
+        made = send(connector, 'POST', 'events/add', data={
+            'info': 'regression restricted tag %s %s' % (label, token), 'distribution': 0,
+            'Attribute': [{'type': 'ip-dst', 'category': 'Network activity',
+                           'value': '192.0.2.%d' % (int(random(), 16) % 250),
+                           'distribution': 5}]})['Event']
+        cls.event_ids.append(int(made['id']))
+        cls.event_uuids.append(made['uuid'])
+        return int(made['id']), int(made['Attribute'][0]['id'])
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            send(cls.admin, 'POST', 'events/delete/%d' % event_id, check_errors=False)
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for tag_id in getattr(cls, 'tag_ids', []):
+            send(cls.admin, 'POST', 'tags/delete/%d' % tag_id, check_errors=False)
+        for user in getattr(cls, 'created_users', []):
+            cls.admin.delete_user(user)
+        for org in getattr(cls, 'created_orgs', []):
+            send(cls.admin, 'POST', 'admin/organisations/delete/%s' % org.id, check_errors=False)
+
+    def _event_tags(self, event_id):
+        event = send(self.admin, 'GET', 'events/view/%d' % event_id)['Event']
+        return {int(t['id']) for t in event.get('Tag', [])}
+
+    def _attr_tags(self, event_id, attr_id):
+        event = send(self.admin, 'GET', 'events/view/%d' % event_id)['Event']
+        for attr in event['Attribute']:
+            if int(attr['id']) == attr_id:
+                return {int(t['id']) for t in attr.get('Tag', [])}
+        return set()
+
+    def _report_tags(self):
+        event = send(self.admin, 'GET', 'events/view/%d' % self.a_event)['Event']
+        for report in event.get('EventReport', []):
+            if int(report['id']) == self.report:
+                return {int(t['id']) for t in report.get('Tag', [])}
+        return set()
+
+    def _edit_event(self, connector, event_id, tag):
+        r = connector._prepare_request('POST', 'events/editEventTags/%d' % event_id,
+                                       data={'global_ids': [tag], 'local_ids': []})
+        self.assertEqual(200, r.status_code, r.text)
+
+    def _edit_attr(self, tag):
+        r = self.a._prepare_request('POST', 'attributes/editAttributeTags/%d' % self.a_attr,
+                                    data={'global_ids': [tag], 'local_ids': []})
+        self.assertEqual(200, r.status_code, r.text)
+
+    def _report_add(self, tag):
+        self.a._prepare_request('POST', 'eventReports/addTag/%d/%d' % (self.report, tag))
+
+    def test_event_restricted_not_attached(self):
+        self._edit_event(self.a, self.a_event, self.restricted)
+        self.assertNotIn(self.restricted, self._event_tags(self.a_event))
+
+    def test_attribute_restricted_not_attached(self):
+        self._edit_attr(self.restricted)
+        self.assertNotIn(self.restricted, self._attr_tags(self.a_event, self.a_attr))
+
+    def test_report_restricted_not_attached(self):
+        self._report_add(self.restricted)
+        self.assertNotIn(self.restricted, self._report_tags())
+
+    def test_event_open_attached(self):
+        self._edit_event(self.a, self.a_event, self.open)
+        self.assertIn(self.open, self._event_tags(self.a_event))
+
+    def test_attribute_open_attached(self):
+        self._edit_attr(self.open)
+        self.assertIn(self.open, self._attr_tags(self.a_event, self.a_attr))
+
+    def test_report_open_attached(self):
+        self._report_add(self.open)
+        self.assertIn(self.open, self._report_tags())
+
+    def test_owner_org_attaches_own_restricted_tag(self):
+        self._edit_event(self.v, self.v_event, self.restricted)
+        self.assertIn(self.restricted, self._event_tags(self.v_event))
+
+
+
+class GalaxyClusterPublishScope(unittest.TestCase):
+    """Only the creator organisation may publish or unpublish a galaxy cluster.
+
+    fetchIfAuthorized() refused a cross-org publish only for users holding perm_publish, and
+    galaxyClusters/unpublish required just perm_galaxy_editor, so a galaxy editor without
+    perm_publish could unpublish another organisation's cluster.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.cluster_ids = []
+        cls.cluster_uuids = []
+        cls.galaxy_id = None
+        try:
+            publisher_role = least_privileged_role(cls.admin, 'perm_galaxy_editor', 'perm_publish')
+            plain_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if (int(role['perm_galaxy_editor']) and not int(role['perm_publish'])
+                        and not int(role['perm_site_admin']) and not int(role['perm_sync'])):
+                    plain_role = int(role['id'])
+                    break
+            if plain_role is None:
+                raise unittest.SkipTest('no role with perm_galaxy_editor and without perm_publish')
+            cls.org_o = make_org(cls.admin, 'regression publish owner org')
+            cls.org_x = make_org(cls.admin, 'regression publish other org')
+            cls.created_orgs = [cls.org_o, cls.org_x]
+            users = [make_user(cls.admin, cls.org_o.id, publisher_role),
+                     make_user(cls.admin, cls.org_o.id, plain_role),
+                     make_user(cls.admin, cls.org_x.id, plain_role),
+                     make_user(cls.admin, cls.org_x.id, publisher_role)]
+            cls.created_users = users
+            (cls.o_publisher, cls.o_plain, cls.x_plain, cls.x_publisher) = [
+                PyMISP(url, u.authkey) for u in users]
+            cls.token = random()
+            cls.galaxy_type = 'regression-publish-%s' % cls.token
+            cls.galaxy = {'uuid': str(uuidlib.uuid4()), 'type': cls.galaxy_type,
+                          'name': 'regression publish %s' % cls.token, 'description': 'regression',
+                          'version': 1, 'namespace': 'regression'}
+            cls._new_published_cluster(with_galaxy=True)
+            cls.galaxy_id = int(cls._stored(cls.cluster_uuids[0])['galaxy_id'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _stored(cls, cluster_ref):
+        response = cls.admin._prepare_request('GET', 'galaxy_clusters/view/%s' % cluster_ref)
+        if response.status_code != 200:
+            return None
+        return response.json()['GalaxyCluster']
+
+    @classmethod
+    def _new_published_cluster(cls, with_galaxy=False):
+        cluster_uuid = str(uuidlib.uuid4())
+        cls.cluster_uuids.append(cluster_uuid)
+        body = {'GalaxyCluster': {'uuid': cluster_uuid, 'type': cls.galaxy_type,
+                                  'value': 'publish scope %s' % random(), 'description': 'regression',
+                                  'version': 1, 'distribution': 3}}
+        if with_galaxy:
+            body['GalaxyCluster']['Galaxy'] = cls.galaxy
+        response = cls.o_publisher._prepare_request('POST', 'galaxies/import', data=[body])
+        assert response.status_code == 200, 'seeding a cluster failed: %s' % response.text[:300]
+        cluster_id = int(cls._stored(cluster_uuid)['id'])
+        cls.cluster_ids.append(cluster_id)
+        response = cls.o_publisher._prepare_request('POST', 'galaxy_clusters/publish/%d' % cluster_id)
+        assert response.status_code == 200, 'publishing the seed failed: %s' % response.text[:300]
+        assert cls._published(cluster_id), 'the seed cluster is not published'
+        return cluster_id
+
+    def setUp(self):
+        self.cluster_id = self._new_published_cluster()
+
+    @classmethod
+    def _published(cls, cluster_id):
+        return bool(int(cls._stored(cluster_id)['published']))
+
+    @classmethod
+    def tearDownClass(cls):
+        for cluster_id in cls.cluster_ids:
+            cls.admin._prepare_request('POST', 'galaxy_clusters/delete/%d/1' % cluster_id,
+                                       data={'hard': 1})
+        for cluster_uuid in cls.cluster_uuids:
+            cls.admin._prepare_request('POST', 'galaxy_cluster_blocklists/delete/%s' % cluster_uuid)
+        if cls.galaxy_id is not None:
+            cls.admin._prepare_request('POST', 'galaxies/delete/%d' % cls.galaxy_id)
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _unpublish(self, api):
+        return api._prepare_request('POST', 'galaxy_clusters/unpublish/%d' % self.cluster_id)
+
+    def test_other_org_editor_without_publish_cannot_unpublish(self):
+        response = self._unpublish(self.x_plain)
+        self.assertNotEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id),
+                        'another organisation unpublished the cluster')
+
+    def test_other_org_publisher_cannot_unpublish(self):
+        response = self._unpublish(self.x_publisher)
+        self.assertNotEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id),
+                        'another organisation unpublished the cluster')
+
+    def test_owner_without_publish_cannot_unpublish(self):
+        response = self._unpublish(self.o_plain)
+        self.assertNotEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id),
+                        'a user without perm_publish unpublished the cluster')
+
+    def test_owner_publisher_can_unpublish_and_publish_again(self):
+        response = self._unpublish(self.o_publisher)
+        self.assertEqual(200, response.status_code, response.text[:200])
+        self.assertFalse(self._published(self.cluster_id), 'the owner could not unpublish')
+        response = self.o_publisher._prepare_request(
+            'POST', 'galaxy_clusters/publish/%d' % self.cluster_id)
+        self.assertEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id), 'the owner could not publish again')
+
+
+
+class SharingGroupBlueprintExecuteScope(unittest.TestCase):
+    """Executing a blueprint rewrites its sharing group's roster only while the blueprint's
+    organisation may still extend that group.
+
+    The right was checked once, when the blueprint was added. Afterwards an organisation that
+    had lost `extend` or its membership could still run the blueprint and rewrite the roster.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        role = least_privileged_role(cls.admin, 'perm_sharing_group')
+        cls.orgs = {n: make_org(cls.admin, 'regression sgbp %s org' % n) for n in 'VAB'}
+        cls.users = {n: make_user(cls.admin, cls.orgs[n].id, role) for n in 'VA'}
+        cls.api = {}
+        for n in 'VA':
+            cls.api[n] = PyMISP(url, cls.users[n].authkey)
+            cls.api[n].global_pythonify = False
+        cls.sharing_groups = []
+        cls.blueprints = []
+
+    @classmethod
+    def tearDownClass(cls):
+        for bp in cls.blueprints:
+            send(cls.admin, 'POST', 'sharingGroupBlueprints/delete/%s' % bp, check_errors=False)
+        for sg in cls.sharing_groups:
+            send(cls.admin, 'POST', 'sharingGroups/delete/%s' % sg, check_errors=False)
+        for u in cls.users.values():
+            cls.admin.delete_user(u)
+        for o in cls.orgs.values():
+            send(cls.admin, 'POST', 'admin/organisations/delete/%s' % o.id, check_errors=False)
+
+    def _group(self):
+        o = self.orgs
+        made = send(self.api['V'], 'POST', 'sharingGroups/add', data={
+            'uuid': str(uuidlib.uuid4()), 'name': 'regression sgbp %s' % random(),
+            'releasability': 'x', 'roaming': False,
+            'SharingGroupOrg': [
+                {'Organisation': {'uuid': o['V'].uuid, 'name': o['V'].name}, 'extend': True},
+                {'Organisation': {'uuid': o['A'].uuid, 'name': o['A'].name}, 'extend': True},
+                {'Organisation': {'uuid': o['B'].uuid, 'name': o['B'].name}, 'extend': False}]})
+        sg = int(made['SharingGroup']['id'])
+        self.sharing_groups.append(sg)
+        bp = send(self.api['A'], 'POST', 'sharingGroupBlueprints/add', data={
+            'name': 'regression sgbp %s' % random(), 'sharing_group_id': sg,
+            'rules': json.dumps({'org_uuid': o['A'].uuid})})
+        bp = int(bp['SharingGroupBlueprint']['id'])
+        self.blueprints.append(bp)
+        return sg, bp
+
+    def _roster(self, sg):
+        view = send(self.admin, 'GET', 'sharingGroups/view/%s' % sg)
+        return sorted(int(e['org_id']) for e in view['SharingGroupOrg'])
+
+    def _execute(self, bp):
+        r = self.api['A']._prepare_request('POST', 'sharingGroupBlueprints/execute/%s' % bp)
+        return r.text
+
+    def _ids(self, *names):
+        return sorted(int(self.orgs[n].id) for n in names)
+
+    def test_extend_withdrawn(self):
+        sg, bp = self._group()
+        self.assertEqual(self._ids('V', 'A', 'B'), self._roster(sg))
+        send(self.api['V'], 'POST', 'sharingGroups/removeOrg/%s/%s' % (sg, self.orgs['A'].id))
+        send(self.api['V'], 'POST', 'sharingGroups/addOrg/%s/%s' % (sg, self.orgs['A'].id),
+             data={'extend': 0})
+        before = self._roster(sg)
+        self.assertEqual(self._ids('V', 'A', 'B'), before)
+        self._execute(bp)
+        self.assertEqual(before, self._roster(sg), 'a blueprint without extend rewrote the roster')
+
+    def test_membership_removed(self):
+        sg, bp = self._group()
+        send(self.api['V'], 'POST', 'sharingGroups/removeOrg/%s/%s' % (sg, self.orgs['A'].id))
+        before = self._roster(sg)
+        self.assertEqual(self._ids('V', 'B'), before)
+        self._execute(bp)
+        self.assertEqual(before, self._roster(sg), 'a removed member rewrote the roster')
+
+    def test_control_extend_kept_follows_rules(self):
+        sg, bp = self._group()
+        body = self._execute(bp)
+        self.assertEqual(self._ids('A'), self._roster(sg), body)
+
+    def test_control_deleted_group_counts_as_failed(self):
+        sg, bp = self._group()
+        send(self.api['V'], 'POST', 'sharingGroups/delete/%s' % sg)
+        self.sharing_groups.remove(sg)
+        body = self._execute(bp)
+        self.assertIn('Failed to create: 1', body)
+        for marker in ('Notice', 'Warning', 'Undefined', 'Trying to access'):
+            self.assertNotIn(marker, body)
+
+
+
+class BulkSightingsEventScope(unittest.TestCase):
+    """bulkSaveSightings binds sightings only to the event the caller was authorised for."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.orgs, cls.users = [], []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_sighting', 'perm_add')
+            org = make_org(cls.admin, 'regression bulk sighting org')
+            cls.orgs.append(org)
+            user = make_user(cls.admin, org.id, role)
+            cls.users.append(user)
+            cls.api = PyMISP(url, user.authkey)
+            cls.api.global_pythonify = False
+            cls.events = []
+            for i in range(2):
+                e = MISPEvent()
+                e.info = 'regression bulk sighting %s' % random()
+                e.distribution = 0
+                e.add_attribute('ip-dst', '192.0.2.%d' % (int(random(), 16) % 250),
+                                category='Network activity', distribution=5)
+                cls.events.append(send(cls.api, 'POST', 'events/add', data=e.to_dict())['Event'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for e in getattr(cls, 'events', []):
+            send(cls.admin, 'POST', 'events/delete/%s' % e['id'], data={'hard': 1}, check_errors=False)
+            for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+                row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+                if row.get('event_uuid') == e['uuid']:
+                    send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for u in cls.users:
+            cls.admin.delete_user(u)
+        for o in cls.orgs:
+            cls.admin.delete_organisation(o)
+
+    def _stored(self, uuids):
+        rows = stored_rows('SELECT uuid, id, event_id FROM sightings WHERE uuid IN (%s)', uuids)
+        return {row[0]: {'id': int(row[1]), 'event_id': int(row[2])} for row in rows}
+
+    def _sighting(self, attribute_uuid):
+        return {'uuid': str(uuidlib.uuid4()), 'attribute_uuid': attribute_uuid, 'type': '0',
+                'date_sighting': str(int(time.time())), 'source': 'regression'}
+
+    def test_scope(self):
+        e1, e2 = self.events
+        foreign = self._sighting(e2['Attribute'][0]['uuid'])
+        own = self._sighting(e1['Attribute'][0]['uuid'])
+        r = send(self.api, 'POST', 'sightings/bulkSaveSightings/%s' % e1['id'], data=[foreign, own])
+        found = self._stored([foreign['uuid'], own['uuid']])
+        self.assertIn(own['uuid'], found, 'control: the sighting for the authorised event is stored')
+        self.assertEqual(int(e1['id']), found[own['uuid']]['event_id'])
+        self.assertNotIn(foreign['uuid'], found,
+                         'a sighting for another event attribute was stored: %s' % r)
+        for row in found.values():
+            send(self.admin, 'POST', 'sightings/delete/%d' % row['id'], check_errors=False)
+
+
+
+class UserSettingPrefillAccess(unittest.TestCase):
+    """The setSetting form prefills the stored value only when the caller may read it."""
+
+    SETTING = 'dashboard_theme'
+    V_VALUE = 'dark'
+    A_VALUE = 'light'
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.orgs = []
+        cls.users = []
+        cls.setting_ids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_add')
+            org_v = make_org(cls.admin, 'regression prefill victim org')
+            cls.orgs.append(org_v)
+            org_a = make_org(cls.admin, 'regression prefill caller org')
+            cls.orgs.append(org_a)
+            cls.password = 'Rg%s-%sAa1!' % (random(), random())
+            cls.v = make_user(cls.admin, org_v.id, role)
+            cls.users.append(cls.v)
+            cls.a = make_user(cls.admin, org_a.id, role)
+            cls.users.append(cls.a)
+            for user in (cls.v, cls.a):
+                send(cls.admin, 'POST', 'admin/users/edit/%s' % user.id,
+                     data={'password': cls.password, 'confirm_password': cls.password,
+                           'change_pw': 0, 'termsaccepted': 1})
+            cls._store(cls.v, cls.SETTING, cls.V_VALUE)
+            cls._store(cls.a, cls.SETTING, cls.A_VALUE)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _store(cls, user, setting, value):
+        send(cls.admin, 'POST', 'userSettings/setSetting/%s/%s' % (user.id, setting),
+             data={'value': value})
+        listed = send(cls.admin, 'GET', 'userSettings/index/user_id:%s' % user.id)
+        for entry in listed:
+            e = entry['UserSetting']
+            if int(e['user_id']) == int(user.id) and e['setting'] == setting:
+                if int(e['id']) not in cls.setting_ids:
+                    cls.setting_ids.append(int(e['id']))
+
+    @classmethod
+    def tearDownClass(cls):
+        for user in cls.users:
+            try:
+                listed = cls.admin._prepare_request(
+                    'GET', 'userSettings/index/user_id:%s' % user.id).json()
+                for entry in listed:
+                    if int(entry['UserSetting']['user_id']) == int(user.id):
+                        cls.setting_ids.append(int(entry['UserSetting']['id']))
+            except Exception:
+                pass
+        for sid in set(cls.setting_ids):
+            cls.admin._prepare_request('POST', 'userSettings/delete/%s' % sid)
+        for user in cls.users:
+            cls.admin.delete_user(user)
+        for org in cls.orgs:
+            cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % org.id)
+
+    def _login(self):
+        session = requests.Session()
+        login = session.get(url + '/users/login', allow_redirects=False)
+        form = login.text[login.text.index('id="UserLoginForm"'):]
+        form = form[:form.index('</form>')]
+        fields = {}
+        for tag in re.findall(r'<input[^>]*>', form):
+            name = re.search(r'name="([^"]+)"', tag)
+            value = re.search(r'value="([^"]*)"', tag)
+            if name and value:
+                fields[name.group(1)] = html.unescape(value.group(1))
+        fields['data[User][email]'] = self.a.email
+        fields['data[User][password]'] = self.password
+        session.post(url + '/users/login', data=fields, allow_redirects=False)
+        return session
+
+    def _selected(self, theme, user_id):
+        """The selected option of the value select, as rendered under the caller's theme."""
+        self._store_theme(theme)
+        page = self._login().get('%s/user_settings/setSetting/%s/%s'
+                                 % (url, user_id, self.SETTING), allow_redirects=False)
+        self.assertEqual(200, page.status_code)
+        marker = ('UserSettingValueSelect-%s' % self.SETTING if theme == 'Overmind'
+                  else 'UserSettingValueSelect')
+        if theme == 'Overmind':
+            self.assertIn('data-setting-choices="%s"' % self.SETTING, page.text)
+        start = page.text.index('id="%s"' % marker)
+        start = page.text.rindex('<select', 0, start)
+        select = page.text[start:page.text.index('</select>', start)]
+        options = re.findall(r'<option[^>]*>', select)
+        self.assertEqual(len(options), 3, select)
+        return [re.search(r'value="([^"]*)"', o).group(1) for o in options
+                if re.search(r'\sselected(=|\s|>)', o)]
+
+    def _store_theme(self, theme):
+        self._store(self.a, 'ui_theme', theme)
+
+    def _own(self, theme):
+        if theme == 'Default':
+            # the Default theme's select is keyed 0..n, so a prefilled string never matches
+            # an option: the page cannot show the prefill, only render the select
+            self.assertNotIn(self.V_VALUE, self._selected(theme, self.a.id))
+            return
+        self.assertEqual([self.A_VALUE], self._selected(theme, self.a.id),
+                         'own value not preselected under %s' % theme)
+
+    def _cross(self, theme):
+        other = self._selected(theme, self.v.id)
+        self.assertNotIn(self.V_VALUE, other, "%s: another org's stored value was prefilled" % theme)
+
+    def test_default_own_value_preselected(self):
+        self._own('Default')
+
+    def test_overmind_own_value_preselected(self):
+        self._own('Overmind')
+
+    def test_default_other_orgs_value_not_prefilled(self):
+        self._cross('Default')
+
+    def test_overmind_other_orgs_value_not_prefilled(self):
+        self._cross('Overmind')
+
+
+
+class EventTemplateImportDefaultFlag(unittest.TestCase):
+    """Only a site admin's import may store misp_default = 1; the flag is library-managed
+    and makes the row overwritable by the library update.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.template_ids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_template')
+            cls.org_a = make_org(cls.admin, 'regression template org a')
+            cls.created_orgs.append(cls.org_a)
+            cls.user_a = make_user(cls.admin, cls.org_a.id, role)
+            cls.created_users.append(cls.user_a)
+            cls.connector_a = PyMISP(url, cls.user_a.authkey)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for template_id in getattr(cls, 'template_ids', []):
+            send(cls.admin, 'POST', 'eventTemplates/delete/%d' % template_id, check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []),
+                      getattr(cls, 'created_users', []))
+
+    def _document(self, envelope_flag=None, definition_flag=None):
+        template_uuid = str(uuidlib.uuid4())
+        definition = {
+            'schema_version': 1, 'uuid': template_uuid,
+            'name': 'regression import %s' % random(),
+            'event_defaults': {'distribution': 0}, 'structure': [],
+        }
+        if definition_flag is not None:
+            definition['misp_default'] = definition_flag
+        template = {'uuid': template_uuid, 'name': definition['name'],
+                    'distribution': 0, 'active': 1, 'definition': definition}
+        if envelope_flag is not None:
+            template['misp_default'] = envelope_flag
+        return {'_meta': {'event_template_schema_version': 1}, 'template': template}
+
+    def _import(self, connector, document):
+        response = connector._prepare_request('POST', 'eventTemplates/import', data=document)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        template_id = int(response.json()['event_template_id'])
+        type(self).template_ids.append(template_id)
+        return template_id
+
+    def _stored(self, template_id):
+        response = self.admin._prepare_request('GET', 'eventTemplates/view/%d' % template_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        body = response.json()
+        return int(body.get('EventTemplate', body)['misp_default'])
+
+    def test_envelope_flag_from_non_admin_is_dropped(self):
+        template_id = self._import(self.connector_a, self._document(envelope_flag=True))
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_definition_flag_from_non_admin_is_dropped(self):
+        template_id = self._import(self.connector_a, self._document(definition_flag=True))
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_no_flag_from_non_admin_is_0(self):
+        template_id = self._import(self.connector_a, self._document())
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_no_flag_from_admin_is_0(self):
+        template_id = self._import(self.admin, self._document())
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_flag_from_admin_is_kept(self):
+        template_id = self._import(self.admin, self._document(envelope_flag=True))
+        self.assertEqual(1, self._stored(template_id))
+
+
 if __name__ == '__main__':
     unittest.main()
