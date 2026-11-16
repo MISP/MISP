@@ -2,7 +2,8 @@
 /**
  * Renders a single .ctp template without booting CakePHP, for tests that
  * check what a template itself prints. Helpers and nested elements are stubs
- * that print nothing, so a nested element has to be rendered on its own.
+ * that print nothing, so a nested element has to be rendered on its own; a
+ * test can set a real helper in $helpers.
  */
 
 if (!function_exists('h')) {
@@ -55,6 +56,22 @@ if (!class_exists('Inflector')) {
     require_once __DIR__ . '/../Lib/cakephp/lib/Cake/Utility/Inflector.php';
 }
 
+if (!class_exists('App')) {
+    class App
+    {
+        public static function uses($className, $location)
+        {
+        }
+    }
+}
+
+// Lets a test load a real helper with no dependencies (TextColourHelper).
+if (!class_exists('AppHelper')) {
+    class AppHelper
+    {
+    }
+}
+
 /** What a stubbed helper returns: an empty string that can also be indexed. */
 class ViewTemplateHarnessBlank implements ArrayAccess
 {
@@ -95,13 +112,20 @@ class ViewTemplateHarness
 {
     const VIEW = __DIR__ . '/../View/';
 
+    /** @var array real helpers by name; any other helper is a stub */
+    public $helpers = array();
+
     public function __get($name)
     {
-        return new ViewTemplateHarnessHelper();
+        return isset($this->helpers[$name]) ? $this->helpers[$name] : new ViewTemplateHarnessHelper();
     }
+
+    /** @var array the elements rendered, as [name, data]; they print nothing */
+    public $elements = array();
 
     public function element($name, $data = array(), $options = array())
     {
+        $this->elements[] = array($name, $data);
         return '';
     }
 
