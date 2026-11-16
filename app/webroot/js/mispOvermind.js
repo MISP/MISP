@@ -8914,16 +8914,12 @@ function initObjectAddForm(container, payloadEl) {
             + '<i class="' + distCfg.icon + '"></i></span>'
             + '<span class="ov-obj-title">'
             + '<span class="ov-obj-name">'
+            + reviewPiece('family')
             + '<span class="text-truncate">' + escapeHtml(data.template.name) + '</span>'
-            + '<span class="ov-obj-meta">' + escapeHtml(data.template.meta)
-            + '<span class="ov-obj-meta-version">v' + escapeHtml(data.template.version)
-            + '</span></span>'
-            + '</span></span>'
-            + '<span class="ov-obj-aside">'
             + '<span class="ov-obj-count">'
             + '<span class="misp-icon misp-icon-attribute misp-simple"></span> '
             + rows.length + '</span>'
-            + '</span>'
+            + '</span></span>'
             + '</div>';
 
         /* The columns of the object index's attribute table (Objects/object_attribute_table). */

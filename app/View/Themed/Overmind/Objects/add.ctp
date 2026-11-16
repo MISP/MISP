@@ -573,6 +573,7 @@ if (!empty($groupSource)) {
                     </div>
                     <?php /* The review's pieces, drawn by the elements the object index uses; __V__ is the value. */ ?>
                     <template id="objReviewPieces">
+                        <span data-piece="family"><?= $this->element('Objects/meta_category', ['meta' => $template['ObjectTemplate']['meta-category']]) ?></span>
                         <span data-piece="type"><?= $this->element('genericElementsBS5/Badges/type', ['type' => '__V__']) ?></span>
                         <span data-piece="category"><?= $this->element('genericElementsBS5/Badges/category', ['category' => '__V__']) ?></span>
                         <span data-piece="relation"><?= $this->element('genericElementsBS5/Badges/object_relation', ['relation' => '__V__']) ?></span>

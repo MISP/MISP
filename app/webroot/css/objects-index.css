@@ -166,6 +166,36 @@
 .oi-card-uuid .btn-link {
     color: var(--bs-secondary-color);
 }
+/* The template version as a two-part badge: a grey label, the number. */
+.oi-card-version {
+    display: inline-flex;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .35rem;
+    font-size: .7rem;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+.oi-card-version-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: 0 .45rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+}
+.oi-card-version-num {
+    padding: 0 .45rem;
+    border-left: 1px solid var(--bs-border-color);
+    font-family: var(--bs-font-monospace);
+    font-weight: 700;
+    color: var(--bs-emphasis-color);
+    background: var(--bs-body-bg);
+}
 
 /* Event Objects tab: the rows select and delete objects, and the References
    cell opens the object's relationships. */

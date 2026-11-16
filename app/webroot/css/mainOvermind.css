@@ -563,28 +563,24 @@ html.ig-so-docked #flashOverlay {
     font-family: var(--bs-font-monospace);
     color: var(--bs-body-color);
 }
-.ov-obj-meta {
+/* The meta-category (Elements/Objects/meta_category.ctp), read as the path to
+   the template name it precedes: "Network / url". */
+.ov-obj-family {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    padding: .15rem .55rem;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 999px;
-    font-size: .68rem;
-    font-weight: 600;
-    letter-spacing: .05em;
-    text-transform: uppercase;
+    gap: .35rem;
+    font-weight: 400;
     white-space: nowrap;
     color: var(--bs-secondary-color);
-    background: var(--bs-tertiary-bg);
 }
-.ov-obj-meta-version {
-    padding-left: .4rem;
-    border-left: 1px solid var(--bs-border-color);
-    font-family: var(--bs-font-monospace);
-    letter-spacing: 0;
-    text-transform: none;
+.ov-obj-family > i {
+    font-size: .78rem;
+}
+.ov-obj-name > .ov-obj-family::after {
+    content: "/";
+    margin-left: .2rem;
+    color: var(--bs-tertiary-color);
 }
 .ov-obj-taxonomy {
     display: flex;
@@ -619,12 +615,13 @@ html.ig-so-docked #flashOverlay {
     margin-left: auto;
 }
 .ov-obj-count {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: .35rem;
-    padding: .2rem .6rem;
+    gap: .3rem;
+    padding: .1rem .5rem;
     border-radius: 999px;
-    font-size: .78rem;
+    font-size: .72rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--bs-primary-text-emphasis);
@@ -640,7 +637,7 @@ html.ig-so-docked #flashOverlay {
     color: var(--bs-secondary-color);
 }
 @media (max-width: 575.98px) {
-    .ov-obj-meta,
+    .ov-obj-family-label,
     .ov-obj-date {
         display: none;
     }

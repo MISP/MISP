@@ -284,7 +284,8 @@ $fields = [
             ]);
         },
     ],
-    // A card opens on the attribute list, as the objects index's cards do.
+    // A card opens on the attribute list and the open row's foot, as the
+    // objects index's cards do.
     [
         'display_in' => ['card'],
         'card_section' => 'attributes',
@@ -299,6 +300,10 @@ $fields = [
                 'cortexEnabled' => $_cortexEnabled,
                 // A deleted object is restored or deleted whole.
                 'locked' => $row['ctx']['deleted'],
+            ]) . $this->element('Objects/object_foot', [
+                'object' => $row['Object'],
+                'taxonomy' => true,
+                'origin' => true,
             ]) . '</div>';
         },
     ],
