@@ -4793,6 +4793,30 @@ body[data-controller="values"] .vp-verdict-act:disabled {
     color: var(--bs-secondary-color);
 }
 
+/* Weighed against the rest: the heavy ones stand out, the slight ones recede. */
+.vp-pts.is-major {
+    min-width: 52px;
+    padding: 3px 8px;
+    font-size: 1.02rem;
+    font-weight: 800;
+}
+
+.vp-pts.is-major.is-up {
+    background: color-mix(in srgb, var(--vp-ben) 24%, var(--bs-body-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vp-ben) 45%, transparent);
+}
+
+.vp-pts.is-major.is-down {
+    background: color-mix(in srgb, var(--vp-mal) 22%, var(--bs-body-bg));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vp-mal) 45%, transparent);
+}
+
+.vp-pts.is-minor {
+    background: transparent;
+    font-weight: 600;
+    opacity: .8;
+}
+
 /* Who says it: one row per organisation, with its stance. */
 .vp-vv-stance {
     display: inline-flex;
@@ -4959,7 +4983,7 @@ body[data-controller="values"] .vp-verdict-act:disabled {
 
 .vp-vl-sig {
     display: grid;
-    grid-template-columns: 50px minmax(0, 1fr);
+    grid-template-columns: 54px minmax(0, 1fr);
     gap: 12px;
     align-items: start;
     padding: 8px 16px;

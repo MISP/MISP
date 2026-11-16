@@ -3,7 +3,8 @@
  * The Assessment tab's signal strength card: how the score was built. One
  * block per family (reporting, sightings, attribution, lifecycle) headed by
  * what it asks and its net points, then each signal on a line with its
- * points and evidence; the date it holds as of is on hover. The signals sum
+ * points and evidence, heaviest first, the points sized by their share of
+ * the score; the date it holds as of is on hover. The signals sum
  * to the signal strength: what the record is worth, whatever it says about
  * the value.
  *
@@ -17,8 +18,16 @@ $strength = $verdict['signal_strength'] ?? null;
 $band = $verdict['band'] ?? 'none';
 
 $count = 0;
-foreach ($ledger as $group) {
+$moved = 0;
+foreach ($ledger as $i => $group) {
     $count += count($group['signals']);
+    foreach ($group['signals'] as $signal) {
+        $moved += abs((int)$signal['contribution']);
+    }
+    // The heaviest signals lead their family.
+    usort($ledger[$i]['signals'], function ($a, $b) {
+        return abs((int)$b['contribution']) <=> abs((int)$a['contribution']);
+    });
 }
 $signed = function ($points) {
     $points = (int)$points;
@@ -27,11 +36,22 @@ $signed = function ($points) {
 $tone = function ($points) {
     return (int)$points > 0 ? 'up' : ((int)$points < 0 ? 'down' : 'zero');
 };
+// A signal's share of all the points moved, either way: a fifth or more
+// stands out, a point or under 5% recedes.
+$share = function ($points) use ($moved) {
+    return $moved > 0 ? abs((int)$points) / $moved : 0;
+};
+$weight = function ($points) use ($share) {
+    if (abs((int)$points) <= 1 || $share($points) < 0.05) {
+        return ' is-minor';
+    }
+    return $share($points) >= 0.2 ? ' is-major' : '';
+};
 
 $figure = null;
+$score = (int)$strength < 0 ? "\u{2212}" . abs((int)$strength) : (string)(int)$strength;
 if ($strength !== null && $band !== 'none') {
-    $figure = '<span class="vp-card-figure">'
-        . h(((int)$strength < 0 ? "\u{2212}" . abs((int)$strength) : (int)$strength) . ' / 100') . '</span>';
+    $figure = '<span class="vp-card-figure">' . h($score . ' / 100') . '</span>';
 }
 $weights = array(
     'user' => __('weights from your profile'),
@@ -54,7 +74,7 @@ if (!empty($ledger)) {
     <?= $this->element('Values/View/value_panel_header', array(
         'panelTitle' => $strength === null || $band === 'none'
             ? __('How the signal strength was built')
-            : sprintf(__('How %s was built'), (int)$strength),
+            : sprintf(__('How %s was built'), $score),
         'panelIcon' => 'fas fa-list-check',
         'panelColor' => 'var(--primary)',
         'panelSub' => empty($sub) ? null : '<span title="' . h((string)($verdict['composition_note'] ?? '')) . '">'
@@ -88,7 +108,8 @@ if (!empty($ledger)) {
                 </div>
                 <?php foreach ($group['signals'] as $signal): ?>
                     <div class="vp-vl-sig"<?= empty($signal['as_of']) ? '' : ' title="' . h(sprintf(__('As of %s'), $signal['as_of'])) . '"' ?>>
-                        <span class="vp-pts is-<?= h($tone($signal['contribution'])) ?>"><?= h($signed($signal['contribution'])) ?></span>
+                        <span class="vp-pts is-<?= h($tone($signal['contribution'])) . $weight($signal['contribution']) ?>"
+                              title="<?= h(sprintf(__('%s%% of the points behind this score'), (int)round($share($signal['contribution']) * 100))) ?>"><?= h($signed($signal['contribution'])) ?></span>
                         <span class="vp-vl-sig-body">
                             <?php if (empty($signal['tab'])): ?>
                                 <span class="vp-vl-sig-t"><?= h($signal['signal']) ?></span>
