@@ -2208,13 +2208,7 @@ class User extends AppModel
         }
 
         list($cutoff, $allcutoff) = $redis->mGet(['misp:session_destroy:' . $id, 'misp:session_destroy:all']);
-        if (
-            empty($cutoff) ||
-            (
-                !empty($allcutoff) &&
-                $allcutoff < $cutoff
-            )
-        ) {
+        if (empty($cutoff) || (!empty($allcutoff) && $allcutoff > $cutoff)) {
             $cutoff = $allcutoff;
         }
         if ($cutoff && $sessionCreationTimestamp < $cutoff) {
