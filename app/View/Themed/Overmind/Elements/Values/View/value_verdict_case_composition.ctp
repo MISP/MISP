@@ -148,9 +148,8 @@ foreach ($cases as $case) {
             </p>
 
             <?php /*
-             * The same scope sentence the agreeing rail carries. This
-             * card stands in for `value_verdict_composition` on a
-             * contested value, and a reader who wants to argue with a
+             * The same scope sentence the agreeing layout's ledger
+             * card carries, on a contested value: a reader who wants to argue with a
              * weight needs to know whose weights they are on both
              * layouts — it went missing on this one for exactly as long
              * as the contested layout had no value that could reach it.

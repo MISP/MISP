@@ -83,16 +83,6 @@
     flex-wrap: wrap;
 }
 
-.vp-pillgroup-label {
-    margin-right: 2px;
-    color: var(--bs-secondary-color);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
 .vp-pill {
     padding: 3px 10px;
     border: 1px solid var(--bs-border-color);
@@ -404,15 +394,6 @@ a.vp-fact:hover .vp-fact-value {
 .vp-head-btn[aria-expanded="true"] {
     background: var(--bs-tertiary-bg);
     color: var(--bs-body-color);
-}
-
-.vp-head-btn-caret {
-    font-size: .62rem;
-    transition: transform .15s ease;
-}
-
-.vp-head-btn[aria-expanded="true"] .vp-head-btn-caret {
-    transform: rotate(180deg);
 }
 
 /* One width per slot, so the pager does not jump as the pages grow. */
@@ -1849,19 +1830,6 @@ tr.vp-occ-deleted td {
  * Verdict tab — who says what
  * ================================================================== */
 
-.vp-table {
-    font-size: 0.8rem;
-}
-
-.vp-table > thead > tr > th {
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
-    white-space: nowrap;
-}
-
 .vp-opinion {
     display: inline-flex;
     align-items: center;
@@ -1894,20 +1862,6 @@ tr.vp-occ-deleted td {
  * them: `0 none stated`, on every row of every value where nobody has
  * stated an opinion. The gap is what says they are two facts.
  */
-.vp-table th.vp-orgs-count-last,
-.vp-table td.vp-orgs-count-last {
-    padding-right: 22px;
-}
-
-.vp-org {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    vertical-align: middle;
-}
-.vp-org .dk-logo { width: 20px; height: 20px; border-radius: 4px; }
-.vp-org .dk-logo img { max-width: 20px; max-height: 20px; }
-.vp-org .dk-logo.is-mono { font-size: 8.5px; }
 
 .vp-reliability {
     display: inline-flex;
@@ -1941,21 +1895,12 @@ tr.vp-occ-deleted td {
  * Fixed rather than flexible: these widths are the numbers. Letting a
  * segment shrink to fit would silently redraw the arithmetic.
  */
-.vp-composition-seg,
-.vp-composition-cut {
+.vp-composition-seg {
     flex: 0 0 auto;
 }
 
 .vp-composition-seg {
     background: var(--vp-seg-color);
-}
-
-.vp-composition-cut {
-    background-color: var(--bs-secondary-bg);
-    background-image: repeating-linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--bs-danger) 55%, transparent) 0 4px,
-        transparent 4px 8px);
 }
 
 .vp-aside .vp-fact-line {
@@ -1999,51 +1944,6 @@ tr.vp-occ-deleted td {
     border-color: color-mix(in srgb, var(--vp-conflict) 40%,
         var(--bs-border-color));
     overflow: hidden;
-}
-
-.vp-vc-hero {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 18px;
-    padding: 15px 18px;
-    border-bottom: 1px solid color-mix(in srgb, var(--vp-conflict) 20%,
-        var(--bs-border-color));
-    background: color-mix(in srgb, var(--vp-conflict) 8%,
-        var(--bs-body-bg));
-}
-
-[data-misp-mode="dark"] .vp-vc-hero {
-    background: color-mix(in srgb, var(--vp-conflict) 14%,
-        var(--bs-body-bg));
-}
-
-.vp-vc-state {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    flex: 0 0 auto;
-}
-
-.vp-vc-state > i {
-    font-size: 1.45rem;
-    color: var(--vp-conflict);
-}
-
-.vp-vc-state-word {
-    font-size: 1.5rem;
-    font-weight: 900;
-    line-height: 1;
-    letter-spacing: -0.01em;
-    color: var(--vp-conflict-ink);
-}
-
-.vp-vc-prose {
-    flex: 1 1 260px;
-    max-width: 470px;
-    margin: 0;
-    font-size: 0.8rem;
-    line-height: 1.6;
 }
 
 /*
@@ -2105,50 +2005,57 @@ tr.vp-occ-deleted td {
     color: var(--bs-secondary-color);
 }
 
-/* The provenance band: small print, and it reads as small print. */
+/* An assessment's provenance: one quiet line under the reading. */
 .vp-verdict-meta {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 18px;
-    padding: 7px 18px;
-    border-bottom: 1px solid var(--bs-border-color);
-    background: var(--bs-secondary-bg);
-    font-size: 0.7rem;
+    gap: 4px 10px;
+    font-size: .74rem;
     color: var(--bs-secondary-color);
 }
 
 .vp-verdict-meta-parts {
-    display: flex;
-    align-items: center;
+    display: inline-flex;
     flex-wrap: wrap;
-    gap: 10px;
+    align-items: center;
+    gap: 2px 7px;
     min-width: 0;
 }
 
-.vp-verdict-meta-note {
-    flex-basis: 100%;
-    color: var(--bs-body-color);
+.vp-verdict-meta-parts [title] {
+    cursor: help;
 }
 
-/*
- * The two disabled actions, moved down out of the hero. They sit at
- * the end of the small print, which had a quarter of its width spare
- * on every value.
- */
 .vp-verdict-meta-actions {
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-    gap: 8px;
-    margin-left: auto;
+    display: inline-flex;
+    gap: 4px;
+}
+
+.vp-verdict-act {
+    display: inline-grid;
+    place-items: center;
+    min-width: 26px;
+    height: 24px;
+    padding: 0 6px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .72rem;
+}
+
+.vp-verdict-act.is-mono {
+    font-family: var(--bs-font-monospace);
+    font-weight: 700;
+}
+
+.vp-verdict-act:disabled {
+    opacity: .55;
 }
 
 .vp-meta-sep {
     color: var(--bs-border-color);
-}
-
-.vp-meta-strong {
-    color: var(--bs-body-color);
 }
 
 /*
@@ -2237,299 +2144,6 @@ tr.vp-occ-deleted td {
 .vp-vc-warninglist-action:hover {
     background: color-mix(in srgb, currentColor 12%, transparent);
     color: inherit;
-}
-
-/*
- * The ledger's foot: what its total banded as, and against what.
- *
- * Not a band — the table above it is signal strength's working, and this is a
- * caption on that table rather than a fourth section of the argument.
- * So it takes the ledger's own left margin and the muted weight of a
- * note, where `vp-vc-lean` and `vp-vc-clock` take the card's full
- * width and a heading.
- */
-.vp-ledger-foot {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 9px 16px 12px;
-    font-size: 0.72rem;
-    color: var(--bs-secondary-color);
-}
-
-.vp-ledger-foot > i {
-    flex: 0 0 auto;
-    opacity: 0.7;
-}
-
-/*
- * The lean: how the reading was decided, above the evidence for it.
- *
- * The clock band's chrome without its colour. Relevance borrows the
- * Lifetime card's hue because it draws that card's own element; this
- * band has two sides and taking either one's colour for its frame
- * would be the frame picking a winner. The sides are coloured inside
- * it, where they belong.
- */
-/* ==================================================================
- * The two axis bands, side by side
- * ------------------------------------------------------------------
- * Both bands are a bar with a label at each end, and a list that says
- * where the bar came from — the clock's confirmations, the lean's
- * weighted rows. The bar must not stretch: given the full column it
- * pushes the days count to the far margin, where it reads as a second
- * unrelated fact, and the rail draws the same object at about 300px.
- *
- * That cap used to sit on the band *body*, which capped the list with
- * it and left the right half of a 1176px card empty — 570px of nothing
- * beside each of the two bands, measured on the rendered pane. The cap
- * belongs on the bar alone. The list takes the width the bar gave
- * back, and the band gets shorter by the height of the list.
- *
- * Only where there is a list to put there: a value with no
- * confirmations and no lean rows renders one column, exactly as
- * before, rather than a capped bar beside a blank half. The template
- * sets `vp-vc-band-split`, so the markup says which case it is.
- * ================================================================== */
-.vp-vc-band-bar {
-    display: flex;
-    flex-direction: column;
-    gap: inherit;
-    max-width: 620px;
-    min-width: 0;
-}
-
-/*
- * The same cap as the bar, for the same reason and in both layouts.
- * Stacked, an uncapped list runs the width of the card and throws
- * *independent sighting* 900px from the organisation it belongs to;
- * split, the column is usually narrower than the cap anyway, and on a
- * very wide card the cap is what stops the pair drifting apart there
- * too.
- */
-.vp-vc-band-list {
-    display: flex;
-    flex-direction: column;
-    gap: inherit;
-    max-width: 620px;
-    min-width: 0;
-}
-
-/*
- * Below this the card is too narrow to seat a 620px bar and a legible
- * list beside it, so the band stacks and the bar keeps its cap.
- */
-@media (min-width: 1400px) {
-    .vp-vc-lean-body.vp-vc-band-split,
-    .vp-vc-clock-body.vp-vc-band-split {
-        display: grid;
-        grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
-        column-gap: 36px;
-        align-items: start;
-    }
-
-    /*
-     * The caption is about the band, not about either column, so it
-     * runs under both.
-     */
-    .vp-vc-band-split > .vp-vc-clock-note {
-        grid-column: 1 / -1;
-    }
-}
-
-.vp-vc-lean {
-    border-top: 1px solid var(--bs-border-color);
-}
-
-.vp-vc-lean-head,
-.vp-ledger-head {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 9px 16px;
-    border-bottom: 1px solid var(--bs-border-color);
-    font-size: 0.75rem;
-    font-weight: 700;
-}
-
-.vp-vc-lean-mark,
-.vp-ledger-head-mark {
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-axis-head-sub {
-    font-weight: 400;
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-axis-head-total {
-    margin-left: auto;
-    font-variant-numeric: tabular-nums;
-}
-
-.vp-ledger-head {
-    border-top: 1px solid var(--bs-border-color);
-}
-
-.vp-vc-lean-body {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 16px;
-    font-size: 0.78rem;
-}
-
-.vp-vc-lean-note {
-    margin: 0;
-}
-
-/*
- * The lean ledger, which sits in this band rather than in the table
- * below because it answers *how this reading was decided* and not
- * *how much record there is* (`review-2026-09-13.md` §D1).
- *
- * Deliberately not the ledger table's geometry: these are two or three
- * rows inside a band, not a column to scan, and giving them the table's
- * six columns would make the band read as a second ledger rather than
- * as the working behind the sentence above it.
- */
-.vp-vc-lean-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding-top: 8px;
-    border-top: 1px solid var(--bs-border-color);
-}
-
-.vp-vc-lean-rows-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-lean-rows-total {
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0;
-}
-
-.vp-vc-lean-row {
-    display: grid;
-    grid-template-columns: 12px minmax(0, 1fr) 72px 40px;
-    align-items: center;
-    gap: 8px;
-}
-
-.vp-vc-lean-row-mark {
-    font-size: 0.6rem;
-    line-height: 1;
-    color: var(--vp-dir-with);
-}
-
-.vp-vc-lean-row-down .vp-vc-lean-row-mark {
-    color: var(--vp-dir-against);
-}
-
-.vp-vc-lean-row-signal {
-    min-width: 0;
-}
-
-.vp-vc-lean-row-evidence {
-    display: block;
-    font-size: 0.7rem;
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-lean-row-bar {
-    display: block;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--bs-secondary-bg);
-    overflow: hidden;
-}
-
-.vp-vc-lean-row-fill {
-    display: block;
-    height: 100%;
-    background: var(--vp-dir-with);
-}
-
-.vp-vc-lean-row-down .vp-vc-lean-row-fill {
-    background: var(--vp-dir-against);
-}
-
-.vp-vc-lean-row-points {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    color: var(--vp-dir-with);
-}
-
-.vp-vc-lean-row-down .vp-vc-lean-row-points {
-    color: var(--vp-dir-against);
-}
-
-.vp-vc-lean-errors {
-    font-size: 0.72rem;
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-lean-error {
-    margin-top: 2px;
-}
-
-/*
- * The clock: the third axis, at the rank the other two have.
- *
- * `vp-vc-unresolved`'s shape — a headed band inside the argument card —
- * in the Lifetime card's colour, because this draws the Lifetime card's
- * own element and a reader meeting the same bar twice on one page
- * should recognise it the second time.
- */
-.vp-vc-clock {
-    border-top: 1px solid color-mix(in srgb, var(--correlation) 20%,
-        var(--bs-border-color));
-    background: color-mix(in srgb, var(--correlation) 4%,
-        var(--bs-body-bg));
-}
-
-[data-misp-mode="dark"] .vp-vc-clock {
-    background: color-mix(in srgb, var(--correlation) 9%,
-        var(--bs-body-bg));
-}
-
-.vp-vc-clock-head {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 9px 16px;
-    border-bottom: 1px solid color-mix(in srgb, var(--correlation) 14%,
-        var(--bs-border-color));
-    font-size: 0.75rem;
-    font-weight: 700;
-}
-
-.vp-vc-clock-mark {
-    color: var(--correlation);
-}
-
-.vp-vc-clock-body {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px 16px;
-    font-size: 0.78rem;
-}
-
-.vp-vc-clock-note {
-    margin: 0;
-    font-size: 0.72rem;
-    color: var(--bs-secondary-color);
 }
 
 /* The two cases, same width and same row shape. */
@@ -2894,41 +2508,8 @@ tr.vp-occ-deleted td {
     color: var(--bs-body-color);
 }
 
-/* ==================================================================
- * The agreeing argument card
- * ------------------------------------------------------------------
- * Same banded card as the conflicted one, in the disposition's colour
- * rather than amber, and with a ledger table where that one has two
- * opposed columns.
- *
- * MALICIOUS and BENIGN share every rule here and differ only in
- * `--vp-vc-color`, which the template sets from the disposition. The
- * `.vp-vc-malicious` / `.vp-vc-benign` classes stay on the element as
- * inspection hooks; nothing styles them, because a second set of rules
- * per disposition is a second set to keep in step.
- * ================================================================== */
-
-.vp-vc-agreeing {
-    border-color: color-mix(in srgb, var(--vp-vc-color) 21%,
-        var(--bs-border-color));
-}
-
-.vp-vc-agreeing .vp-vc-hero {
-    border-bottom-color: color-mix(in srgb, var(--vp-vc-color) 15%,
-        var(--bs-border-color));
-    background: color-mix(in srgb, var(--vp-vc-color) 5%,
-        var(--bs-body-bg));
-}
-
-[data-misp-mode="dark"] .vp-vc-agreeing .vp-vc-hero {
-    background: color-mix(in srgb, var(--vp-vc-color) 12%,
-        var(--bs-body-bg));
-}
-
-/*
- * A solid chip rather than an outline pill: on the tab that exists to
- * state a disposition, the disposition is allowed to be loud.
- */
+/* The reading's badge on the Assessment tab: a solid chip, since the tab
+   exists to state it. */
 .vp-vc-badge {
     display: inline-flex;
     flex: 0 0 auto;
@@ -2943,16 +2524,8 @@ tr.vp-occ-deleted td {
     line-height: 1;
 }
 
-/*
- * The hero badge for a state that is not an answer — UNKNOWN reaches
- * this layout, since a value with nothing to weigh has nothing to
- * contradict either.
- *
- * Drawn the way the conflicted layout has always drawn its own state:
- * the glyph keeps the colour, the word does not shout. A filled block
- * reading UNKNOWN in the same weight as MALICIOUS is the page being
- * emphatic about knowing nothing.
- */
+/* A reading that is not an answer (unflagged, none): the glyph keeps
+   the colour, the word does not shout. */
 .vp-vc-badge-quiet {
     padding: 9px 0;
     background: transparent;
@@ -2965,250 +2538,11 @@ tr.vp-occ-deleted td {
     color: var(--vp-vc-color);
 }
 
-/*
- * Against the far margin. The badge names the reading, the sentence is
- * that reading in full, and the gauge is the one figure the card
- * leaves you with — so it sits where the eye lands last rather than
- * between the two halves of a thought.
- */
-.vp-vc-score {
-    flex: 0 1 260px;
-    min-width: 180px;
-    margin-left: auto;
-}
-
-.vp-vc-score-heads {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
-}
-
-/*
- * The ink, not the hue. This is 0.6rem, uppercase and letterspaced —
- * small text by every measure — and painting it in the card's fill put
- * `57 / 100` on the hero at 2.14:1 on a contested value, 3.02 on a
- * benign one and 4.22 on a threat. None of the three passed, and the
- * amber was the one you could not read at all.
- */
-.vp-vc-score-value {
-    font-family: var(--bs-font-monospace);
-    color: var(--vp-vc-ink);
-}
-
-.vp-vc-score-track {
-    position: relative;
-    height: 9px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 5px;
-    background: var(--bs-body-bg);
-}
-
-.vp-vc-score-fill {
-    display: block;
-    height: 100%;
-    border-radius: 4px;
-    background: var(--vp-vc-color);
-}
-
-/*
- * The band floors, in the lean track's own mark — same width, same
- * ink, same opacity, so a reader who has learnt what a tick means on
- * one bar has learnt it on all three. Above the track rather than
- * inside it, because `overflow: hidden` is what used to round the
- * fill and a mark clipped to the track disappears at 0 and at 100.
- */
-.vp-vc-score-mark {
-    position: absolute;
-    top: -2px;
-    width: 2px;
-    height: 12px;
-    background: var(--bs-body-color);
-    opacity: 0.55;
-}
-
-.vp-vc-prose-wide {
-    max-width: 520px;
-}
-
-/*
- * Relevance's figure, drawn as the hover card draws its runway. The
- * state rides in ink weight, not hue: the lean owns the hue here.
- */
-.vp-vc-runway {
-    flex: 0 0 auto;
-    margin-left: auto;
-    padding-left: 18px;
-    border-left: 1px solid var(--bs-border-color);
-    line-height: 1;
-}
-
-.vp-vc-score + .vp-vc-runway {
-    margin-left: 0;
-}
-
-.vp-vc-runway-k,
-.vp-vc-runway-s {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-runway-n {
-    margin: 5px 0 4px;
-    font-size: 1.45rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    color: var(--bs-body-color);
-}
-
-.vp-vc-runway-n.vp-vc-runway-absent {
-    font-weight: 500;
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-runway-u {
-    margin-left: 5px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0;
-    color: var(--bs-secondary-color);
-}
-
-.vp-vc-runway-aging .vp-vc-runway-s:not(.vp-vc-runway-note),
-.vp-vc-runway-expired .vp-vc-runway-s:not(.vp-vc-runway-note) {
-    color: var(--bs-body-color);
-}
-
-.vp-vc-runway-expired .vp-vc-runway-s:not(.vp-vc-runway-note) {
-    text-decoration: underline;
-    text-decoration-thickness: 1.5px;
-    text-underline-offset: 2px;
-}
-
-.vp-vc-runway-note {
-    margin-top: 3px;
-    font-weight: 600;
-}
-
-/*
- * Kept under the hero's name because that is where they used to live
- * and where the tooltips still point; they are drawn in the provenance
- * strip now, one notch smaller so the small print stays small print.
- */
-.vp-vc-hero-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 9px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 5px;
-    background: var(--bs-body-bg);
-    font-size: 0.68rem;
-    font-weight: 700;
-    white-space: nowrap;
-    color: var(--bs-body-color);
-}
-
-.vp-vc-hero-action-mono {
-    font-family: var(--bs-font-monospace);
-    font-weight: 400;
-}
-
-/* ==================================================================
- * The ledger table
- * ------------------------------------------------------------------
- * A table, not a grid: five columns that have to line up down the
- * page, and a contradiction row that opens a nested table of the
- * occurrences behind it — which is exactly what a table row can do and
- * a flex row cannot.
- * ================================================================== */
-
-.vp-ledger-table {
-    font-size: 0.8rem;
-}
-
-.vp-ledger-table > thead > tr > th {
-    padding: 7px 12px;
-    border-bottom: 1px solid var(--bs-border-color);
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
-    white-space: nowrap;
-}
-
-.vp-ledger-table > tbody > tr > td {
-    padding: 8px 12px;
-    vertical-align: top;
-}
+/* Signal lines: the Overview verdict card and the conflicted cases. */
 
 .vp-ledger-dir {
     width: 26px;
     text-align: center;
-}
-
-.vp-ledger-contrib-col {
-    width: 196px;
-}
-
-.vp-ledger-asof-col {
-    width: 96px;
-}
-
-/* A group heading, spanning the table rather than floating above it. */
-.vp-ledger-table > tbody > tr.vp-ledger-group > td {
-    padding: 7px 12px;
-    border-top: 1px solid var(--bs-border-color);
-    border-bottom: 1px solid var(--bs-border-color);
-    background: var(--bs-secondary-bg);
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
-}
-
-.vp-ledger-table > tbody > tr.vp-ledger-group-conflict > td {
-    color: var(--vp-conflict-ink);
-}
-
-.vp-ledger-group-note {
-    margin-left: 9px;
-    font-weight: 400;
-    letter-spacing: 0;
-    text-transform: none;
-    opacity: 0.8;
-}
-
-/*
- * The ledger's own pair, and it is deliberately **not** the lean's —
- * the argument is on `--vp-weighs-carries` in `value-palette.css`,
- * which declares it. Present and absent in ink weight, rather than
- * good and bad in the lean's hues.
- *
- * `--bs-table-color` with them, because Bootstrap sets every cell's
- * colour through it at `.table > :not(caption) > * > *` — one class
- * and three elements, which out-specifies a single class on the cell.
- * That is why `.vp-ledger-evidence` had asked for the muted ink since
- * it was written and rendered pure `#000` the whole time: the theme's
- * emphasis black was landing on every cell in the table. Pointing the
- * variable at the body ink hands the column back to the rules below,
- * and to the theme.
- */
-.vp-ledger-table {
-    --bs-table-color: var(--bs-body-color);
-    --vp-ledger-adds: var(--vp-weighs-carries);
-    --vp-ledger-cuts: var(--vp-weighs-lacks);
 }
 
 .vp-ledger-line-up .vp-ledger-dir {
@@ -3217,38 +2551,6 @@ tr.vp-occ-deleted td {
 
 .vp-ledger-line-down .vp-ledger-dir {
     color: var(--vp-ledger-cuts);
-}
-
-/*
- * 290px wrapped the catalogue's longest signal name — *53 sightings
- * from 6 orgs, last 18 days ago* — on to a second line, which pushed
- * its bar and its points out of line with every other row's. The cap
- * exists so a long name cannot starve the evidence beside it; 340px
- * is still short of that and clears the longest name there is.
- */
-.vp-ledger-signal-cell {
-    max-width: 340px;
-    font-weight: 700;
-}
-
-/*
- * Two classes, to clear the `.table` cell rule described above. The
- * evidence is what the signal is claiming *from*, so it reads under
- * the claim rather than beside it at the same weight.
- */
-.vp-ledger-table .vp-ledger-evidence {
-    font-size: 0.75rem;
-    color: var(--bs-secondary-color);
-}
-
-.vp-ledger-contrib-cell {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-}
-
-.vp-ledger-contrib-cell .vp-vc-bar {
-    flex: 1 1 auto;
 }
 
 .vp-ledger-line-up .vp-vc-bar-fill {
@@ -3302,36 +2604,6 @@ tr.vp-occ-deleted td {
     text-decoration: underline;
 }
 
-.vp-ledger-asof {
-    font-family: var(--bs-font-monospace);
-    font-size: 0.68rem;
-    color: var(--bs-secondary-color);
-}
-
-/* A contradiction sits in the ledger, tinted but not removed. */
-.vp-ledger-table > tbody > tr.vp-ledger-conflict > td {
-    background: color-mix(in srgb, var(--vp-conflict) 5%,
-        var(--bs-body-bg));
-}
-
-[data-misp-mode="dark"] .vp-ledger-table
-    > tbody > tr.vp-ledger-conflict > td {
-    background: color-mix(in srgb, var(--vp-conflict) 10%,
-        var(--bs-body-bg));
-}
-
-.vp-ledger-unresolved {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: var(--vp-conflict);
-}
-
-.vp-ledger-mark {
-    color: var(--vp-conflict);
-}
-
 /* ==================================================================
  * Composition legend
  * ================================================================== */
@@ -3368,23 +2640,6 @@ tr.vp-occ-deleted td {
     font-size: 0.72rem;
     font-weight: 600;
     color: var(--bs-secondary-color);
-}
-
-.vp-comp-pts-down {
-    color: var(--vp-mal);
-}
-
-.vp-comp-total {
-    margin-top: 3px;
-    padding-top: 6px;
-    border-top: 1px solid var(--bs-border-color);
-    font-size: 0.78rem;
-    font-weight: 700;
-}
-
-.vp-comp-total .vp-comp-pts {
-    font-weight: 700;
-    color: var(--vp-mal);
 }
 
 .vp-comp-note {
@@ -3451,29 +2706,41 @@ tr.vp-occ-deleted td {
 .vp-changers {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    font-size: 0.75rem;
-    line-height: 1.5;
-    color: var(--bs-secondary-color);
+    gap: 10px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--bs-body-color);
 }
 
 .vp-changer {
-    display: flex;
-    gap: 9px;
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 8px;
 }
 
+.vp-changer strong {
+    color: var(--bs-emphasis-color);
+}
+
+/* The direction as a tile, tinted with the side it moves towards. */
 .vp-changer-arrow {
-    flex: 0 0 auto;
-    font-size: 0.62rem;
-    line-height: 1.6;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    font-size: 0.66rem;
+    font-weight: 800;
 }
 
 .vp-changer-arrow-down {
-    color: var(--vp-dir-against);
+    background: color-mix(in srgb, var(--vp-dir-against) 16%, var(--bs-body-bg));
+    color: var(--vp-dir-against-ink, var(--vp-dir-against));
 }
 
 .vp-changer-arrow-up {
-    color: var(--vp-dir-with);
+    background: color-mix(in srgb, var(--vp-dir-with) 14%, var(--bs-body-bg));
+    color: var(--vp-dir-with-ink, var(--vp-dir-with));
 }
 
 .vp-changer-actions {
@@ -3572,7 +2839,7 @@ body[data-controller="values"] fieldset:disabled .btn,
 body[data-controller="values"] .dropdown-item.disabled,
 body[data-controller="values"] .vp-resolution:disabled,
 body[data-controller="values"] .vp-changer-action:disabled,
-body[data-controller="values"] .vp-vc-hero-action:disabled {
+body[data-controller="values"] .vp-verdict-act:disabled {
     pointer-events: auto;
     cursor: not-allowed;
 }
@@ -4305,7 +3572,6 @@ body[data-controller="values"] .vp-vc-hero-action:disabled {
 .vp-rel-k-near { --vp-rel-color: var(--vp-rel-near); }
 .vp-rel-k-external { --vp-rel-color: var(--vp-rel-external); }
 .vp-rel-k-object { --vp-rel-color: var(--vp-rel-object); }
-.vp-rel-k-event { --vp-rel-color: var(--vp-rel-event); }
 .vp-rel-k-reference { --vp-rel-color: var(--vp-rel-reference); }
 
 /*
@@ -5314,6 +4580,509 @@ body[data-controller="values"] .vp-vc-hero-action:disabled {
     opacity: .5;
 }
 
+/* The Assessment tab: the header (the reading, its provenance and its
+   three answers), then one card per answer. */
+.vp-vh {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
+}
+
+.vp-vh-main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 18px;
+    border-right: 1px solid var(--bs-border-color);
+    background: color-mix(in srgb, var(--vp-vc-color) 8%, var(--bs-body-bg));
+}
+
+.vp-vh-why {
+    margin: 0;
+    color: var(--bs-emphasis-color);
+    font-size: .9rem;
+    line-height: 1.45;
+}
+
+.vp-vh-main .vp-verdict-meta {
+    margin-top: auto;
+}
+
+.vp-vh-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.vp-vh-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    padding: 16px;
+}
+
+.vp-vh-tile + .vp-vh-tile {
+    border-left: 1px solid var(--bs-border-color);
+}
+
+.vp-vh-k {
+    color: var(--bs-secondary-color);
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.vp-vh-v {
+    color: var(--bs-emphasis-color);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.vp-vh-v small {
+    margin-left: 4px;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.vp-vh-v .vp-band-pill {
+    vertical-align: 5px;
+}
+
+.vp-vh-threat {
+    color: var(--vp-mal-ink);
+}
+
+.vp-vh-benign {
+    color: var(--vp-ben-ink);
+}
+
+.vp-vh-colon {
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+}
+
+/* A tile's glyph: the stance split, the family stack, the runway. */
+.vp-vh-bar {
+    display: flex;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--bs-secondary-bg);
+}
+
+.vp-vh-bar > i {
+    display: block;
+    flex: none;
+    height: 100%;
+}
+
+.vp-vh-stance > .is-threat {
+    background: var(--vp-mal);
+}
+
+.vp-vh-stance > .is-benign {
+    background: var(--vp-ben);
+}
+
+.vp-vh-runway > .is-used,
+.vp-vt-runway > .is-used {
+    background: var(--bs-emphasis-color);
+    opacity: .75;
+}
+
+.vp-vh-runway > .is-assumed,
+.vp-vt-runway > .is-assumed {
+    background: repeating-linear-gradient(135deg,
+        color-mix(in srgb, var(--correlation) 55%, transparent) 0 3px,
+        transparent 3px 6px);
+}
+
+.vp-vh-s {
+    color: var(--bs-secondary-color);
+    font-size: .76rem;
+    line-height: 1.35;
+}
+
+.vp-vh-shelf.is-expired .vp-vh-v {
+    color: var(--vp-mal-ink);
+}
+
+@media (max-width: 991.98px) {
+    .vp-vh {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vp-vh-main {
+        border-right: 0;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .vp-vh-tiles {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .vp-vh-tile + .vp-vh-tile {
+        border-top: 1px solid var(--bs-border-color);
+        border-left: 0;
+    }
+}
+
+/* The figure a card answers with, at the right of its header. */
+.vp-card-figure {
+    color: var(--bs-emphasis-color);
+    font-size: 1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.vp-band-pill {
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    vertical-align: 2px;
+}
+
+.vp-band-pill.is-medium {
+    background: color-mix(in srgb, var(--correlation) 16%, var(--bs-body-bg));
+    color: color-mix(in srgb, var(--correlation) 70%, var(--bs-body-color));
+}
+
+.vp-band-pill.is-high {
+    background: color-mix(in srgb, var(--vp-mal) 14%, var(--bs-body-bg));
+    color: var(--vp-mal-ink);
+}
+
+/* Points a signal adds or takes away. */
+.vp-pts {
+    display: inline-block;
+    min-width: 42px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    font-family: var(--bs-font-monospace);
+    font-size: .8rem;
+    font-weight: 800;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.vp-pts.is-up {
+    background: color-mix(in srgb, var(--vp-ben) 14%, var(--bs-body-bg));
+    color: var(--vp-ben-ink);
+}
+
+.vp-pts.is-down {
+    background: color-mix(in srgb, var(--vp-mal) 12%, var(--bs-body-bg));
+    color: var(--vp-mal-ink);
+}
+
+.vp-pts.is-zero {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+}
+
+/* Who says it: one row per organisation, with its stance. */
+.vp-vv-stance {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 9px;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: help;
+}
+
+.vp-vv-stance.is-threat {
+    background: color-mix(in srgb, var(--vp-mal) 13%, var(--bs-body-bg));
+    color: var(--vp-mal-ink);
+}
+
+.vp-vv-stance.is-both {
+    background: color-mix(in srgb, var(--vp-conflict) 15%, var(--bs-body-bg));
+    color: var(--vp-conflict-ink);
+}
+
+.vp-vv-stance.is-benign {
+    background: color-mix(in srgb, var(--vp-ben) 14%, var(--bs-body-bg));
+    color: var(--vp-ben-ink);
+}
+
+.vp-vv-stance.is-context {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+}
+
+.vp-vv-n {
+    font-variant-numeric: tabular-nums;
+}
+
+.vp-vv-said {
+    color: var(--bs-body-color);
+    font-size: .8rem;
+}
+
+.vp-vv-said.is-none {
+    color: var(--bs-secondary-color);
+}
+
+.vp-vv-section {
+    padding: 10px 16px 12px;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.vp-vv-section-h {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 6px;
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.vp-vv-section-n {
+    margin-left: auto;
+    color: var(--bs-emphasis-color);
+    font-family: var(--bs-font-monospace);
+    letter-spacing: 0;
+    cursor: help;
+}
+
+.vp-vv-line {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 5px 0;
+}
+
+.vp-vv-line-t {
+    display: block;
+    color: var(--bs-emphasis-color);
+    font-size: .84rem;
+    font-weight: 600;
+}
+
+.vp-vv-line-e {
+    display: block;
+    color: var(--bs-secondary-color);
+    font-size: .76rem;
+}
+
+.vp-vv-errors {
+    display: flex;
+    gap: 8px;
+    padding: 9px 16px;
+    border-top: 1px solid var(--bs-border-color);
+    color: var(--bs-warning-text-emphasis);
+    font-size: .78rem;
+}
+
+.vp-vv-conflict {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 16px;
+    border-top: 1px solid var(--bs-border-color);
+    background: color-mix(in srgb, var(--vp-conflict) 7%, var(--bs-body-bg));
+    font-size: .82rem;
+}
+
+.vp-vv-conflict strong,
+.vp-vv-conflict-mark {
+    color: var(--vp-conflict-ink);
+}
+
+.vp-vv-conflict-note {
+    margin-left: 4px;
+    color: var(--bs-secondary-color);
+    font-size: .74rem;
+}
+
+/* How the signal strength was built: families, then their signals. */
+.vp-vl-fam + .vp-vl-fam {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.vp-vl-fam-h {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 16px;
+    background: var(--bs-tertiary-bg);
+}
+
+.vp-vl-fam-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--vp-fam);
+}
+
+.vp-vl-fam-n {
+    color: var(--bs-emphasis-color);
+    font-size: .84rem;
+    font-weight: 700;
+}
+
+.vp-vl-fam-q {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--bs-secondary-color);
+    font-size: .76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vp-vl-fam-t {
+    margin-left: auto;
+    color: var(--bs-emphasis-color);
+    font-family: var(--bs-font-monospace);
+    font-size: .84rem;
+    font-weight: 700;
+}
+
+.vp-vl-sig {
+    display: grid;
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 8px 16px;
+    border-top: 1px dashed var(--bs-border-color-translucent);
+}
+
+.vp-vl-sig-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.vp-vl-sig-t {
+    color: var(--bs-emphasis-color);
+    font-size: .86rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+a.vp-vl-sig-t:hover {
+    text-decoration: underline;
+}
+
+.vp-vl-sig-e {
+    color: var(--bs-secondary-color);
+    font-size: .78rem;
+}
+
+.vp-vl-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 9px 16px;
+    border-top: 1px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+    font-size: .74rem;
+}
+
+.vp-vl-foot i {
+    width: 14px;
+    margin-right: 6px;
+    text-align: center;
+}
+
+/* How long it holds: the runway with a date at each end, a note per
+   assumption, the confirmations that reset the clock. */
+.vp-vt-body {
+    padding: 12px 16px 14px;
+}
+
+.vp-vt-runway {
+    display: flex;
+    height: 10px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: var(--bs-secondary-bg);
+}
+
+.vp-vt-runway > i {
+    display: block;
+    flex: none;
+    height: 100%;
+}
+
+.vp-vt-ends {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+    color: var(--bs-secondary-color);
+    font-size: .72rem;
+}
+
+.vp-vt-note {
+    margin-top: 8px;
+    padding: 7px 10px;
+    border-left: 3px solid var(--correlation);
+    border-radius: 0 6px 6px 0;
+    background: color-mix(in srgb, var(--correlation) 8%, var(--bs-body-bg));
+    font-size: .76rem;
+    line-height: 1.4;
+}
+
+.vp-vt-note strong {
+    color: var(--bs-emphasis-color);
+}
+
+.vp-vt-resets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.vp-vt-resets-k {
+    margin-right: 4px;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+.vp-vt-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    font-size: .72rem;
+    white-space: nowrap;
+    cursor: help;
+}
+
+.vp-vt-chip.is-held {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+
+.vp-vt-chip.is-more {
+    color: var(--bs-secondary-color);
+    cursor: default;
+}
+
 /* The search box of a Relationships card. */
 .vp-card-search {
     width: 16rem;
@@ -5938,57 +5707,6 @@ body[data-controller="values"] .vp-vc-hero-action:disabled {
  * The key is drawn as a line sample rather than a square, so it teaches
  * the sketch's edge styles as well as its colours.
  */
-.vp-rel-key {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 18px;
-    font-size: 0.76rem;
-}
-
-.vp-rel-key-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-}
-
-.vp-rel-swatch {
-    /*
-     * Both numbers are named because the arrowhead below has to do
-     * arithmetic with them, and a constant it worked out once is a
-     * constant that stops being right the moment either changes.
-     */
-    --vp-swatch-stroke: 3px;
-    --vp-swatch-arrow: 4px;
-    position: relative;
-    display: inline-block;
-    flex: 0 0 auto;
-    width: 18px;
-    height: 0;
-    border-top: var(--vp-swatch-stroke) solid
-        var(--vp-rel-color, var(--bs-secondary-color));
-}
-
-.vp-rel-swatch-dash {
-    border-top-style: dashed;
-}
-
-.vp-rel-swatch-arrow::after {
-    content: "";
-    position: absolute;
-    right: -2px;
-    /*
-     * Centred on the stroke, which is not what `top` is measured from.
-     * The line is a top *border*, so it sits outside the padding box —
-     * and the padding box is what an absolutely positioned child is
-     * offset against. A head pulled up by its own half-height alone
-     * therefore lands half a stroke below the line it ends, which is
-     * the sag this used to draw. It comes up by both.
-     */
-    top: calc(var(--vp-swatch-stroke) / -2 - var(--vp-swatch-arrow));
-    border-left: 6px solid var(--vp-rel-color);
-    border-top: var(--vp-swatch-arrow) solid transparent;
-    border-bottom: var(--vp-swatch-arrow) solid transparent;
-}
 
 tr.vp-rel-k-near > td:first-child {
     border-left-style: dashed;
@@ -6046,18 +5764,6 @@ tr.vp-rel-k-external > td:first-child {
     white-space: nowrap;
     text-overflow: ellipsis;
     vertical-align: bottom;
-}
-
-.vp-rel-score {
-    background: color-mix(in srgb, var(--vp-rel-near) 14%, var(--bs-body-bg));
-    border: 1px solid color-mix(in srgb, var(--vp-rel-near) 40%, transparent);
-    color: var(--vp-rel-near);
-    font-family: var(--bs-font-monospace);
-    font-weight: 600;
-}
-
-[data-misp-mode="dark"] .vp-rel-score {
-    background: color-mix(in srgb, var(--vp-rel-near) 24%, var(--bs-body-bg));
 }
 
 /*
@@ -7938,10 +7644,6 @@ tr.vp-rel-k-external > td:first-child {
     white-space: nowrap;
 }
 
-.vp-e-num {
-    font-variant-numeric: tabular-nums;
-}
-
 /* ==================================================================
  * Analyst data tab
  * ==================================================================
@@ -9558,12 +9260,6 @@ a.vp-lane-tag:focus-visible {
         var(--bs-body-bg));
 }
 
-.vp-prec-none {
-    border-color: var(--bs-border-color);
-    color: var(--bs-secondary-color);
-    background: var(--bs-secondary-bg);
-}
-
 /* ------------------------------------------------------------------
  * The chronology
  * ------------------------------------------------------------------
@@ -10325,109 +10021,6 @@ a.vp-hx-event:focus-visible {
  * 10.5rem the age was clipped to `109 months ag`, which reads as a
  * rendering fault rather than a narrow column.
  */
-
-/* ==================================================================
- * The Collaboration tab's density
- *
- * One class on the four panels rather than a change to the shared
- * chrome, and that is the whole point of it. `value_panel_header` is
- * worn by every panel on eight tabs; retuning it here would have moved
- * the Occurrences rail, the co-occurrence fold and the history table
- * to shorten a tab none of them is on.
- *
- * The tab is four panels of prose and a table, and prose panels are
- * where the page's chrome costs most per fact: measured on `8.8.8.8`
- * before this pass, the four headers were 296px, a disabled composer
- * 231px and eight report rows 89px each — 2,466px of pane to render
- * seven notes, eight reports and three comments. The comment table
- * added in the same phase renders a fact in a 30px row, which is the
- * number the rest of the tab is tuned against.
- *
- * Nothing here removes a word. Every caveat, footnote and ACL band the
- * tab carried is still on it — they are what the panels are for. What
- * shrinks is padding, the line gaps between blocks that were already
- * separated by weight and colour, and one control that does nothing.
- * ================================================================== */
-
-/*
- * The header, at 52px rather than 74px. The glyph tile set that floor:
- * at 36px it was taller than the two lines beside it, so the padding
- * was sized to a square rather than to the text.
- */
-.vp-dense > .border-bottom {
-    padding-top: 9px;
-    padding-bottom: 9px;
-}
-
-.vp-dense .vp-panel-glyph {
-    width: 28px;
-    height: 28px;
-    border-radius: 5px;
-    font-size: 0.86rem;
-}
-
-.vp-dense .vp-panel-glyph > .misp-icon {
-    width: 15px;
-    height: 15px;
-}
-
-/* `mt-1` is a utility on the shared element, so this has to outrank it
-   rather than replace it. */
-.vp-dense .vp-panel-glyph ~ .vp-min-w-0 > .small {
-    margin-top: 1px !important;
-}
-
-/* The body, and the footnote bands under it. */
-.vp-dense > .p-3 {
-    padding: 10px 12px !important;
-}
-
-.vp-dense > .vp-acl-note {
-    padding: 7px 12px;
-}
-
-.vp-dense .vp-aside-note {
-    margin-top: 7px;
-    padding-top: 7px;
-}
-
-/*
- * "Nothing here" on one line rather than in a column. The stacked
- * version is right on a tab whose panels are mostly full and one is
- * empty; on this tab a value with no analyst data at all met four of
- * them in a row, 150px each, to be told four times that nobody has
- * written anything.
- */
-.vp-dense .vp-empty {
-    flex-direction: row;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px 16px;
-}
-
-.vp-dense .vp-empty > i,
-.vp-dense .vp-empty > .misp-icon {
-    font-size: 1rem;
-}
-
-/* The gap between panels, which is four of them on this tab. */
-.vp-dense.mb-3 {
-    margin-bottom: 0.6rem !important;
-}
-
-/*
- * A `<p>` inside a card picks up the browser's 1rem bottom margin,
- * which on the standing panel was 16px of nothing between the caveat
- * band and the card's own edge.
- */
-.vp-dense > .vp-acl-note {
-    margin-bottom: 0;
-}
-
-.vp-dense > .p-3.border-top {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-}
 
 /* ==================================================================
  * The Overview's enrichment panel

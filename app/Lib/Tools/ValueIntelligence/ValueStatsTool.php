@@ -1815,7 +1815,7 @@ class ValueStatsTool
                 $segments[] = array(
                     'label' => $group['kind'],
                     'points' => $earned,
-                    'colour' => self::compositionColour($group['kind']),
+                    'colour' => self::familyColour($group['kind']),
                 );
             }
         }
@@ -1837,7 +1837,7 @@ class ValueStatsTool
      * @param string $kind
      * @return string A CSS variable reference, never a raw hex
      */
-    private static function compositionColour($kind)
+    public static function familyColour($kind)
     {
         switch ($kind) {
             case 'Reporting':

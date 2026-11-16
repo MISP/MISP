@@ -16984,6 +16984,9 @@ class ValueIntelligence extends AppModel
             'warninglist' => $this->verdictWarninglistBand($context),
             'composition_note' => $this->verdictCompositionNote($verdict,
                 $profile),
+            'profile_scope' => empty($profile)
+                ? null
+                : ClassRegistry::init('AnalystProfile')->scopeOf($profile),
         );
         return array_merge($panels, $this->verdictCurves($verdict));
     }

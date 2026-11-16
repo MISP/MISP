@@ -12,13 +12,25 @@
  */
 ?>
 <?php foreach ($changers as $changer): ?>
+    <?php
+    // The condition in bold, then what it would do.
+    $text = (string)$changer['text'];
+    $lead = null;
+    foreach (array(' — ', ': ') as $cut) {
+        $at = mb_strpos($text, $cut);
+        if ($at !== false && $at > 0) {
+            $lead = array(mb_substr($text, 0, $at), mb_substr($text, $at));
+            break;
+        }
+    }
+    ?>
     <div class="vp-changer">
         <span class="vp-changer-arrow vp-changer-arrow-<?=
-            h($changer['direction']) ?>">
+            h($changer['direction']) ?>" aria-hidden="true">
             <?= $changer['direction'] === 'up'
                 ? '&#9650;'
                 : '&#9660;' ?>
         </span>
-        <span><?= h($changer['text']) ?></span>
+        <span><?php if ($lead === null): ?><?= h($text) ?><?php else: ?><strong><?= h($lead[0]) ?></strong><?= h($lead[1]) ?><?php endif; ?></span>
     </div>
 <?php endforeach; ?>

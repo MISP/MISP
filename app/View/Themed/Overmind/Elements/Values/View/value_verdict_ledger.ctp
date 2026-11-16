@@ -1,236 +1,112 @@
 <?php
 /**
- * The signal ledger: every row that produced the score, and every row
- * that refused to.
- *
- * A real table rather than a stack of rows, so Signal, Evidence,
- * Contribution and As of line up down the page and a reader can scan
- * one column at a time. A signal links to the tab holding its evidence.
- *
- * Grouped by kind rather than sorted by weight: an analyst checking
- * whether the sightings were counted twice wants them next to each
- * other, not scattered through a ranking.
- *
- * **Every row here weighs the record**, since
- * `review-2026-09-13.md` §D1: ▲ is a row where the record carries
- * something — corroboration, publication, attribution, a datable
- * observation — and ▼ one where it does not. The direction no longer
- * depends on the lean, which is the point: *four organisations
- * reported it* is the same fact about the record whether the record
- * concluded threat or benign, and anchoring it used to render that
- * fact as `−28` **against** a benign reading.
- *
- * The rows that do read the value — the warninglist's hits and
- * false-positive sightings — are not in this table. They are in the
- * lean band above, which is the surface that explains the reading, and
- * keeping them out is what lets this table sum to the signal strength exactly.
- *
- * Contradictions are a group inside this table rather than a card of
- * their own: they are ledger rows whose contribution is `unresolved`,
- * and lifting them out would imply they had been netted off somewhere.
+ * The Assessment tab's signal strength card: how the score was built. One
+ * block per family (reporting, sightings, attribution, lifecycle) headed by
+ * what it asks and its net points, then each signal on a line with its
+ * points and evidence; the date it holds as of is on hover. The signals sum
+ * to the signal strength: what the record is worth, whatever it says about
+ * the value.
  *
  * @var array $verdict
  */
 App::uses('ValueBandReasonTool', 'Tools/ValueIntelligence');
+App::uses('ValueStatsTool', 'Tools/ValueIntelligence');
 
 $ledger = $verdict['ledger'] ?? array();
-$conflicts = $verdict['conflicts'] ?? array();
+$strength = $verdict['signal_strength'] ?? null;
+$band = $verdict['band'] ?? 'none';
 
-/*
- * Contribution is drawn as a bar against the heaviest signal as well as
- * printed: the ledger is read for shape — which signals carry the
- * verdict — and a column of signed integers alone hides that behind
- * arithmetic.
- */
-$heaviest = 1;
+$count = 0;
 foreach ($ledger as $group) {
-    foreach ($group['signals'] as $signal) {
-        $heaviest = max($heaviest, abs((int)$signal['contribution']));
+    $count += count($group['signals']);
+}
+$signed = function ($points) {
+    $points = (int)$points;
+    return $points > 0 ? '+' . $points : ($points < 0 ? "\u{2212}" . abs($points) : "\u{00B1}0");
+};
+$tone = function ($points) {
+    return (int)$points > 0 ? 'up' : ((int)$points < 0 ? 'down' : 'zero');
+};
+
+$figure = null;
+if ($strength !== null && $band !== 'none') {
+    $figure = '<span class="vp-card-figure">'
+        . h(((int)$strength < 0 ? "\u{2212}" . abs((int)$strength) : (int)$strength) . ' / 100') . '</span>';
+}
+$weights = array(
+    'user' => __('weights from your profile'),
+    'org' => __('weights from your organisation\'s profile'),
+    'shared' => __('weights from a shared profile'),
+);
+$sub = array();
+if (!empty($ledger)) {
+    $sub[] = sprintf(
+        __('%1$s in %2$s'),
+        __n('%s signal', '%s signals', $count, $count),
+        __n('%s family', '%s families', count($ledger), count($ledger))
+    );
+    if (array_key_exists('profile_scope', $verdict)) {
+        $sub[] = $weights[$verdict['profile_scope']] ?? __('weights from the instance default');
     }
 }
 ?>
-<div class="vp-ledger-head"
-     title="<?= h(__('What the record is worth, whatever it says about'
-         . ' the value. These rows sum to the signal strength.')) ?>">
-    <i class="fas fa-list-check vp-ledger-head-mark"></i>
-    <?= h(__('Signal strength')) ?>
-    <span class="vp-vc-axis-head-sub">
-        <?= h(__('how the score was built')) ?>
-    </span>
-    <?php if (isset($verdict['signal_strength'])): ?>
-        <span class="vp-vc-axis-head-total">
-            <?= h((int)$verdict['signal_strength']) ?> / 100
-        </span>
+<div class="card shadow-sm mb-3 vp-panel vp-vl" style="--vp-panel-color: var(--primary);">
+    <?= $this->element('Values/View/value_panel_header', array(
+        'panelTitle' => $strength === null || $band === 'none'
+            ? __('How the signal strength was built')
+            : sprintf(__('How %s was built'), (int)$strength),
+        'panelIcon' => 'fas fa-list-check',
+        'panelColor' => 'var(--primary)',
+        'panelSub' => empty($sub) ? null : '<span title="' . h((string)($verdict['composition_note'] ?? '')) . '">'
+            . h(implode(' · ', $sub)) . '</span>',
+        'panelExtra' => $figure,
+    )) ?>
+
+    <?php if (empty($ledger)): ?>
+        <div class="p-3">
+            <div class="vp-empty">
+                <i class="fas fa-list-check" aria-hidden="true"></i>
+                <span><?= __('No signal contributed to this assessment.') ?></span>
+            </div>
+        </div>
+    <?php else: ?>
+        <?php foreach ($ledger as $group): ?>
+            <?php
+            $net = 0;
+            foreach ($group['signals'] as $signal) {
+                $net += (int)$signal['contribution'];
+            }
+            ?>
+            <div class="vp-vl-fam" style="--vp-fam: <?= h(ValueStatsTool::familyColour($group['kind'])) ?>;">
+                <div class="vp-vl-fam-h">
+                    <span class="vp-vl-fam-dot" aria-hidden="true"></span>
+                    <span class="vp-vl-fam-n"><?= h($group['kind']) ?></span>
+                    <?php if (!empty($group['note'])): ?>
+                        <span class="vp-vl-fam-q"><?= h($group['note']) ?></span>
+                    <?php endif; ?>
+                    <span class="vp-vl-fam-t"><?= h($signed($net)) ?></span>
+                </div>
+                <?php foreach ($group['signals'] as $signal): ?>
+                    <div class="vp-vl-sig"<?= empty($signal['as_of']) ? '' : ' title="' . h(sprintf(__('As of %s'), $signal['as_of'])) . '"' ?>>
+                        <span class="vp-pts is-<?= h($tone($signal['contribution'])) ?>"><?= h($signed($signal['contribution'])) ?></span>
+                        <span class="vp-vl-sig-body">
+                            <?php if (empty($signal['tab'])): ?>
+                                <span class="vp-vl-sig-t"><?= h($signal['signal']) ?></span>
+                            <?php else: ?>
+                                <a class="vp-vl-sig-t" href="#tab-<?= h($signal['tab']) ?>"
+                                   title="<?= h(__('Open the tab holding this evidence')) ?>"><?= h($signal['signal']) ?></a>
+                            <?php endif; ?>
+                            <span class="vp-vl-sig-e"><?= h($signal['evidence']) ?></span>
+                        </span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
+        <?php $bandReason = ValueBandReasonTool::reasonFor($verdict); ?>
+        <?php if ($bandReason !== null): ?>
+            <div class="vp-vl-foot">
+                <span><i class="fas fa-ruler-horizontal" aria-hidden="true"></i><?= h($bandReason) ?></span>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
-<?php if (empty($ledger) && empty($conflicts)): ?>
-    <div class="vp-empty">
-        <i class="fas fa-list-check"></i>
-        <span><?= __('No signal contributed to this assessment.') ?></span>
-    </div>
-<?php else: ?>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0 vp-ledger-table">
-            <thead>
-                <tr>
-                    <th class="vp-ledger-dir"></th>
-                    <th><?= __('Signal') ?></th>
-                    <th><?= __('Evidence') ?></th>
-                    <th class="vp-ledger-contrib-col"
-                        title="<?= h(__(
-                            'Points toward the signal strength. A row'
-                            . ' adds where the record has something and'
-                            . ' deducts where it lacks it, whichever'
-                            . ' way the value leans.'
-                        )) ?>">
-                        <?= __('Contribution') ?>
-                    </th>
-                    <th class="vp-ledger-asof-col">
-                        <?= __('As of') ?>
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-
-                <?php foreach ($ledger as $group): ?>
-                    <tr class="vp-ledger-group">
-                        <td colspan="5">
-                            <?= h($group['kind']) ?>
-                            <?php if (!empty($group['note'])): ?>
-                                <span class="vp-ledger-group-note">
-                                    <?= h($group['note']) ?>
-                                </span>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <?php foreach ($group['signals'] as $signal):
-                        $up = $signal['direction'] === 'up';
-                        $points = abs((int)$signal['contribution']);
-                        ?>
-                        <tr class="vp-ledger-line<?= $up
-                            ? ' vp-ledger-line-up'
-                            : ' vp-ledger-line-down' ?>">
-                            <td class="vp-ledger-dir">
-                                <?= $up ? '&#9650;' : '&#9660;' ?>
-                            </td>
-                            <td class="vp-ledger-signal-cell">
-                                <?php if (empty($signal['tab'])): ?>
-                                    <?= h($signal['signal']) ?>
-                                <?php else: ?>
-                                    <a class="vp-ledger-signal-link"
-                                       href="#tab-<?= h($signal['tab']) ?>"
-                                       title="<?= h(__(
-                                           'Open the tab holding this'
-                                           . ' evidence'
-                                       )) ?>">
-                                        <?= h($signal['signal']) ?>
-                                    </a>
-                                <?php endif; ?>
-                            </td>
-                            <td class="vp-ledger-evidence">
-                                <?= h($signal['evidence']) ?>
-                            </td>
-                            <td>
-                                <div class="vp-ledger-contrib-cell"
-                                     title="<?= h(sprintf(
-                                         __('%s points'),
-                                         $signal['contribution']
-                                     )) ?>">
-                                    <span class="vp-vc-bar">
-                                        <span class="vp-vc-bar-fill"
-                                              style="width: <?= round(
-                                                  $points / $heaviest
-                                                  * 100,
-                                                  2
-                                              ) ?>%;"></span>
-                                    </span>
-                                    <span class="vp-ledger-points">
-                                        <?= h(
-                                            ($signal['contribution'] > 0
-                                                ? '+'
-                                                : '')
-                                            . $signal['contribution']
-                                        ) ?>
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="vp-ledger-asof">
-                                <?= h($signal['as_of']) ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endforeach; ?>
-
-                <?php
-                /*
-                 * Contradictions, in the same table and marked
-                 * `unresolved`. Not netted off, and not moved
-                 * somewhere that would imply they had been.
-                 */
-                ?>
-                <?php if (!empty($conflicts)): ?>
-                    <tr class="vp-ledger-group vp-ledger-group-conflict">
-                        <td colspan="5">
-                            <?= __('Contradictions') ?>
-                            <span class="vp-ledger-group-note">
-                                <?= __(
-                                    'where the record disagrees with'
-                                    . ' itself; no points'
-                                ) ?>
-                            </span>
-                        </td>
-                    </tr>
-                    <?php foreach ($conflicts as $conflict): ?>
-                        <tr class="vp-ledger-conflict">
-                            <td class="vp-ledger-dir">
-                                <span class="vp-ledger-mark">
-                                    &#9670;
-                                </span>
-                            </td>
-                            <td class="vp-ledger-signal-cell">
-                                <?= h($conflict['title']) ?>
-                            </td>
-                            <td class="vp-ledger-evidence">
-                                <?= h($conflict['evidence']
-                                    ?? $conflict['note']) ?>
-                            </td>
-                            <td>
-                                <span class="vp-ledger-unresolved">
-                                    <?= __('no points') ?>
-                                </span>
-                            </td>
-                            <td class="vp-ledger-asof">
-                                <?= h(__('now')) ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-
-            </tbody>
-        </table>
-    </div>
-
-    <?php
-    /*
-     * The band, under the arithmetic that produced it.
-     *
-     * A foot rather than a band of its own, which is the difference
-     * between this axis and the other two: relevance and lean needed
-     * somewhere to show their working and got `vp-vc-clock` and
-     * `vp-vc-lean`, while signal strength's working is the table directly
-     * above. What it never said is where the boundary is — `low`
-     * against a `medium` floor of 30 — or, twice over, that the points
-     * are not what decided the band at all. That sentence belongs
-     * against the rows it is about, not in a fifth band.
-     *
-     * `10-wiring.md` §19.
-     */
-    ?>
-    <?php $bandReason = ValueBandReasonTool::reasonFor($verdict); ?>
-    <?php if ($bandReason !== null): ?>
-        <div class="vp-ledger-foot">
-            <i class="fas fa-ruler-horizontal"></i>
-            <span><?= h($bandReason) ?></span>
-        </div>
-    <?php endif; ?>
-<?php endif; ?>
