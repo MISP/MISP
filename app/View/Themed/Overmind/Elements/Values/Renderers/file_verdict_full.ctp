@@ -34,7 +34,8 @@
                     <span class="vp-rf-dim"><?=
                         h($report['verdict']) ?></span>
                 <?php endif; ?>
-                <?php if ($report['permalink'] !== null): ?>
+                <?php if ($report['permalink'] !== null
+                    && preg_match('/^https?:\/\//i', $report['permalink'])): ?>
                     <a class="vp-rf-link"
                        href="<?= h($report['permalink']) ?>"
                        rel="noreferrer noopener"

@@ -53,7 +53,8 @@ $readingLabel = function ($reading) {
                     ) ?></span>
                 <span class="vp-rf-dim font-monospace"><?=
                     h((string)$verdict['template']) ?></span>
-                <?php if ($verdict['link'] !== null): ?>
+                <?php if ($verdict['link'] !== null
+                    && preg_match('/^https?:\/\//i', $verdict['link'])): ?>
                     <a class="vp-rf-link"
                        href="<?= h($verdict['link']) ?>"
                        rel="noreferrer noopener"
