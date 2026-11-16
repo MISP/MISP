@@ -207,7 +207,7 @@ $config = array(
         'realm' => 'lino', // the (default) realm of all the users logging in through this system
         'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
         'userModelKey' => 'email', // User field that will be used for querying.
-        'verifyssl' => true, // Verify TLS Certificate or not
+        'verifyssl' => true, // Verify TLS Certificate or not (default: true when omitted)
         'mixedauth' => false, // false=>Query only LinOTP or true=>OTP from LinOTP, Password from MISP
     ),
     */
