@@ -449,7 +449,7 @@ class UsersController extends AppController
         if ($this->_isSiteAdmin()) {
             $textFields[] = 'org';
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         if (!empty($this->passedArgs['value'])) {
             $this->passedArgs['searchall'] = $this->passedArgs['value'];
@@ -3111,7 +3111,7 @@ class UsersController extends AppController
                 $params['conditions']['AND']['OR'][] = array('LOWER(Inbox.' . $field . ') LIKE' => '%' . $lookup . '%');
             }
         }
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         if ($this->_isRest()) {
             $data = $this->Inbox->find('all', array(
                 'recursive' => -1,

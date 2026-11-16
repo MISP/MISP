@@ -75,7 +75,7 @@ class OrganisationsController extends AppController
         $this->set('named', $this->params['named']);
         $this->set('scope', $scope);
         $this->set('orgs', $this->viewVars['data']);
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('viewall', isset($this->params['named']['viewall']) && $this->params['named']['viewall']);
     }
 

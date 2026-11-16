@@ -192,7 +192,7 @@ class ServersController extends AppController
         $this->set('shortDist', $shortDist);
         $this->set('id', $id);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
         $this->set('server', $server);
     }

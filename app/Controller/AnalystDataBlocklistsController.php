@@ -32,7 +32,7 @@ class AnalystDataBlocklistsController extends AppController
                 'analyst_data_orgc' => $this->params['named']['searchall']
             );
         }
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
         return $this->BlockList->index($this->_isRest(), $params);
     }

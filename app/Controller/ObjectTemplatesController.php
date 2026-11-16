@@ -194,7 +194,7 @@ class ObjectTemplatesController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('list', $this->viewVars['data']);
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('passedArgsArray', []);
     }
 
