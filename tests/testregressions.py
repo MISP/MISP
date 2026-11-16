@@ -4483,5 +4483,103 @@ class GalaxyClusterPublishScope(unittest.TestCase):
         self.assertTrue(self._published(self.cluster_id), 'the owner could not publish again')
 
 
+
+class SharingGroupBlueprintExecuteScope(unittest.TestCase):
+    """Executing a blueprint rewrites its sharing group's roster only while the blueprint's
+    organisation may still extend that group.
+
+    The right was checked once, when the blueprint was added. Afterwards an organisation that
+    had lost `extend` or its membership could still run the blueprint and rewrite the roster.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        role = least_privileged_role(cls.admin, 'perm_sharing_group')
+        cls.orgs = {n: make_org(cls.admin, 'regression sgbp %s org' % n) for n in 'VAB'}
+        cls.users = {n: make_user(cls.admin, cls.orgs[n].id, role) for n in 'VA'}
+        cls.api = {}
+        for n in 'VA':
+            cls.api[n] = PyMISP(url, cls.users[n].authkey)
+            cls.api[n].global_pythonify = False
+        cls.sharing_groups = []
+        cls.blueprints = []
+
+    @classmethod
+    def tearDownClass(cls):
+        for bp in cls.blueprints:
+            send(cls.admin, 'POST', 'sharingGroupBlueprints/delete/%s' % bp, check_errors=False)
+        for sg in cls.sharing_groups:
+            send(cls.admin, 'POST', 'sharingGroups/delete/%s' % sg, check_errors=False)
+        for u in cls.users.values():
+            cls.admin.delete_user(u)
+        for o in cls.orgs.values():
+            send(cls.admin, 'POST', 'admin/organisations/delete/%s' % o.id, check_errors=False)
+
+    def _group(self):
+        o = self.orgs
+        made = send(self.api['V'], 'POST', 'sharingGroups/add', data={
+            'uuid': str(uuidlib.uuid4()), 'name': 'regression sgbp %s' % random(),
+            'releasability': 'x', 'roaming': False,
+            'SharingGroupOrg': [
+                {'Organisation': {'uuid': o['V'].uuid, 'name': o['V'].name}, 'extend': True},
+                {'Organisation': {'uuid': o['A'].uuid, 'name': o['A'].name}, 'extend': True},
+                {'Organisation': {'uuid': o['B'].uuid, 'name': o['B'].name}, 'extend': False}]})
+        sg = int(made['SharingGroup']['id'])
+        self.sharing_groups.append(sg)
+        bp = send(self.api['A'], 'POST', 'sharingGroupBlueprints/add', data={
+            'name': 'regression sgbp %s' % random(), 'sharing_group_id': sg,
+            'rules': json.dumps({'org_uuid': o['A'].uuid})})
+        bp = int(bp['SharingGroupBlueprint']['id'])
+        self.blueprints.append(bp)
+        return sg, bp
+
+    def _roster(self, sg):
+        view = send(self.admin, 'GET', 'sharingGroups/view/%s' % sg)
+        return sorted(int(e['org_id']) for e in view['SharingGroupOrg'])
+
+    def _execute(self, bp):
+        r = self.api['A']._prepare_request('POST', 'sharingGroupBlueprints/execute/%s' % bp)
+        return r.text
+
+    def _ids(self, *names):
+        return sorted(int(self.orgs[n].id) for n in names)
+
+    def test_extend_withdrawn(self):
+        sg, bp = self._group()
+        self.assertEqual(self._ids('V', 'A', 'B'), self._roster(sg))
+        send(self.api['V'], 'POST', 'sharingGroups/removeOrg/%s/%s' % (sg, self.orgs['A'].id))
+        send(self.api['V'], 'POST', 'sharingGroups/addOrg/%s/%s' % (sg, self.orgs['A'].id),
+             data={'extend': 0})
+        before = self._roster(sg)
+        self.assertEqual(self._ids('V', 'A', 'B'), before)
+        self._execute(bp)
+        self.assertEqual(before, self._roster(sg), 'a blueprint without extend rewrote the roster')
+
+    def test_membership_removed(self):
+        sg, bp = self._group()
+        send(self.api['V'], 'POST', 'sharingGroups/removeOrg/%s/%s' % (sg, self.orgs['A'].id))
+        before = self._roster(sg)
+        self.assertEqual(self._ids('V', 'B'), before)
+        self._execute(bp)
+        self.assertEqual(before, self._roster(sg), 'a removed member rewrote the roster')
+
+    def test_control_extend_kept_follows_rules(self):
+        sg, bp = self._group()
+        body = self._execute(bp)
+        self.assertEqual(self._ids('A'), self._roster(sg), body)
+
+    def test_control_deleted_group_counts_as_failed(self):
+        sg, bp = self._group()
+        send(self.api['V'], 'POST', 'sharingGroups/delete/%s' % sg)
+        self.sharing_groups.remove(sg)
+        body = self._execute(bp)
+        self.assertIn('Failed to create: 1', body)
+        for marker in ('Notice', 'Warning', 'Undefined', 'Trying to access'):
+            self.assertNotIn(marker, body)
+
+
 if __name__ == '__main__':
     unittest.main()
