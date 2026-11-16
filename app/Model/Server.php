@@ -7761,7 +7761,7 @@ class Server extends AppModel
                 ),
                 'allow_password_forgotten' => array(
                     'level' => 1,
-                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Users with no encryption keys will not be able to use this feature.'),
+                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Requires MISP.baseurl or MISP.external_baseurl to be set. Users without an encryption key receive the reset link unencrypted, unless GnuPG.bodyonlyencrypted is enabled, in which case they cannot use this feature.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',

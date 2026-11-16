@@ -2269,9 +2269,16 @@ class User extends AppModel
         if (empty($user)) {
             return false;
         }
+        $baseurl = Configure::read('MISP.external_baseurl');
+        if (empty($baseurl) && !Configure::read('BaseurlFromRequest')) {
+            $baseurl = Configure::read('MISP.baseurl');
+        }
+        if (empty($baseurl)) {
+            $this->log('Password reset needs MISP.baseurl or MISP.external_baseurl to be set, no reset mail was sent.', LOG_ERR);
+            return false;
+        }
         $token = RandomTool::random_str(true, 40);
         RedisTool::init()->set('misp:forgot:' . $token, $user['User']['id'], ['nx', 'ex' => 600]);
-        $baseurl = Configure::check('MISP.external_baseurl') ? Configure::read('MISP.external_baseurl') : Configure::read('MISP.baseurl');
         $default_forgot_email = [];
         $default_forgot_email['enc'] = Configure::read('MISP.forgotPasswordText') ? 
             Configure::read('MISP.forgotPasswordText') :
