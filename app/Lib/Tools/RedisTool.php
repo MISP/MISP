@@ -32,7 +32,11 @@ class RedisTool
         } else {
             $port = Configure::read('MISP.redis_port') ?: 6379;
         }
-        $database = Configure::read('MISP.redis_database') ?: 13;
+        // Use null coalescing (not ?:) so an explicitly configured database 0 is
+        // honoured. With ?: a value of 0 is falsy and silently fell back to 13,
+        // which breaks single-logical-database backends (e.g. Azure Managed Redis,
+        // which only exposes DB 0). Only an unset/null value should fall back.
+        $database = Configure::read('MISP.redis_database') ?? 13;
         $pass = Configure::read('MISP.redis_password');
 
         $redis = new Redis();
