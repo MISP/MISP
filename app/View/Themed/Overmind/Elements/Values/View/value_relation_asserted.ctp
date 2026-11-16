@@ -32,7 +32,7 @@ $selfWords = array(
     'object' => __('its object'),
 );
 // What the shared thread names a resolved end by.
-$labelFields = array(
+$labelKeys = array(
     'Event' => 'info',
     'Attribute' => 'value',
     'Object' => 'name',
@@ -49,7 +49,7 @@ foreach ($claims as $claim) {
     if (!empty($target['resolved'])) {
         $record = array(
             'id' => $target['id'] ?? null,
-            $labelFields[$target['kind']] ?? 'name' => $target['label'],
+            $labelKeys[$target['kind']] ?? 'name' => $target['label'],
         );
         if ($target['kind'] === 'AttributeValue') {
             $record['_url'] = $baseurl . '/values/view/' . ValueUrlTool::address($target['label']);
