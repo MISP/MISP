@@ -7603,6 +7603,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'max_decompressed_size' => array(
+                    'level' => 1,
+                    'description' => __('Maximum size, in bytes, of a compressed request body once decompressed; a larger body is refused with 413. Leave empty or 0 to use the PHP memory limit in force for the user\'s role (no limit when that is -1). Large compressed sync pushes need this at least as large as the biggest event\'s JSON.'),
+                    'value' => 0,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
                 'syslog' => array(
                     'level' => 0,
                     'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
