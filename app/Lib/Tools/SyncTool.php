@@ -40,12 +40,26 @@ class SyncTool
             }
         }
 
-        return $this->createHttpSocket($params);
+        return $this->withoutCurlRedirects($this->createHttpSocket($params));
     }
 
     public function setupHttpSocketFeed()
     {
-        return $this->createHttpSocket(['compress' => true]);
+        return $this->withoutCurlRedirects($this->createHttpSocket(['compress' => true]));
+    }
+
+    /**
+     * libcurl would follow redirects unseen. Sync stays on the configured URL
+     * and feeds vet every hop themselves, so neither lets curl do it.
+     * @param HttpSocketExtended $HttpSocket
+     * @return HttpSocketExtended
+     */
+    private function withoutCurlRedirects($HttpSocket)
+    {
+        if ($HttpSocket instanceof CurlClient) {
+            $HttpSocket->setFollowRedirects(false);
+        }
+        return $HttpSocket;
     }
 
     /**
