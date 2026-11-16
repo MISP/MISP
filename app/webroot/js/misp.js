@@ -5084,8 +5084,10 @@ function insertRawRestResponse() {
 }
 
 function insertHTMLRestResponse() {
-    $('#rest-response-container').append('<div id="html-response-container" style="border: 1px solid blue; padding:5px;" />');
-    $('#html-response-container').html($('#rest-response-hidden-container').text());
+    // The response can be any server's: the empty sandbox keeps its scripts off this page
+    var $frame = $('<iframe id="html-response-container" sandbox="" style="border: 1px solid blue; padding:5px; width:100%; height:60vh; resize:vertical;" />');
+    $frame.attr('srcdoc', $('#rest-response-hidden-container').text());
+    $('#rest-response-container').append($frame);
 }
 
 function insertJSONRestResponse() {
