@@ -202,7 +202,6 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
         $this->Job->id = $id;
         $export_type = $this->args[2];
-        file_put_contents('/tmp/test', $export_type);
         $exportTypes = $this->Event->exportTypes();
         $typeData = $exportTypes[$export_type];
         if (!in_array($export_type, array_keys($exportTypes))) {
