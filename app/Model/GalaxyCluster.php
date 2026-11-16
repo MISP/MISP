@@ -1662,7 +1662,7 @@ class GalaxyCluster extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($cluster[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                if ($cluster[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation with publishing capabilities can publish the galaxy cluster');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);

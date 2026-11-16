@@ -676,7 +676,7 @@ class Galaxy extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation with publishing capabilities can publish the galaxy');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);

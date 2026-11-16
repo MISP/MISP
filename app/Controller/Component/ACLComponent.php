@@ -536,7 +536,7 @@ class ACLComponent extends Component
             'restore' => array('perm_galaxy_editor'),
             'restSearch' => array('*'),
             'search' => array('*'),
-            'unpublish' => array('perm_galaxy_editor'),
+            'unpublish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
             'updateCluster' => array('perm_galaxy_editor'),
             'view' => array('*'),
             'viewCyCatRelations' => array('*'),

@@ -4358,5 +4358,130 @@ class RestrictedTagAttachById(unittest.TestCase):
         self.assertIn(self.restricted, self._event_tags(self.v_event))
 
 
+
+class GalaxyClusterPublishScope(unittest.TestCase):
+    """Only the creator organisation may publish or unpublish a galaxy cluster.
+
+    fetchIfAuthorized() refused a cross-org publish only for users holding perm_publish, and
+    galaxyClusters/unpublish required just perm_galaxy_editor, so a galaxy editor without
+    perm_publish could unpublish another organisation's cluster.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.cluster_ids = []
+        cls.cluster_uuids = []
+        cls.galaxy_id = None
+        try:
+            publisher_role = least_privileged_role(cls.admin, 'perm_galaxy_editor', 'perm_publish')
+            plain_role = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if (int(role['perm_galaxy_editor']) and not int(role['perm_publish'])
+                        and not int(role['perm_site_admin']) and not int(role['perm_sync'])):
+                    plain_role = int(role['id'])
+                    break
+            if plain_role is None:
+                raise unittest.SkipTest('no role with perm_galaxy_editor and without perm_publish')
+            cls.org_o = make_org(cls.admin, 'regression publish owner org')
+            cls.org_x = make_org(cls.admin, 'regression publish other org')
+            cls.created_orgs = [cls.org_o, cls.org_x]
+            users = [make_user(cls.admin, cls.org_o.id, publisher_role),
+                     make_user(cls.admin, cls.org_o.id, plain_role),
+                     make_user(cls.admin, cls.org_x.id, plain_role),
+                     make_user(cls.admin, cls.org_x.id, publisher_role)]
+            cls.created_users = users
+            (cls.o_publisher, cls.o_plain, cls.x_plain, cls.x_publisher) = [
+                PyMISP(url, u.authkey) for u in users]
+            cls.token = random()
+            cls.galaxy_type = 'regression-publish-%s' % cls.token
+            cls.galaxy = {'uuid': str(uuidlib.uuid4()), 'type': cls.galaxy_type,
+                          'name': 'regression publish %s' % cls.token, 'description': 'regression',
+                          'version': 1, 'namespace': 'regression'}
+            cls._new_published_cluster(with_galaxy=True)
+            cls.galaxy_id = int(cls._stored(cls.cluster_uuids[0])['galaxy_id'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _stored(cls, cluster_ref):
+        response = cls.admin._prepare_request('GET', 'galaxy_clusters/view/%s' % cluster_ref)
+        if response.status_code != 200:
+            return None
+        return response.json()['GalaxyCluster']
+
+    @classmethod
+    def _new_published_cluster(cls, with_galaxy=False):
+        cluster_uuid = str(uuidlib.uuid4())
+        cls.cluster_uuids.append(cluster_uuid)
+        body = {'GalaxyCluster': {'uuid': cluster_uuid, 'type': cls.galaxy_type,
+                                  'value': 'publish scope %s' % random(), 'description': 'regression',
+                                  'version': 1, 'distribution': 3}}
+        if with_galaxy:
+            body['GalaxyCluster']['Galaxy'] = cls.galaxy
+        response = cls.o_publisher._prepare_request('POST', 'galaxies/import', data=[body])
+        assert response.status_code == 200, 'seeding a cluster failed: %s' % response.text[:300]
+        cluster_id = int(cls._stored(cluster_uuid)['id'])
+        cls.cluster_ids.append(cluster_id)
+        response = cls.o_publisher._prepare_request('POST', 'galaxy_clusters/publish/%d' % cluster_id)
+        assert response.status_code == 200, 'publishing the seed failed: %s' % response.text[:300]
+        assert cls._published(cluster_id), 'the seed cluster is not published'
+        return cluster_id
+
+    def setUp(self):
+        self.cluster_id = self._new_published_cluster()
+
+    @classmethod
+    def _published(cls, cluster_id):
+        return bool(int(cls._stored(cluster_id)['published']))
+
+    @classmethod
+    def tearDownClass(cls):
+        for cluster_id in cls.cluster_ids:
+            cls.admin._prepare_request('POST', 'galaxy_clusters/delete/%d/1' % cluster_id,
+                                       data={'hard': 1})
+        for cluster_uuid in cls.cluster_uuids:
+            cls.admin._prepare_request('POST', 'galaxy_cluster_blocklists/delete/%s' % cluster_uuid)
+        if cls.galaxy_id is not None:
+            cls.admin._prepare_request('POST', 'galaxies/delete/%d' % cls.galaxy_id)
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _unpublish(self, api):
+        return api._prepare_request('POST', 'galaxy_clusters/unpublish/%d' % self.cluster_id)
+
+    def test_other_org_editor_without_publish_cannot_unpublish(self):
+        response = self._unpublish(self.x_plain)
+        self.assertNotEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id),
+                        'another organisation unpublished the cluster')
+
+    def test_other_org_publisher_cannot_unpublish(self):
+        response = self._unpublish(self.x_publisher)
+        self.assertNotEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id),
+                        'another organisation unpublished the cluster')
+
+    def test_owner_without_publish_cannot_unpublish(self):
+        response = self._unpublish(self.o_plain)
+        self.assertNotEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id),
+                        'a user without perm_publish unpublished the cluster')
+
+    def test_owner_publisher_can_unpublish_and_publish_again(self):
+        response = self._unpublish(self.o_publisher)
+        self.assertEqual(200, response.status_code, response.text[:200])
+        self.assertFalse(self._published(self.cluster_id), 'the owner could not unpublish')
+        response = self.o_publisher._prepare_request(
+            'POST', 'galaxy_clusters/publish/%d' % self.cluster_id)
+        self.assertEqual(200, response.status_code, response.text[:200])
+        self.assertTrue(self._published(self.cluster_id), 'the owner could not publish again')
+
+
 if __name__ == '__main__':
     unittest.main()
