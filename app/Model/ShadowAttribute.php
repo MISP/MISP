@@ -702,38 +702,6 @@ class ShadowAttribute extends AppModel
     }
 
     /**
-     * The local event a proposal pulled from $server is for, if that server may hold it: we would push
-     * it there, it is shared with this community (which includes synchronising servers), or the
-     * server's organisation created it (a pull downgrades distribution, so the push check misses those).
-     *
-     * @param string $eventUuid
-     * @param array $server With RemoteOrg
-     * @param array $user
-     * @return array|false
-     */
-    private function __eventSyncedWithServer($eventUuid, array $server, array $user)
-    {
-        $event = $this->Event->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Event.uuid' => $eventUuid],
-            'fields' => ['Event.id', 'Event.uuid', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id'],
-        ]);
-        if (empty($event)) {
-            return false;
-        }
-        if ($event['Event']['orgc_id'] == $server['Server']['remote_org_id'] || $event['Event']['distribution'] == 1) {
-            return $event;
-        }
-        if ($event['Event']['distribution'] == 4) {
-            $event['SharingGroup'] = $this->Event->SharingGroup->fetchSG($event['Event']['sharing_group_id'], $user);
-            if (empty($event['SharingGroup'])) {
-                return false;
-            }
-        }
-        return $this->Event->checkDistributionForPush($event, $server) ? $event : false;
-    }
-
-    /**
      * @param array $user
      * @param ServerSyncTool $serverSync
      * @return int
@@ -785,7 +753,7 @@ class ShadowAttribute extends AppModel
                     continue;
                 }
                 if (!array_key_exists($eventUuid, $events)) {
-                    $events[$eventUuid] = $this->__eventSyncedWithServer($eventUuid, $server, $user);
+                    $events[$eventUuid] = $this->Event->syncedWithServer($eventUuid, $server, $user);
                 }
                 if ($events[$eventUuid] && $this->capture($proposal['ShadowAttribute'], $user, $events[$eventUuid])) {
                     $fetchedCount++;

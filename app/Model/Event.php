@@ -8169,6 +8169,38 @@ class Event extends AppModel
         return true;
     }
 
+    /**
+     * The local event that data pulled from $server is for, if that server may hold it: we would push
+     * it there, it is shared with this community (which includes synchronising servers), or the
+     * server's organisation created it (a pull downgrades distribution, so the push check misses those).
+     *
+     * @param string $eventUuid
+     * @param array $server With RemoteOrg
+     * @param array $user
+     * @return array|false
+     */
+    public function syncedWithServer($eventUuid, array $server, array $user)
+    {
+        $event = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.uuid' => $eventUuid],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id'],
+        ]);
+        if (empty($event)) {
+            return false;
+        }
+        if ($event['Event']['orgc_id'] == $server['Server']['remote_org_id'] || $event['Event']['distribution'] == 1) {
+            return $event;
+        }
+        if ($event['Event']['distribution'] == 4) {
+            $event['SharingGroup'] = $this->SharingGroup->fetchSG($event['Event']['sharing_group_id'], $user);
+            if (empty($event['SharingGroup'])) {
+                return false;
+            }
+        }
+        return $this->checkDistributionForPush($event, $server) ? $event : false;
+    }
+
     // pass an event or an attribute together with the server id.
     // If the distribution of the object outright allows for it to be shared, return true
     // If the distribution is org only / comm only, return false

@@ -4581,5 +4581,70 @@ class SharingGroupBlueprintExecuteScope(unittest.TestCase):
             self.assertNotIn(marker, body)
 
 
+
+class BulkSightingsEventScope(unittest.TestCase):
+    """bulkSaveSightings binds sightings only to the event the caller was authorised for."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.orgs, cls.users = [], []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_sighting', 'perm_add')
+            org = make_org(cls.admin, 'regression bulk sighting org')
+            cls.orgs.append(org)
+            user = make_user(cls.admin, org.id, role)
+            cls.users.append(user)
+            cls.api = PyMISP(url, user.authkey)
+            cls.api.global_pythonify = False
+            cls.events = []
+            for i in range(2):
+                e = MISPEvent()
+                e.info = 'regression bulk sighting %s' % random()
+                e.distribution = 0
+                e.add_attribute('ip-dst', '192.0.2.%d' % (int(random(), 16) % 250),
+                                category='Network activity', distribution=5)
+                cls.events.append(send(cls.api, 'POST', 'events/add', data=e.to_dict())['Event'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for e in getattr(cls, 'events', []):
+            send(cls.admin, 'POST', 'events/delete/%s' % e['id'], data={'hard': 1}, check_errors=False)
+            for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+                row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+                if row.get('event_uuid') == e['uuid']:
+                    send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for u in cls.users:
+            cls.admin.delete_user(u)
+        for o in cls.orgs:
+            cls.admin.delete_organisation(o)
+
+    def _stored(self, uuids):
+        rows = stored_rows('SELECT uuid, id, event_id FROM sightings WHERE uuid IN (%s)', uuids)
+        return {row[0]: {'id': int(row[1]), 'event_id': int(row[2])} for row in rows}
+
+    def _sighting(self, attribute_uuid):
+        return {'uuid': str(uuidlib.uuid4()), 'attribute_uuid': attribute_uuid, 'type': '0',
+                'date_sighting': str(int(time.time())), 'source': 'regression'}
+
+    def test_scope(self):
+        e1, e2 = self.events
+        foreign = self._sighting(e2['Attribute'][0]['uuid'])
+        own = self._sighting(e1['Attribute'][0]['uuid'])
+        r = send(self.api, 'POST', 'sightings/bulkSaveSightings/%s' % e1['id'], data=[foreign, own])
+        found = self._stored([foreign['uuid'], own['uuid']])
+        self.assertIn(own['uuid'], found, 'control: the sighting for the authorised event is stored')
+        self.assertEqual(int(e1['id']), found[own['uuid']]['event_id'])
+        self.assertNotIn(foreign['uuid'], found,
+                         'a sighting for another event attribute was stored: %s' % r)
+        for row in found.values():
+            send(self.admin, 'POST', 'sightings/delete/%d' % row['id'], check_errors=False)
+
+
 if __name__ == '__main__':
     unittest.main()
