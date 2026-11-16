@@ -70,30 +70,6 @@
     color: var(--bs-tertiary-color);
 }
 
-.oi-event {
-    max-width: 18rem;
-    display: flex;
-    align-items: baseline;
-    gap: .4rem;
-    min-width: 0;
-    text-decoration: none;
-}
-.oi-event-id {
-    flex-shrink: 0;
-    font-family: var(--bs-font-monospace);
-    font-size: .78rem;
-}
-.oi-event-info {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    color: var(--bs-body-color);
-}
-.oi-event:hover .oi-event-info {
-    text-decoration: underline;
-}
-
 .oi-seen,
 .oi-modified {
     font-size: .78rem;
@@ -450,9 +426,6 @@
     min-width: 0;
     min-height: 1.6rem;
     margin: 0;
-}
-.oi-tile-facts .oi-event {
-    max-width: 100%;
 }
 
 .oi-tile-foot {

@@ -59,13 +59,10 @@ $modified = $timestamp > 0
     <dl class="oi-tile-facts">
         <?php if (!empty($row['Event'])): ?>
             <dt><?= __('Event') ?></dt>
-            <dd>
-                <a class="oi-event" href="<?= h($baseurl . '/events/view/' . (int)$row['Event']['id']) ?>"
-                   title="<?= h($row['Event']['info']) ?>">
-                    <span class="oi-event-id">#<?= (int)$row['Event']['id'] ?></span>
-                    <span class="oi-event-info"><?= h($row['Event']['info']) ?></span>
-                </a>
-            </dd>
+            <dd><?= $this->element('Events/peek_link', [
+                'id' => $row['Event']['id'],
+                'info' => $row['Event']['info'] ?? null,
+            ]) ?></dd>
         <?php endif; ?>
         <?php if (Configure::read('MISP.showorg') && !empty($row['Orgc'])): ?>
             <dt><?= __('Creator org') ?></dt>

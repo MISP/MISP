@@ -119,12 +119,9 @@ if (!empty($show_event_id)) {
     $fields[] = [
         'name' => __('Event'),
         'sort' => 'Attribute.event_id',
-        'element' => 'custom',
-        'function' => function ($row) {
-            return empty($row['Event']) ? '' : $this->element('Attributes/event_peek', ['event' => $row['Event']]);
-        },
-        'class' => 'ai-col-event',
-        'header_class' => 'ai-col-event',
+        'element' => 'event_peek',
+        'data_path' => 'Event.id, Event.info',
+        'header_class' => 'idx-col-event_peek',
         'card_section' => 'event',
         'display_in' => ['table', 'card'],
     ];

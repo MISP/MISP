@@ -88,12 +88,22 @@ $fields = [
             return $this->element('EventReports/index_report_cell', ['row' => $row]);
         },
     ],
+    // The index of every event's reports: each one's event, a peek on hover.
     [
         'name' => __('Event'),
-        'sort' => empty($eventView) ? 'Event.id' : null,
+        'sort' => 'Event.id',
+        'element' => 'event_peek',
+        'data_path' => 'Event.id, Event.info',
+        'header_class' => 'idx-col-event_peek',
+        'display_in' => ['table'],
+        'requirement' => empty($eventView),
+    ],
+    // An extended event's tab keeps the origin's id and title beside the report.
+    [
+        'name' => __('Event'),
         'class' => 'er-col-event',
         'display_in' => ['table'],
-        'requirement' => $showOrigin,
+        'requirement' => $showOrigin && !empty($eventView),
         'element' => 'custom',
         'function' => function ($row) {
             return $this->element('EventReports/index_event', ['row' => $row]);

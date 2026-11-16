@@ -486,9 +486,10 @@ $columns = array(
         'shown' => true,
         'field' => array(
             'name' => __('Event'),
-            'element' => 'event',
+            // Its id and icon, a peek on hover; the class reaches the heading too.
+            'element' => 'event_peek',
             'data_path' => 'Event.id, Event.info',
-            'url' => $baseurl . '/events/view/%id%',
+            'class' => 'idx-col-event_peek',
         ),
     ),
     array(

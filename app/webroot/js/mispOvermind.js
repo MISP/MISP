@@ -3198,27 +3198,61 @@ function initSharingGroupForm(container) {
 })();
 
 /*******************************
- * Event peeks (Attributes/event_peek.ctp)
- * A row's event, cloned from the page's template for that event. The peek
- * stays open while the pointer is on it, so its links and the UUID's copy
- * button can be reached; moving to another event's id swaps it at once.
+ * Event peeks (Events/peek_link.ctp)
+ * An event's peek, fetched from /events/peek/<id> on the first hover and
+ * kept for the page. It stays open while the pointer is on it, so its links
+ * and the UUID's copy button can be reached; moving to another event's id
+ * swaps it at once.
  *******************************/
 (function () {
     var REF = '.ev-ref[data-ev-peek]';
     var POP = '.ev-peek-popover';
-    var OPEN_DELAY = 150;
+    var OPEN_DELAY = 120;
     var CLOSE_DELAY = 200;
-    var current = null;
+    var current = null;     // the ref whose peek is shown
+    var wanted = null;      // the ref whose peek is shown or on its way
+    var pending = null;     // the ref waiting out OPEN_DELAY
     var openTimer = null;
     var closeTimer = null;
+    var peeks = {};         // event id => promise of its <template>, or of null
+
+    function load(ref) {
+        var id = ref.dataset.evPeek;
+        if (!peeks[id]) {
+            peeks[id] = fetch(ref.dataset.evPeekUrl, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            }).then(function (response) {
+                return response.ok ? response.text() : '';
+            }).then(function (html) {
+                var tpl = document.createElement('template');
+                tpl.innerHTML = html.trim();
+                // Anything else (a login page after a timeout, say) is not a peek.
+                var root = tpl.content.firstElementChild;
+                return root && root.classList.contains('ev-pop') ? tpl : null;
+            }, function () {
+                delete peeks[id];
+                return null;
+            });
+        }
+        return peeks[id];
+    }
 
     function open(ref) {
         clearTimeout(openTimer);
         clearTimeout(closeTimer);
-        if (current === ref) return;
-        close();
-        var tpl = document.querySelector('template.ev-peek-tpl[data-ev-peek="' + ref.dataset.evPeek + '"]');
-        if (!tpl || !tpl.content.firstElementChild) return;
+        pending = null;
+        if (wanted === ref) return;
+        wanted = ref;
+        ref.classList.add('is-loading');
+        load(ref).then(function (tpl) {
+            ref.classList.remove('is-loading');
+            if (tpl && wanted === ref && ref.isConnected) show(ref, tpl);
+        });
+    }
+
+    function show(ref, tpl) {
+        hide();
         var popover = bootstrap.Popover.getOrCreateInstance(ref, {
             trigger: 'manual',
             html: true,
@@ -3228,7 +3262,7 @@ function initSharingGroupForm(container) {
             fallbackPlacements: ['top', 'bottom', 'left'],
             container: 'body',
             customClass: 'ev-peek-popover',
-            // An element is placed as is, past the sanitizer: the template is the server's markup.
+            // An element is placed as is, past the sanitizer: it is the server's markup.
             content: function () { return tpl.content.firstElementChild.cloneNode(true); },
         });
         current = ref;
@@ -3236,8 +3270,7 @@ function initSharingGroupForm(container) {
         popover.show();
     }
 
-    function close() {
-        clearTimeout(closeTimer);
+    function hide() {
         if (!current) return;
         var ref = current;
         current = null;
@@ -3246,10 +3279,17 @@ function initSharingGroupForm(container) {
         if (popover) popover.hide();
     }
 
+    function close() {
+        clearTimeout(closeTimer);
+        wanted = null;
+        hide();
+    }
+
     function closeSoon() {
         clearTimeout(openTimer);
         clearTimeout(closeTimer);
-        if (current) closeTimer = setTimeout(close, CLOSE_DELAY);
+        pending = null;
+        if (wanted) closeTimer = setTimeout(close, CLOSE_DELAY);
     }
 
     document.addEventListener('mouseover', function (e) {
@@ -3258,11 +3298,12 @@ function initSharingGroupForm(container) {
         var ref = target.closest(REF);
         if (ref) {
             clearTimeout(closeTimer);
-            if (ref === current) return;
+            if (ref === wanted || ref === pending) return;
             clearTimeout(openTimer);
             if (current) {
                 open(ref);
             } else {
+                pending = ref;
                 openTimer = setTimeout(function () { open(ref); }, OPEN_DELAY);
             }
             return;
@@ -3290,15 +3331,15 @@ function initSharingGroupForm(container) {
     });
 
     document.addEventListener('focusout', function (e) {
-        if (!current) return;
+        if (!wanted) return;
         var to = e.relatedTarget;
-        if (to && to.closest && (to === current || to.closest(POP))) return;
+        if (to && to.closest && (to === wanted || to.closest(POP))) return;
         if (e.target.closest && e.target.closest(REF + ', ' + POP)) closeSoon();
     });
 
     document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape' || !current) return;
-        var ref = current;
+        if (e.key !== 'Escape' || !wanted) return;
+        var ref = wanted;
         var inside = document.activeElement && document.activeElement.closest
             && document.activeElement.closest(POP);
         close();

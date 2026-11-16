@@ -283,12 +283,6 @@
     content: "—";
     color: var(--bs-tertiary-color);
 }
-/* The event's id and icon, right-aligned so the icons line up before the value. */
-.ai-table :is(td, th).ai-col-event {
-    width: 1%;
-    padding-right: .25rem;
-    text-align: right;
-}
 /* Only the value wraps; every other cell keeps to one line. */
 .ai-table tbody td:not(.idx-col-attribute_value) { white-space: nowrap; }
 .ai-table tbody td:not(.idx-col-attribute_value) .flex-wrap { flex-wrap: nowrap !important; }

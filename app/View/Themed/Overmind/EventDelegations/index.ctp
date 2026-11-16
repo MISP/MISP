@@ -52,11 +52,12 @@ $fields = [
         'card_section' => 'meta',
         'display_in' => ['table', 'card'],
     ],
+    // The delegated event, a peek on hover.
     [
         'name' => __('Event'),
         'data_path' => 'EventDelegation.Event.id, EventDelegation.Event.info',
-        'element' => 'event',
-        'url' => $baseurl . '/events/view/%event_id%',
+        'element' => 'event_peek',
+        'header_class' => 'idx-col-event_peek',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],

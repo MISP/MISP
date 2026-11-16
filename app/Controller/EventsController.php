@@ -9570,6 +9570,28 @@ class EventsController extends AppController
         }
     }
 
+    /**
+     * An event's peek, the popover the indexes open on an event's id
+     * (Elements/Events/peek_link): fetched on the first hover.
+     *
+     * @param int $id
+     */
+    public function peek($id)
+    {
+        $this->request->allowMethod(['get']);
+        if ($this->theme !== 'Overmind') {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        App::uses('EventPeekBatch', 'Tools/EventOverview');
+        $events = EventPeekBatch::forIds($this->_closeSession(), [(int)$id]);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->set('event', reset($events));
+        $this->layout = false;
+        $this->render('/Elements/Events/peek');
+    }
+
     public function getEventInfoById($id)
     {
         $user = $this->_closeSession();

@@ -1,6 +1,6 @@
 /* Overmind events index — card view (Elements/Events/index_card.ctp). */
 
-/* The tokens also serve the event peek of the attribute index (Attributes/event_peek). */
+/* The tokens also serve an event's peek (Events/peek). */
 .dk-index,
 .ev-peek-popover {
     --dk-card-h: 252px;

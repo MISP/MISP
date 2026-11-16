@@ -428,6 +428,7 @@ class ACLComponent extends Component
             'importModule' => array('*'),
             'merge' => array('perm_modify'),
             'nids' => array('*'),
+            'peek' => array('*'),
             'populate' => array('perm_add'),
             'populateFrom' => array('AND' => ['perm_add', 'theming_enabled']),
             'proposalEventIndex' => array('*'),

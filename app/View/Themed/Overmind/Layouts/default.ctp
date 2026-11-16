@@ -88,6 +88,8 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['mainOvermind', ['preload' => true]],
                 ['index-table', ['preload' => true]],
                 ['attribute-elements', ['preload' => true]],
+                // An event's id and icon in any index, and the peek it opens (Events/peek_link).
+                ['event-peek', ['preload' => true]],
                 // The rail's styles come with the theme.
                 $useRail ? null : ['overmind-navbar', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
