@@ -4398,7 +4398,6 @@ class GalaxyClusterPublishScope(unittest.TestCase):
                           'name': 'regression publish %s' % cls.token, 'description': 'regression',
                           'version': 1, 'namespace': 'regression'}
             cls._new_published_cluster(with_galaxy=True)
-            cls.galaxy_id = int(cls._stored(cls.cluster_uuids[0])['galaxy_id'])
         except BaseException:
             cls.tearDownClass()
             raise
@@ -4421,19 +4420,28 @@ class GalaxyClusterPublishScope(unittest.TestCase):
             body['GalaxyCluster']['Galaxy'] = cls.galaxy
         response = cls.o_publisher._prepare_request('POST', 'galaxies/import', data=[body])
         assert response.status_code == 200, 'seeding a cluster failed: %s' % response.text[:300]
-        cluster_id = int(cls._stored(cluster_uuid)['id'])
+        stored = cls._stored(cluster_uuid)
+        cluster_id = int(stored['id'])
         cls.cluster_ids.append(cluster_id)
+        if with_galaxy:
+            cls.galaxy_id = int(stored['galaxy_id'])
         response = cls.o_publisher._prepare_request('POST', 'galaxy_clusters/publish/%d' % cluster_id)
         assert response.status_code == 200, 'publishing the seed failed: %s' % response.text[:300]
-        assert cls._published(cluster_id), 'the seed cluster is not published'
+        assert cls._published(cluster_id, wait=30), 'the seed cluster is not published'
         return cluster_id
 
     def setUp(self):
         self.cluster_id = self._new_published_cluster()
 
     @classmethod
-    def _published(cls, cluster_id):
-        return bool(int(cls._stored(cluster_id)['published']))
+    def _published(cls, cluster_id, wait=0):
+        # with MISP.background_jobs on, publish only queues a job
+        deadline = time.time() + wait
+        while True:
+            published = bool(int(cls._stored(cluster_id)['published']))
+            if published or time.time() >= deadline:
+                return published
+            time.sleep(0.5)
 
     @classmethod
     def tearDownClass(cls):
@@ -4474,7 +4482,7 @@ class GalaxyClusterPublishScope(unittest.TestCase):
         response = self.o_publisher._prepare_request(
             'POST', 'galaxy_clusters/publish/%d' % self.cluster_id)
         self.assertEqual(200, response.status_code, response.text[:200])
-        self.assertTrue(self._published(self.cluster_id), 'the owner could not publish again')
+        self.assertTrue(self._published(self.cluster_id, wait=30), 'the owner could not publish again')
 
 
 
