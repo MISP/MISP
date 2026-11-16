@@ -2,6 +2,7 @@
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FileAccessTool', 'Tools');
+App::uses('CachedExportTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -216,7 +217,7 @@ class EventShell extends AppShell
             $typeCount = count($types);
             foreach ($types as $k => $type) {
                 $typeData['params']['type'] = $type;
-                $this->__runCaching($user, $typeData, false, $export_type, '_' . $type);
+                $this->__runCaching($user, $typeData, false, $export_type, $type);
                 $this->Job->saveField('message', 'Processing all attributes of type '. $type . '.');
                 $this->Job->saveField('progress', intval($k / $typeCount));
             }
@@ -235,12 +236,7 @@ class EventShell extends AppShell
         $modelScope = $typeData['scope'] == 'Attribute' ? 'MispAttribute' : $typeData['scope'];
         $final = $this->{$modelScope}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
         $dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
-        //echo PHP_EOL . $dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension'] . PHP_EOL;
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension']);
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.' . $user['Organisation']['name'] .  $typeData['extension']);
-        }
+        $file = new File($dir->pwd() . DS . CachedExportTool::fileName($export_type, $subType, CachedExportTool::owner($user), $typeData['extension']));
         $file->write($final);
         $file->close();
         return true;
@@ -263,11 +259,7 @@ class EventShell extends AppShell
         $types = array_keys($export->mispTypes);
         $typeCount = count($types);
         $dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
-        }
+        $file = new File($dir->pwd() . DS . CachedExportTool::fileName('bro', '', CachedExportTool::owner($user), '.intel'));
 
         $file->write('');
         $skipHeader = false;

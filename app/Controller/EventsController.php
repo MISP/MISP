@@ -4,6 +4,7 @@ App::uses('Xml', 'Utility');
 App::uses('GalaxyColour', 'Tools');
 App::uses('ExtensionEventColour', 'Tools');
 App::uses('SyncTool', 'Tools');
+App::uses('CachedExportTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -5899,8 +5900,8 @@ class EventsController extends AppController
         if (Configure::read('MISP.background_jobs') && !Configure::read('MISP.disable_cached_exports', true)) {
             $now = time();
 
-            // as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
-            $org_name = $this->_isSiteAdmin() ? 'ADMIN' : $this->Auth->user('Organisation')['name'];
+            // site admins get their own file, so the org's file never holds the unrestricted data-set
+            $owner = CachedExportTool::owner($this->Auth->user());
             $conditions = $this->Event->createEventConditions($this->Auth->user());
             $this->Event->recursive = -1;
             $newestEvent = $this->Event->find('first', array(
@@ -5930,12 +5931,9 @@ class EventsController extends AppController
                         'order' => array('Job.id' => 'desc')
                 ));
                 $dir = new Folder(APP . 'tmp/cached_exports/' . $k, true);
-                if ($k === 'text') {
-                    // Since all of the text export files are generated together, we might as well just check for a single one md5.
-                    $file = new File($dir->pwd() . DS . 'misp.text_md5.' . $org_name . $type['extension']);
-                } else {
-                    $file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $org_name . $type['extension']);
-                }
+                // Since all of the text export files are generated together, we might as well just check for a single one md5.
+                $subType = $k === 'text' ? 'md5' : '';
+                $file = new File($dir->pwd() . DS . CachedExportTool::fileName($k, $subType, $owner, $type['extension']));
                 if (!$file->readable()) {
                     if (empty($tempNewestEvent)) {
                         $lastModified = 'No valid events';
@@ -5986,18 +5984,26 @@ class EventsController extends AppController
         if (Configure::read('MISP.disable_cached_exports', true)) {
             throw new MethodNotAllowedException(__('This feature is currently disabled'));
         }
-        if ($this->_isSiteAdmin()) {
-            $org = 'ADMIN';
+        $exportTypes = $this->Event->exportTypes();
+        if (!is_string($type) || !isset($exportTypes[$type])) {
+            throw new NotFoundException(__('Invalid export type.'));
+        }
+        if ($extra !== null && $extra !== '') {
+            if ($type !== 'text' || !is_string($extra) || !isset($this->Event->Attribute->typeDefinitions[$extra])) {
+                throw new NotFoundException(__('Invalid export type.'));
+            }
         } else {
-            $org = $this->Auth->user('Organisation')['name'];
+            $extra = null;
         }
         $this->autoRender = false;
-        if ($extra != null) {
-            $extra = '_' . $extra;
-        }
-        $exportType = $this->Event->exportTypes()[$type];
+        $exportType = $exportTypes[$type];
         $this->response->type($exportType['extension']);
-        $path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($exportType['type']) . $extra . '.' . $org . $exportType['extension'];
+        $path = 'tmp/cached_exports/' . $type . DS . CachedExportTool::fileName(
+            strtolower($exportType['type']),
+            $extra,
+            CachedExportTool::owner($this->Auth->user()),
+            $exportType['extension']
+        );
         $this->response->file($path, array('download' => true));
     }
 
