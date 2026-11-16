@@ -17,7 +17,10 @@
  *  - $search   : ['placeholder' => <string>] for the free-text box
  *  - $fields   : [{name, label, type: select|text|number|date, options,
  *                placeholder, help, step, group, requirement}]; a select
- *                becomes a picker, a date the time picker, the rest a value
+ *                becomes a picker, a date the time picker, the rest a value;
+ *                a date with a `histogram` ({histogram, unset}, as
+ *                filter_strip reads it) also draws its strip across the bar,
+ *                with an optional `note` under its picker
  *  - $rows     : the page's rows, for the count beside the chips
  *  - $pager    : optional pager element, for a log paged without a total
  *  - $skip_pagination : no pager, for a body that pages itself
@@ -71,7 +74,11 @@ foreach (($fields ?? []) as $field) {
             'icon' => 'far fa-clock',
             'fields' => [['name' => $field['name'], 'label' => $common['label']]],
             'presets' => $presets,
-        ];
+        ] + (empty($field['histogram']) ? [] : [
+            'histograms' => [$field['name'] => $field['histogram']],
+            'strip_label' => __('When'),
+            'note' => $field['note'] ?? null,
+        ]);
         $chipValues[$field['name']] = $timeLabel;
     } else {
         $children[] = $common + [

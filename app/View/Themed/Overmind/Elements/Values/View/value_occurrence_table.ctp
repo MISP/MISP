@@ -6,7 +6,8 @@
  *
  * Filtered and paged on the server (ValuesController::viewOccurrenceTable);
  * the bar reloads this fragment in its tab. The pickers offer what the
- * reader's occurrences carry, counted by `Value::occurrenceFacetsFor`.
+ * reader's occurrences carry, counted by `Value::occurrenceFacetsFor`
+ * beside the other filters; the Period draws its strip across the bar.
  *
  * @var array $valueIntelligence
  * @var string $valueB64
@@ -25,14 +26,30 @@ $filterLabels = $filterLabels ?? array('tag' => array(), 'galaxy' => array());
 $canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
 
 $group = __('Occurrences');
-$dropdown = function ($name, $label, array $options, $icon = null) use ($group) {
+$set = function ($name) use ($named) {
+    return isset($named[$name]) && !is_array($named[$name]) && (string)$named[$name] !== ''
+        ? (string)$named[$name] : null;
+};
+/*
+ * A column as the list of its values in the Filters panel, each with the
+ * rows it keeps beside the other filters and a bar for its share. The
+ * value set is listed even when nothing beside the others carries it.
+ */
+$list = function ($name, $label, array $counts, array $labels, array $html = array(), $icon = null) use ($group, $set) {
+    $picked = $set($name);
+    if ($picked !== null && !isset($labels[$picked])) {
+        $labels[$picked] = $picked;
+    }
     return array(
         'type' => 'dropdown',
+        'display' => 'list',
         'name' => $name,
         'label' => $label,
         'icon' => $icon,
-        // The empty option's label is the control's placeholder.
-        'options' => array('' => __('Any')) + $options,
+        'options' => array('' => __('Any')) + $labels,
+        'counts' => $counts,
+        'html' => $html,
+        'fold' => 7,
         'group' => $group,
     );
 };
@@ -40,26 +57,82 @@ $facet = function ($key) use ($facets) {
     return isset($facets[$key]) ? $facets[$key] : array();
 };
 
-$orgs = array();
+$orgs = $orgHtml = array();
 foreach ($facet('org') as $orgId => $count) {
-    $orgs[(string)$orgId] = $facets['org_names'][$orgId] ?? ('#' . $orgId);
+    $name = $facets['org_names'][$orgId] ?? ('#' . $orgId);
+    $orgs[(string)$orgId] = $name;
+    $orgHtml[(string)$orgId] = $this->EventIndex->orgTile(array('id' => $orgId, 'name' => $name), 16)
+        . '<span>' . h($name) . '</span>';
 }
-$types = array();
+if ($set('org') !== null && !isset($orgs[$set('org')]) && isset($facets['org_names'][$set('org')])) {
+    $orgs[$set('org')] = $facets['org_names'][$set('org')];
+}
+$types = $typeHtml = array();
 foreach ($facet('type') as $type => $count) {
     $types[$type] = $type;
+    $typeHtml[$type] = '<span class="ifp-lv-code">' . h($type) . '</span>';
 }
 $categories = array();
 foreach ($facet('category') as $category => $count) {
     $categories[$category] = $category;
 }
-$objects = array();
+$objects = $objectCounts = $objectHtml = array();
 foreach ($facet('object') as $name => $count) {
-    $objects[$name === '' ? '0' : $name] = $name === '' ? __('Standalone attribute') : $name;
+    $key = $name === '' ? '0' : $name;
+    $objects[$key] = $name === '' ? __('Standalone attribute') : $name;
+    $objectCounts[$key] = $count;
+    $objectHtml[$key] = $name === ''
+        ? '<span class="text-body-secondary fst-italic">' . h(__('Standalone attribute')) . '</span>'
+        : '<i class="misp-icon misp-icon-object misp-simple" aria-hidden="true"></i><span>' . h($name) . '</span>';
 }
 $distributions = array();
 foreach ($facet('distribution') as $level => $count) {
     $distributions[(string)$level] = DistributionLevel::get($level)['label'];
 }
+// The flag is stored 1 / 0 and filtered on as 1 / 2.
+$idsCounts = array();
+foreach ($facet('ids') as $flag => $count) {
+    $idsCounts[(string)$flag === '1' ? '1' : '2'] = $count;
+}
+$idsHtml = array(
+    '1' => '<i class="fas fa-shield-halved text-success" aria-hidden="true"></i><span>' . h(__('Flagged for detection')) . '</span>',
+    '2' => '<i class="fas fa-shield text-body-secondary" aria-hidden="true"></i><span>' . h(__('Not flagged')) . '</span>',
+);
+$idsLabels = array();
+foreach (array('1' => __('Yes'), '2' => __('No')) as $flag => $text) {
+    if (isset($idsCounts[$flag])) {
+        $idsLabels[$flag] = $text;
+    }
+}
+
+// The tags and clusters most rows carry, under their picker; the row is the
+// link, so the chip is not one.
+$view = $this;
+$unlinked = array('searchUrl' => '', 'href' => function () {
+    return null;
+});
+$topOf = function ($key) use ($facets, $view, $unlinked) {
+    $labels = $facets['labels'][$key] ?? array('rows' => array(), 'total' => 0);
+    $top = array();
+    foreach ($labels['rows'] as $tag) {
+        if ($key === 'galaxy' && !empty($tag['cluster'])) {
+            $label = $tag['cluster']['value'];
+            $html = $view->TagChip->cluster(array(
+                'id' => $tag['cluster']['id'],
+                'value' => $tag['cluster']['value'],
+                'galaxy' => $tag['cluster']['galaxy'],
+            ), array('display' => 'leaf') + $unlinked)
+                . '<span class="text-body-secondary small">' . h($tag['cluster']['galaxy']) . '</span>';
+        } else {
+            $label = $tag['name'];
+            $html = $view->TagChip->chip(array('Tag' => $tag), array('inline' => true) + $unlinked);
+        }
+        $top[] = array('value' => $tag['name'], 'label' => $label, 'html' => $html, 'count' => $tag['count']);
+    }
+    return array($top, $labels['total'] ?? null);
+};
+list($topTags, $topTagsTotal) = $topOf('tags');
+list($topClusters, $topClustersTotal) = $topOf('galaxy');
 
 $children = array(
     array(
@@ -72,18 +145,22 @@ $children = array(
     ),
 );
 if (!empty($orgs)) {
-    $children[] = $dropdown('org', __('Reported by'), $orgs,
+    $children[] = $list('org', __('Reported by'), $facet('org'), $orgs, $orgHtml,
         'misp-icon misp-icon-organisation misp-simple');
 }
-if (!empty($types)) {
-    $children[] = $dropdown('type', __('Type'), $types);
-}
-if (!empty($categories)) {
-    $children[] = $dropdown('category', __('Category'), $categories);
-}
 if (!empty($objects)) {
-    $children[] = $dropdown('object', __('Context'), $objects,
+    $children[] = $list('object', __('Context'), $objectCounts, $objects, $objectHtml,
         'misp-icon misp-icon-object misp-simple');
+}
+if (!empty($types)) {
+    $children[] = $list('type', __('Type'), $facet('type'), $types, $typeHtml);
+}
+$children[] = $list('ids', __('IDS'), $idsCounts, $idsLabels, $idsHtml, 'fas fa-shield-halved');
+if (!empty($categories)) {
+    $children[] = $list('category', __('Category'), $facet('category'), $categories);
+}
+if (!empty($distributions)) {
+    $children[] = $list('distribution', __('Distribution'), $facet('distribution'), $distributions);
 }
 $children[] = array(
     'type' => 'picker',
@@ -95,6 +172,8 @@ $children[] = array(
     'resolved' => $filterLabels['tag'],
     'hint' => __('On the occurrence or its event.'),
     'group' => $group,
+    'top' => $topTags,
+    'top_total' => $topTagsTotal,
     'browser' => array(
         'kind' => 'tag',
         'scopes' => $baseurl . '/tags/pickerScopes',
@@ -111,16 +190,13 @@ $children[] = array(
     'resolved' => $filterLabels['galaxy'],
     'hint' => __('Clusters on the occurrence or its event.'),
     'group' => $group,
+    'top' => $topClusters,
+    'top_total' => $topClustersTotal,
     'browser' => array(
         'kind' => 'galaxy',
         'scopes' => $baseurl . '/galaxies/pickerScopes',
     ),
 );
-if (!empty($distributions)) {
-    $children[] = $dropdown('distribution', __('Distribution'), $distributions);
-}
-$children[] = $dropdown('ids', __('IDS'), array('1' => __('Yes'), '2' => __('No')),
-    'fas fa-shield-halved');
 
 // The period, on the dates the old facet rail offered.
 $timePresets = array(
@@ -142,6 +218,10 @@ $children[] = array(
     ),
     'presets' => $timePresets,
     'group' => $group,
+    // The strip across the bar: each date's rows by day, week or month.
+    'histograms' => $facet('times'),
+    'strip_label' => __('When'),
+    'note' => __('The strip in the bar keeps a period; here, presets, exact dates, and several dates at once.'),
 );
 $timeTitles = array_column($timePresets, 'title', 'value');
 $timeLabel = function ($value) use ($timeTitles) {

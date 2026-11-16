@@ -42,6 +42,9 @@ $filterFields = [
     ],
     [
         'name' => 'created', 'label' => __('Created'), 'type' => 'date', 'group' => __('When'),
+        // The entries by day, drawn as a strip with a brush across the bar.
+        'histogram' => $valueIntelligence['history_strip'] ?? null,
+        'note' => __('The strip in the bar keeps a period; here, presets and exact dates.'),
     ],
 ];
 

@@ -384,20 +384,22 @@ class AuditLogsController extends AppController
         }
         $exception = null;
         $params = $this->IndexFilter->harvestParameters($filters, $exception, ['fromQuery' => true]);
-        $conditions = array_filter([$this->__searchConditions($params)]);
         $quickFilter = $this->IndexFilter->quickFilterTerm();
         $quickFilterConditions = $this->IndexFilter->quickFilterConditions($quickFilter, 'AuditLog', [
             'like' => ['model_title', 'model', 'action'],
             'numeric' => ['model_id'],
             'org' => 'org_id',
         ] + ($isSiteAdmin ? ['user' => 'user_id'] : []));
-        if (!empty($quickFilterConditions)) {
-            $conditions[] = $quickFilterConditions;
-        }
+        $conditionsOf = function (array $params) use ($quickFilterConditions) {
+            $conditions = array_filter([$this->__searchConditions($params), $quickFilterConditions]);
+            return empty($conditions) ? null : ['AND' => array_values($conditions)];
+        };
 
         $profile = ClassRegistry::init('ValueIntelligence')->forHistory($user, $value, [
             'window' => 'all',
-            'conditions' => empty($conditions) ? null : ['AND' => array_values($conditions)],
+            'conditions' => $conditionsOf($params),
+            // The bar's time strip draws the entries every other filter keeps.
+            'strip_conditions' => $conditionsOf(array_diff_key($params, ['created' => true])),
         ]);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($profile['history'], 'json');
@@ -609,12 +611,19 @@ class AuditLogsController extends AppController
         }
         if (isset($params['created'])) {
             $tempData = is_array($params['created']) ? $params['created'] : [$params['created']];
+            $bareDays = [];
             foreach ($tempData as $k => $v) {
+                $bareDays[$k] = is_string($v) && preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($v));
                 $tempData[$k] = $this->AuditLog->resolveTimeDelta($v);
             }
             if (count($tempData) === 1) {
                 $conditions['AuditLog.created >='] = date("Y-m-d H:i:s", $tempData[0]);
             } else {
+                // A bare end date keeps its whole day, as the time picker's To means it.
+                $end = $tempData[0] < $tempData[1] ? 1 : 0;
+                if ($bareDays[$end]) {
+                    $tempData[$end] += 86399;
+                }
                 if ($tempData[0] < $tempData[1]) {
                     $temp = $tempData[1];
                     $tempData[1] = $tempData[0];

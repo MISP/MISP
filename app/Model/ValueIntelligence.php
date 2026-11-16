@@ -2600,14 +2600,42 @@ class ValueIntelligence extends AppModel
         $this->attachFeedHits($user, $rows);
 
         $summary = $valueModel->occurrenceSummaryFor($user, $value, $base);
-        $facets = $summary['occurrences'] === 0
-            ? array()
-            : $valueModel->occurrenceFacetsFor($user, $value, $base);
-        if (!empty($facets['org'])) {
+        $facets = array();
+        if ($summary['occurrences'] > 0) {
+            // Each column, label and date counted beside the other filters.
+            $facets = $valueModel->occurrenceFacetsFor($user, $value, $read);
+            $picked = isset($read['filters']['org'])
+                ? (array)$read['filters']['org'] : array();
             $facets['org_names'] = $this->organisationNames(
                 array(),
-                array_keys($facets['org'])
+                array_merge(array_keys($facets['org']), $picked)
             );
+            $facets['labels'] = $valueModel->occurrenceLabelFacetsFor($user, $value, $read);
+            foreach (array('tags', 'galaxy') as $key) {
+                // What a label's bar is a share of: the rows beside its own filter.
+                $facets['labels'][$key]['total'] = isset($read['filters'][$key])
+                    ? $valueModel->occurrenceCountFor($user, $value, array_merge(
+                        $read,
+                        array('filters' => array_diff_key($read['filters'], array($key => true)))
+                    ))
+                    : $total;
+            }
+            $facets['times'] = array();
+            foreach ($valueModel->occurrenceTimeDaysFor($user, $value, $read) as $key => $time) {
+                $histogram = null;
+                if (!empty($time['days'])) {
+                    $days = array_keys($time['days']);
+                    $histogram = ValueStatsTool::timeHistogram(
+                        array('from' => reset($days), 'to' => end($days)),
+                        $time['days']
+                    );
+                    $histogram['scale'] = ValueStatsTool::timeScale($histogram);
+                }
+                $facets['times'][$key] = array(
+                    'histogram' => $histogram,
+                    'unset' => $time['unset'],
+                );
+            }
         }
 
         return array(
@@ -11473,6 +11501,34 @@ class ValueIntelligence extends AppModel
         }
 
         $counts = $this->auditCountsFor($scope);
+        /*
+         * The filter bar's time strip: the entries by day under every
+         * filter but its own date, read again only when that date is set.
+         */
+        $strip = null;
+        if (array_key_exists('strip_conditions', $options)) {
+            $stripScope = array_diff_key($scope, array('filter' => true));
+            if (!empty($options['strip_conditions'])) {
+                $stripScope['filter'] = $options['strip_conditions'];
+            }
+            $byDay = ($stripScope['filter'] ?? null) === ($scope['filter'] ?? null)
+                ? $counts['by_day']
+                : $this->auditCountsFor($stripScope)['by_day'];
+            $days = array();
+            foreach ($byDay as $day => $groups) {
+                $days[$day] = array_sum($groups);
+            }
+            $strip = array('histogram' => null, 'unset' => 0);
+            if (!empty($days)) {
+                ksort($days);
+                $keys = array_keys($days);
+                $strip['histogram'] = ValueStatsTool::timeHistogram(
+                    array('from' => reset($keys), 'to' => end($keys)),
+                    $days
+                );
+                $strip['histogram']['scale'] = ValueStatsTool::timeScale($strip['histogram']);
+            }
+        }
         $rows = $this->auditRowsFor($scope, array(
             'limit' => self::HISTORY_ROW_CAP,
             'window' => $window,
@@ -11491,6 +11547,7 @@ class ValueIntelligence extends AppModel
             'value' => $value,
             'history' => $this->historyPanel($rows, $counts, $context,
                 $scope, $window, (int)$user['org_id']),
+            'history_strip' => $strip,
         );
     }
 
