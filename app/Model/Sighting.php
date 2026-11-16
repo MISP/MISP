@@ -185,7 +185,8 @@ class Sighting extends AppModel
             }
 
             $orgId = 0;
-            if (isset($sighting['Organisation'])) {
+            // Only sync users and site admins record sightings on behalf of other organisations
+            if (isset($sighting['Organisation']) && (!empty($user['Role']['perm_sync']) || !empty($user['Role']['perm_site_admin']))) {
                 if (isset($existingOrganisations[$sighting['Organisation']['uuid']])) {
                     $orgId = $existingOrganisations[$sighting['Organisation']['uuid']];
                 } else {

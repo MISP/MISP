@@ -757,21 +757,13 @@ class GalaxyCluster extends AppModel
             return $results;
         }
 
-        if (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['Orgc'])) {
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+            // Only sync users and site admins create clusters on behalf of other organisations;
+            // captureOrganisationAndSG() would take the creator from Orgc
+            unset($cluster['Orgc'], $cluster['GalaxyCluster']['Orgc']);
             $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id'];
-        } else {
-            if (!isset($cluster['GalaxyCluster']['Orgc'])) {
-                if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            } else {
-                if ($cluster['GalaxyCluster']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            }
-            if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-            }
+        } elseif (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['GalaxyCluster']['Orgc'])) {
+            $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id'];
         }
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {

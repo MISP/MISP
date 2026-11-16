@@ -856,21 +856,13 @@ class AnalystData extends AppModel
             return $results;
         }
 
-        if (!isset($analystData[$type]['orgc_uuid']) && !isset($analystData[$type]['Orgc'])) {
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+            // Only sync users and site admins create analyst data on behalf of other organisations;
+            // captureOrganisationAndSG() would take the creator from Orgc
+            unset($analystData[$type]['Orgc']);
             $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid'];
-        } else {
-            if (!isset($analystData[$type]['Orgc'])) {
-                if (isset($analystData[$type]['orgc_uuid']) && $analystData[$type]['orgc_uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid']; // Only sync user can create analyst data on behalf of other users
-                }
-            } else {
-                if ($analystData[$type]['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid']; // Only sync user can create analyst data on behalf of other users
-                }
-            }
-            if (isset($analystData[$type]['orgc_uuid']) && $analystData[$type]['orgc_uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid']; // Only sync user can create analyst data on behalf of other users
-            }
+        } elseif (!isset($analystData[$type]['orgc_uuid']) && !isset($analystData[$type]['Orgc'])) {
+            $analystData[$type]['orgc_uuid'] = $analystData[$type]['org_uuid'];
         }
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
@@ -906,14 +898,8 @@ class AnalystData extends AppModel
             $analystModel->create();
             $saveSuccess = $analystModel->save($analystData);
         } else {
-            // DPT-4: a regular (non-sync, non-site-admin) caller - the web
-            // add/edit afterSave, or analyst data nested in an object/
-            // attribute/report/event capture - must not be able to overwrite
-            // an existing record it could not edit directly. The incoming
-            // orgc_uuid was already force-rewritten to the caller's own org
-            // above, so authorise against the EXISTING (DB) record's orgc.
-            // The sync/pull path (perm_sync) is intentionally exempt and keeps
-            // its locked + timestamp semantics below.
+            // A regular caller may only overwrite a record it could edit directly, judged on the
+            // stored record; sync keeps the locked + timestamp rules below.
             if (
                 !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin'] &&
                 !$analystModel->canEditAnalystData($user, $existingAnalystData, $type)

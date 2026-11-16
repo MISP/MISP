@@ -6925,6 +6925,29 @@ class Event extends AppModel
     }
 
     /**
+     * Is the creator organisation that _add() will store the user's own? With $fromXml, __captureObjects()
+     * takes it from `Orgc`, else from `orgc`, and only otherwise keeps `orgc_id`.
+     * @param array $event
+     * @param array $user
+     * @param bool $fromXml
+     * @return bool
+     */
+    private function __isOwnCreatorOrg(array $event, array $user, $fromXml)
+    {
+        if ($fromXml && (isset($event['Orgc']) || isset($event['orgc']))) {
+            $org = $event['Orgc'] ?? $event['orgc'];
+            if (!is_array($org)) {
+                return $org === $user['Organisation']['name'];
+            }
+            if (empty($org['uuid'])) {
+                return ($org['name'] ?? null) === $user['Organisation']['name'];
+            }
+            return strtolower((string)$org['uuid']) === strtolower($user['Organisation']['uuid']);
+        }
+        return !isset($event['orgc_id']) || $event['orgc_id'] == $user['org_id'];
+    }
+
+    /**
      * When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
      * or which we need to update. All of that is controlled in this method.
      * @param array $event
@@ -7328,14 +7351,9 @@ class Event extends AppModel
         // Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
         if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
             $data['Event']['orgc_id'] = $data['Event']['org_id'];
-        } else {
-            $orgc_id = $data['Event']['orgc_id'] ?? null;
-            $orgc_uuid = $data['Event']['Orgc']['uuid'] ?? null;
-            if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                if ($orgc_uuid != $user['Organisation']['uuid'] && $orgc_id != $user['org_id']) {
-                    throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
-                }
-            }
+        }
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin'] && !$this->__isOwnCreatorOrg($data['Event'], $user, $fromXml)) {
+            throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
             if (!isset($data['Event']['Orgc']['uuid'])) {
