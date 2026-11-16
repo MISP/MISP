@@ -99,6 +99,11 @@ class EventTemplateImporter
         } else {
             $libraryManaged = 0;
         }
+        // Only site admins may mint library-managed rows; the library
+        // install/update paths in EventTemplate do not go through here.
+        if (empty($user['Role']['perm_site_admin'])) {
+            $libraryManaged = 0;
+        }
 
         $row = array(
             'name' => (string)$template['name'],

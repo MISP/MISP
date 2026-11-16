@@ -4775,5 +4775,86 @@ class UserSettingPrefillAccess(unittest.TestCase):
         self._cross('Overmind')
 
 
+
+class EventTemplateImportDefaultFlag(unittest.TestCase):
+    """Only a site admin's import may store misp_default = 1; the flag is library-managed
+    and makes the row overwritable by the library update.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.template_ids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_template')
+            cls.org_a = make_org(cls.admin, 'regression template org a')
+            cls.created_orgs.append(cls.org_a)
+            cls.user_a = make_user(cls.admin, cls.org_a.id, role)
+            cls.created_users.append(cls.user_a)
+            cls.connector_a = PyMISP(url, cls.user_a.authkey)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for template_id in getattr(cls, 'template_ids', []):
+            send(cls.admin, 'POST', 'eventTemplates/delete/%d' % template_id, check_errors=False)
+        drop_fixtures(cls.admin, getattr(cls, 'created_orgs', []),
+                      getattr(cls, 'created_users', []))
+
+    def _document(self, envelope_flag=None, definition_flag=None):
+        template_uuid = str(uuidlib.uuid4())
+        definition = {
+            'schema_version': 1, 'uuid': template_uuid,
+            'name': 'regression import %s' % random(),
+            'event_defaults': {'distribution': 0}, 'structure': [],
+        }
+        if definition_flag is not None:
+            definition['misp_default'] = definition_flag
+        template = {'uuid': template_uuid, 'name': definition['name'],
+                    'distribution': 0, 'active': 1, 'definition': definition}
+        if envelope_flag is not None:
+            template['misp_default'] = envelope_flag
+        return {'_meta': {'event_template_schema_version': 1}, 'template': template}
+
+    def _import(self, connector, document):
+        response = connector._prepare_request('POST', 'eventTemplates/import', data=document)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        template_id = int(response.json()['event_template_id'])
+        type(self).template_ids.append(template_id)
+        return template_id
+
+    def _stored(self, template_id):
+        response = self.admin._prepare_request('GET', 'eventTemplates/view/%d' % template_id)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        body = response.json()
+        return int(body.get('EventTemplate', body)['misp_default'])
+
+    def test_envelope_flag_from_non_admin_is_dropped(self):
+        template_id = self._import(self.connector_a, self._document(envelope_flag=True))
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_definition_flag_from_non_admin_is_dropped(self):
+        template_id = self._import(self.connector_a, self._document(definition_flag=True))
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_no_flag_from_non_admin_is_0(self):
+        template_id = self._import(self.connector_a, self._document())
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_no_flag_from_admin_is_0(self):
+        template_id = self._import(self.admin, self._document())
+        self.assertEqual(0, self._stored(template_id))
+
+    def test_flag_from_admin_is_kept(self):
+        template_id = self._import(self.admin, self._document(envelope_flag=True))
+        self.assertEqual(1, self._stored(template_id))
+
+
 if __name__ == '__main__':
     unittest.main()
