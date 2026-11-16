@@ -1658,8 +1658,17 @@ function openPopover(clicked, data, hover, placement, callback) {
             container: 'body',
             template: '<div class="popover" role="tooltip" data-dismissId="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
         };
-        $clicked.popover(popoverOptions)
-        .on('shown.bs.popover', function() {
+        $clicked.popover(popoverOptions);
+        // html: true is for the content; Bootstrap would render the title as HTML too
+        var bootstrapPopover = $clicked.data('popover');
+        if (bootstrapPopover) {
+            var bootstrapTitle = bootstrapPopover.getTitle;
+            bootstrapPopover.getTitle = function () {
+                var title = bootstrapTitle.call(this);
+                return typeof title === 'string' ? escapeHtml(title) : title;
+            };
+        }
+        $clicked.on('shown.bs.popover', function() {
             var $this = $(this); // should be the same as $clicked
             var $popover = $this.data("popover").tip(); // should be the content of popover
             var title = $this.attr('title');
@@ -1674,6 +1683,8 @@ function openPopover(clicked, data, hover, placement, callback) {
                 // adjust popover position (title was empty)
                 var top = $popover.offset().top;
                 $popover.css('top', (top-17) + 'px');
+            } else if (typeof title === 'string') {
+                title = escapeHtml(title);
             }
             var popoverTitle = $popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
