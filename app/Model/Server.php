@@ -7934,6 +7934,8 @@ class Server extends AppModel
                         /** @var Cerebrate $cerebrate */
                         $cerebrate = ClassRegistry::init('Cerebrate');
                         $cerebrate->reencryptAuthKeys($old, $new);
+
+                        ClassRegistry::init('UserSetting')->reencryptOidcRefreshTokens($old, $new);
                         return true;
                     },
                     'type' => 'string',

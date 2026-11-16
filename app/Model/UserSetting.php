@@ -1,5 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('BetterSecurity', 'Tools');
+App::uses('EncryptedValue', 'Tools');
 
 /**
  * @property User $User
@@ -788,5 +790,58 @@ class UserSetting extends AppModel
     public function getSetting($user_id, $setting)
     {
         return $this->getValueForUser($user_id, $setting) ?: [];
+    }
+
+    /**
+     * Re-encrypt the OIDC refresh tokens, stored in the format Oidc::storeMetadata() writes.
+     *
+     * @param string|null $old Old (or current) encryption key.
+     * @param string|null $new New encryption key. If empty, tokens are stored as plaintext.
+     * @return bool
+     * @throws Exception
+     */
+    public function reencryptOidcRefreshTokens($old, $new)
+    {
+        $settings = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['UserSetting.setting' => 'oidc'],
+            'fields' => ['UserSetting.id', 'UserSetting.value'],
+        ]);
+        $result = true;
+        foreach ($settings as $setting) {
+            $id = $setting['UserSetting']['id'];
+            $original = $setting['UserSetting']['value'];
+            if (!is_array($original) || !isset($original['refresh_token']) || !is_string($original['refresh_token'])) {
+                continue;
+            }
+            $value = $original;
+            $token = $value['refresh_token'];
+            if (!empty($value['refresh_token_encrypted'])) {
+                $encrypted = base64_decode($token, true);
+                if ($encrypted === false || !EncryptedValue::isEncrypted($encrypted)) {
+                    throw new Exception("Could not decrypt OIDC refresh token for user setting #$id");
+                }
+                try {
+                    $token = BetterSecurity::decrypt(substr($encrypted, 2), $old);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt OIDC refresh token for user setting #$id", 0, $e);
+                }
+            }
+            if (!empty($new)) {
+                $value['refresh_token'] = base64_encode(EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($token, $new));
+                $value['refresh_token_encrypted'] = true;
+            } else {
+                $value['refresh_token'] = $token;
+                unset($value['refresh_token_encrypted']);
+            }
+            if ($value === $original) {
+                continue;
+            }
+            $result = $this->save(
+                ['id' => $id, 'value' => json_encode($value)],
+                ['skipAuditLog' => true, 'fieldList' => ['value', 'timestamp']]
+            ) && $result;
+        }
+        return $result;
     }
 }
