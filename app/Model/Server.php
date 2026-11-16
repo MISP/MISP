@@ -7605,7 +7605,7 @@ class Server extends AppModel
                 ),
                 'max_decompressed_size' => array(
                     'level' => 1,
-                    'description' => __('Maximum size, in bytes, of a compressed request body once decompressed; a larger body is refused with 413. Leave empty or 0 to use the PHP memory limit in force for the user\'s role (no limit when that is -1). Large compressed sync pushes need this at least as large as the biggest event\'s JSON.'),
+                    'description' => __('Maximum size, in bytes, of compressed data once decompressed: request bodies sent to this instance (a larger one is refused with 413) and responses fetched from feeds and sync servers, including a zip feed\'s file (a larger one fails the fetch). Leave empty or 0 to use the PHP memory limit in force (no limit when that is -1, which is common for background workers). Large events need this at least as large as their JSON.'),
                     'value' => 0,
                     'test' => 'testForPositiveInteger',
                     'type' => 'numeric',
