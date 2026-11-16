@@ -466,12 +466,13 @@ $labelFold = 6;
 
 /**
  * One label as MISP's own chip, the family's name left out where the
- * line already prints it, and how many events carry it.
+ * line already prints it, and how many of the value's events carry it,
+ * on a bar against all of them.
  *
  * @param array $row
  * @return string
  */
-$labelChip = function (array $row) use ($view) {
+$labelChip = function (array $row) use ($view, $labelScope) {
     $events = array_values($row['events']);
     $note = sprintf(
         __n('In event %s', 'In events %s', count($events)),
@@ -509,13 +510,18 @@ $labelChip = function (array $row) use ($view) {
             'note' => $noteFn,
         ));
     }
+    if ($labelScope < 2) {
+        return $chip;
+    }
     $count = (int)$row['shared_events'];
-    return $chip . ($count > 1
-        ? '<span class="vp-lab-n" title="' . h(sprintf(
-            __('Carried by %d events'),
-            $count
-        )) . '">&times;' . h($count) . '</span>'
-        : '');
+    return $chip . '<span class="vp-lab-cov" title="' . h(sprintf(
+            __('In %1$s of its %2$s events'),
+            number_format($count),
+            number_format($labelScope)
+        )) . '"><span class="vp-lab-cov-bar"><i style="width: '
+        . min(100, round(100 * $count / $labelScope, 1)) . '%;"></i></span>'
+        . '<span><strong>' . h(number_format($count)) . '</strong>/'
+        . h(number_format($labelScope)) . '</span></span>';
 };
 // Neighbours on a warninglist, counted over the whole fold.
 $listsHit = isset($co['warninglists_listed'])

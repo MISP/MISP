@@ -738,8 +738,8 @@ $tabRegistry = array(
         /*
          * Shape, then names, then bookkeeping. The graph says how many
          * blobs the neighbourhood has and how big they are; the card
-         * under it says who is in them; the settings card is the
-         * bookkeeping and stays last.
+         * under it says who is in them; the settings card under that
+         * says what was counted to get there.
          *
          * The named-threat card is the only thing on this tab that
          * answers *what does this mean* rather than *what is related*,
@@ -752,16 +752,16 @@ $tabRegistry = array(
         /*
          * The three answers that are a yes or a no on most values (is it
          * in a feed, is something close to it, is it paired in a dated
-         * record) sit in the rail under the threats, compact, and keep
+         * record) sit in the rail under what is counted, compact, and keep
          * their card on the contents strip.
          */
         'right' => array(
             $panel('viewRelationGraph'),
             $panel('viewRelationThreats'),
+            $panel('viewRelationSettings'),
             $panel('viewRelationExternal', 'vp-rel-sec-external'),
             $panel('viewRelationNearMatch', 'vp-rel-sec-near'),
             $panel('viewRelationDated', 'vp-rel-sec-dated'),
-            $panel('viewRelationSettings'),
         ),
     ),
     array(

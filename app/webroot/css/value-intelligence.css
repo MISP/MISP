@@ -5191,25 +5191,48 @@ a.vp-vl-sig-t:hover {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 6px 14px;
     min-width: 0;
 }
 
 .vp-lab {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     max-width: 100%;
 }
 
-.vp-lab-n {
-    padding: 0 6px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--vp-rel-co) 14%, var(--bs-body-bg));
-    color: var(--vp-rel-co);
-    font-size: .68rem;
-    font-weight: 700;
+/* How many of the value's events carry the label, against all of them. */
+.vp-lab-cov {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.vp-lab-cov-bar {
+    display: inline-block;
+    width: 34px;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--vp-rel-co) 14%, var(--bs-secondary-bg));
+}
+
+.vp-lab-cov-bar i {
+    display: block;
+    min-width: 2px;
+    height: 100%;
+    background: var(--vp-rel-co);
+}
+
+.vp-lab-cov strong {
+    color: var(--bs-emphasis-color);
+    font-weight: 700;
 }
 
 .vp-lab-more {
