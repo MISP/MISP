@@ -1056,7 +1056,7 @@ class EventsController extends AppController
         $this->set('distributionData', $this->__genDistributionGraph(-1));
         $this->set('urlparams', $urlparams);
         $this->set('passedArgsArray', $passedArgsArray);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
 
         $extendedUuids = array_filter(array_map(fn($event) => $event['Event']['extends_uuid'] ?? null, $events));
 
@@ -1659,7 +1659,7 @@ class EventsController extends AppController
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
         $this->set('sharingGroups', $sharingGroups);
         $this->set('tags', $tagNames);
-        $this->set('tagJSON', json_encode($tagJSON));
+        $this->set('tagJSON', JsonTool::encodeForScript($tagJSON));
         $this->set('rules', $rules);
         $this->layout = false;
     }

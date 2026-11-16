@@ -1205,7 +1205,7 @@ class FeedsController extends AppController
         $this->set('id', $feed['Feed']['id']);
         $this->set('feed', $feed);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 
@@ -1747,7 +1747,7 @@ class FeedsController extends AppController
             $customPagination->truncateByPagination($hits, $params);
         }
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 }

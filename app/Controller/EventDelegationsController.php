@@ -298,7 +298,7 @@ class EventDelegationsController extends AppController
         } else {
             $this->set('context', $context);
             $this->set('delegation_requests', $delegation_requests);
-            $this->set('passedArgs', json_encode($this->passedArgs, true));
+            $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         }
     }
 }

@@ -40,7 +40,7 @@
 <script>
 
 if (!window.shortDist) {
-    var shortDist = <?= json_encode($shortDist) ?>;
+    var shortDist = <?= JsonTool::encodeForScript($shortDist) ?>;
 }
 
 var container_id = false
@@ -54,10 +54,10 @@ function adjustPopoverPosition() {
 }
 
 function openNotes<?= $seed ?>(clicked) {
-    var notes = <?= json_encode($notesOpinions) ?>;
-    var relationships = <?= json_encode($relationshipsOutbound) ?>;
-    var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
-    var relationship_related_object = <?= json_encode($related_objects) ?>;
+    var notes = <?= JsonTool::encodeForScript($notesOpinions) ?>;
+    var relationships = <?= JsonTool::encodeForScript($relationshipsOutbound) ?>;
+    var relationships_inbound = <?= JsonTool::encodeForScript($relationshipsInbound) ?>;
+    var relationship_related_object = <?= JsonTool::encodeForScript($related_objects) ?>;
     var renderedNotes = renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object)
     openPopover(clicked, renderedNotes, undefined, undefined, function() {
         adjustPopoverPosition()
@@ -66,10 +66,10 @@ function openNotes<?= $seed ?>(clicked) {
 }
 
 function getNotes<?= $seed ?>() {
-    var notes = <?= json_encode($notesOpinions) ?>;
-    var relationships = <?= json_encode($relationshipsOutbound) ?>;
-    var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
-    var relationship_related_object = <?= json_encode($related_objects) ?>;
+    var notes = <?= JsonTool::encodeForScript($notesOpinions) ?>;
+    var relationships = <?= JsonTool::encodeForScript($relationshipsOutbound) ?>;
+    var relationships_inbound = <?= JsonTool::encodeForScript($relationshipsInbound) ?>;
+    var relationship_related_object = <?= JsonTool::encodeForScript($related_objects) ?>;
     return renderedNotes = renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object)
 }
 
@@ -530,10 +530,10 @@ function fetchMoreNotes(clicked, noteType, uuid) {
 
 <?php if(!empty($injectInPage)): ?>
     $(document).ready(function() {
-        var notes = <?= json_encode($notesOpinions) ?>;
-        var relationships = <?= json_encode($relationshipsOutbound) ?>;
-        var relationships_inbound = <?= json_encode($relationshipsInbound) ?>;
-        var relationship_related_object = <?= json_encode($related_objects) ?>;
+        var notes = <?= JsonTool::encodeForScript($notesOpinions) ?>;
+        var relationships = <?= JsonTool::encodeForScript($relationshipsOutbound) ?>;
+        var relationships_inbound = <?= JsonTool::encodeForScript($relationshipsInbound) ?>;
+        var relationship_related_object = <?= JsonTool::encodeForScript($related_objects) ?>;
         var renderedNotes = renderAllNotesWithForm<?= $seed ?>(notes, relationships, relationships_inbound, relationship_related_object)
         if (container_id) {
             $('#' + container_id).html(renderedNotes)

@@ -1462,7 +1462,7 @@ class DashboardsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
 
         // ------------------------------------------------------------
         // Phase 4 — template gallery view (PRD §5.4 / DD-08).

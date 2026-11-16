@@ -6177,6 +6177,8 @@ function initFlashToasts() {
  * then inserts it, the DOM copy is dropped rather than listed twice.
  */
 const DEBUG_BLOCK_SELECTOR = '.cake-error, .cake-debug-output';
+const DEBUG_BLOCK_TAGS = new Set(['A', 'B', 'BR', 'CODE', 'DIV', 'EM', 'I', 'LI', 'OL', 'P', 'PRE', 'SMALL', 'SPAN', 'STRONG', 'UL']);
+const DEBUG_BLOCK_TOGGLE = /(?:getElementById\(|traceToggle\(event,\s*)'([^']+)'/;
 
 const debugStrip = {
     root: null,
@@ -6193,7 +6195,44 @@ const debugStrip = {
         this.entries = document.getElementById('debugEntries');
         const clear = document.getElementById('debugClear');
         if (clear) clear.addEventListener('click', () => this.clear());
+        this.entries.addEventListener('click', e => this.toggle(e));
         return true;
+    },
+
+    /**
+     * A copy of a block that came from a response or a string, rebuilt from its
+     * tags and text: a stored value shaped like debug output must not become
+     * live markup. Cake's Trace/Code/Context links work through toggle().
+     */
+    inert(node) {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.data);
+        if (node.nodeType !== Node.ELEMENT_NODE) return document.createTextNode('');
+        if (!DEBUG_BLOCK_TAGS.has(node.tagName)) return document.createTextNode(node.textContent);
+        const el = document.createElement(node.tagName.toLowerCase());
+        node.classList.forEach(name => {
+            if (/^(cake-[\w-]+|code-highlight)$/.test(name)) el.classList.add(name);
+        });
+        ['display', 'color'].forEach(prop => {
+            if (node.style[prop]) el.style[prop] = node.style[prop];
+        });
+        if (node.id) el.dataset.ovDebugId = node.id;
+        const target = DEBUG_BLOCK_TOGGLE.exec(node.getAttribute('onclick') || '');
+        if (node.tagName === 'A' && target) {
+            el.href = '#';
+            el.dataset.ovDebugToggle = target[1];
+        }
+        node.childNodes.forEach(child => el.appendChild(this.inert(child)));
+        return el;
+    },
+
+    toggle(e) {
+        const link = e.target.closest('[data-ov-debug-toggle]');
+        if (!link) return;
+        e.preventDefault();
+        const entry = link.closest('.ov-debug-entry');
+        const target = entry && Array.from(entry.querySelectorAll('[data-ov-debug-id]'))
+            .find(el => el.dataset.ovDebugId === link.dataset.ovDebugToggle);
+        if (target) target.style.display = target.style.display === 'none' ? '' : 'none';
     },
 
     clear() {
@@ -6244,7 +6283,7 @@ const debugStrip = {
     adoptParsed(block, origin) {
         const sig = this.signature(block);
         this.pending.set(sig, (this.pending.get(sig) || 0) + 1);
-        this.add(document.importNode(block, true), origin);
+        this.add(this.inert(block), origin);
     },
 
     originOf(node) {
@@ -6342,9 +6381,9 @@ const debugStrip = {
             const blocks = this.blocksIn(tpl.content);
             const salvaged = node.nodeType === Node.ATTRIBUTE_NODE ? this.salvageAfter(owner) : null;
             if (salvaged) {
-                this.add(salvaged, origin, null, 'leaked inside ' + where);
+                this.add(this.inert(salvaged), origin, null, 'leaked inside ' + where);
             } else if (blocks.length) {
-                blocks.forEach(b => this.add(b, origin, null, 'leaked inside ' + where));
+                blocks.forEach(b => this.add(this.inert(b), origin, null, 'leaked inside ' + where));
             } else {
                 const pre = document.createElement('pre');
                 pre.className = 'mb-0';
@@ -6423,7 +6462,7 @@ const debugStrip = {
                 const details = document.createElement('details');
                 const summary = document.createElement('summary');
                 summary.textContent = 'Stack trace';
-                details.append(summary, document.importNode(trace, true));
+                details.append(summary, this.inert(trace));
                 box.appendChild(details);
             }
         } else {
