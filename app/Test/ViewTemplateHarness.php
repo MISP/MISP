@@ -51,6 +51,10 @@ if (!class_exists('Configure')) {
     }
 }
 
+if (!class_exists('Inflector')) {
+    require_once __DIR__ . '/../Lib/cakephp/lib/Cake/Utility/Inflector.php';
+}
+
 /** What a stubbed helper returns: an empty string that can also be indexed. */
 class ViewTemplateHarnessBlank implements ArrayAccess
 {
