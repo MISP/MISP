@@ -4220,5 +4220,143 @@ class CreatorOrgCapture(unittest.TestCase):
                          'an organisation was created from the Organisation of a sighting')
 
 
+
+class RestrictedTagAttachById(unittest.TestCase):
+    """A tag restricted to an organisation cannot be attached by numeric id by anyone else.
+
+    events/addTag resolved ids through Tag::createConditions(); editEventTags,
+    editAttributeTags and eventReports/addTag handed ids straight to the attach call.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_ids = []
+        cls.event_uuids = []
+        cls.tag_ids = []
+        try:
+            role = least_privileged_role(cls.admin, 'perm_tagger', 'perm_add')
+            cls.org_v = make_org(cls.admin, 'regression restricted tag org V')
+            cls.org_a = make_org(cls.admin, 'regression restricted tag org A')
+            cls.created_orgs = [cls.org_v, cls.org_a]
+            user_v = make_user(cls.admin, cls.org_v.id, role)
+            user_a = make_user(cls.admin, cls.org_a.id, role)
+            cls.created_users = [user_v, user_a]
+            cls.v = PyMISP(url, user_v.authkey)
+            cls.v.global_pythonify = False
+            cls.a = PyMISP(url, user_a.authkey)
+            cls.a.global_pythonify = False
+            token = random()
+            made = send(cls.admin, 'POST', 'tags/add', data={
+                'name': 'regression-restricted-%s' % token, 'org_id': int(cls.org_v.id)})
+            cls.restricted = int(made['Tag']['id'])
+            cls.tag_ids.append(cls.restricted)
+            made = send(cls.admin, 'POST', 'tags/add', data={'name': 'regression-open-%s' % token})
+            cls.open = int(made['Tag']['id'])
+            cls.tag_ids.append(cls.open)
+            cls.a_event, cls.a_attr = cls._event(cls.a, 'A', token)
+            cls.v_event, _ = cls._event(cls.v, 'V', token)
+            report = MISPEventReport()
+            report.name = 'report %s' % token
+            report.content = 'x'
+            report.distribution = 5
+            cls.report = int(send(cls.a, 'POST', 'eventReports/add/%d' % cls.a_event,
+                                  data={'EventReport': {'name': report.name, 'content': 'x',
+                                                        'distribution': 5}})['EventReport']['id'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def _event(cls, connector, label, token):
+        made = send(connector, 'POST', 'events/add', data={
+            'info': 'regression restricted tag %s %s' % (label, token), 'distribution': 0,
+            'Attribute': [{'type': 'ip-dst', 'category': 'Network activity',
+                           'value': '192.0.2.%d' % (int(random(), 16) % 250),
+                           'distribution': 5}]})['Event']
+        cls.event_ids.append(int(made['id']))
+        cls.event_uuids.append(made['uuid'])
+        return int(made['id']), int(made['Attribute'][0]['id'])
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in getattr(cls, 'event_ids', []):
+            send(cls.admin, 'POST', 'events/delete/%d' % event_id, check_errors=False)
+        uuids = getattr(cls, 'event_uuids', [])
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row) if isinstance(row, dict) else {}
+            if row.get('event_uuid') in uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for tag_id in getattr(cls, 'tag_ids', []):
+            send(cls.admin, 'POST', 'tags/delete/%d' % tag_id, check_errors=False)
+        for user in getattr(cls, 'created_users', []):
+            cls.admin.delete_user(user)
+        for org in getattr(cls, 'created_orgs', []):
+            send(cls.admin, 'POST', 'admin/organisations/delete/%s' % org.id, check_errors=False)
+
+    def _event_tags(self, event_id):
+        event = send(self.admin, 'GET', 'events/view/%d' % event_id)['Event']
+        return {int(t['id']) for t in event.get('Tag', [])}
+
+    def _attr_tags(self, event_id, attr_id):
+        event = send(self.admin, 'GET', 'events/view/%d' % event_id)['Event']
+        for attr in event['Attribute']:
+            if int(attr['id']) == attr_id:
+                return {int(t['id']) for t in attr.get('Tag', [])}
+        return set()
+
+    def _report_tags(self):
+        event = send(self.admin, 'GET', 'events/view/%d' % self.a_event)['Event']
+        for report in event.get('EventReport', []):
+            if int(report['id']) == self.report:
+                return {int(t['id']) for t in report.get('Tag', [])}
+        return set()
+
+    def _edit_event(self, connector, event_id, tag):
+        r = connector._prepare_request('POST', 'events/editEventTags/%d' % event_id,
+                                       data={'global_ids': [tag], 'local_ids': []})
+        self.assertEqual(200, r.status_code, r.text)
+
+    def _edit_attr(self, tag):
+        r = self.a._prepare_request('POST', 'attributes/editAttributeTags/%d' % self.a_attr,
+                                    data={'global_ids': [tag], 'local_ids': []})
+        self.assertEqual(200, r.status_code, r.text)
+
+    def _report_add(self, tag):
+        self.a._prepare_request('POST', 'eventReports/addTag/%d/%d' % (self.report, tag))
+
+    def test_event_restricted_not_attached(self):
+        self._edit_event(self.a, self.a_event, self.restricted)
+        self.assertNotIn(self.restricted, self._event_tags(self.a_event))
+
+    def test_attribute_restricted_not_attached(self):
+        self._edit_attr(self.restricted)
+        self.assertNotIn(self.restricted, self._attr_tags(self.a_event, self.a_attr))
+
+    def test_report_restricted_not_attached(self):
+        self._report_add(self.restricted)
+        self.assertNotIn(self.restricted, self._report_tags())
+
+    def test_event_open_attached(self):
+        self._edit_event(self.a, self.a_event, self.open)
+        self.assertIn(self.open, self._event_tags(self.a_event))
+
+    def test_attribute_open_attached(self):
+        self._edit_attr(self.open)
+        self.assertIn(self.open, self._attr_tags(self.a_event, self.a_attr))
+
+    def test_report_open_attached(self):
+        self._report_add(self.open)
+        self.assertIn(self.open, self._report_tags())
+
+    def test_owner_org_attaches_own_restricted_tag(self):
+        self._edit_event(self.v, self.v_event, self.restricted)
+        self.assertIn(self.restricted, self._event_tags(self.v_event))
+
+
 if __name__ == '__main__':
     unittest.main()

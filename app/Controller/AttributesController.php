@@ -3156,6 +3156,14 @@ class AttributesController extends AppController
             $toRemoveLocal  = array_diff(array_keys($currentLocal),  $desiredLocal);
 
             $AttributeTag = $this->MispAttribute->AttributeTag;
+            $attachable = $AttributeTag->Tag->attachableTagIdsForUser(
+                $user, array_merge($toAddGlobal, $toAddLocal));
+            $toAddGlobal = array_filter($toAddGlobal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]) && !$attachable[$tagId];
+            });
+            $toAddLocal = array_filter($toAddLocal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]);
+            });
             foreach ($toAddGlobal as $tagId) {
                 $AttributeTag->attachTagToAttribute($attributeId, $eventId, $tagId, false);
             }
