@@ -205,6 +205,16 @@
   overflow-wrap: anywhere;
 }
 .adr-stance + .adr-text { margin-top: .125rem; }
+/* What the host page knows about an entry (thread.ctp's entryContext). */
+.adr-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem .5rem;
+  margin-top: .3rem;
+  font-size: .72rem;
+  color: var(--bs-secondary-color);
+}
 .adr-clamp {
   display: -webkit-box;
   -webkit-box-orient: vertical;

@@ -266,7 +266,8 @@ $state = $relevance['state'];
             ValueRelevanceTool::clockLabel($clock['setting'])
         );
         ?>
-        <div class="vp-shelf-prov" title="<?= h($clockTitle) ?>">
+        <div class="vp-shelf-line" title="<?= h($clockTitle) ?>">
+            <i class="fas fa-circle-check" aria-hidden="true"></i><span>
             <?php if (!empty($clock['fallback'])): ?>
                 <?= h(sprintf(
                     __('Added %1$s by %2$s'),
@@ -285,7 +286,7 @@ $state = $relevance['state'];
                     ValueRelevanceTool::kindLabel($clock['kind'])
                 )) ?>
             <?php endif; ?>
-        </div>
+        </span></div>
 
         <?php
         /*
@@ -358,13 +359,15 @@ $state = $relevance['state'];
             }
         }
         ?>
-        <div class="vp-shelf-prov"<?= $ttlTitle === null
+        <div class="vp-shelf-line"<?= $ttlTitle === null
             ? ''
             : ' title="' . h($ttlTitle) . '"' ?>>
+            <i class="fas fa-hourglass-half" aria-hidden="true"></i><span>
             <?= h($ttlLine) ?>
-        </div>
+        </span></div>
 
-        <div class="vp-shelf-prov">
+        <div class="vp-shelf-line">
+            <i class="fas fa-calendar-xmark" aria-hidden="true"></i><span>
             <?php if (!empty($relevance['expired_by'])): ?>
                 <?= h(sprintf(
                     __('Filed as expired by %1$s on %2$s'),
@@ -377,7 +380,7 @@ $state = $relevance['state'];
                     date('Y-m-d', $relevance['expires_at'])
                 )) ?>
             <?php endif; ?>
-        </div>
+        </span></div>
 
         <?php if (empty($clock['rows_read'])): ?>
             <div class="vp-shelf-why"

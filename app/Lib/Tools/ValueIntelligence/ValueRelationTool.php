@@ -328,6 +328,9 @@ class ValueRelationTool
                 $group['last'],
                 (int)$attribute['timestamp']
             );
+            if (!empty($attribute['to_ids'])) {
+                $group['ids'] = true;
+            }
 
             if (!empty($row['Object']['id'])) {
                 $objectId = (int)$row['Object']['id'];
@@ -343,9 +346,24 @@ class ValueRelationTool
                         'org' => (int)$row['Event']['orgc_id'],
                         'values' => array(),
                         'relations' => array(),
+                        'attributes' => array(),
                     );
                 }
                 $objects[$objectId]['values'][$value] = true;
+                // Its attributes, for the row that opens as in the
+                // objects index.
+                $objects[$objectId]['attributes'][] = array(
+                    'id' => (int)$attribute['id'],
+                    'value' => $value,
+                    'type' => $attribute['type'],
+                    'category' => $attribute['category'],
+                    'relation' => (string)$attribute['object_relation'],
+                    'distribution' => (int)$attribute['distribution'],
+                    'sharing_group_id'
+                        => (int)$attribute['sharing_group_id'],
+                    'timestamp' => (int)$attribute['timestamp'],
+                    'to_ids' => !empty($attribute['to_ids']),
+                );
                 if (!empty($attribute['object_relation'])) {
                     $objects[$objectId]['relations']
                         [$attribute['object_relation']] = true;
@@ -1259,6 +1277,8 @@ class ValueRelationTool
             'last' => 0,
             'distributions' => array(),
             'occurrences' => 0,
+            // Whether any occurrence is flagged for IDS.
+            'ids' => false,
             'warninglists' => array(),
             'warninglist_read' => false,
             /*
@@ -1326,6 +1346,8 @@ class ValueRelationTool
                 'category' => self::dominant($group['categories']),
                 'shared_events' => count($group['events']),
                 'orgs' => $names,
+                'org_list' => self::orgList($group['orgs'], $orgs),
+                'ids' => !empty($group['ids']),
                 'last_together' => $group['last'] > 0
                     ? date('Y-m-d', $group['last'])
                     : '',
@@ -1372,6 +1394,28 @@ class ValueRelationTool
     }
 
     /**
+     * Organisations by id and name, in name order.
+     *
+     * @param array $ids org id => true
+     * @param array $orgs org id => name
+     * @return array [['id' =>, 'name' =>], …]
+     */
+    private static function orgList(array $ids, array $orgs)
+    {
+        $out = array();
+        foreach (array_keys($ids) as $orgId) {
+            $out[] = array(
+                'id' => (int)$orgId,
+                'name' => self::orgName($orgs, $orgId),
+            );
+        }
+        usort($out, function ($a, $b) {
+            return strcasecmp($a['name'], $b['name']);
+        });
+        return $out;
+    }
+
+    /**
      * The same neighbourhood counted by event: how many distinct values
      * this value shares with each event it sits in.
      *
@@ -1408,6 +1452,9 @@ class ValueRelationTool
                     $orgs,
                     isset($meta['orgc_id']) ? $meta['orgc_id'] : 0
                 ),
+                'org_id' => isset($meta['orgc_id'])
+                    ? (int)$meta['orgc_id']
+                    : 0,
                 'shared_values' => $shared,
                 /*
                  * One row is one event here, so its audience is the
@@ -1458,8 +1505,10 @@ class ValueRelationTool
                 'object' => $object['object'],
                 'event' => $object['event'],
                 'org' => self::orgName($orgs, $object['org']),
+                'org_id' => (int)$object['org'],
                 'values' => count($object['values']),
                 'relations' => array_keys($object['relations']),
+                'attributes' => $object['attributes'] ?? array(),
             );
         }
         usort($rows, function ($a, $b) {
@@ -2043,6 +2092,174 @@ class ValueRelationTool
             'page_size' => isset($context['page_size'])
                 ? (int)$context['page_size']
                 : 8,
+        );
+    }
+
+    /**
+     * The objects this value sits in, one entry each, with every
+     * attribute they hold: the shape the objects index draws.
+     *
+     * Each other value carries how specific it is to this one: in how
+     * many of the objects read it sits beside this value, against how
+     * many objects hold it on the whole instance. Objects whose most
+     * specific linking value ranks highest come first, by the key the
+     * sibling rows sort on, then the most recent.
+     *
+     * @param array $rows Sibling rows, `Value::neighbourRowsFor`
+     * @param array $own This value's rows in the same objects
+     * @param array $context `objects` (id => last, relation, name, as
+     *                       `Value::occurrenceObjectIdsFor`), `meta`
+     *                       (id => Object fields), `orgs`,
+     *                       `warninglists`, `prevalence`,
+     *                       `field_order` (template uuid => relation =>
+     *                       rank), `row_cap`
+     * @return array `rows`, `total`
+     */
+    public static function siblingObjects(array $rows, array $own,
+        array $context
+    ) {
+        $read = isset($context['objects']) ? $context['objects'] : array();
+        $meta = isset($context['meta']) ? $context['meta'] : array();
+        $orgs = isset($context['orgs']) ? $context['orgs'] : array();
+        $onLists = isset($context['warninglists'])
+            ? (array)$context['warninglists']
+            : array();
+        $order = isset($context['field_order'])
+            ? $context['field_order']
+            : array();
+        $prevalence = self::prevalenceOf($context);
+
+        $objects = array();
+        $holding = array();
+        $add = function (array $row, $ours) use (&$objects, &$holding,
+            $meta, $orgs
+        ) {
+            $objectId = (int)$row['Attribute']['object_id'];
+            if ($objectId < 1) {
+                return;
+            }
+            if (!isset($objects[$objectId])) {
+                $object = isset($meta[$objectId]) ? $meta[$objectId] : array();
+                $orgId = (int)$row['Event']['orgc_id'];
+                $objects[$objectId] = array(
+                    'id' => $objectId,
+                    'name' => $row['Object']['name'],
+                    'meta-category' => $object['meta-category'] ?? '',
+                    'template_uuid' => $object['template_uuid'] ?? '',
+                    'template_version' => $object['template_version']
+                        ?? null,
+                    'comment' => $object['comment'] ?? '',
+                    'timestamp' => (int)($object['timestamp'] ?? 0),
+                    'distribution' => (int)$row['Object']['distribution'],
+                    'sharing_group_id'
+                        => (int)$row['Object']['sharing_group_id'],
+                    'event' => array(
+                        'id' => (int)$row['Event']['id'],
+                        'info' => $row['Event']['info'],
+                    ),
+                    'org' => array(
+                        'id' => $orgId,
+                        'name' => self::orgName($orgs, $orgId),
+                    ),
+                    'attributes' => array(),
+                );
+            }
+            $attribute = $row['Attribute'];
+            $value = (string)$attribute['value'];
+            $objects[$objectId]['attributes'][] = array(
+                'id' => (int)$attribute['id'],
+                'value' => $value,
+                'type' => $attribute['type'],
+                'category' => $attribute['category'],
+                'relation' => (string)$attribute['object_relation'],
+                'distribution' => (int)$attribute['distribution'],
+                'sharing_group_id' => (int)$attribute['sharing_group_id'],
+                'timestamp' => (int)$attribute['timestamp'],
+                'ours' => $ours,
+                'kind' => ValueFieldKind::of($attribute),
+            );
+            if (!$ours) {
+                $holding[$value][$objectId] = true;
+            }
+        };
+        foreach ($own as $row) {
+            $add($row, true);
+        }
+        foreach ($rows as $row) {
+            $add($row, false);
+        }
+
+        // An object holding nothing but this value has nothing to show.
+        $objects = array_filter($objects, function ($object) {
+            foreach ($object['attributes'] as $attribute) {
+                if (!$attribute['ours']) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        $recency = array_flip(array_keys($read));
+        $scores = array();
+        foreach ($objects as $objectId => $object) {
+            $best = null;
+            foreach ($object['attributes'] as $at => $attribute) {
+                if ($attribute['ours']) {
+                    continue;
+                }
+                $value = $attribute['value'];
+                $shared = count($holding[$value]);
+                $spread = self::spreadOf($prevalence, $value, $shared);
+                $objects[$objectId]['attributes'][$at]['with'] = array(
+                    'shared' => $shared,
+                    'spread' => $spread === null ? null : $spread['spread'],
+                    'least' => $spread !== null && $spread['least'],
+                );
+                $objects[$objectId]['attributes'][$at]['warninglists']
+                    = isset($onLists[$value]) ? $onLists[$value] : array();
+                if ($spread === null || (int)$spread['spread'] < 1
+                    || $attribute['kind'] !== ValueFieldKind::LINKING
+                ) {
+                    continue;
+                }
+                $score = ($shared * $shared) / (int)$spread['spread'];
+                $best = $best === null ? $score : max($best, $score);
+            }
+            $scores[$objectId] = $best;
+
+            $rank = isset($order[$object['template_uuid']])
+                ? $order[$object['template_uuid']]
+                : array();
+            // Stable: equal ranks keep the order the rows came in.
+            $attributes = $objects[$objectId]['attributes'];
+            $positions = array_flip(array_keys($attributes));
+            uksort($attributes, function ($a, $b) use ($attributes, $rank,
+                $positions
+            ) {
+                $left = $rank[$attributes[$a]['relation']] ?? PHP_INT_MAX;
+                $right = $rank[$attributes[$b]['relation']] ?? PHP_INT_MAX;
+                return $left <=> $right ?: $positions[$a] <=> $positions[$b];
+            });
+            $objects[$objectId]['attributes'] = array_values($attributes);
+        }
+
+        uksort($objects, function ($a, $b) use ($scores, $recency) {
+            $left = $scores[$a];
+            $right = $scores[$b];
+            if (($left === null) !== ($right === null)) {
+                return $left === null ? 1 : -1;
+            }
+            if ($left !== null && $left != $right) {
+                return $left > $right ? -1 : 1;
+            }
+            return ($recency[$a] ?? PHP_INT_MAX)
+                <=> ($recency[$b] ?? PHP_INT_MAX);
+        });
+
+        $rowCap = isset($context['row_cap']) ? (int)$context['row_cap'] : 100;
+        return array(
+            'rows' => array_slice(array_values($objects), 0, $rowCap),
+            'total' => count($objects),
         );
     }
 
@@ -2702,6 +2919,7 @@ class ValueRelationTool
             : 0;
         return array(
             'rows' => array_slice($rows, 0, $rowCap),
+            'records' => array_slice(self::referenceRecords($rows), 0, $rowCap),
             'total' => $total,
             'types' => $types,
             'templates' => array_keys($templates),
@@ -2768,6 +2986,80 @@ class ValueRelationTool
      * @param array $listed The rows the panel will carry, post-cap
      * @return array Facet groups, ranked and capped
      */
+    /**
+     * The references folded by the record at their far end: one entry per
+     * object or attribute, with each relationship that links it to this
+     * value once — its direction (`out`, `in`, or `both` where the same
+     * type runs both ways), how many times it repeats over this value's
+     * occurrences, and which object of this value it starts from (null:
+     * the occurrence itself). Most linked records first.
+     *
+     * @param array $rows The section's rows
+     * @return array
+     */
+    public static function referenceRecords(array $rows)
+    {
+        $records = array();
+        foreach ($rows as $row) {
+            $far = $row['far'];
+            $key = $far['kind'] . ':' . $far['id'];
+            if (!isset($records[$key])) {
+                $records[$key] = array(
+                    'kind' => $far['kind'],
+                    'id' => (int)$far['id'],
+                    'event' => (int)$far['event'],
+                    'name' => $far['object'],
+                    'values' => $far['values'],
+                    'links' => array(),
+                );
+            }
+            $near = $row['near']['kind'] === 'attribute'
+                ? null
+                : (string)$row['near']['object'];
+            $linkKey = $row['relationship'] . "\0" . $near;
+            if (!isset($records[$key]['links'][$linkKey])) {
+                $records[$key]['links'][$linkKey] = array(
+                    'relationship' => $row['relationship'],
+                    'named' => $row['named'],
+                    'near' => $near,
+                    'out' => 0,
+                    'in' => 0,
+                    'comments' => array(),
+                );
+            }
+            $link = &$records[$key]['links'][$linkKey];
+            $link[$row['direction'] === 'outbound' ? 'out' : 'in']++;
+            if ($row['comment'] !== '') {
+                $link['comments'][$row['comment']] = true;
+            }
+            unset($link);
+        }
+        foreach ($records as $key => $record) {
+            $links = array();
+            foreach ($record['links'] as $link) {
+                $links[] = array(
+                    'relationship' => $link['relationship'],
+                    'named' => $link['named'],
+                    'near' => $link['near'],
+                    'direction' => $link['out'] > 0 && $link['in'] > 0
+                        ? 'both'
+                        : ($link['out'] > 0 ? 'out' : 'in'),
+                    'times' => max($link['out'], $link['in']),
+                    'comments' => array_keys($link['comments']),
+                );
+            }
+            $records[$key]['links'] = $links;
+        }
+        $records = array_values($records);
+        usort($records, function ($a, $b) {
+            return count($b['links']) - count($a['links'])
+                ?: strcmp($a['kind'], $b['kind']) * -1
+                ?: strcmp((string)$a['name'], (string)$b['name'])
+                ?: $a['id'] - $b['id'];
+        });
+        return $records;
+    }
+
     private static function siblingFacets(array $rows, array $listed)
     {
         $facets = array(

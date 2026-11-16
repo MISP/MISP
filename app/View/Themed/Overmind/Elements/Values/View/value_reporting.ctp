@@ -2,21 +2,15 @@
 /**
  * Who put this value on the instance, and when.
  *
- * Two summaries side by side, neither of them new to the page and both
- * new to this tab:
+ *   - **When**: the first and the last report and who made them, the
+ *     busiest month, and a bar a month over the value's whole life. The
+ *     silent months are drawn, because the run is the reading.
+ *   - **Who**: occurrences per organisation, how many of them each flagged
+ *     for IDS, and the months it reported the value in. The organisations
+ *     are the Assessment tab's *Who says what*, read the same way.
  *
- *   - **When** — a bar a month over the value's whole life, which is
- *     the Timeline tab's *Activity on this value* with the axis set by
- *     the data's extent rather than by a brush. The silent months are
- *     drawn, because the run is the reading.
- *   - **Who** — occurrences per organisation with each one's `to_ids`
- *     stance, which is the occurrence half of the Assessment tab's
- *     *Who says what*. Same read, same stance word.
- *
- * Both replace hand-counting: a reader tallied the *Reported by* column
- * of the occurrence preview above to get the first and squinted at
- * *Last seen* for the second, over a capped sample that could not
- * support either. Phase 31.
+ * Soft-deleted occurrences are not counted, so the total can be below the
+ * fact strip's.
  *
  * Lazily loaded into `.ajax-card` from ValuesController::viewReporting.
  *
@@ -26,148 +20,60 @@
 $reporting = $valueIntelligence['reporting'];
 $months = $reporting['months'];
 $orgs = $reporting['orgs'];
-$peak = empty($months) ? 0 : max($months);
-$topOrg = empty($orgs) ? 0 : $orgs[0]['occurrences'];
+$first = $reporting['first'] ?? null;
+$last = $reporting['last'] ?? null;
 $hidden = $reporting['orgs_total'] - count($orgs);
+$topOrg = empty($orgs) ? 0 : $orgs[0]['occurrences'];
 
-/*
- * The months with something in them, out of the months in the span —
- * the same fraction `lifecycle.continuity` scores and the Assessment
- * tab prints in words. Stated here as the subtitle because it is what
- * the strip beneath it is *for*: a value reported in 16 of 51 months
- * and one reported in 16 consecutive months draw very differently and
- * hold the same occurrence count.
- */
-$active = 0;
-foreach ($months as $count) {
-    if ($count > 0) {
-        $active++;
+$monthLabel = function ($key, $format = 'M Y') {
+    return date($format, strtotime($key . '-01'));
+};
+$dayLabel = function ($ts) {
+    return date('j M Y', (int)$ts);
+};
+$period = function (array $org) {
+    if ($org['oldest'] === null && $org['newest'] === null) {
+        return '—';
     }
-}
+    $from = date('M Y', (int)($org['oldest'] ?? $org['newest']));
+    $to = date('M Y', (int)($org['newest'] ?? $org['oldest']));
+    return $from === $to ? $from : $from . ' – ' . $to;
+};
 
-/*
- * Both halves' denominators, in the header, because both are read as
- * *out of what* and neither belongs under the thing it divides. The
- * second is the split's own sum and not the fact strip's total —
- * `forReporting` has the argument — so the word `live` is doing work:
- * a soft-deleted occurrence is in the strip's 26 and not in this 26.
- */
+$peak = empty($months) ? 0 : max($months);
+$peakMonth = $peak > 0 ? array_search($peak, $months, true) : null;
+$active = count(array_filter($months));
+$monthKeys = array_keys($months);
+// Up to a year and a half, every month is named; past it, the years only.
+$monthly = count($months) <= 18;
+// Counts over the bars while they have the room, otherwise over the peak alone.
+$countAll = count($months) <= 24;
+
 $clauses = array();
+if (!empty($orgs)) {
+    $clauses[] = h(sprintf(
+        __n('%s occurrence', '%s occurrences', $reporting['occurrences']),
+        number_format($reporting['occurrences'])
+    )) . ' ' . h(sprintf(
+        __n('from %s organisation', 'from %s organisations', $reporting['orgs_total']),
+        number_format($reporting['orgs_total'])
+    ));
+}
 if (!empty($months)) {
-    $clauses[] = sprintf(
-        __n(
-            'Reported in %1$s of %2$s month',
-            'Reported in %1$s of %2$s months',
-            count($months)
-        ),
+    $clauses[] = h(sprintf(
+        __n('reported in %1$s of %2$s month', 'reported in %1$s of %2$s months', count($months)),
         number_format($active),
         number_format(count($months))
-    );
-}
-if (!empty($orgs)) {
-    $clauses[] = sprintf(
-        __n(
-            '%1$s live occurrence from %2$s',
-            '%1$s live occurrences from %2$s',
-            $reporting['occurrences']
-        ),
-        number_format($reporting['occurrences']),
-        sprintf(
-            __n(
-                '%s organisation',
-                '%s organisations',
-                $reporting['orgs_total']
-            ),
-            number_format($reporting['orgs_total'])
-        )
-    );
+    ));
 }
 $subtitle = empty($clauses)
     ? h(__('Nothing dated to report'))
-    : implode(' &nbsp;·&nbsp; ', array_map('h', $clauses));
+    : '<span title="' . h(__('Soft-deleted occurrences are not counted.')) . '">'
+        . implode(' &nbsp;·&nbsp; ', $clauses) . '</span>';
 
-/*
- * ------------------------------------------------------------------
- * The strip's scale
- * ------------------------------------------------------------------
- * **A tick at every January**, which is the only gridline a strip of
- * months has that is not arbitrary. The strip carried its first and
- * last month and nothing between, so a bar four fifths of the way along
- * a nine-year span could be read as *recent* and no more precisely than
- * that.
- *
- * **The scale is a row of the bars' own geometry, not a set of
- * percentages.** `.vp-spark-bar` is `flex: 1 1 0` with a `max-width`,
- * so on a short span the bars stop growing and bunch at the left — and
- * a tick placed at `i / n` of the width would then sit nowhere near the
- * bar it names. One empty slot per month, sharing the bars' flex rules,
- * puts every tick on its own bar whatever the cap does.
- *
- * **Thinned rather than crowded.** `0.0.0.0` spans 128 months, which is
- * eleven Januaries over ~560px; every year labelled would be four-digit
- * labels ~50px apart. The marks stay annual — the gridline is the
- * point — and one label in `$tickStep` carries the year.
- *
- * A tick in the last two months of the span draws its mark and keeps
- * its label, which would otherwise hang off the right edge of the card.
- */
-$tickYears = array();
-$monthKeys = array_keys($months);
-foreach ($monthKeys as $index => $month) {
-    if (substr($month, -2) === '01') {
-        $tickYears[] = $index;
-    }
-}
-$tickStep = max(1, (int)ceil(count($tickYears) / 7));
-$tickLabels = array();
-foreach ($tickYears as $nth => $index) {
-    $tickLabels[$index] = ($nth % $tickStep === 0
-        && $index < count($monthKeys) - 2)
-        ? substr($monthKeys[$index], 0, 4)
-        : null;
-}
-
-/*
- * **The chip wears MISP's IDS shield, and MISP's IDS colours with it.**
- *
- * The glyph is `fa-shield-halved`, which is what
- * `Fields/ids` draws in the occurrence table two cards above this one —
- * so the chip says *which flag* it is a reading of rather than leaving
- * the reader to infer it from the word alone.
- *
- * That forced the palette. `yes` was drawn in the attribute green until
- * the shield arrived, and a green shield here beside an **amber** one
- * up there is one fact in two colours on one tab. Amber is *IDS
- * active*, grey is *IDS inactive*, and this card now says the same
- * thing in the same colours as the table it summarises.
- *
- * `mixed` keeps amber and takes a **dashed** edge rather than a third
- * hue — the rule the relevance chip already follows, direction in the
- * geometry. An organisation with the value twice, actionable once, has
- * not made half a decision; it has made none, and a shade between two
- * colours would say it made half.
- *
- * `none` is unreachable and is kept as a guard: `orgStanceFor` counts
- * every one of an organisation's non-deleted rows into `to_ids_yes` or
- * `to_ids_no`, and a row exists for that organisation or it would not
- * be in the result at all.
- */
-$stanceTone = array(
-    __('yes') => 'vp-stance-yes',
-    __('no') => 'vp-stance-no',
-    __('mixed') => 'vp-stance-mixed',
-    __('none') => 'vp-stance-none',
-);
-
-$stanceTitle = array(
-    __('yes') => __('Every occurrence from this organisation is'
-        . ' flagged to_ids'),
-    __('no') => __('No occurrence from this organisation is flagged'
-        . ' to_ids'),
-    __('mixed') => __('This organisation flags some of its occurrences'
-        . ' to_ids and not others'),
-    __('none') => __('This organisation states no to_ids flag'),
-);
+$orgLink = function (array $org) {
+    return $this->element('Values/View/value_org_link', array('org' => $org));
+};
 ?>
 <div class="card shadow-sm mb-3 vp-panel"
      style="--vp-panel-color: var(--object);">
@@ -180,155 +86,156 @@ $stanceTitle = array(
     )) ?>
 
     <?php if (empty($orgs) && empty($months)): ?>
-        <?php
-        /*
-         * The same distinction the occurrence card draws, for the same
-         * reason: absent and hidden are different answers and only one
-         * of them is knowable from here.
-         */
-        ?>
+        <?php // Absent and hidden are different answers; only one is knowable here. ?>
         <div class="vp-empty">
             <span class="misp-icon misp-icon-organisation misp-simple"></span>
             <span><?= __('No event you can see carries this value.') ?></span>
         </div>
     <?php else: ?>
-        <div class="p-3 vp-reporting">
+        <div class="p-3 vp-rep-wrap">
+        <div class="vp-rep">
 
-            <div class="vp-reporting-when">
-                <div class="vp-subhead"><?= __('Reported in') ?></div>
+            <section class="vp-rep-when" aria-label="<?= h(__('When it was reported')) ?>">
+                <div class="vp-subhead"><?= __('When') ?></div>
+                <div class="vp-rep-facts">
+                    <?php if ($first !== null): ?>
+                        <div class="vp-rep-fact">
+                            <small><?= __('First reported') ?></small>
+                            <b><?= h($dayLabel($first['at'])) ?></b>
+                            <span><?= h(sprintf(__('by %s'), $first['org']['name'])) ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($last !== null): ?>
+                        <div class="vp-rep-fact">
+                            <small><?= __('Last reported') ?></small>
+                            <b><?= h($dayLabel($last['at'])) ?></b>
+                            <span><?= h(sprintf(__('by %s'), $last['org']['name'])) ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($peakMonth !== null): ?>
+                        <div class="vp-rep-fact">
+                            <small><?= __('Busiest month') ?></small>
+                            <b><?= h($monthLabel($peakMonth)) ?></b>
+                            <span><?= h(sprintf(
+                                __n('%s occurrence', '%s occurrences', $peak),
+                                number_format($peak)
+                            )) ?></span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
                 <?php if (empty($months)): ?>
                     <div class="vp-empty vp-empty-inline">
                         <i class="fas fa-clock"></i>
                         <span><?= __('No occurrence carries a date.') ?></span>
                     </div>
                 <?php else: ?>
-                    <div class="vp-spark" role="img"
-                         aria-label="<?= h(__(
-                             'Occurrences by month, oldest first'
-                         )) ?>">
+                    <div class="vp-rep-chart<?= count($months) > 36 ? ' is-dense' : '' ?>" role="img"
+                         aria-label="<?= h(__('Occurrences by month, oldest first')) ?>">
                         <?php foreach ($months as $month => $count): ?>
-                            <span class="vp-spark-bar<?= $count === 0
-                                ? ' vp-spark-bar-empty'
-                                : '' ?>"
-                                  style="--vp-spark-h: <?=
-                                      $peak > 0
-                                          ? round(100 * $count / $peak)
-                                          : 0 ?>%;"
+                            <span class="vp-rep-col<?= $count === 0 ? ' is-zero' : '' ?><?= $month === $peakMonth ? ' is-peak' : '' ?>"
                                   title="<?= h(sprintf(
-                                      __n(
-                                          '%2$s — %1$s occurrence',
-                                          '%2$s — %1$s occurrences',
-                                          $count
-                                      ),
+                                      __n('%2$s — %1$s occurrence', '%2$s — %1$s occurrences', $count),
                                       number_format($count),
-                                      $month
-                                  )) ?>"></span>
+                                      $monthLabel($month)
+                                  )) ?>">
+                                <?php if ($count > 0 && ($countAll || $month === $peakMonth)): ?>
+                                    <span class="vp-rep-n"><?= h(number_format($count)) ?></span>
+                                <?php endif; ?>
+                                <span class="vp-rep-bar"
+                                      style="--h: <?= $peak > 0 ? round(100 * $count / $peak) : 0 ?>%;"></span>
+                            </span>
                         <?php endforeach; ?>
                     </div>
-                    <?php if (!empty($tickYears)): ?>
-                        <?php
-                        /*
-                         * `aria-hidden`: the strip's accessible name
-                         * already says what the axis is, and a screen
-                         * reader walking eleven bare years between it
-                         * and the ends below is reading the gridlines
-                         * rather than the chart.
-                         */
-                        ?>
-                        <div class="vp-spark-scale" aria-hidden="true">
-                            <?php foreach ($monthKeys as $index => $month): ?>
-                                <span class="vp-spark-slot<?=
-                                    isset($tickLabels[$index])
-                                        ? ' vp-spark-slot-tick'
-                                        : '' ?>"><?php
-                                    if (!empty($tickLabels[$index])): ?>
-                                    <span class="vp-spark-tick"><?=
-                                        h($tickLabels[$index])
-                                    ?></span>
-                                <?php endif; ?></span>
-                            <?php endforeach; ?>
+                    <div class="vp-rep-axis<?= count($months) > 36 ? ' is-dense' : '' ?><?= $monthly ? '' : ' is-years' ?>" aria-hidden="true">
+                        <?php foreach ($monthKeys as $index => $month): ?>
+                            <?php
+                            $january = substr($month, -2) === '01';
+                            $year = ($index === 0 || $january) ? substr($month, 0, 4) : null;
+                            ?>
+                            <span class="vp-rep-tick<?= $year !== null ? ' is-year' : '' ?>">
+                                <?php if ($monthly): ?>
+                                    <span><?= h($monthLabel($month, 'M')) ?></span>
+                                <?php endif; ?>
+                                <?php if ($year !== null && ($monthly || $january)): ?>
+                                    <small><?= h($year) ?></small>
+                                <?php endif; ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if (!$monthly): ?>
+                        <div class="vp-rep-ends" aria-hidden="true">
+                            <span><?= h($monthLabel(reset($monthKeys))) ?></span>
+                            <span><?= h($monthLabel(end($monthKeys))) ?></span>
                         </div>
                     <?php endif; ?>
-                    <?php
-                    /*
-                     * The exact ends, which the year ticks above round
-                     * off — and one label where the span is one month,
-                     * because `2017-01 … 2017-01` is a range that does
-                     * not range.
-                     */
-                    ?>
-                    <div class="vp-spark-axis">
-                        <span><?= h(array_key_first($months)) ?></span>
-                        <?php if (count($months) > 1): ?>
-                            <span><?= h(array_key_last($months)) ?></span>
-                        <?php endif; ?>
-                    </div>
                 <?php endif; ?>
-            </div>
+            </section>
 
-            <div class="vp-reporting-who">
-                <div class="vp-subhead">
-                    <?= __('Occurrences by organisation') ?>
-                </div>
+            <section class="vp-rep-who" aria-label="<?= h(__('Who reported it')) ?>">
+                <div class="vp-subhead"><?= __('Reported by') ?></div>
                 <?php if (empty($orgs)): ?>
                     <div class="vp-empty vp-empty-inline">
-                        <span class="misp-icon misp-icon-organisation
-                                     misp-simple"></span>
-                        <span><?= __(
-                            'Every occurrence is soft-deleted.'
-                        ) ?></span>
+                        <span class="misp-icon misp-icon-organisation misp-simple"></span>
+                        <span><?= __('Every occurrence is soft-deleted.') ?></span>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($orgs as $org): ?>
-                        <div class="vp-reporter">
-                            <span class="vp-reporter-name">
-                                <?= h($org['name']) ?>
-                            </span>
-                            <span class="vp-stance <?= h(
-                                $stanceTone[$org['stance']] ?? ''
-                            ) ?>" title="<?= h(
-                                $stanceTitle[$org['stance']]
-                                    ?? $org['stance']
-                            ) ?>">
-                                <i class="fas fa-shield-halved"></i>
-                                <span><?= h($org['stance']) ?></span>
-                            </span>
-                            <span class="vp-reporter-track">
-                                <span class="vp-reporter-fill" style="width: <?=
-                                    $topOrg > 0
-                                        ? round(100 * $org['occurrences']
-                                            / $topOrg)
-                                        : 0 ?>%;"></span>
-                            </span>
-                            <span class="vp-reporter-count">
-                                <?= h(number_format($org['occurrences'])) ?>
-                            </span>
-                        </div>
-                    <?php endforeach; ?>
-
-                    <?php
-                    /*
-                     * The cap is the drawing's and not the read's, so
-                     * what it hides is a count this card holds rather
-                     * than a number it would have to ask for.
-                     */
-                    ?>
+                    <table class="table align-middle mb-0 ix-table vp-rep-table">
+                        <thead>
+                            <tr>
+                                <th scope="col"><?= __('Organisation') ?></th>
+                                <th scope="col"><?= __('Occurrences') ?></th>
+                                <th scope="col" class="text-center" title="<?= h(__('Occurrences flagged for IDS')) ?>">
+                                    <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                                    <span class="visually-hidden"><?= __('IDS') ?></span>
+                                </th>
+                                <th scope="col"><?= __('Period') ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($orgs as $org): ?>
+                                <tr>
+                                    <td class="vp-rep-org">
+                                        <?= $orgLink($org) ?>
+                                        <?php if ($first !== null && (int)$first['org']['id'] === (int)$org['id']): ?>
+                                            <span class="vp-rep-first" title="<?= h(__('The first organisation to report this value')) ?>"><?= __('first') ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="vp-rep-occ">
+                                        <span class="vp-rep-track" aria-hidden="true">
+                                            <span style="width: <?= $topOrg > 0 ? round(100 * $org['occurrences'] / $topOrg) : 0 ?>%;"></span>
+                                        </span>
+                                        <b><?= h(number_format($org['occurrences'])) ?></b>
+                                    </td>
+                                    <td class="vp-rep-ids text-center"
+                                        title="<?= h(sprintf(
+                                            __n('%1$s of its %2$s occurrence is flagged for IDS',
+                                                '%1$s of its %2$s occurrences are flagged for IDS',
+                                                $org['occurrences']),
+                                            number_format($org['ids']),
+                                            number_format($org['occurrences'])
+                                        )) ?>">
+                                        <i class="fas fa-shield-halved om-flag <?= $org['ids'] > 0 ? 'text-warning' : 'text-secondary' ?>" aria-hidden="true"></i>
+                                        <span><?= h($org['ids']) ?>/<?= h($org['occurrences']) ?></span>
+                                    </td>
+                                    <td class="vp-rep-period"><?= h($period($org)) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                     <?php if ($hidden > 0): ?>
-                        <div class="vp-reporting-rest">
+                        <div class="vp-rep-rest">
                             <?= h(sprintf(
-                                __n(
-                                    '%s further organisation not shown',
-                                    '%s further organisations not shown',
-                                    $hidden
-                                ),
+                                __n('%s further organisation', '%s further organisations', $hidden),
                                 number_format($hidden)
-                            )) ?>
+                            )) ?> &nbsp;·&nbsp;
+                            <a href="#tab-occurrences"><?= __('See the Occurrences tab') ?></a>
                         </div>
                     <?php endif; ?>
-
                 <?php endif; ?>
-            </div>
+            </section>
 
+        </div>
         </div>
     <?php endif; ?>
 

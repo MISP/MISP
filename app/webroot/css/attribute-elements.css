@@ -147,6 +147,66 @@
     outline-offset: 1px;
 }
 .sighting-cell > span.btn { cursor: default; }
+
+/* Feed and server hits (Fields/feedHits): the sightings' tinted pill, with
+   the feed's name and how many of its events carry the value. */
+.feed-hits {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+.feed-hit {
+    --fh-tone: var(--bs-info);
+    --fh-ink: color-mix(in srgb, var(--fh-tone) 60%, var(--bs-emphasis-color));
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 12rem;
+    height: 22px;
+    margin: 0;
+    padding: 0 9px 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--fh-tone) 12%, transparent);
+    font-family: inherit;
+    font-size: .74rem;
+    font-weight: 650;
+    line-height: 1;
+    color: var(--fh-ink);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color .12s, color .12s;
+}
+.feed-hit.is-server { --fh-tone: var(--bs-warning); }
+.feed-hit.feed-hit-more { --fh-tone: var(--bs-secondary-color); }
+.feed-hit > i {
+    flex: none;
+    font-size: .66rem;
+    color: var(--fh-tone);
+}
+.feed-hit-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.feed-hit > b {
+    flex: none;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    opacity: .7;
+}
+:is(a, button).feed-hit { cursor: pointer; }
+:is(a, button).feed-hit:hover,
+:is(a, button).feed-hit:focus-visible {
+    background: color-mix(in srgb, var(--fh-tone) 20%, transparent);
+    color: var(--fh-ink);
+}
+:is(a, button).feed-hit:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--fh-tone) 55%, transparent);
+    outline-offset: 1px;
+}
+span.feed-hit { cursor: default; }
 .sighting-cell > .sighting-details {
     justify-content: center;
     width: 22px;
@@ -166,3 +226,181 @@
     :is(tr, .idx-card):hover .om-analyst-none,
     .om-analyst-none:focus-visible { opacity: 1; }
 }
+
+/* An event named by its id (Attributes/event_ref): the id as the indexes' ID
+   column, then the event peek. */
+.ev-ref {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    vertical-align: middle;
+}
+.ev-ref-id {
+    font-family: var(--bs-font-monospace);
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+}
+.ev-ref-id:hover {
+    color: var(--bs-body-color);
+    text-decoration: underline;
+}
+
+/* An attribute's event (Attributes/event_peek): an icon at the head of its value, and
+   a popover drawn as the events index's sharing group peek. Bootstrap's sanitizer
+   drops the popover's inline styles: every tone is a class. */
+.ev-peek {
+    flex: none;
+    align-self: center;
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 20px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--bs-event) 12%, transparent);
+    color: var(--bs-event);
+    text-decoration: none;
+}
+.ev-peek:hover,
+.ev-peek:focus-visible {
+    background: color-mix(in srgb, var(--bs-event) 22%, transparent);
+}
+.ev-peek .misp-icon { width: 12px; height: 12px; }
+.ev-peek-popover {
+    --bs-popover-max-width: 340px;
+    width: 340px;
+    --bs-popover-border-radius: 10px;
+    --bs-popover-inner-border-radius: 9px;
+    --bs-popover-body-padding-x: 0;
+    --bs-popover-body-padding-y: 0;
+    font-size: .8rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .16), 0 2px 6px rgba(0, 0, 0, .08);
+}
+.ev-peek-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.ev-peek-ic {
+    flex: none;
+    align-self: flex-start;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 28px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--bs-event) 12%, transparent);
+    color: var(--bs-event);
+}
+.ev-peek-ic .misp-icon { width: 16px; height: 16px; }
+.ev-peek-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.ev-peek-title b {
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+.ev-peek-title small {
+    font-size: .72rem;
+    color: var(--bs-secondary-color);
+}
+.ev-peek-id { font-family: var(--bs-font-monospace); }
+.ev-peek-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+.ev-peek-pill {
+    --evp-tone: var(--bs-secondary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 1px 7px;
+    border: 1px solid color-mix(in srgb, var(--evp-tone) 35%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--evp-tone) 7%, transparent);
+    font-size: .66rem;
+    font-weight: 650;
+    color: color-mix(in srgb, var(--evp-tone) 80%, var(--bs-emphasis-color));
+}
+.ev-peek-pill i { font-size: .6rem; }
+.ev-peek-pill.is-published { --evp-tone: var(--bs-success); }
+.ev-peek-pill.is-unpublished,
+.ev-peek-pill.is-pending { --evp-tone: var(--bs-warning); }
+.ev-peek-pill.is-pending { border-style: dashed; }
+.ev-peek-org {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.ev-peek-org .dk-logo { width: 28px; height: 28px; border-radius: 6px; }
+.ev-peek-org .dk-logo img { max-width: 28px; max-height: 28px; }
+.ev-peek-org .dk-logo.is-mono { font-size: 11px; }
+.ev-peek-org-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.ev-peek-org-text b {
+    overflow: hidden;
+    font-size: .85rem;
+    font-weight: 650;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.ev-peek-org-text small {
+    font-size: .7rem;
+    color: var(--bs-secondary-color);
+}
+.ev-peek-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 14px;
+    padding: 10px 12px 11px;
+}
+.ev-peek-fact {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.ev-peek-fact small {
+    font-size: .64rem;
+    font-weight: 650;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ev-peek-fact > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.ev-peek-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--misp-tone-gray-solid, #6c757d);
+}
+.ev-peek-dot.is-high { background: var(--misp-tone-red-solid, #dc3545); }
+.ev-peek-dot.is-medium,
+.ev-peek-dot.is-ongoing { background: var(--misp-tone-orange-solid, #fd7e14); }
+.ev-peek-dot.is-low { background: var(--misp-tone-yellow-solid, #ffc107); }
+.ev-peek-dot.is-initial { background: var(--misp-tone-blue-solid, #0d6efd); }
+.ev-peek-dot.is-completed { background: var(--misp-tone-green-solid, #198754); }

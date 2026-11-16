@@ -298,6 +298,7 @@
         }
         syncFiltersBtn(bar);
         syncQuery(bar);
+        initStrips(scope);
         if (deferred(bar)) {
             bar.__draft = {};
             renderDraft(bar);
@@ -392,7 +393,142 @@
         var panel = panelOf(bar);
         if (!panel) { return; }
         panel.querySelectorAll('.ifp-sec').forEach(function (sec) {
-            sec.hidden = !Array.prototype.some.call(sec.querySelectorAll('.ifp-grid > *'), function (el) { return !el.hidden; });
+            sec.hidden = !Array.prototype.some.call(sec.querySelectorAll('.ifp-grid > *, .ifp-lists > *'), function (el) { return !el.hidden; });
+        });
+    }
+
+    /* ── the time strip: a brush over one date's histogram ────────────── */
+
+    function stripSay(strip, text) {
+        var cap = strip.querySelector('[data-ifp-strip-cap]');
+        if (cap) { cap.textContent = text; }
+    }
+
+    function stripBars(pane) {
+        return Array.prototype.slice.call(pane.querySelectorAll('[data-ifp-from]'));
+    }
+
+    function stripString(node, key) {
+        var strip = node.closest('[data-ifp-strip]');
+        if (!strip.__ifpStrings) { strip.__ifpStrings = JSON.parse(strip.getAttribute('data-ifp-strip') || '{}'); }
+        return strip.__ifpStrings[key] || '%s';
+    }
+
+    // "Mar 2024 – Sep 2024 · 58 rows", the rows a run of bars holds.
+    function stripSpan(bars, from, to) {
+        var rows = 0;
+        for (var i = from; i <= to; i++) { rows += parseInt(bars[i].getAttribute('data-ifp-count'), 10) || 0; }
+        var span = from === to ? bars[from].getAttribute('data-ifp-label')
+            : bars[from].getAttribute('data-ifp-start') + ' – ' + bars[to].getAttribute('data-ifp-end');
+        return span + ' · ' + (rows === 1 ? stripString(bars[from], 'row')
+            : stripString(bars[from], 'rows').replace('%s', rows.toLocaleString()));
+    }
+
+    function stripSelection(pane) {
+        var sel = pane.getAttribute('data-ifp-strip-sel');
+        if (!sel || sel === 'none') { return null; }
+        var ends = sel.split(',');
+        return { from: parseInt(ends[0], 10), to: parseInt(ends[1], 10) };
+    }
+
+    // What the caption says at rest: the period kept, or the span drawn.
+    function stripRest(pane) {
+        var sel = stripSelection(pane);
+        return sel ? stripString(pane, 'kept').replace('%s', stripSpan(stripBars(pane), sel.from, sel.to))
+            : pane.getAttribute('data-ifp-strip-rest');
+    }
+
+    function showStripField(strip, field) {
+        var shown = null;
+        strip.querySelectorAll('[data-ifp-strip-pane]').forEach(function (pane) {
+            pane.hidden = pane.getAttribute('data-ifp-strip-pane') !== field;
+            if (!pane.hidden) { shown = pane; }
+        });
+        if (!shown) { return; }
+        strip.querySelectorAll('[data-ifp-strip-field]').forEach(function (btn) {
+            var on = btn.getAttribute('data-ifp-strip-field') === field;
+            btn.classList.toggle('active', on);
+            btn.setAttribute('aria-pressed', String(on));
+        });
+        stripSay(strip, stripRest(shown));
+        var tab = tabOf(strip);
+        if (tab) { tab.dataset.ifpStrip = field; }
+    }
+
+    function initStrips(root) {
+        if (!window.MispBrush) { return; }
+        (root || document).querySelectorAll('[data-ifp-strip]').forEach(function (strip) {
+            if (strip.__ifpStrip) { return; }
+            strip.__ifpStrip = true;
+            strip.querySelectorAll('[data-ifp-strip-pane]').forEach(function (pane) {
+                var chart = pane.querySelector('.ifp-strip-chart');
+                if (!chart) { return; }
+                var bars = stripBars(pane);
+                var field = pane.getAttribute('data-ifp-strip-pane');
+                var dragged = null;
+                var rest = function () {
+                    var sel = stripSelection(pane);
+                    if (sel) {
+                        window.MispBrush.paint(chart, sel, bars.length);
+                    } else if (pane.getAttribute('data-ifp-strip-sel') === 'none') {
+                        window.MispBrush.paint(chart, null, bars.length);
+                    } else {
+                        window.MispBrush.clear(chart);
+                    }
+                    stripSay(strip, stripRest(pane));
+                };
+                var keep = function (changes) {
+                    var bar = barOf(strip);
+                    if (bar) { load(bar, urlWith(bar, changes), true); }
+                };
+                window.MispBrush.attach(chart.querySelector('[data-misp-brush]'), {
+                    count: function () { return bars.length; },
+                    range: function (from, to) {
+                        dragged = { from: from, to: to };
+                        window.MispBrush.paint(chart, dragged, bars.length);
+                        stripSay(strip, stripSpan(bars, from, to));
+                    },
+                    settle: function () {
+                        if (!dragged) { return; }
+                        var changes = {};
+                        changes[field] = [bars[dragged.from].getAttribute('data-ifp-from'), bars[dragged.to].getAttribute('data-ifp-to')];
+                        dragged = null;
+                        keep(changes);
+                    },
+                    // A click drops the period this date keeps.
+                    clear: function () {
+                        dragged = null;
+                        if (pane.hasAttribute('data-ifp-strip-sel')) {
+                            var changes = {};
+                            changes[field] = null;
+                            keep(changes);
+                        } else {
+                            rest();
+                        }
+                    }
+                });
+                // The brush covers the bars, so the one under the pointer is named in the caption.
+                chart.addEventListener('pointermove', function (event) {
+                    if (dragged || pane.hidden) { return; }
+                    var box = chart.getBoundingClientRect();
+                    var at = Math.max(0, Math.min(bars.length - 1, Math.floor((event.clientX - box.left) / box.width * bars.length)));
+                    stripSay(strip, stripSpan(bars, at, at));
+                });
+                // A pane switched away from still gets its leave: it no longer owns the caption.
+                chart.addEventListener('pointerleave', function () {
+                    if (!dragged && !pane.hidden) { stripSay(strip, stripRest(pane)); }
+                });
+                rest();
+            });
+            // A tab reload draws the date with a period first, else the one last looked at.
+            var tab = tabOf(strip);
+            var shown = strip.querySelector('[data-ifp-strip-pane]:not([hidden])');
+            var remembered = tab && tab.dataset.ifpStrip;
+            if (remembered && shown && !shown.hasAttribute('data-ifp-strip-sel')) {
+                showStripField(strip, remembered);
+            } else if (shown) {
+                stripSay(strip, stripRest(shown));
+            }
         });
     }
 
@@ -1277,6 +1413,17 @@
             if (panel) { showPanel(bar, panel.hidden); }
             return;
         }
+        var stripField = target.closest('[data-ifp-strip-field]');
+        if (stripField) {
+            showStripField(stripField.closest('[data-ifp-strip]'), stripField.getAttribute('data-ifp-strip-field'));
+            return;
+        }
+        var listMore = target.closest('[data-ifp-list-more]');
+        if (listMore) {
+            listMore.closest('.ifp-list').querySelectorAll('[data-ifp-lv-fold]').forEach(function (row) { row.hidden = false; });
+            listMore.remove();
+            return;
+        }
         if (target.closest('[data-ifp-search]')) {
             load(bar, searchUrl(bar), true);
             return;
@@ -1511,13 +1658,15 @@
         applyAllTabScopes(event.target);
         restorePanel(event.target);
         renderDrafts(event.target);
+        initStrips(event.target);
     });
     applyAllTabScopes(document);
     // This script is loaded ahead of the bar it serves.
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () { renderDrafts(document); });
+        document.addEventListener('DOMContentLoaded', function () { renderDrafts(document); initStrips(document); });
     } else {
         renderDrafts(document);
+        initStrips(document);
     }
 
     window.IndexFilters = {

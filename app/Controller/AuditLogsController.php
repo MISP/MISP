@@ -357,6 +357,65 @@ class AuditLogsController extends AppController
     }
 
     /**
+     * The value page's History tab: the audit log's filter bar over the
+     * value's history (ValueIntelligence::forHistory), grouped by
+     * occurrence. The bar's filters narrow the entries the history reads.
+     *
+     * @param string|null $b64value The value page's address
+     * @return CakeResponse|void
+     * @throws NotFoundException
+     */
+    public function valueHistory($b64value = null)
+    {
+        App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
+        $user = $this->Auth->user();
+        $address = ValueUrlTool::parse((string)$b64value);
+        $value = $address === null
+            ? null
+            : ClassRegistry::init('AttributeValue')->readableAddressed($user, $address);
+        if ($value === null) {
+            throw new NotFoundException(__('Invalid value.'));
+        }
+
+        $isSiteAdmin = $this->_isSiteAdmin();
+        $filters = ['model_title', 'action', 'model', 'model_id', 'org', 'request_type', 'created'];
+        if ($isSiteAdmin) {
+            $filters[] = 'user';
+        }
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters($filters, $exception, ['fromQuery' => true]);
+        $quickFilter = $this->IndexFilter->quickFilterTerm();
+        $quickFilterConditions = $this->IndexFilter->quickFilterConditions($quickFilter, 'AuditLog', [
+            'like' => ['model_title', 'model', 'action'],
+            'numeric' => ['model_id'],
+            'org' => 'org_id',
+        ] + ($isSiteAdmin ? ['user' => 'user_id'] : []));
+        $conditionsOf = function (array $params) use ($quickFilterConditions) {
+            $conditions = array_filter([$this->__searchConditions($params), $quickFilterConditions]);
+            return empty($conditions) ? null : ['AND' => array_values($conditions)];
+        };
+
+        $profile = ClassRegistry::init('ValueIntelligence')->forHistory($user, $value, [
+            'window' => 'all',
+            'conditions' => $conditionsOf($params),
+            // The bar's time strip draws the entries every other filter keeps.
+            'strip_conditions' => $conditionsOf(array_diff_key($params, ['created' => true])),
+        ]);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($profile['history'], 'json');
+        }
+
+        $this->set('valueIntelligence', $profile);
+        $this->set('valueB64', ValueUrlTool::address($value));
+        $this->set('actions', $this->__actionOptions());
+        // The models a value's history can hold.
+        $this->set('models', ['Attribute', 'Event', 'EventReport', 'Object', 'ShadowAttribute']);
+        $this->set('quickFilter', $quickFilter);
+        $this->layout = false;
+        $this->render('value_history');
+    }
+
+    /**
      * The Action picker's options, a tag and its local twin as one.
      *
      * @return array
@@ -552,12 +611,19 @@ class AuditLogsController extends AppController
         }
         if (isset($params['created'])) {
             $tempData = is_array($params['created']) ? $params['created'] : [$params['created']];
+            $bareDays = [];
             foreach ($tempData as $k => $v) {
+                $bareDays[$k] = is_string($v) && preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($v));
                 $tempData[$k] = $this->AuditLog->resolveTimeDelta($v);
             }
             if (count($tempData) === 1) {
                 $conditions['AuditLog.created >='] = date("Y-m-d H:i:s", $tempData[0]);
             } else {
+                // A bare end date keeps its whole day, as the time picker's To means it.
+                $end = $tempData[0] < $tempData[1] ? 1 : 0;
+                if ($bareDays[$end]) {
+                    $tempData[$end] += 86399;
+                }
                 if ($tempData[0] < $tempData[1]) {
                     $temp = $tempData[1];
                     $tempData[1] = $tempData[0];

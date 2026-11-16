@@ -1,118 +1,187 @@
 <?php
 /**
- * The clock band — relevance, at the rank the other two axes have.
+ * The Assessment tab's shelf life card: how long this reading holds. The
+ * runway from the clock to the expiry (days used on the record, days
+ * assumed), the date at each end, a note for each assumption the clock
+ * makes, and the confirmations that reset it. It affects neither the lean
+ * nor the signal strength. The Sightings tab's Lifetime card draws the
+ * same block in full (value_relevance_facts).
  *
- * D11's three axes were not three on this tab. Lean carried its badge,
- * the escalation that decided it and a table of who says what; signal strength
- * carried the number, the band and a ledger whose rows sum to it
- * exactly. Relevance carried one clause of the hero's sentence and a
- * 90-day line in the rail — a reader could see *what* the axis
- * concluded and nothing of *why*, on the one axis whose inputs are
- * dates a reader can go and check.
+ * Shared by both verdict layouts.
  *
- * **A band rather than a card, and rather than a number in the hero.**
- * D11 §7 rules out the obvious fix: three competing numbers at the top
- * is what the one-number verdict was replaced for, and `summary`
- * already composes the three axes in a sentence. What was missing is
- * the axis's working, and the argument card is where this tab keeps
- * working — the warninglist band and the ledger are its neighbours, in
- * the order the argument is made.
- *
- * It costs no query. `$verdict['relevance']` is built inside
- * `ValueVerdictTool::assess()` from the context the signal strength already
- * read, so every fact drawn here was on the tab before this band
- * existed and was being thrown away at render.
- *
- * The facts and the corroboration list are the Lifetime card's own
- * elements, not copies of them. `10-wiring.md` §14.3 is why: this tab
- * drew *expired, 33 days over* while the Sightings tab drew *64 days
- * left* for one value on one page, and two panels computing one
- * quantity twice is a defect this corpus has now shipped three times.
- * A shared element cannot disagree with itself.
- *
- * @var array $verdict The assessment, carrying `relevance`
+ * @var array $verdict
  */
-$relevance = $verdict['relevance'] ?? array();
-$clock = $relevance['clock'] ?? array();
+App::uses('ValueRelevanceTool', 'Tools/ValueIntelligence');
 
-/*
- * The one value this band has nothing to add to: a record the viewer
- * holds nothing of. `no_record` is `clock.at === null`, which is the
- * same condition the lean's first rule reads to return `none`, so the
- * hero has already said *nothing you can see records this value* and a
- * band repeating it in the clock's words is a second empty state under
- * the first. Every other silence is drawn, because every other silence
- * is about this axis rather than about the whole record.
- *
- * The Lifetime card keeps its own no-record state: it is the panel a
- * reader opens *for* the clock, and it is the only thing on that panel.
- */
-if (($verdict['lean'] ?? null) === 'none'
-    && ($relevance['state'] ?? null) === null
-) {
+$relevance = $verdict['relevance'] ?? array();
+$state = $relevance['state'] ?? null;
+if (($verdict['lean'] ?? null) === 'none' && $state === null) {
     return;
 }
+$clock = $relevance['clock'] ?? array();
+$ttl = $relevance['ttl'] ?? array();
+$ttlDays = (int)($ttl['days'] ?? 0);
+$days = $relevance['runway_days'] ?? null;
+$assumed = (int)($relevance['assumed_days'] ?? 0);
+
+$figure = null;
+if ($state !== null && $days !== null) {
+    $figure = $days === 0
+        ? __('expires today')
+        : ($days > 0
+            ? sprintf(__n('%s day left', '%s days left', $days), number_format($days))
+            : sprintf(__n('%s day over', '%s days over', -$days), number_format(-$days)));
+}
+
+// The sub-title: where the lifetime comes from, and from when it runs.
+$sub = array();
+$subTitle = null;
+if ($state !== null) {
+    $buckets = array(
+        'short' => __('short lifetime'),
+        'medium' => __('medium lifetime'),
+        'long' => __('long lifetime'),
+        'very_long' => __('very long lifetime'),
+    );
+    if (!empty($ttl['type'])) {
+        $sub[] = $ttl['type'];
+    }
+    if (($ttl['from'] ?? null) === 'bucket' && isset($buckets[$ttl['bucket'] ?? ''])) {
+        $sub[] = $buckets[$ttl['bucket']];
+    } elseif (($ttl['from'] ?? null) === 'override') {
+        $sub[] = __('its own lifetime override');
+    } else {
+        $sub[] = __('the profile\'s default lifetime');
+    }
+    if (!empty($ttl['spread']) && !empty($ttl['candidates'])) {
+        $rules = array(
+            'shortest' => __('the shortest of its %s types'),
+            'longest' => __('the longest of its %s types'),
+            'most_common' => __('the most common of its %s types'),
+        );
+        $sub[] = sprintf($rules[$ttl['rule'] ?? ''] ?? __('one of its %s types'), count($ttl['candidates']));
+        $each = array();
+        foreach ($ttl['candidates'] as $candidate) {
+            $each[] = sprintf(__('%1$s: %2$s days'), $candidate['type'], $candidate['days']);
+        }
+        $subTitle = implode(' · ', $each);
+    }
+    if ($ttlDays > 0) {
+        $sub[] = !empty($clock['fallback'])
+            ? sprintf(__('%s days from when it was last added'), number_format($ttlDays))
+            : sprintf(__('%s days from the last confirmation'), number_format($ttlDays));
+    }
+}
+
+// The runway: days used on the record, then the assumed ones.
+$usedPct = $ttlDays > 0 ? min(100, round((int)($relevance['recorded_days'] ?? 0) / $ttlDays * 100, 2)) : 0;
+$assumedPct = $ttlDays > 0 ? min(100 - $usedPct, round($assumed / $ttlDays * 100, 2)) : 0;
+
+// What resets the clock, newest first: the one holding it in full.
+$events = array_reverse($clock['events'] ?? array());
+$cap = 4;
+$shown = array_slice($events, 0, $cap);
 ?>
-<div class="vp-vc-clock">
-    <div class="vp-vc-clock-head"
-         title="<?= h(__('Counts down from the last time someone'
-             . ' independent confirmed the value. It affects neither'
-             . ' the lean nor the signal strength.')) ?>">
-        <i class="fas fa-hourglass-half vp-vc-clock-mark"></i>
-        <?= h(__('How long this reading holds')) ?>
-    </div>
-    <div class="vp-vc-clock-body<?= empty($clock['events'])
-        ? ''
-        : ' vp-vc-band-split' ?>">
-        <div class="vp-vc-band-bar">
-            <?= $this->element('Values/View/value_relevance_facts', array(
-                'relevance' => $relevance,
-            )) ?>
-        </div>
-        <?php if (!empty($clock['events'])): ?>
-            <?php
-            /*
-             * The nearest thing this axis has to the ledger above it:
-             * the dates that produced the number, each attributed, the
-             * one in force marked. Capped at four rather than the
-             * Lifetime card's six — that card is the panel a reader
-             * opens *for* the clock, and this is a band inside an
-             * argument about something else.
-             */
-            ?>
-            <div class="vp-vc-band-list">
-                <?= $this->element(
-                    'Values/View/value_relevance_events',
-                    array('clock' => $clock, 'cap' => 4)
-                ) ?>
+<div class="card shadow-sm mb-3 vp-panel vp-vt vp-vt-<?= h((string)$state) ?>" style="--vp-panel-color: var(--correlation);">
+    <?= $this->element('Values/View/value_panel_header', array(
+        'panelTitle' => __('How long it holds'),
+        'panelIcon' => 'fas fa-hourglass-half',
+        'panelColor' => 'var(--correlation)',
+        'panelSub' => empty($sub) ? null
+            : '<span' . ($subTitle === null ? '' : ' title="' . h($subTitle) . '"') . '>' . h(implode(' · ', $sub)) . '</span>',
+        'panelExtra' => $figure === null ? null : '<span class="vp-card-figure">' . h($figure) . '</span>',
+    )) ?>
+    <div class="vp-vt-body">
+        <?php if ($state === null): ?>
+            <?= $this->element('Values/View/value_relevance_facts', array('relevance' => $relevance)) ?>
+        <?php else: ?>
+            <div class="vp-vt-runway" title="<?= h($assumed > 0
+                ? sprintf(__('%1$s of %2$s days used: %3$s on the record, %4$s assumed'),
+                    (int)($relevance['elapsed_days'] ?? 0), $ttlDays, (int)($relevance['recorded_days'] ?? 0), $assumed)
+                : sprintf(__('%1$s of %2$s days used'), (int)($relevance['elapsed_days'] ?? 0), $ttlDays)) ?>">
+                <i class="is-used" style="width: <?= $usedPct ?>%;"></i>
+                <?php if ($assumedPct > 0): ?>
+                    <i class="is-assumed" style="width: <?= $assumedPct ?>%;"></i>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
-        <?php
-        /*
-         * **The caption is three captions, because the two panels do
-         * not always agree and saying they do is how §14.3 got
-         * shipped.** On a value whose rows the budget left unread this
-         * axis stands down while the Lifetime card still reads the rows
-         * it did fetch — `github.com` is *stands down* here and
-         * *current, 64 days left* there, and both are correct. A
-         * reader who finds that difference unexplained files it as the
-         * bug it looks like, so the difference is what the line says.
-         * With nothing recorded at all there is no second panel to
-         * point at and no bar to plot, so there is no line.
-         */
-        $reason = $relevance['reason'] ?? null;
-        ?>
-        <?php if (($relevance['state'] ?? null) !== null): ?>
-            <p class="vp-vc-clock-note">
-                <?= h(__('Full history in the Sightings tab\'s'
-                    . ' Lifetime card.')) ?>
-            </p>
-        <?php elseif ($reason === 'rows_not_read'): ?>
-            <p class="vp-vc-clock-note">
-                <?= h(__('The Sightings tab\'s Lifetime card shows a'
-                    . ' clock from the rows it could read, but it may'
-                    . ' miss the newest confirmations.')) ?>
-            </p>
+            <div class="vp-vt-ends">
+                <span title="<?= h(sprintf(__('This profile resets the clock on the %s.'), ValueRelevanceTool::clockLabel($clock['setting'] ?? null))) ?>">
+                    <?= h(sprintf(
+                        !empty($clock['fallback']) ? __('added %1$s by %2$s') : __('confirmed %1$s by %2$s'),
+                        date('Y-m-d', (int)$clock['at']),
+                        $clock['by'] ?? __('an unnamed organisation')
+                    )) ?>
+                </span>
+                <span>
+                    <?php if (!empty($relevance['expired_by'])): ?>
+                        <?= h(sprintf(__('filed as expired by %1$s on %2$s'),
+                            $relevance['expired_by']['name'], date('Y-m-d', (int)$relevance['expired_by']['at']))) ?>
+                    <?php else: ?>
+                        <?= h(sprintf($days !== null && $days < 0 ? __('expired %s') : __('expires %s'),
+                            date('Y-m-d', (int)$relevance['expires_at']))) ?>
+                    <?php endif; ?>
+                </span>
+            </div>
+
+            <?php if (!empty($relevance['uncertain'])): ?>
+                <div class="vp-vt-note">
+                    <?php if ($assumed > 0): ?>
+                        <strong><?= h(sprintf(__n('%s day assumed.', '%s days assumed.', $assumed), $assumed)) ?></strong>
+                        <?= h(sprintf(
+                            __n('No occurrence says when this value was first seen, only when it was recorded, so it is counted as %s day older than its record.',
+                                'No occurrence says when this value was first seen, only when it was recorded, so it is counted as %s days older than its record.',
+                                $assumed),
+                            $assumed
+                        )) ?>
+                        <?= h(__('It ages the value sooner; it never moves the expiry.')) ?>
+                        <?php if (!empty($relevance['assumed_capped'])): ?>
+                            <?= h(sprintf(__('The profile would have assumed %s days; the rest is not applied, because an assumption may never expire a value on its own.'),
+                                $relevance['assumed_setting'])) ?>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <strong><?= h(__('Timeline uncertain.')) ?></strong>
+                        <?= h(__('No occurrence says when this value was first seen, only when it was recorded: it may be older than shown.')) ?>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($clock['fallback'])): ?>
+                <div class="vp-vt-note" title="<?= h(__('One organisation reporting a value is the claim, not its confirmation.')) ?>">
+                    <strong><?= h(__('Not confirmed yet.')) ?></strong>
+                    <?= h(__('Nobody else has confirmed this value, so the clock runs from the day it was last added.')) ?>
+                </div>
+            <?php endif; ?>
+            <?php if (empty($clock['rows_read'])): ?>
+                <div class="vp-vt-note" title="<?= h(__('MISP stops correlating a value that appears in too many events.')) ?>">
+                    <strong><?= h(__('Not every report was read.')) ?></strong>
+                    <?= h(__('This value is too common for MISP to correlate, so a sighting could be newer than the date shown.')) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($shown)): ?>
+                <div class="vp-vt-resets">
+                    <span class="vp-vt-resets-k"><?= h(__('Reset by')) ?></span>
+                    <?php $lastDate = null; ?>
+                    <?php foreach ($shown as $i => $event): ?>
+                        <?php
+                        $date = date('Y-m-d', (int)$event['at']);
+                        $who = empty($event['by']) ? __('unnamed') : $event['by'];
+                        $kind = ValueRelevanceTool::kindLabel($event['kind']);
+                        $hint = ValueRelevanceTool::kindHint($event['kind']);
+                        if ($i === 0) {
+                            $words = $date . ' · ' . $who . ' · ' . $kind;
+                        } else {
+                            $words = $date === $lastDate ? $who : $date . ' · ' . $who;
+                        }
+                        $lastDate = $date;
+                        ?>
+                        <span class="vp-vt-chip<?= $i === 0 ? ' is-held' : '' ?>"
+                              title="<?= h($date . ' · ' . $who . ' · ' . $kind . ($hint === null ? '' : ' — ' . $hint)) ?>"><?= h($words) ?></span>
+                    <?php endforeach; ?>
+                    <?php if (count($events) > count($shown)): ?>
+                        <span class="vp-vt-chip is-more"><?= h(sprintf(__('+%s earlier'), count($events) - count($shown))) ?></span>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>

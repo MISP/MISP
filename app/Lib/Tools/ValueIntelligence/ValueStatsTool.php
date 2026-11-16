@@ -1087,6 +1087,7 @@ class ValueStatsTool
         $blank = array('sighting' => 0, 'fp' => 0, 'expiration' => 0);
         $orgs = array();
         $orgKinds = array();
+        $orgIds = array();
         $last = null;
         $lastFp = null;
         foreach ($rows as $row) {
@@ -1100,6 +1101,10 @@ class ValueStatsTool
             $orgs[$org] = ($orgs[$org] ?? 0) + 1;
             if (!isset($orgKinds[$org])) {
                 $orgKinds[$org] = $blank;
+                // For the reporter's tile and link.
+                $orgIds[$org] = self::sightingHasOrg($row)
+                    ? (int)$row['Sighting']['org_id']
+                    : null;
             }
             $orgKinds[$org][$kind]++;
             $at = (int)$row['Sighting']['date_sighting'];
@@ -1113,8 +1118,11 @@ class ValueStatsTool
         arsort($orgs);
         $reporters = array();
         foreach ($orgs as $name => $count) {
-            $reporters[] = array('org' => $name, 'count' => $count)
-                + $orgKinds[$name];
+            $reporters[] = array(
+                'org' => $name,
+                'org_id' => $orgIds[$name],
+                'count' => $count,
+            ) + $orgKinds[$name];
         }
         return array(
             'total' => $counts['total'],
@@ -1807,7 +1815,7 @@ class ValueStatsTool
                 $segments[] = array(
                     'label' => $group['kind'],
                     'points' => $earned,
-                    'colour' => self::compositionColour($group['kind']),
+                    'colour' => self::familyColour($group['kind']),
                 );
             }
         }
@@ -1829,7 +1837,7 @@ class ValueStatsTool
      * @param string $kind
      * @return string A CSS variable reference, never a raw hex
      */
-    private static function compositionColour($kind)
+    public static function familyColour($kind)
     {
         switch ($kind) {
             case 'Reporting':

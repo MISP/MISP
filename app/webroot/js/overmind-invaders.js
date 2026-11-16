@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var CLICKS_TO_LAUNCH = 4;
+    var CLICKS_TO_LAUNCH = 3;
     var CLICK_WINDOW = 400;     // ms a click waits for its successor
 
     var W = 480, H = 360;       // logical canvas, scaled by CSS

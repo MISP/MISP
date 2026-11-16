@@ -175,29 +175,28 @@ if ($typing !== null) {
 } else {
     $names = array();
     foreach ($types as $row) {
-        $names[] = '<span class="font-monospace">'
-            . h($row['type']) . '</span>';
+        $names[] = '<span class="vp-e-type">' . h($row['type']) . '</span>';
     }
-    $bits[] = sprintf(
-        __n('%1$s type: %2$s', '%1$s types: %2$s', count($types)),
-        h(count($types)),
-        implode(', ', $names)
-    );
+    $bits[] = implode(' ', $names);
 }
 if ($service['reachable']) {
     $bits[] = h(sprintf(
-        __n(
-            '%d module eligible',
-            '%d modules eligible',
-            count($modules)
-        ),
+        __n('%d module can answer for this value', '%d modules can answer for this value', count($modules)),
         count($modules)
     ));
-    $bits[] = h(sprintf(
-        __('%d enabled on this instance'),
-        $enrichment['enabled']
-    ));
 }
+
+// Header: the profile and the modules service, as pills.
+$profileId = 'vp-e-profile-' . substr(sha1(uniqid('', true)), 0, 8);
+$headerExtra = $this->element('Values/View/value_enrichment_profile', array(
+    'enrichment' => $enrichment,
+    'part' => 'pill',
+    'detailId' => $profileId,
+));
+$headerExtra .= $service['reachable']
+    ? '<span class="vp-e-svcpill is-up" title="' . h(sprintf(__('Each module gives up after %d s.'), $service['timeout'])) . '">'
+        . '<i aria-hidden="true"></i>' . h(sprintf(__('Modules service up · %d ms'), $service['took'])) . '</span>'
+    : '<span class="vp-e-svcpill is-down"><i aria-hidden="true"></i>' . h(__('Modules service down')) . '</span>';
 ?>
 <div class="card shadow-sm mb-3 vp-panel vp-e"
      style="--vp-panel-color: var(--vp-e-accent);"
@@ -295,6 +294,7 @@ if ($service['reachable']) {
         'panelColor' => 'var(--vp-e-accent)',
         'panelSub' => implode(' &middot; ', $bits),
         'panelNotes' => $notes === '' ? null : $notes,
+        'panelExtra' => $headerExtra,
     )) ?>
 
     <?php
@@ -308,6 +308,10 @@ if ($service['reachable']) {
     ?>
     <?= $this->element('Values/View/value_enrichment_profile', array(
         'enrichment' => $enrichment,
+        'part' => 'detail',
+        'detailId' => $profileId,
+        // Without a module list, the turned-off modules have no other place.
+        'withDisabled' => !$service['reachable'] || empty($modules),
     )) ?>
 
     <?php if (!$service['reachable']): ?>
@@ -405,203 +409,72 @@ if ($service['reachable']) {
     <?php else: ?>
 
         <div class="vp-e-split">
-
             <?= $this->element('Values/View/value_enrichment_rail', array(
                 'enrichment' => $enrichment,
                 'canRun' => $canRun,
                 'noRun' => $noRun,
                 'heldCount' => count($held),
             )) ?>
-
             <div class="vp-e-pane">
-
-                <?php
-                /*
-                 * The resting pane, shown until a row is picked. It is
-                 * the tab's opening claim and the reason nothing has
-                 * been queried is stated here rather than implied by
-                 * an empty column.
-                 *
-                 * **It is not the opening claim where answers are
-                 * held.** *Nothing has been queried* is false the
-                 * moment the store holds one, and the Overview has
-                 * been drawing those answers since phase 11 — so the
-                 * merged pane opens instead, with what is held already
-                 * in it. Decided server-side rather than switched by
-                 * the browser, so there is no cold pane to flash.
-                 */
-                ?>
-                <div<?= empty($held) ? '' : ' class="d-none"' ?>
-                     data-vp-e-pane="__none">
-                    <div class="vp-e-cold vp-e-cold-solo">
-                        <div class="vp-e-cold-title">
-                            <?= h(__('Nothing has been queried.')) ?>
-                        </div>
-                        <div class="vp-e-cold-prose">
-                            <?= h(__(
-                                'This page has sent nothing to any'
-                                . ' module. Picking one below shows'
-                                . ' what it would be asked; running it'
-                                . ' sends this value to whoever'
-                                . ' operates it, which spends the'
-                                . ' instance\'s quota and tells them'
-                                . ' somebody is looking.'
-                            )) ?>
-                        </div>
-                        <div class="vp-e-cold-prose mt-2">
-                            <?php
-                            /*
-                             * What this said until phase 11 — *nothing
-                             * a module returns is stored* — stopped
-                             * being true when the run store landed,
-                             * and the brief beside it was corrected
-                             * while this was missed.
-                             */
-                            ?>
-                            <?= h(__(
-                                'An answer is kept for your'
-                                . ' organisation, so opening this'
-                                . ' value again does not ask the'
-                                . ' module again.'
-                            )) ?>
-                        </div>
+                <?php // Until a module is picked; the merged pane opens instead where answers are held. ?>
+                <div<?= empty($held) ? '' : ' class="d-none"' ?> data-vp-e-pane="__none">
+                    <div class="vp-e-detail">
+                        <div class="vp-e-d-title"><?= h(__('Pick a module')) ?></div>
+                        <div class="vp-e-d-desc"><?= h(__(
+                            'Opening a module on the left shows where the value would go and what it said, if it was asked. '
+                            . 'Nothing has been sent for this value yet; an answer is kept for your organisation, so opening this value again does not ask again.'
+                        )) ?></div>
                     </div>
                 </div>
 
-                <?php
-                /*
-                 * The merged pane — `E2`'s one addition to the
-                 * direction it came from. The rail costs the reader
-                 * cross-module reading and this buys it back.
-                 *
-                 * Filled on the client by cloning what the answered
-                 * panes already hold, so it costs no request and
-                 * cannot disagree with them.
-                 *
-                 * **Including the answers nobody opened.** Every held
-                 * answer is drawn into its own pane when this tab
-                 * renders, so the merge has something to clone before
-                 * a reader has pressed anything — which is what makes
-                 * this the pane the tab opens on where the store holds
-                 * something. What it merges is still exactly what the
-                 * panes hold: drawings for everything held, and rows
-                 * as well for whatever has been opened.
-                 */
-                ?>
-                <div<?= empty($held) ? ' class="d-none"' : '' ?>
-                     data-vp-e-pane="__all">
-                    <?php
-                    /*
-                     * The merged pane wears a result's head, because
-                     * that is what it is: the same rows under one
-                     * claim. Anything else would have the reader
-                     * learning a second layout for the same content.
-                     */
-                    ?>
-                    <div class="vp-e-res-head">
-                        <i class="fas fa-layer-group vp-e-mark
-                                  vp-e-mark-quiet" aria-hidden="true"></i>
-                        <div class="vp-e-res-headtext">
-                            <div class="vp-e-cold-title" data-vp-e-allhead>
-                                <?= h(__(
-                                    'Nothing has been opened here yet.'
-                                )) ?>
-                            </div>
-                            <div class="vp-e-cold-prose mb-0">
-                                <?php
-                                /*
-                                 * Both sentences this carried stopped
-                                 * being true in phase 11: answers are
-                                 * stored now, and an answer from last
-                                 * time is exactly what a module row
-                                 * may already be holding.
-                                 */
-                                ?>
-                                <?= h(__(
-                                    'Every answer your organisation'
-                                    . ' holds for this value, drawn.'
-                                    . ' Opening a module adds the rows'
-                                    . ' its drawing was made from,'
-                                    . ' without asking anybody'
-                                    . ' anything.'
-                                )) ?>
+                <div<?= empty($held) ? ' class="d-none"' : '' ?> data-vp-e-pane="__all">
+                    <div class="vp-e-detail">
+                        <div class="vp-e-d-head">
+                            <div>
+                                <div class="vp-e-d-title" data-vp-e-allhead><?= h(__('Nothing has been opened here yet.')) ?></div>
+                                <div class="vp-e-d-desc"><?= h(__(
+                                    'Every answer your organisation holds for this value, side by side. '
+                                    . 'Open a module for the attributes and objects it found.'
+                                )) ?></div>
                             </div>
                         </div>
+                        <div data-vp-e-allbody></div>
                     </div>
-                    <div data-vp-e-allbody></div>
                 </div>
 
-                <?php
-                /*
-                 * One pane per module, rendered up front and empty.
-                 * The run fills it in place; picking between them is a
-                 * class change and never a request, which is the
-                 * promise the tab is built to keep.
-                 */
-                ?>
                 <?php foreach ($modules as $module): ?>
-                    <?php
-                    /*
-                     * `data-vp-e-held` marks a pane holding an answer,
-                     * whether or not anything draws it. The merged
-                     * pane counts those panes, and the tab's badge
-                     * counts rows in the store — so a module answering
-                     * in bare text has to be one of the things merged,
-                     * or the two numbers would disagree by it.
-                     */
-                    ?>
-                    <div class="d-none"
-                         <?= isset($held[$module['name']])
-                            ? 'data-vp-e-held' : '' ?>
+                    <div class="d-none"<?= isset($held[$module['name']]) ? ' data-vp-e-held' : '' ?>
                          data-vp-e-pane="<?= h($module['name']) ?>">
-                        <div data-vp-e-slot>
-                            <?php
-                            /*
-                             * What this module last said, drawn, above
-                             * the brief that says when it said it and
-                             * how to get the rows.
-                             *
-                             * **Inside the slot**, which is what a run
-                             * replaces: pressing *Show what came back*
-                             * swaps the whole thing for the full
-                             * result, so the widget cannot end up
-                             * drawn twice or drawn from two answers.
-                             */
-                            ?>
-                            <?php if (!empty(
-                                $held[$module['name']]['shapes']
-                            )): ?>
-                                <div class="vp-e-heldshapes"
-                                     data-vp-e-heldshapes>
-                                    <?php foreach (
-                                        $held[$module['name']]['shapes']
-                                        as $shape
-                                    ): ?>
-                                        <?= $this->element(
-                                            'Values/View/'
-                                            . 'value_enrichment_shape',
-                                            array('shape' => $shape)
-                                        ) ?>
-                                    <?php endforeach; ?>
+                        <div class="vp-e-detail">
+                            <div class="vp-e-d-head">
+                                <div>
+                                    <div class="vp-e-d-title"><?= h($module['name']) ?></div>
+                                    <?php if (!empty($module['description'])): ?>
+                                        <div class="vp-e-d-desc"><?= h($module['description']) ?></div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
-                            <?= $this->element(
-                                'Values/View/value_enrichment_brief',
-                                array(
+                            </div>
+                            <div data-vp-e-slot>
+                                <?php if (!empty($held[$module['name']]['shapes'])): ?>
+                                    <div class="vp-e-heldshapes" data-vp-e-heldshapes>
+                                        <?php foreach ($held[$module['name']]['shapes'] as $shape): ?>
+                                            <?= $this->element('Values/View/value_enrichment_shape', array('shape' => $shape)) ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?= $this->element('Values/View/value_enrichment_brief', array(
                                     'module' => $module,
                                     'service' => $service,
                                     'canRun' => $canRun,
                                     'noRun' => $noRun,
-                                )
-                            ) ?>
+                                    'value' => $profile['value'],
+                                )) ?>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
-
             </div>
-
         </div>
-
     <?php endif; ?>
 
 </div>

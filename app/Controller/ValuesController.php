@@ -1005,26 +1005,78 @@ class ValuesController extends AppController
     }
 
     /**
-     * The Occurrences tab: the facet rail and the table it counts.
-     *
-     * One endpoint rather than two, unlike the panels above. A facet
-     * count and the rows it counts have to be computed from the same
-     * fetch or they can disagree with each other, and two endpoints
-     * against a moving attribute set is exactly how that happens.
+     * The Occurrences tab: the shared index filter bar over one page of
+     * the value's occurrences. The bar and the pager reload this
+     * fragment with named parameters (`type:ip-dst/page:2`).
      *
      * @param string $b64value
      * @return void
      */
     public function viewOccurrenceTable($b64value = null)
     {
-        $this->loadModel('ValueIntelligence');
-        $this->__renderPanel(
-            $this->ValueIntelligence->forOccurrenceTable(
-                $this->Auth->user(),
-                $this->__decodeValue($b64value)
-            ),
-            'value_occurrence_table'
+        $named = $this->request->params['named'];
+        $filters = array_intersect_key($named, array_flip(array(
+            'q', 'type', 'category', 'org', 'object', 'distribution',
+            'ids', 'tags', 'galaxy', 'proposal', 'deleted',
+            'changed', 'created', 'published', 'seen',
+        )));
+        // The columns a header may sort on, newest change last.
+        $sortable = array(
+            'Attribute.event_id', 'Attribute.type', 'Attribute.category',
+            'Attribute.last_seen', 'Attribute.timestamp',
         );
+        $sort = $named['sort'] ?? null;
+        $direction = strtolower($named['direction'] ?? '') === 'asc'
+            ? 'asc' : 'desc';
+        $order = in_array($sort, $sortable, true)
+            ? array($sort . ' ' . strtoupper($direction), 'Attribute.id DESC')
+            : null;
+
+        $this->loadModel('ValueIntelligence');
+        $profile = $this->ValueIntelligence->forOccurrenceTable(
+            $this->Auth->user(),
+            $this->__decodeValue($b64value),
+            array_filter(array(
+                'filters' => $filters,
+                'page' => $named['page'] ?? 1,
+                'limit' => $named['limit'] ?? null,
+                'order' => $order,
+            ), function ($option) {
+                return $option !== null;
+            })
+        );
+
+        $paging = $profile['occurrence_paging'];
+        $this->request->params['paging'] = array($this->modelClass => array(
+            'page' => $paging['page'],
+            'current' => count($profile['occurrences']),
+            'count' => $paging['count'],
+            'prevPage' => $paging['page'] > 1,
+            'nextPage' => $paging['page'] < $paging['page_count'],
+            'pageCount' => $paging['page_count'],
+            'limit' => $paging['limit'],
+            'options' => array_filter(array(
+                'page' => $paging['page'],
+                'sort' => $order === null ? null : $sort,
+                'direction' => $order === null ? null : $direction,
+            )),
+            'paramType' => 'named',
+        ));
+
+        App::uses('IndexPicker', 'Tools');
+        $list = function ($key) use ($filters) {
+            if (!isset($filters[$key])) {
+                return array();
+            }
+            return is_array($filters[$key])
+                ? array_values($filters[$key])
+                : explode('||', (string)$filters[$key]);
+        };
+        $this->set('filterLabels', IndexPicker::resolve($this->Auth->user(), array(
+            'tag' => $list('tags'),
+            'galaxy' => $list('galaxy'),
+        )));
+        $this->__renderPanel($profile, 'value_occurrence_table');
     }
 
     /**
@@ -1803,6 +1855,15 @@ class ValuesController extends AppController
         );
     }
 
+    public function viewAnalystProposals($b64value = null)
+    {
+        $this->__renderLivePanel(
+            $b64value,
+            'forAnalystProposals',
+            'value_analyst_proposals'
+        );
+    }
+
     public function viewAnalystThread($b64value = null)
     {
         $this->__renderLivePanel(
@@ -1871,14 +1932,9 @@ class ValuesController extends AppController
      * above is about the brush and nothing about reading the database
      * touches it.
      *
-     * **The window is in the path, and it is a filter rather than an
-     * identity.** `viewHistory`'s period is the panel's subject — what
-     * that endpoint returns for one window is a different fragment, top
-     * to bottom. This one returns the same spine over the value's whole
-     * range whatever window it is given; only the chronology's rows
-     * change. It takes the path shape anyway, and `self::period` with
-     * it, because a reader of these two actions should not have to
-     * learn that one page states a window two ways.
+     * **The window is in the path, and it is a filter.** The endpoint
+     * returns the same spine over the value's whole range whatever window
+     * it is given; only the chronology's rows change.
      *
      * Absent or malformed dates mean no window, which is the panel a
      * page load asks for.
@@ -1901,39 +1957,6 @@ class ValuesController extends AppController
                 array('window' => is_array($window) ? $window : null)
             ),
             'value_timeline'
-        );
-    }
-
-    /**
-     * The History tab: the counted rail and the occurrence sections it
-     * narrows, in one panel.
-     *
-     * One endpoint, for the Occurrences tab's reason rather than the
-     * Timeline tab's. The facet control wires its checkboxes to rows by
-     * walking up to the nearest `data-vp-list` region, so the rail and
-     * the rows have to arrive inside one container: split across two
-     * `.ajax-card`s they resolve independently, and a rail whose rows
-     * have not landed yet is a rail wired to nothing.
-     *
-     * The only panel on this page that takes a period, and it takes it
-     * in the path because it is the panel's identity rather than a
-     * filter over it: what the endpoint returns for one window is a
-     * different fragment, and `reloadAjaxTabIndex` re-fetches a
-     * container by URL. Everything else on the tab narrows client-side
-     * over rows this already sent.
-     *
-     * @param string $b64value
-     * @param string $from `Y-m-d`, or the literal `all`
-     * @param string $to `Y-m-d`
-     * @return void
-     */
-    public function viewHistory($b64value = null, $from = null, $to = null)
-    {
-        $this->__renderLivePanel(
-            $b64value,
-            'forHistory',
-            'value_history',
-            array('window' => self::__period($from, $to))
         );
     }
 
@@ -2126,31 +2149,11 @@ class ValuesController extends AppController
         if ($address === null) {
             throw new NotFoundException(__('Invalid base64 encoding.'));
         }
-        if (isset($address['value'])) {
-            return $address['value'];
-        }
-        $found = $this->AttributeValue->findAddressed($address);
-        if ($found === null || !$this->__mayRead($found['id'])) {
+        $value = $this->AttributeValue->readableAddressed($this->Auth->user(), $address);
+        if ($value === null) {
             throw new NotFoundException(__('Invalid value.'));
         }
-        return $found['value'];
-    }
-
-    /**
-     * An id or a sha256 makes the dictionary supply the text, so it is
-     * answered only for a value the reader could have read elsewhere.
-     *
-     * @param int $id
-     * @return bool
-     */
-    private function __mayRead($id)
-    {
-        $user = $this->Auth->user();
-        if (!empty($user['Role']['perm_site_admin'])) {
-            return true;
-        }
-        $this->loadModel('MispAttribute');
-        return !empty($this->MispAttribute->visibleValueIds($user, [$id], 1));
+        return $value;
     }
 
     /**

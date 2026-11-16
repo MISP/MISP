@@ -138,7 +138,7 @@ $ttl = $relevance['ttl'];
             <?php if (!empty($clock['events'])): ?>
                 <?= $this->element(
                     'Values/View/value_relevance_events',
-                    array('clock' => $clock)
+                    array('clock' => $clock, 'cap' => 3)
                 ) ?>
             <?php endif; ?>
 
@@ -152,21 +152,12 @@ $ttl = $relevance['ttl'];
              * on the hover rather than in its own sentence.
              */
             ?>
-            <p class="vp-aside-note"
-               title="<?= h(__('A false positive is drawn on that chart'
-                   . ' too. A report arguing against a value never'
-                   . ' extends its lifetime.')) ?>">
-                <?= h(__(
-                    'The chart plots this bar over time: it steps back'
-                    . ' up on each of the dates listed here, and never'
-                    . ' on a false positive.'
-                )) ?>
-            </p>
 
             <?php if (!empty($relevance['sightings_excluded'])): ?>
-                <p class="vp-aside-note"
+                <p class="vp-aside-note vp-shelf-note"
                    title="<?= h(__('The profile excludes sightings an'
                        . ' organisation files on its own report.')) ?>">
+                    <i class="fas fa-user-slash" aria-hidden="true"></i>
                     <?= h(sprintf(
                         __n(
                             'One self-sighting does not count as a'
@@ -189,23 +180,14 @@ $ttl = $relevance['ttl'];
              * every value, and reveals nothing about the one on screen.
              */
             ?>
-            <div class="vp-acl-note vp-acl-note-band">
-                <i class="fas fa-user-shield"
-                   title="<?= h(__('What your account is allowed to'
-                       . ' see')) ?>"></i>
-                <span><?= h($notes['policy']) ?></span>
-            </div>
 
             <?php if ($relevance['profile'] !== null): ?>
-                <p class="vp-aside-note"
+                <p class="vp-aside-note vp-shelf-note"
                    title="<?= h(__('The clock, the curve and the day'
                        . ' counts per type are all profile'
-                       . ' settings.')) ?>">
-                    <?= h(sprintf(
-                        __('Every number here is a setting of the %s'
-                            . ' profile, which an analyst can edit.'),
-                        $relevance['profile']
-                    )) ?>
+                       . ' settings, which an analyst can edit.')) ?>">
+                    <i class="fas fa-sliders" aria-hidden="true"></i>
+                    <?= h(sprintf(__('Settings of the %s profile'), $relevance['profile'])) ?>
                 </p>
             <?php endif; ?>
 

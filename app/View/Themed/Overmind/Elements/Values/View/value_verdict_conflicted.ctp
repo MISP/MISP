@@ -1,47 +1,23 @@
 <?php
 /**
- * The Assessment tab for a value whose record contradicts itself.
- *
- * One card, not five. The lean, what it rests on, the warninglist hit
- * that causes half the trouble, the two cases and what neither case
- * could take are a single argument, and splitting them into separate
- * cards made the reader reassemble it. They are bands of one card here,
- * in the order the argument is made.
- *
- * There is deliberately no single signal strength. The tug-of-war bar puts the
- * two weights against each other — **two wedges, not three**: the
- * engine produces no `unresolved` weight to draw between them.
- *
- * `Who says what` stays its own card: it is the same argument counted
- * a different way, by organisation rather than by signal.
+ * The Assessment tab for a value whose record contradicts itself: the same
+ * header, stance card and shelf life card as an agreeing value
+ * (value_verdict.ctp), and in place of a single signal strength the two
+ * cases side by side, weighed against each other, with what neither could
+ * take. The rail is value_verdict_aside's contested branch.
  *
  * Lazily loaded into `.ajax-tab-content` from
  * ValuesController::viewVerdict.
  *
  * @var array $valueIntelligence
- * @var string $valueB64
  */
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 
 $verdict = $valueIntelligence['verdict'];
-
-$noWrites = __(
-    'Disabled in this pass — the Value Intelligence page does not write to'
-    . ' the database yet.'
-);
-
 $tug = $verdict['tug'];
 $tugTotal = max($tug['support'] + $tug['dispute'], 1);
-
 $cases = $verdict['cases'];
 $ambiguities = $verdict['ambiguities'] ?? array();
-$warninglist = $verdict['warninglist'] ?? null;
-
-/*
- * The row bars are read against the heaviest signal on either side, so
- * a strong signal looks strong in both columns. Scaling each column to
- * its own maximum would make the weaker case look just as emphatic.
- */
 $heaviest = 1;
 foreach ($cases as $case) {
     foreach ($case['rows'] as $row) {
@@ -49,28 +25,21 @@ foreach ($cases as $case) {
     }
 }
 ?>
+<?= $this->element('Values/View/value_verdict_head', array('verdict' => $verdict)) ?>
+<?= $this->element('Values/View/value_verdict_voices', array('verdict' => $verdict)) ?>
 
-<div class="card shadow-sm mb-3 vp-panel vp-vc">
-
-    <?php
-    /*
-     * ----------------------------------------------------------
-     * 1. Hero — the state, the reason, and the balance
-     * ----------------------------------------------------------
-     */
-    ?>
-    <div class="vp-vc-hero">
-        <span class="vp-vc-state">
-            <i class="<?= h(ValueLean::icon($verdict['lean'])) ?>"></i>
-            <span class="vp-vc-state-word">
-                <?= h(ValueLean::label($verdict['lean'])) ?>
-            </span>
-        </span>
-
-        <?php if (!empty($verdict['summary'])): ?>
-            <p class="vp-vc-prose"><?= h($verdict['summary']) ?></p>
-        <?php endif; ?>
-
+<div class="card shadow-sm mb-3 vp-panel vp-vc" style="--vp-panel-color: var(--vp-conflict);">
+    <?= $this->element('Values/View/value_panel_header', array(
+        'panelTitle' => __('The two cases'),
+        'panelIcon' => 'fas fa-scale-unbalanced',
+        'panelColor' => 'var(--vp-conflict)',
+        'panelSub' => h(sprintf(
+            __('Threat case %1$s · benign case %2$s'),
+            $tug['support'],
+            $tug['dispute']
+        )),
+    )) ?>
+    <div class="px-3 pt-3">
         <div class="vp-tug-block">
             <div class="vp-tug-heads">
                 <span class="vp-tug-head-mal">
@@ -117,63 +86,7 @@ foreach ($cases as $case) {
             </div>
         </div>
 
-        <?= $this->element('Values/View/value_verdict_runway', array(
-            'relevance' => $verdict['relevance'] ?? array(),
-        )) ?>
     </div>
-
-    <?php
-    /*
-     * ----------------------------------------------------------
-     * 2. Provenance and the rule that fired
-     * ----------------------------------------------------------
-     */
-    ?>
-    <?= $this->element('Values/View/value_verdict_meta', array(
-        'verdict' => $verdict,
-        'metaRule' => $verdict['rule']['text'] ?? null,
-    )) ?>
-
-    <?php
-    /*
-     * ----------------------------------------------------------
-     * 2b. How the lean was decided
-     * ----------------------------------------------------------
-     * It matters more here than on the agreeing layout. A contested
-     * value reached by rule 6 — neither side past the bar — draws two
-     * cases side by side and had no sentence anywhere saying *why*,
-     * because the only prose in the derivation belongs to the
-     * escalation exit this value did not take.
-     */
-    ?>
-    <?= $this->element('Values/View/value_verdict_lean', array(
-        'verdict' => $verdict,
-    )) ?>
-
-    <?php
-    /*
-     * ----------------------------------------------------------
-     * 3. The warninglist hit
-     * ----------------------------------------------------------
-     * A band rather than a card, because on this value it is one of the
-     * two cases talking — not a separate finding.
-     */
-    ?>
-    <?php if ($warninglist !== null): ?>
-        <?= $this->element('Values/View/value_verdict_warninglist', array(
-            'warninglist' => $warninglist,
-        )) ?>
-    <?php endif; ?>
-
-    <?php
-    /*
-     * ----------------------------------------------------------
-     * 4. The two cases
-     * ----------------------------------------------------------
-     * Side by side and the same shape, so the comparison is between the
-     * evidence rather than between two presentations of it.
-     */
-    ?>
     <div class="vp-vc-cases">
         <?php foreach ($cases as $case):
             $mal = $case['side'] === 'threat';
@@ -286,28 +199,6 @@ foreach ($cases as $case) {
      * half the values on the instance.
      */
     ?>
-    <?= $this->element('Values/View/value_verdict_relevance', array(
-        'verdict' => $verdict,
-    )) ?>
-
 </div>
 
-<?php
-/*
- * ------------------------------------------------------------------
- * Who says what
- * ------------------------------------------------------------------
- * The disagreement is between organisations, so it is also shown per
- * organisation — and on this layout the stance and the grade are the
- * columns that carry it: which organisations would have the value fire
- * a rule, and how much each one's say is worth.
- */
-?>
-<?= $this->element('Values/View/value_verdict_orgs', array(
-    'verdict' => $verdict,
-    'orgColumns' => array('to_ids', 'reliability'),
-    'orgsSub' => __(
-        'The disagreement is between organisations, so it is shown per'
-        . ' organisation'
-    ),
-)) ?>
+<?= $this->element('Values/View/value_verdict_relevance', array('verdict' => $verdict)) ?>

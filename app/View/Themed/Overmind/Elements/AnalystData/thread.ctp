@@ -15,6 +15,17 @@
  *   $peek        : name every top-level entry for a data-collapse-peek clamp
  *   $showEmpty   : say so when there is nothing (default true); false renders
  *                  nothing, for a host with an empty state of its own
+ *   $reply       : offer the reply buttons (default true); edit and delete
+ *                  stay either way
+ *   $entryContext: optional callable($type, $item, $nested): HTML for a line
+ *                  under an entry's body, for what the host knows about it
+ *
+ * A relationship may carry `_self`, the words for this record's end when the
+ * host knows better than the record type (a value's claim written on its
+ * event), and its resolved end may carry `_url` where the record has no
+ * page by id (a value).
+ *
+ * Every entry carries its organisation as data-ad-org, for a host filter.
  */
 App::uses('ClassRegistry', 'Utility');
 App::uses('DistributionLevel', 'Tools');
@@ -24,6 +35,8 @@ $objectUuid = $objectUuid ?? '';
 $limit = !empty($limit);
 $peek = !empty($peek);
 $showEmpty = !isset($showEmpty) || $showEmpty;
+$reply = !isset($reply) || $reply;
+$entryContext = isset($entryContext) && is_callable($entryContext) ? $entryContext : null;
 if (!isset($analystData) && ($objectType === '' || $objectUuid === '')) {
     return;
 }
@@ -92,6 +105,7 @@ $selfNouns = [
     'Note' => __('this note'),
     'Opinion' => __('this opinion'),
     'Relationship' => __('this relationship'),
+    'AttributeValue' => __('this value'),
 ];
 $selfNoun = $selfNouns[$objectType] ?? __('this record');
 
@@ -104,6 +118,7 @@ $targets = [
     'EventReport' => ['icon' => 'misp-icon misp-icon-report misp-simple', 'label' => 'name', 'path' => '/event_reports/view/'],
     'SharingGroup' => ['icon' => 'misp-icon misp-icon-sharing-group misp-simple', 'label' => 'name', 'path' => '/sharing_groups/view/'],
     'Collection' => ['icon' => 'fas fa-layer-group', 'label' => 'name', 'path' => '/collections/view/'],
+    'AttributeValue' => ['icon' => 'misp-icon misp-icon-value-intelligence misp-simple', 'label' => 'value', 'path' => '/values/view/'],
 ];
 
 $ago = function ($created) {
@@ -188,12 +203,12 @@ $replyLabels = [
     'Relationship' => [__('Add a note on this relationship'), __('Add an opinion on this relationship')],
 ];
 
-$actions = function ($item, $type, $nested) use ($canAdd, $baseurl, $button, $replyLabels) {
+$actions = function ($item, $type, $nested) use ($canAdd, $baseurl, $button, $replyLabels, $reply) {
     if (!$canAdd || empty($item['uuid'])) {
         return '';
     }
     $buttons = [];
-    if (isset($replyLabels[$type])) {
+    if ($reply && isset($replyLabels[$type])) {
         $base = $baseurl . '/analystData/add/%s/' . rawurlencode($item['uuid']) . '/' . $type;
         $buttons[] = $button('misp-icon misp-icon-analyst-note misp-simple', $replyLabels[$type][0], sprintf($base, 'Note'));
         $buttons[] = $button('misp-icon misp-icon-analyst-opinion misp-simple', $replyLabels[$type][1], sprintf($base, 'Opinion'));
@@ -231,7 +246,7 @@ $target = function ($type, $uuid, $resolved) use ($targets, $baseurl) {
             h($baseurl . '/analystData/view/' . $type . '/' . $uuid), h($type)
         );
     }
-    if ($spec === null || empty($record['id'])) {
+    if ($spec === null || (empty($record['id']) && empty($record['_url']))) {
         return sprintf(
             '<span class="adr-target adr-target-bare" title="%1$s">%2$s <span class="font-monospace">%3$s</span></span>',
             h($uuid), h($type), h(substr((string)$uuid, 0, 8))
@@ -240,13 +255,13 @@ $target = function ($type, $uuid, $resolved) use ($targets, $baseurl) {
     $label = $record[$spec['label']] ?? $type;
     return sprintf(
         '<a class="adr-target" href="%s" title="%s"><i class="adr-target-ico %s" aria-hidden="true"></i><span class="adr-target-label">%s</span></a>',
-        h($baseurl . $spec['path'] . $record['id']), h($label), h($spec['icon']), h($label)
+        h($record['_url'] ?? $baseurl . $spec['path'] . $record['id']), h($label), h($spec['icon']), h($label)
     );
 };
 
 $relationship = function ($item, $inbound) use ($target, $selfNoun) {
     $verb = '<span class="adr-verb">' . h(str_replace(['-', '_'], ' ', $item['relationship_type'] ?? 'related-to')) . '</span>';
-    $self = '<span class="adr-self">' . h($selfNoun) . '</span>';
+    $self = '<span class="adr-self">' . h($item['_self'] ?? $selfNoun) . '</span>';
     $resolved = $item['related_object'] ?? [];
     $other = $inbound
         ? $target($item['object_type'] ?? '', $item['object_uuid'] ?? '', $resolved)
@@ -255,7 +270,7 @@ $relationship = function ($item, $inbound) use ($target, $selfNoun) {
     return '<p class="adr-rel"><i class="fas fa-diagram-project adr-rel-ico" aria-hidden="true"></i>' . $sentence . '</p>';
 };
 
-$entry = function ($type, $item, $depth, $hidden = false) use (&$entry, $meta, $gauge, $actions, $relationship, $initials, $peek, $peekLabels, $baseurl) {
+$entry = function ($type, $item, $depth, $hidden = false) use (&$entry, $meta, $gauge, $actions, $relationship, $initials, $peek, $peekLabels, $baseurl, $entryContext) {
     $nested = $depth > 0;
     $inbound = $type === 'RelationshipInbound';
     $clamp = $nested ? '' : ' adr-clamp';
@@ -269,6 +284,12 @@ $entry = function ($type, $item, $depth, $hidden = false) use (&$entry, $meta, $
         }
     } else {
         $body .= $relationship($item, $inbound);
+    }
+    if ($entryContext !== null) {
+        $context = (string)$entryContext($type, $item, $nested);
+        if ($context !== '') {
+            $body .= '<div class="adr-context">' . $context . '</div>';
+        }
     }
 
     $children = [];
@@ -328,7 +349,8 @@ $entry = function ($type, $item, $depth, $hidden = false) use (&$entry, $meta, $
         '<li class="adr-entry%s adr-kind-%s"%s><span class="adr-avatar" aria-hidden="true" title="%s">%s</span>'
         . '<div class="adr-main">%s%s%s%s</div></li>',
         ($nested ? ' adr-entry-nested' : '') . ($hidden ? ' adr-more' : ''),
-        strtolower($type), ($hidden ? ' hidden' : '') . $peekAttrs . ($nested ? '' : ' data-ad-entry'),
+        strtolower($type),
+        ($hidden ? ' hidden' : '') . $peekAttrs . ($nested ? '' : ' data-ad-entry') . ' data-ad-org="' . h($org) . '"',
         h($org), h($initials($org)),
         $meta($item), $body, $actions($item, $inbound ? 'Relationship' : $type, $nested), $replies
     );
