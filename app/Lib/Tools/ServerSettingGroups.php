@@ -340,6 +340,7 @@ class ServerSettingGroups
                 'settings' => array(
                     'MISP.log_client_ip',
                     'MISP.log_client_ip_header',
+                    'MISP.trusted_proxies',
                     'MISP.store_api_access_time',
                     'MISP.log_auth',
                     'MISP.log_skip_db_logs_completely',

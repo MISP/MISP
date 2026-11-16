@@ -6056,9 +6056,16 @@ class Server extends AppModel
                 ),
                 'log_client_ip_header' => array(
                     'level' => 1,
-                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance. Prepend the variable with "HTTP_", for example "HTTP_X_FORWARDED_FOR".'),
+                    'description' => __('Customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance, and applies to every use of the client IP: auth key IP restrictions, brute-force protection and logs. Prepend the variable with "HTTP_", for example "HTTP_X_FORWARDED_FOR". MISP uses the right-most address that does not belong to a trusted proxy, so set MISP.trusted_proxies as well.'),
                     'value' => 'REMOTE_ADDR',
                     'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                ),
+                'trusted_proxies' => array(
+                    'level' => 1,
+                    'description' => __('The reverse proxies in front of your MISP instance, as a comma-separated list of IP addresses or CIDR ranges. When set, MISP.log_client_ip_header is honoured only for requests coming from these proxies, and their own entries are skipped when reading it.'),
+                    'value' => '',
                     'type' => 'string',
                     'null' => true,
                 ),
@@ -7075,7 +7082,7 @@ class Server extends AppModel
                 ),
                 'allow_password_forgotten' => array(
                     'level' => 1,
-                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Users with no encryption keys will not be able to use this feature.'),
+                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Requires MISP.baseurl or MISP.external_baseurl to be set. Users without an encryption key receive the reset link unencrypted, unless GnuPG.bodyonlyencrypted is enabled, in which case they cannot use this feature.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7248,6 +7255,8 @@ class Server extends AppModel
                         /** @var Cerebrate $cerebrate */
                         $cerebrate = ClassRegistry::init('Cerebrate');
                         $cerebrate->reencryptAuthKeys($old, $new);
+
+                        ClassRegistry::init('UserSetting')->reencryptOidcRefreshTokens($old, $new);
                         return true;
                     },
                     'type' => 'string',

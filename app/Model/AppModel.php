@@ -23,6 +23,7 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
+App::uses('ClientIpTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('ColumnLimits', 'Tools');
@@ -1924,17 +1925,11 @@ class AppModel extends Model
             return $remoteIp;
         }
 
-        $clientIpHeader = Configure::read('MISP.log_client_ip_header');
-        if ($clientIpHeader && isset($_SERVER[$clientIpHeader])) {
-            $headerValue = $_SERVER[$clientIpHeader];
-            // X-Forwarded-For can contain multiple IPs, see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
-            if (($commaPos = strpos($headerValue, ',')) !== false) {
-                $headerValue = substr($headerValue, 0, $commaPos);
-            }
-            $remoteIp = trim($headerValue);
-        } else {
-            $remoteIp = $_SERVER['REMOTE_ADDR'] ?? null;
-        }
+        $remoteIp = ClientIpTool::resolve(
+            $_SERVER,
+            Configure::read('MISP.log_client_ip_header'),
+            Configure::read('MISP.trusted_proxies')
+        );
 
         return $remoteIp;
     }

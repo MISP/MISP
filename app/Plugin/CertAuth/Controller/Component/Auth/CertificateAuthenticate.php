@@ -53,7 +53,9 @@ class CertificateAuthenticate extends BaseAuthenticate
     {
         self::$ca = self::$client = false;
 
-        if (isset($_SERVER['SSL_CLIENT_I_DN'])) {
+        $verified = !isset($_SERVER['SSL_CLIENT_VERIFY']) || $_SERVER['SSL_CLIENT_VERIFY'] === 'SUCCESS';
+
+        if ($verified && isset($_SERVER['SSL_CLIENT_I_DN'])) {
             $CA = self::parse($_SERVER['SSL_CLIENT_I_DN'], Configure::read('CertAuth.mapCa'));
             // only valid CAs, if this was configured
             if ($ca=Configure::read('CertAuth.ca')) {
@@ -141,6 +143,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                 $userModelKey = empty(Configure::read('CertAuth.userModelKey')) ? 'email' : Configure::read('CertAuth.userModelKey');
                 $userDefaults = Configure::read('CertAuth.userDefaults');
                 $this->User = ClassRegistry::init('User');
+                $existingUser = false;
                 if (!empty(self::$user[$userModelKey])) {
                     $existingUser = $this->User->find('first', array(
                         'conditions' => array($userModelKey => self::$user[$userModelKey]),
