@@ -9,7 +9,9 @@
  *
  * Parameters:
  *   object     array  one entry of $objects
- *   ctx        array  count / deleted / firstValue / firstRelation
+ *   ctx        array  count / deleted / firstValue / firstRelation, and
+ *                     distribution false for an object that has none yet
+ *                     (a module's answer)
  *   asideHtml  string optional raw HTML appended to the right-hand slot, for a
  *                     surface with something of its own to put there (the
  *                     enrichment review's reference count and remove button).
@@ -23,11 +25,13 @@ $firstTitle = ($ctx['firstRelation'] !== '' ? $ctx['firstRelation'] . ': ' : '')
 ?>
 <span class="ov-obj-head">
 
-    <span class="ov-obj-dist"
-          style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
-          title="<?= h(__('Distribution: %s', $dist['label'])) ?>">
-        <i class="<?= h($dist['icon']) ?>"></i>
-    </span>
+    <?php if ($ctx['distribution'] ?? true): ?>
+        <span class="ov-obj-dist"
+              style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
+              title="<?= h(__('Distribution: %s', $dist['label'])) ?>">
+            <i class="<?= h($dist['icon']) ?>"></i>
+        </span>
+    <?php endif; ?>
 
     <span class="ov-obj-title">
         <span class="ov-obj-name">

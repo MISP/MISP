@@ -23,49 +23,14 @@ foreach ($reports as $row) {
     }
 }
 
-// What a row tells of its report besides the name: an excerpt of the text,
-// its length and the MISP elements it references. Worked out once per report,
-// for the table and the card alike.
-$digest = function (array $report) {
-    $content = preg_replace('/\r\n?/', "\n", (string)($report['content'] ?? ''));
-    $elements = [];
-    if (preg_match_all('/@\[(\w+)\]\(([^)\s]+)\)/', $content, $refs, PREG_SET_ORDER)) {
-        foreach ($refs as $ref) {
-            $elements[$ref[1]][$ref[2]] = true;
-        }
-    }
-    $markup = [
-        '/^[ \t]*(`{3,}|~{3,}).*?^[ \t]*\1[ \t]*$/ms' => '',
-        '/@\[\w+\]\([^)]*\)/' => '',
-        '/!\[[^\]]*\]\([^)]*\)/' => '',
-        '/\[([^\]]*)\]\([^)]*\)/' => '$1',
-        '/<[^>]*>/' => '',
-        '/^[ \t]*(?:[-*_][ \t]*){3,}$/m' => '',
-        '/^[ \t]*=+[ \t]*$/m' => '',
-        '/^[ \t|:-]*-{3,}[ \t|:-]*$/m' => '',
-        '/^[ \t]*(?:#{1,6}|>+|[-*+](?=\s)|\d+[.)](?=\s))[ \t]*/m' => '',
-        '/\*\*|~~|[*`|]/' => ' ',
-    ];
-    $text = preg_replace(array_keys($markup), $markup, $content);
-    if ($text === null) {
-        // Past PCRE's limits on a long report: the code blocks stay in.
-        $markup = array_slice($markup, 1, null, true);
-        $text = preg_replace(array_keys($markup), $markup, $content) ?? $content;
-    }
-    $text = trim(preg_replace('/\s+/u', ' ', (string)$text));
-    return [
-        'excerpt' => mb_substr($text, 0, 400),
-        'words' => $text === '' ? 0 : count(preg_split('/\s+/u', $text)),
-        'elements' => array_map('count', $elements),
-    ];
-};
+App::uses('EventReportDigestTool', 'Tools');
 
 // The event tab lists one event's reports, which share its event and its
 // creator org; only a list spanning several events says them.
 $showOrigin = empty($eventView) || $inExtensionView;
 foreach ($reports as $i => $row) {
     $reports[$i]['ctx'] = [
-        'digest' => $digest($row['EventReport']),
+        'digest' => EventReportDigestTool::digest($row['EventReport']['content'] ?? ''),
         'reader' => !empty($eventView),
         'origin' => $showOrigin,
     ];

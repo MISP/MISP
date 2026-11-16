@@ -9,6 +9,7 @@
  * - fields  : [{name, label, aliases}], each filter it sets, unprefixed;
  *             an alias is read like the name and dropped when it is set
  * - presets : [{value, label, title}], time deltas the filters take
+ * - note    : a line under the button, outside the popover
  *
  * A range goes in the URL as the `[from, to]` list the index reads; in the
  * query string that is `from||to`.
@@ -53,11 +54,13 @@ $config = [
         'customTitle' => __('Pick dates'),
         'from' => __('From'),
         'to' => __('To'),
-        'hint' => trim((count($fields) > 1 ? __('Both rows apply together.') . ' ' : '')
+        'hint' => trim((count($fields) > 2 ? __('All rows apply together.') . ' '
+            : (count($fields) > 1 ? __('Both rows apply together.') . ' ' : ''))
             . (empty($deferred) ? __('Applies when you close the picker.') : __('Kept until you apply the filters.'))),
     ],
 ];
 ?>
+<?php if (!empty($child['note'])): ?><div class="ifp-picktop"><?php endif; ?>
 <div class="ifp-picker flex-shrink-0" data-ifp-swap="picker-<?= h($child['name']) ?>" data-ifp-picker="<?= h(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>">
     <button type="button" class="btn btn-sm btn-outline-secondary ifp-btn<?= $count ? ' is-set' : '' ?>" aria-expanded="false" aria-haspopup="dialog" data-tour="index-picker-<?= h($child['name']) ?>">
         <?php if (!empty($child['icon'])): ?>
@@ -71,3 +74,7 @@ $config = [
     </button>
     <div class="ifp-pop ifp-pop-time" role="dialog" tabindex="-1" aria-label="<?= h($child['label']) ?>" hidden></div>
 </div>
+<?php if (!empty($child['note'])): ?>
+    <div class="ifp-pick-note"><?= h($child['note']) ?></div>
+</div>
+<?php endif; ?>

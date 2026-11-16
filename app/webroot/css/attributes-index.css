@@ -270,7 +270,7 @@
    one-line headings and rows. The cells' pieces are attribute-elements.css'. */
 .ai-table thead th { white-space: nowrap; }
 .ai-table thead th > i { font-size: .8rem; }
-.ai-table td:is(.idx-col-tag_list, .idx-col-galaxy, .idx-col-relatedEvents, .idx-col-feedHits):not(:has(*))::before {
+.ai-table td:is(.idx-col-tag_list, .idx-col-galaxy, .idx-col-value_tag_list, .idx-col-value_cluster_list, .idx-col-relatedEvents, .idx-col-feedHits):not(:has(*))::before {
     content: "—";
     color: var(--bs-tertiary-color);
 }

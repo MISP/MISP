@@ -106,7 +106,6 @@
     clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
 }
 .vn-story-count { position: relative; font-size: 9.5px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
-[data-misp-mode="dark"] .vn-story-count { color: #0B0B0C; }
 .vn-story-body { min-width: 0; flex: 1 1 auto; }
 .vn-story-head { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
 .vn-story-title { font-weight: 600; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

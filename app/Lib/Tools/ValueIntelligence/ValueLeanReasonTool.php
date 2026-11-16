@@ -84,6 +84,25 @@ class ValueLeanReasonTool
     }
 
     /**
+     * The exit sentence alone, without the context and voices sentences
+     * reasonFor() adds: for a header that shows those beside it.
+     *
+     * @param array $verdict
+     * @return string|null
+     */
+    public static function exitFor(array $verdict)
+    {
+        $decidedBy = $verdict['decided_by'] ?? null;
+        if ($decidedBy === null || $decidedBy === 'nothing_visible') {
+            return null;
+        }
+        $stances = isset($verdict['stances']) && is_array($verdict['stances'])
+            ? $verdict['stances']
+            : array();
+        return self::exitSentence($decidedBy, $verdict, $stances);
+    }
+
+    /**
      * The reporters that recorded the value as context only, which the
      * counts above leave out: three organisations flagging it
      * and five recording it with `to_ids` off reads 3 of 3, and the

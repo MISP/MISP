@@ -23,6 +23,8 @@ App::uses('ValueSummaryTool', 'Tools/ValueIntelligence');
 App::uses('ValueContestedTool', 'Tools/ValueIntelligence');
 App::uses('ValueFactsTool', 'Tools/ValueIntelligence');
 App::uses('ValueContextTool', 'Tools/ValueIntelligence');
+App::uses('EventContextTool', 'Tools/EventOverview');
+App::uses('EventReportDigestTool', 'Tools');
 App::uses('ModuleLocality', 'Tools');
 App::uses('ModuleRole', 'Tools');
 App::uses('WarninglistCategory', 'Tools');
@@ -71,38 +73,12 @@ class ValueIntelligence extends AppModel
     public $useTable = false;
 
     /**
-     * The most occurrence rows one panel request will load.
-     *
-     * A cap on the *result size*, not on the query count — the six
-     * queries behind the occurrence table are constant in the number of
-     * occurrences. On a real instance a value like `443` resolves to
-     * tens of thousands of occurrences as the port half of
-     * `ip-dst|port`, and fetching those with their events, objects,
-     * sharing groups and tags is not a slow page but a page that does
-     * not arrive.
-     *
-     * **300.** Two things bound it, and neither is the query — nothing
-     * here scales with occurrence count.
-     *
-     * The page control renders one button per page inline, so the button
-     * count is rows ÷ page size and it shares the panel header with the
-     * subtitle. Measured at a 1500px viewport: twelve buttons leave the
-     * subtitle readable on two lines, twenty squeeze it to a 16px column,
-     * twenty-five push the panel into horizontal overflow. At the default
-     * page size of 60 this cap is five pages, which is seven buttons; at
-     * the smallest the reader can pick, 25, it is twelve.
-     *
-     * The other bound is the fragment. A row costs roughly 5.7 KB of
-     * markup, so 300 rows is about 1.7 MB — against the 5.9 MB that
-     * 1,000 rows of `443` produced when this was first written, which is
-     * a fragment that does not arrive. Raising it further is now a
-     * question about weight rather than about the pager, which is the
-     * more honest place for the limit to sit.
-     *
-     * When the cap bites, the panel says so — §14.6 keeps cap notices,
-     * because a cap is not a permission.
+     * Occurrences per page on the Occurrences tab, and the largest page
+     * a reader may ask for. The tab filters and pages on the server, so
+     * neither bounds what the table can reach.
      */
-    const OCCURRENCE_CAP = 300;
+    const OCCURRENCE_PAGE = 60;
+    const OCCURRENCE_PAGE_MAX = 200;
 
     /**
      * CIDR containment's read: occurrences of the blocks or addresses it
@@ -460,7 +436,7 @@ class ValueIntelligence extends AppModel
      * `00-contract.md` §14.4 carries the rule; this is the second thing
      * a key here must capture, after the permission scope.
      */
-    const CACHE_SHAPE = 13;
+    const CACHE_SHAPE = 16;
 
     /**
      * Objects the sibling join will read.
@@ -752,15 +728,6 @@ class ValueIntelligence extends AppModel
      * thousands. Phase 25's D2 pattern.
      */
     const ANALYST_REPORT_CAP = 50;
-
-    /**
-     * Characters of a report's body carried for its extract.
-     *
-     * `event_reports.content` is `mediumtext` and has no length limit
-     * in practice, so a list of twenty reports could be a megabyte of
-     * markdown fetched to render four lines of each.
-     */
-    const ANALYST_REPORT_HEAD = 600;
 
     /**
      * Distinct comment sentences the comment table draws before it
@@ -1760,6 +1727,8 @@ class ValueIntelligence extends AppModel
         // After the org attach, so the event-tag read is over the rows
         // that survived it rather than over the rows fetched.
         $this->attachEventTags($rows);
+        // The card's Galaxy column, read off both tag scopes as the tab's is.
+        $this->attachClusters($user, $rows);
         $this->attachProposalCounts($rows);
         $this->attachSpellings($rows, $value);
         $this->attachEffectiveDistribution($user, $rows);
@@ -1885,6 +1854,8 @@ class ValueIntelligence extends AppModel
                     ? $names[$id]
                     : __('Unknown organisation'),
                 'occurrences' => $count,
+                // How many of them it flagged for IDS.
+                'ids' => (int)$row[0]['to_ids_yes'],
                 'stance' => $this->verdictStanceWord(array(
                     'to_ids_yes' => $row[0]['to_ids_yes'],
                     'to_ids_no' => $row[0]['to_ids_no'],
@@ -1920,11 +1891,25 @@ class ValueIntelligence extends AppModel
             return strcasecmp($a['name'], $b['name']);
         });
 
+        // Who reported it first and last, over every organisation, capped or not.
+        $first = null;
+        $last = null;
+        foreach ($orgs as $org) {
+            if ($org['oldest'] !== null && ($first === null || $org['oldest'] < $first['at'])) {
+                $first = array('at' => $org['oldest'], 'org' => $org);
+            }
+            if ($org['newest'] !== null && ($last === null || $org['newest'] > $last['at'])) {
+                $last = array('at' => $org['newest'], 'org' => $org);
+            }
+        }
+
         return array(
             'value' => $value,
             'reporting' => array(
                 'orgs' => array_slice($orgs, 0, self::REPORTING_ORG_CAP),
                 'orgs_total' => count($orgs),
+                'first' => $first,
+                'last' => $last,
                 'occurrences' => $total,
                 'months' => $this->reportingMonths(
                     $valueModel->activityMonthsFor($user, $value, $options)
@@ -2118,9 +2103,9 @@ class ValueIntelligence extends AppModel
          * request — and on a stock instance it changes nothing, because
          * `default-v1` declares no list at all.
          */
-        $plan = ValueLabelPriority::planFor(
-            ClassRegistry::init('AnalystProfile')->resolveFor($user)
-        );
+        $analystProfile = ClassRegistry::init('AnalystProfile')
+            ->resolveFor($user);
+        $plan = ValueLabelPriority::planFor($analystProfile);
         if (empty($tags) && empty($galaxyTags)) {
             return array(
                 'value' => $value,
@@ -2142,6 +2127,14 @@ class ValueIntelligence extends AppModel
                 $galaxyTags,
                 $this->galaxyClusters($user, $galaxyTags)
             );
+        // The event overview's Context rows, so both cards sort alike.
+        $attribution = EventContextTool::attributionTypes($analystProfile);
+        foreach ($galaxies as $at => $galaxy) {
+            $galaxies[$at]['row'] = EventContextTool::rowOf(
+                $galaxy['key'],
+                $attribution
+            );
+        }
         return array(
             'value' => $value,
             'tags' => ValueLabelPriority::order(
@@ -2545,44 +2538,53 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * The Occurrences tab: the facet rail and the table it counts.
+     * The Occurrences tab: one page of the value's occurrences, narrowed
+     * by the tab's filter bar, with what its pickers can offer.
      *
-     * One method for both, because a facet count and the rows it counts
-     * have to come out of one assembly or they can disagree with each
-     * other — which is the same reason `viewOccurrenceTable` is one
-     * endpoint rather than two.
-     *
-     * Six queries, none of them per-occurrence or per-event:
-     *
-     *   1. the viewer's occurrence count            `Value`
-     *   2. the occurrence rows, capped              `Value`
-     *   3. their attribute tags (the hasMany half of 2's contain)
-     *   4. the tag records behind those             `MispAttribute`
-     *   5. `Event.Orgc` for all N events at once    `Event`
-     *   6. pending proposals per row                `ShadowAttribute`
+     * Filtered and paged in SQL, so the table reaches every occurrence
+     * of a value like `443` (48,000 rows) rather than its newest few
+     * hundred. The pickers' options are counted over the unfiltered,
+     * non-deleted rows, so a choice never empties the others.
      *
      * @param array $user
      * @param string $value
-     * @param array $options Reserved; `types` reaches `Value`
+     * @param array $options `filters` (Value::occurrenceFilterConditions,
+     *     plus `deleted`: '1' include, '2' only), `page`, `limit`,
+     *     `order`; `types` reaches `Value`
      * @return array
      */
     public function forOccurrenceTable(array $user, $value,
         array $options = array()
     ) {
         $valueModel = $this->model('Value');
-        $summary = $valueModel->occurrenceSummaryFor(
-            $user,
-            $value,
-            array_merge($options, array('with_deleted' => true))
+        $filters = isset($options['filters']) ? $options['filters'] : array();
+        $page = max(1, (int)($options['page'] ?? 1));
+        $limit = (int)($options['limit'] ?? self::OCCURRENCE_PAGE);
+        $limit = max(1, min(self::OCCURRENCE_PAGE_MAX, $limit));
+        $order = $options['order'] ?? self::OCCURRENCE_ORDER;
+        $base = array_diff_key(
+            $options,
+            array_flip(array('filters', 'page', 'limit', 'order'))
         );
-        $total = $summary['occurrences'];
-        $rows = $valueModel->occurrencesFor(
+
+        $deleted = (string)($filters['deleted'] ?? '');
+        $read = $base + array(
+            'filters' => array_diff_key($filters, array('deleted' => true)),
+            'deleted' => $deleted === '2'
+                ? 'only'
+                : ($deleted === '1' ? 'include' : 'exclude'),
+        );
+        $total = $valueModel->occurrenceCountFor($user, $value, $read);
+        $pageCount = max(1, (int)ceil($total / $limit));
+        $page = min($page, $pageCount);
+        $rows = $total === 0 ? array() : $valueModel->occurrencesFor(
             $user,
             $value,
-            array_merge($options, array(
-                'limit' => self::OCCURRENCE_CAP,
-                'order' => self::OCCURRENCE_ORDER,
-            ))
+            $read + array(
+                'limit' => $limit,
+                'page' => $page,
+                'order' => $order,
+            )
         );
 
         $this->attachTags($rows);
@@ -2593,71 +2595,86 @@ class ValueIntelligence extends AppModel
         // After both tag attaches: a row's clusters are the galaxy tags
         // of either scope, ruled on together in one call.
         $this->attachClusters($user, $rows);
-        $this->attachProposalCounts($rows, true);
+        $this->attachProposalCounts($rows);
         $this->attachSpellings($rows, $value);
-        $this->attachEffectiveDistribution($user, $rows);
         $this->attachFeedHits($user, $rows);
 
-        $stats = ValueStatsTool::occurrenceStats($rows, $total);
-        /*
-         * **The events and organisations are the value's, not the
-         * page's**, as on the Overview card — `forOccurrences` has the
-         * argument and phase 29 §14.2 the case. `occurrenceStats`
-         * derives both by walking the rows it was handed, which is
-         * exact while every row is in hand and becomes a count of one
-         * page the moment a cap bites. At 300 that is rarer than the
-         * card's 8 and not rare: `443` is 48,255 occurrences across
-         * 1,844 events, and this header claimed the events of its first
-         * 300 beside a fact strip reading the real number.
-         *
-         * `occurrenceCountFor` is gone from here with it. The summary
-         * answers the total from the same conditions in the same query
-         * as the other two, so the three cannot drift and the panel
-         * pays one aggregate rather than two.
-         */
-        $stats['events'] = $summary['events'];
-        $stats['orgs'] = $summary['orgs'];
-
-        /*
-         * One plan for the whole tab. The rail folds at ten and the
-         * table's two label columns fold at four and three, so the
-         * profile has to reach all three before their folds rather
-         * than after; built once here so the rail cannot rank a
-         * taxonomy the column beside it ranks differently.
-         * `resolveFor()` memoises, so this tab pays nothing for it.
-         */
-        $plan = ValueLabelPriority::planFor(
-            array_key_exists('profile', $options)
-                ? $options['profile']
-                : ClassRegistry::init('AnalystProfile')
-                    ->resolveFor($user)
-        );
+        $summary = $valueModel->occurrenceSummaryFor($user, $value, $base);
+        $facets = array();
+        if ($summary['occurrences'] > 0) {
+            // Each column, label and date counted beside the other filters.
+            $facets = $valueModel->occurrenceFacetsFor($user, $value, $read);
+            $picked = isset($read['filters']['org'])
+                ? (array)$read['filters']['org'] : array();
+            $facets['org_names'] = $this->organisationNames(
+                array(),
+                array_merge(array_keys($facets['org']), $picked)
+            );
+            $facets['labels'] = $valueModel->occurrenceLabelFacetsFor($user, $value, $read);
+            foreach (array('tags', 'galaxy') as $key) {
+                // What a label's bar is a share of: the rows beside its own filter.
+                $facets['labels'][$key]['total'] = isset($read['filters'][$key])
+                    ? $valueModel->occurrenceCountFor($user, $value, array_merge(
+                        $read,
+                        array('filters' => array_diff_key($read['filters'], array($key => true)))
+                    ))
+                    : $total;
+            }
+            $facets['times'] = array();
+            foreach ($valueModel->occurrenceTimeDaysFor($user, $value, $read) as $key => $time) {
+                $histogram = null;
+                if (!empty($time['days'])) {
+                    $days = array_keys($time['days']);
+                    $histogram = ValueStatsTool::timeHistogram(
+                        array('from' => reset($days), 'to' => end($days)),
+                        $time['days']
+                    );
+                    $histogram['scale'] = ValueStatsTool::timeScale($histogram);
+                }
+                $facets['times'][$key] = array(
+                    'histogram' => $histogram,
+                    'unset' => $time['unset'],
+                );
+            }
+        }
 
         return array(
             'value' => $value,
             'occurrences' => $rows,
-            'occurrence_stats' => $stats,
-            'label_plan' => $plan,
+            'occurrence_paging' => array(
+                'page' => $page,
+                'limit' => $limit,
+                'count' => $total,
+                'page_count' => $pageCount,
+            ),
+            'occurrence_stats' => array(
+                'total' => $summary['occurrences'],
+                'events' => $summary['events'],
+                'orgs' => $summary['orgs'],
+                'deleted' => $valueModel->occurrenceCountFor(
+                    $user,
+                    $value,
+                    $base + array('deleted' => 'only')
+                ),
+                'proposals' => $valueModel->occurrenceCountFor(
+                    $user,
+                    $value,
+                    $base + array('filters' => array('proposal' => 1))
+                ),
+            ),
+            'occurrence_facets' => $facets,
             'feeds_shown' => !empty(
                 $user['Role']['perm_view_feed_correlations']
             ),
-            /*
-             * Null rather than a set of zero groups on a value with no
-             * occurrence the viewer may see: a rail of zeroes is a lie
-             * about the value (tabs/00-shared.md §5), and the table
-             * renders one honest empty state at full width instead.
-             */
-            'occurrence_facets' => empty($rows)
-                ? null
-                : ValueStatsTool::occurrenceFacets($rows, $total, $plan),
-            'occurrence_cap' => $total > $stats['shown']
-                ? array('shown' => $stats['shown'], 'total' => $total)
-                : null,
-            'standalone_proposals' => $this->standaloneProposals(
-                $user,
-                $value,
-                $options
+            'label_plan' => ValueLabelPriority::planFor(
+                array_key_exists('profile', $options)
+                    ? $options['profile']
+                    : ClassRegistry::init('AnalystProfile')
+                        ->resolveFor($user)
             ),
+            'standalone_proposals' => $page === 1
+                ? $this->standaloneProposals($user, $value, $base)
+                : array(),
         );
     }
 
@@ -2913,12 +2930,19 @@ class ValueIntelligence extends AppModel
         array $options = array()
     ) {
         $context = $this->sightingContext($user, $value, $options);
+        $rows = ValueStatsTool::sightingList(
+            $context['sightings'],
+            $context['sighted']
+        );
         return array(
             'value' => $value,
-            'sighting_rows' => ValueStatsTool::sightingList(
-                $context['sightings'],
-                $context['sighted']
-            ),
+            'sighting_rows' => $rows,
+            // What each row's event reference shows on hover.
+            'sighting_events' => $this->eventPeeks($user, array_values(array_unique(
+                array_map(function ($row) {
+                    return (int)$row['against']['event'];
+                }, $rows)
+            ))),
             'sighting_notes' => ValueStatsTool::sightingNotes(
                 $context['totals']
             ),
@@ -3663,15 +3687,11 @@ class ValueIntelligence extends AppModel
             $user,
             $event
         );
+        // Where the global attribute index puts them, for Fields/feedHits.
         foreach (array_values($attached) as $i => $attribute) {
-            $feeds = array();
-            foreach ($attribute['Feed'] ?? array() as $feed) {
-                $feeds[] = array(
-                    'id' => (int)$feed['id'],
-                    'name' => (string)$feed['name'],
-                );
+            if (!empty($attribute['Feed'])) {
+                $rows[$keys[$i]]['Attribute']['Feed'] = $attribute['Feed'];
             }
-            $rows[$keys[$i]]['Feed'] = $feeds;
         }
     }
 
@@ -4159,10 +4179,90 @@ class ValueIntelligence extends AppModel
                     $options,
                     array('cooccurrence' => $context['co'])
                 ),
-                'cooccurrence' => $context['co'],
+                'cooccurrence' => $this->cooccurrencePage($user,
+                    $context['co']),
                 'settings' => $this->relationSettings($user, $value),
             ),
         );
+    }
+
+    /**
+     * What the "In the same events" card draws beside the fold, read for
+     * the rows it carries only: each event's preview, and each object's
+     * meta-category, template and attributes in the template's order, as
+     * the objects index draws them.
+     *
+     * @param array $user
+     * @param array $co The fold
+     * @return array The fold with `event_peeks`, object rows completed
+     */
+    private function cooccurrencePage(array $user, array $co)
+    {
+        $events = array();
+        foreach ($co['rollups']['value']['rows'] as $row) {
+            foreach ($row['events'] as $eventId) {
+                $events[(int)$eventId] = true;
+            }
+        }
+        foreach ($co['rollups']['event']['rows'] as $row) {
+            $events[(int)$row['event']['id']] = true;
+        }
+        $objects = $co['rollups']['object']['rows'];
+        foreach ($objects as $row) {
+            $events[(int)$row['event']] = true;
+        }
+        $co['event_peeks'] = $this->eventPeeks($user, array_keys($events));
+        if (empty($objects)) {
+            return $co;
+        }
+        $meta = array();
+        $found = $this->model('MispObject')->find('all', array(
+            'conditions' => array('Object.id' => array_map(
+                function ($row) {
+                    return (int)$row['object']['id'];
+                },
+                $objects
+            )),
+            'fields' => array(
+                'Object.id',
+                'Object.meta-category',
+                'Object.template_uuid',
+                'Object.template_version',
+                'Object.comment',
+                'Object.timestamp',
+                'Object.distribution',
+            ),
+            'recursive' => -1,
+        ));
+        foreach ($found as $row) {
+            $meta[(int)$row['Object']['id']] = $row['Object'];
+        }
+        $order = $this->model('MispObject')->fieldOrderByTemplate(
+            array_column($meta, 'template_uuid')
+        );
+        foreach ($objects as $at => $row) {
+            $object = $meta[(int)$row['object']['id']] ?? array();
+            $objects[$at]['object'] += array(
+                'meta-category' => $object['meta-category'] ?? '',
+                'template_version' => $object['template_version'] ?? null,
+                'comment' => $object['comment'] ?? '',
+                'timestamp' => (int)($object['timestamp'] ?? 0),
+                'distribution' => (int)($object['distribution'] ?? 0),
+            );
+            $rank = $order[$object['template_uuid'] ?? ''] ?? array();
+            $attributes = $row['attributes'];
+            $positions = array_flip(array_keys($attributes));
+            uksort($attributes, function ($a, $b) use ($attributes, $rank,
+                $positions
+            ) {
+                $left = $rank[$attributes[$a]['relation']] ?? PHP_INT_MAX;
+                $right = $rank[$attributes[$b]['relation']] ?? PHP_INT_MAX;
+                return $left <=> $right ?: $positions[$a] <=> $positions[$b];
+            });
+            $objects[$at]['attributes'] = array_values($attributes);
+        }
+        $co['rollups']['object']['rows'] = $objects;
+        return $co;
     }
 
     /**
@@ -4183,11 +4283,20 @@ class ValueIntelligence extends AppModel
         array $options = array()
     ) {
         $types = $this->model('Value')->typesFor($user, $value, $options);
+        $near = $this->nearMatches($user, $value, $types);
+        // The rail names each match's event with its preview.
+        $events = array();
+        foreach ($near['engines'] as $engine) {
+            foreach ($engine['rows'] as $row) {
+                $events[(int)$row['event']] = true;
+            }
+        }
+        $near['event_peeks'] = $this->eventPeeks($user, array_keys($events));
         return array(
             'value' => $value,
             'types' => $types,
             'relationships' => array(
-                'near' => $this->nearMatches($user, $value, $types),
+                'near' => $near,
             ),
         );
     }
@@ -4229,10 +4338,15 @@ class ValueIntelligence extends AppModel
     ) {
         unset($options['filters']);
         $context = $this->cooccurrenceContext($user, $value, $options);
+        $dated = $context['co']['dated'];
+        // The rail names each row's event with its preview.
+        $dated['event_peeks'] = $this->eventPeeks($user, array_values(array_unique(
+            array_map('intval', array_column($dated['rows'], 'event'))
+        )));
         return array(
             'value' => $value,
             'relationships' => array(
-                'dated' => $context['co']['dated'],
+                'dated' => $dated,
                 'siblings' => array(
                     'in_objects' => $context['co']['siblings']['in_objects'],
                     'objects' => $context['co']['siblings']['objects'],
@@ -4798,7 +4912,7 @@ class ValueIntelligence extends AppModel
         array $options
     ) {
         $context = $this->cooccurrenceContext($user, $value, $options);
-        $asserted = $this->assertedClaims($user, $value, $options);
+        $asserted = $this->assertedClaims($user, $value, $options, false);
 
         $digest = array(
             /*
@@ -6325,11 +6439,75 @@ class ValueIntelligence extends AppModel
                 array_merge($options, array('unit' => 'object'))
             ),
         );
+        $siblings = ValueRelationTool::siblings($rows, $context);
+        $siblings['by_object'] = $this->siblingObjects($user, $value,
+            $options, $objects, $rows, $context);
         return array(
-            'siblings' => ValueRelationTool::siblings($rows, $context),
+            'siblings' => $siblings,
             'dated' => ValueRelationTool::dated($rows, $context),
             'object_ids' => array_keys($objects),
         );
+    }
+
+    /**
+     * The same join, one entry per object as the objects index draws
+     * it: this value's own rows beside the others, the object's
+     * template fields in order, and its event ready for the preview.
+     *
+     * @param array $user
+     * @param string $value
+     * @param array $options
+     * @param array $objects `Value::occurrenceObjectIdsFor`
+     * @param array $rows The sibling rows
+     * @param array $context The sibling fold's context
+     * @return array `rows`, `total`, `events`
+     */
+    private function siblingObjects(array $user, $value, array $options,
+        array $objects, array $rows, array $context
+    ) {
+        if (empty($rows)) {
+            return array('rows' => array(), 'total' => 0,
+                'events' => array());
+        }
+        $ids = array_keys($objects);
+        $own = $this->model('Value')->neighbourRowsFor(
+            $user,
+            $value,
+            array('objects' => $ids, 'own' => true),
+            $options
+        );
+        $meta = array();
+        $found = $this->model('MispObject')->find('all', array(
+            'conditions' => array('Object.id' => $ids),
+            'fields' => array(
+                'Object.id',
+                'Object.meta-category',
+                'Object.template_uuid',
+                'Object.template_version',
+                'Object.comment',
+                'Object.timestamp',
+            ),
+            'recursive' => -1,
+        ));
+        foreach ($found as $row) {
+            $meta[(int)$row['Object']['id']] = $row['Object'];
+        }
+        $fold = ValueRelationTool::siblingObjects($rows, $own, array_merge(
+            $context,
+            array(
+                'objects' => $objects,
+                'meta' => $meta,
+                'field_order' => $this->model('MispObject')
+                    ->fieldOrderByTemplate(array_column($meta,
+                        'template_uuid')),
+            )
+        ));
+        $fold['events'] = $this->eventPeeks($user, array_values(
+            array_unique(array_map(function ($object) {
+                return $object['event']['id'];
+            }, $fold['rows']))
+        ));
+        return $fold;
     }
 
     /**
@@ -6621,10 +6799,12 @@ class ValueIntelligence extends AppModel
                 && isset($ourObjects[$edge['near']['id']])
                 ? array(
                     'kind' => 'object',
-                    'object' => isset($faces['objects']
-                        [$edge['near']['id']]['object'])
-                        ? $faces['objects'][$edge['near']['id']]['object']
-                        : null,
+                    // Read with the object ids: a face exists only for
+                    // an object with a linking attribute.
+                    'object' => $ourObjects[$edge['near']['id']]['name'] !== ''
+                        ? $ourObjects[$edge['near']['id']]['name']
+                        : ($faces['objects'][$edge['near']['id']]['object']
+                            ?? null),
                     'relation' => $ourObjects[$edge['near']['id']]
                         ['relation'],
                 )
@@ -6644,7 +6824,109 @@ class ValueIntelligence extends AppModel
                 'event' => (int)$edge['row']['event_id'],
             );
         }
-        return ValueRelationTool::references($rows, $context);
+        return $this->referenceRecordsPage(
+            $user,
+            ValueRelationTool::references($rows, $context)
+        );
+    }
+
+    /**
+     * What the card draws for each record at the far end of a reference:
+     * an object's meta-category, template version and every attribute
+     * this reader may see, in the template's order; the events' previews.
+     *
+     * @param array $user
+     * @param array $section `ValueRelationTool::references`
+     * @return array The section, its `records` completed
+     */
+    private function referenceRecordsPage(array $user, array $section)
+    {
+        $objectIds = array();
+        $events = array();
+        foreach ($section['records'] as $record) {
+            $events[$record['event']] = true;
+            if ($record['kind'] === 'object') {
+                $objectIds[] = $record['id'];
+            }
+        }
+        $section['event_peeks'] = $this->eventPeeks($user, array_keys($events));
+        if (empty($objectIds)) {
+            return $section;
+        }
+        $meta = array();
+        foreach ($this->model('MispObject')->find('all', array(
+            'conditions' => array('Object.id' => $objectIds),
+            'fields' => array(
+                'Object.id',
+                'Object.meta-category',
+                'Object.template_uuid',
+                'Object.template_version',
+                'Object.comment',
+                'Object.timestamp',
+                'Object.distribution',
+            ),
+            'recursive' => -1,
+        )) as $row) {
+            $meta[(int)$row['Object']['id']] = $row['Object'];
+        }
+        $attributes = array();
+        foreach ($this->model('MispAttribute')->fetchAttributesSimple($user, array(
+            'conditions' => array(
+                'Attribute.object_id' => $objectIds,
+                'Attribute.deleted' => 0,
+            ),
+            'fields' => array(
+                'Attribute.id',
+                'Attribute.object_id',
+                'Attribute.object_relation',
+                'Attribute.type',
+                'Attribute.category',
+                'Attribute.value',
+                'Attribute.distribution',
+                'Attribute.sharing_group_id',
+                'Attribute.timestamp',
+                'Attribute.to_ids',
+            ),
+        )) as $row) {
+            $attribute = $row['Attribute'];
+            $attributes[(int)$attribute['object_id']][] = array(
+                'id' => (int)$attribute['id'],
+                'value' => (string)$attribute['value'],
+                'type' => $attribute['type'],
+                'category' => $attribute['category'],
+                'relation' => (string)$attribute['object_relation'],
+                'distribution' => (int)$attribute['distribution'],
+                'sharing_group_id' => (int)$attribute['sharing_group_id'],
+                'timestamp' => (int)$attribute['timestamp'],
+                'to_ids' => !empty($attribute['to_ids']),
+            );
+        }
+        $order = $this->model('MispObject')->fieldOrderByTemplate(
+            array_column($meta, 'template_uuid')
+        );
+        foreach ($section['records'] as $at => $record) {
+            if ($record['kind'] !== 'object') {
+                continue;
+            }
+            $object = $meta[$record['id']] ?? array();
+            $rank = $order[$object['template_uuid'] ?? ''] ?? array();
+            $list = $attributes[$record['id']] ?? array();
+            $positions = array_flip(array_keys($list));
+            uksort($list, function ($a, $b) use ($list, $rank, $positions) {
+                return ($rank[$list[$a]['relation']] ?? PHP_INT_MAX)
+                    <=> ($rank[$list[$b]['relation']] ?? PHP_INT_MAX)
+                    ?: $positions[$a] <=> $positions[$b];
+            });
+            $section['records'][$at] += array(
+                'meta-category' => $object['meta-category'] ?? '',
+                'template_version' => $object['template_version'] ?? null,
+                'comment' => $object['comment'] ?? '',
+                'timestamp' => (int)($object['timestamp'] ?? 0),
+                'distribution' => (int)($object['distribution'] ?? 0),
+                'attributes' => array_values($list),
+            );
+        }
+        return $section;
     }
 
     /**
@@ -7286,16 +7568,18 @@ class ValueIntelligence extends AppModel
      * the two endpoints, an author, a date and a distribution, and no
      * prose column at all — unlike `notes.note` and `opinions.comment`
      * beside it. Prose about a relationship is a Note attached to the
-     * relationship, which is another fetch per claim and is deferred.
-     * `24-relationships.md` §7.
+     * relationship: each claim carries its notes and opinions, read by
+     * `analystThreadItems` as the Collaboration tab reads its thread, so
+     * the card draws it through the shared AnalystData/thread.
      *
      * @param array $user
      * @param string $value
      * @param array $options
+     * @param bool $replies Read each claim's notes and opinions
      * @return array
      */
     private function assertedClaims(array $user, $value,
-        array $options = array()
+        array $options = array(), $replies = true
     ) {
         $occurrences = $this->model('Value')->occurrenceUuidsFor(
             $user,
@@ -7372,12 +7656,18 @@ class ValueIntelligence extends AppModel
              * claims is twelve queries nobody asked for. Contained,
              * it is two joins.
              */
+            // The replies are read below, one level at a time.
+            $recursive = $relationships->fetchRecursive;
+            $relationships->current_user = $user;
+            $relationships->fetchRecursive = false;
             $rows = $relationships->find('all', array(
                 'conditions' => $conditions,
                 'recursive' => -1,
                 'contain' => array('Org', 'Orgc'),
                 'order' => array('Relationship.modified DESC'),
             ));
+            $relationships->fetchRecursive = $recursive;
+            $anchorsByUuid = $this->claimAnchors($occurrences);
             foreach ($rows as $row) {
                 $claim = $this->claimFrom($user, $row, $near);
                 if ($claim === null) {
@@ -7393,10 +7683,25 @@ class ValueIntelligence extends AppModel
                         $claim['spelled'] = $spelling;
                     }
                 }
+                $claim['attached_to'] = $claim['anchor'] === 'AttributeValue'
+                    ? array('kind' => 'value', 'spelled' => $claim['spelled'])
+                    : ($anchorsByUuid[$claim['anchor_uuid']]
+                        ?? array('kind' => 'unresolved', 'event' => null));
+                $claim['replies'] = array();
                 $claims[$row['Relationship']['uuid']] = $claim;
                 $orgs[$claim['org']] = true;
             }
             $claims = $this->resolveClaimTargets($user, $claims);
+            $claimTargets = array();
+            foreach ($replies ? array_keys($claims) : array() as $uuid) {
+                $claimTargets[$uuid] = array('kind' => 'claim', 'claim' => $uuid);
+            }
+            foreach ($this->analystThreadItems($user, $claimTargets) as $reply) {
+                $claim = $reply['attached_to']['claim'] ?? null;
+                if (isset($claims[$claim])) {
+                    $claims[$claim]['replies'][] = $reply;
+                }
+            }
         }
         return array(
             'total' => count($claims),
@@ -7413,6 +7718,43 @@ class ValueIntelligence extends AppModel
             'prose_absent' => !empty($claims),
             'claims' => array_values($claims),
         );
+    }
+
+    /**
+     * Which record of this value each occurrence-side anchor UUID is, in
+     * the shape the Collaboration tab's `value_analyst_target` chip reads.
+     *
+     * @param array $occurrences `Value::occurrenceUuidsFor`
+     * @return array uuid => attachment
+     */
+    private function claimAnchors(array $occurrences)
+    {
+        $anchors = array();
+        foreach ($occurrences as $uuid => $occurrence) {
+            $anchors[$uuid] = array(
+                'kind' => 'attribute',
+                'type' => $occurrence['type'],
+                'event' => $occurrence['event_id'],
+            );
+            if (!empty($occurrence['event_uuid'])
+                && !isset($anchors[$occurrence['event_uuid']])
+            ) {
+                $anchors[$occurrence['event_uuid']] = array(
+                    'kind' => 'event',
+                    'event' => $occurrence['event_id'],
+                );
+            }
+            if (!empty($occurrence['object_uuid'])
+                && !isset($anchors[$occurrence['object_uuid']])
+            ) {
+                $anchors[$occurrence['object_uuid']] = array(
+                    'kind' => 'object',
+                    'name' => $occurrence['object_name'],
+                    'event' => $occurrence['event_id'],
+                );
+            }
+        }
+        return $anchors;
     }
 
     /**
@@ -7491,6 +7833,16 @@ class ValueIntelligence extends AppModel
             ? null
             : self::claimOrg($relationship, 'Org');
         return array(
+            'id' => (int)$relationship['id'],
+            'uuid' => $relationship['uuid'],
+            'created' => $relationship['created'] ?? $relationship['modified'],
+            'authors' => (string)($relationship['authors'] ?? ''),
+            'can_edit' => !empty($relationship['_canEdit']),
+            // This value's end of the claim: the occurrence, its event,
+            // its object or the value itself.
+            'anchor_uuid' => $outbound
+                ? $address('object')
+                : $address('related_object'),
             'relationship_type' => empty($relationship['relationship_type'])
                 ? __('related-to')
                 : $relationship['relationship_type'],
@@ -8594,6 +8946,7 @@ class ValueIntelligence extends AppModel
                     'org' => isset($row['Orgc']['name'])
                         ? $row['Orgc']['name']
                         : __('Unknown organisation'),
+                    'org_id' => (int)$event['orgc_id'],
                     'published' => !empty($event['published']),
                     'first_publication' => (int)$event['first_publication'],
                     'publish_timestamp' => (int)$event['publish_timestamp'],
@@ -11142,8 +11495,40 @@ class ValueIntelligence extends AppModel
             array_keys($this->model('Value')->proposalsFor($user, $value))
         );
         $scope['reports'] = $this->historyReportIds($user, $context);
+        // The History tab's filter bar (AuditLogsController::valueHistory).
+        if (!empty($options['conditions'])) {
+            $scope['filter'] = $options['conditions'];
+        }
 
         $counts = $this->auditCountsFor($scope);
+        /*
+         * The filter bar's time strip: the entries by day under every
+         * filter but its own date, read again only when that date is set.
+         */
+        $strip = null;
+        if (array_key_exists('strip_conditions', $options)) {
+            $stripScope = array_diff_key($scope, array('filter' => true));
+            if (!empty($options['strip_conditions'])) {
+                $stripScope['filter'] = $options['strip_conditions'];
+            }
+            $byDay = ($stripScope['filter'] ?? null) === ($scope['filter'] ?? null)
+                ? $counts['by_day']
+                : $this->auditCountsFor($stripScope)['by_day'];
+            $days = array();
+            foreach ($byDay as $day => $groups) {
+                $days[$day] = array_sum($groups);
+            }
+            $strip = array('histogram' => null, 'unset' => 0);
+            if (!empty($days)) {
+                ksort($days);
+                $keys = array_keys($days);
+                $strip['histogram'] = ValueStatsTool::timeHistogram(
+                    array('from' => reset($keys), 'to' => end($keys)),
+                    $days
+                );
+                $strip['histogram']['scale'] = ValueStatsTool::timeScale($strip['histogram']);
+            }
+        }
         $rows = $this->auditRowsFor($scope, array(
             'limit' => self::HISTORY_ROW_CAP,
             'window' => $window,
@@ -11162,6 +11547,7 @@ class ValueIntelligence extends AppModel
             'value' => $value,
             'history' => $this->historyPanel($rows, $counts, $context,
                 $scope, $window, (int)$user['org_id']),
+            'history_strip' => $strip,
         );
     }
 
@@ -11354,6 +11740,8 @@ class ValueIntelligence extends AppModel
                     'org' => $event === null
                         ? __('Unknown organisation')
                         : $event['org'],
+                    'org_id' => $event === null ? null : $event['org_id'],
+                    'type' => $occurrence['type'] ?? null,
                     'deleted' => !empty($occurrence['deleted']),
                     'count' => 0,
                     'total' => 0,
@@ -12294,12 +12682,16 @@ class ValueIntelligence extends AppModel
                 continue;
             }
             foreach (array_chunk($ids, self::AUDIT_ID_CHUNK) as $chunk) {
+                $conditions = array(
+                    'AuditLog.model' => $model,
+                    'AuditLog.model_id' => $chunk,
+                );
+                if (!empty($scope['filter'])) {
+                    $conditions['AND'][] = $scope['filter'];
+                }
                 $queries[] = array(
                     'model' => $model,
-                    'conditions' => array(
-                        'AuditLog.model' => $model,
-                        'AuditLog.model_id' => $chunk,
-                    ),
+                    'conditions' => $conditions,
                 );
             }
         }
@@ -12431,6 +12823,27 @@ class ValueIntelligence extends AppModel
     }
 
     /**
+     * The Collaboration tab's Proposals card: the pending and closed
+     * shadow attributes about this value, newest first. One read, without
+     * the thread's five-anchor union.
+     *
+     * @param array $user
+     * @param string $value
+     * @param array $options Reserved
+     * @return array
+     */
+    public function forAnalystProposals(array $user, $value,
+        array $options = array()
+    ) {
+        return array(
+            'value' => $value,
+            'proposals' => self::analystNewestFirst(
+                $this->analystProposalItems($user, $value)
+            ),
+        );
+    }
+
+    /**
      * The argument, in the order it happened.
      *
      * @param array $user
@@ -12442,6 +12855,15 @@ class ValueIntelligence extends AppModel
         array $options = array()
     ) {
         $context = $this->analystContext($user, $value, $options);
+        // Proposals have their own card (forAnalystProposals): they are
+        // edits offered to an event, not analyst data.
+        $context['thread'] = array_values(array_filter(
+            $context['thread'],
+            function ($item) {
+                return $item['kind'] !== 'proposal';
+            }
+        ));
+        $context['counts'] = $this->analystCounts($context['thread']);
         return array(
             'value' => $value,
             'analyst' => $context,
@@ -12487,13 +12909,8 @@ class ValueIntelligence extends AppModel
      * query `analystReportCount` runs, over the event ids the anchor
      * read already returned.
      *
-     * **And the standing, since phase 35, which is free.** The card
-     * draws the tab's tug-bar over it — the one object on the
-     * Collaboration tab that is a shape rather than a list, and the
-     * one thing on this card that is not capped at four items. A value
-     * with two notes and six opinions can fill the preview with notes
-     * and show the reader no opinion at all; the bar is over every
-     * opinion either way.
+     * And the standing, which is free: the card states the opinions'
+     * average off it.
      *
      * @param array $user
      * @param string $value
@@ -12514,16 +12931,8 @@ class ValueIntelligence extends AppModel
          * items and the union can hold hundreds; carrying the rest so
          * the template can ignore them is the Overview paying the
          * tab's memory for a panel that shows a handful.
-         *
-         * **The ledger is kept, and phase 35 is what gave it a
-         * reader.** It was built and then discarded here, which the
-         * note this replaces called the cheaper mistake; the card now
-         * draws the tug-bar off it. It is one row per opinion that
-         * rates the value — four on the flagship, one on `127.0.0.1`,
-         * none at all on four of the five values `31-query-count.php`
-         * measures — so keeping it costs no query and no meaningful
-         * memory, and it is the *same* array the tab reads rather
-         * than a second count of the same opinions.
+         * The standing is kept: one row per opinion, no query, and the
+         * same array the tab reads.
          */
         unset($context['thread'], $context['events']);
         return array(
@@ -12540,10 +12949,8 @@ class ValueIntelligence extends AppModel
      * two-year-old note above yesterday's opinion. One union, read
      * newest first, is what the thread beside it already does.
      *
-     * Roots only, and proposals excluded. A reply is a statement about
-     * the item above it rather than about the value, and the card has
-     * no room to draw what it answers — the same exclusion the standing
-     * panel's aggregate makes, and for the same reason.
+     * Proposals excluded. Replies stay under the item they answer, as
+     * the event overview's thread folds them.
      *
      * @param array $thread From `analystContext`
      * @return array
@@ -12555,10 +12962,6 @@ class ValueIntelligence extends AppModel
             if ($item['kind'] === 'proposal') {
                 continue;
             }
-            // The replies go with them, so "roots only" is a property
-            // of what leaves this method rather than of what the
-            // template remembers not to draw.
-            unset($item['children'], $item['max_depth_reached']);
             $items[] = $item;
             if (count($items) >= self::ANALYST_PREVIEW_CAP) {
                 break;
@@ -12652,7 +13055,7 @@ class ValueIntelligence extends AppModel
             $eventIds[$group['event_id']] = true;
         }
         $orgs = $this->organisationNames(array(), $orgIds);
-        $events = $this->commentEventNames($user, array_keys($eventIds));
+        $events = $this->eventPeeks($user, array_keys($eventIds));
         $rows = array();
         foreach ($groups as $group) {
             $eventId = $group['event_id'];
@@ -12710,20 +13113,15 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * The events the comment table links to, by id.
-     *
-     * `fetchSimpleEvents` rather than the ids alone, for the two things
-     * a link needs that an aggregate cannot carry: the event's `info`,
-     * so the chip names what it opens, and a second pass of
-     * `createEventConditions` over ids that came from an ACL'd read.
-     * One call for the whole table — §14.4's commitment is never one
-     * call per row.
+     * The events the comment and report cards point at, by id, in the
+     * shape `Attributes/event_peek` reads: one read for the whole card,
+     * through `createEventConditions` again.
      *
      * @param array $user
      * @param array $ids
-     * @return array event id => ['id' => int, 'info' => string]
+     * @return array event id => event fields, Orgc and SharingGroup
      */
-    private function commentEventNames(array $user, array $ids)
+    private function eventPeeks(array $user, array $ids)
     {
         if (empty($ids)) {
             return array();
@@ -12733,12 +13131,36 @@ class ValueIntelligence extends AppModel
             array('conditions' => array('Event.id' => $ids)),
             true
         );
+        $names = $this->sharingGroupNames($user, array(), array_map(
+            function ($event) {
+                return $event['Event']['distribution'];
+            },
+            $events
+        ));
         $out = array();
         foreach ($events as $event) {
-            $out[(int)$event['Event']['id']] = array(
-                'id' => (int)$event['Event']['id'],
-                'info' => isset($event['Event']['info'])
-                    ? $event['Event']['info']
+            $row = $event['Event'];
+            $group = (int)$row['sharing_group_id'];
+            $out[(int)$row['id']] = array(
+                'id' => (int)$row['id'],
+                'info' => $row['info'],
+                'date' => $row['date'],
+                'distribution' => (int)$row['distribution'],
+                'sharing_group_id' => $group,
+                'threat_level_id' => (int)$row['threat_level_id'],
+                'analysis' => (int)$row['analysis'],
+                'attribute_count' => (int)$row['attribute_count'],
+                'timestamp' => (int)$row['timestamp'],
+                'published' => !empty($row['published']),
+                'publish_timestamp' => (int)$row['publish_timestamp'],
+                'Orgc' => array(
+                    'id' => (int)$row['orgc_id'],
+                    'name' => isset($event['Orgc']['name'])
+                        ? $event['Orgc']['name']
+                        : '',
+                ),
+                'SharingGroup' => isset($names[$group])
+                    ? array('id' => $group, 'name' => $names[$group])
                     : null,
             );
         }
@@ -12931,15 +13353,11 @@ class ValueIntelligence extends AppModel
                     ? $row['SharingGroup']['name']
                     : null,
                 'withdrawn' => $withdrawn,
-                /*
-                 * The head of the report rather than the report. A
-                 * report has no length limit and this panel shows a
-                 * list; carrying every byte of every one of them to
-                 * render four lines of each is the cost that would make
-                 * the panel worth not opening.
-                 */
-                'head' => mb_substr($content, 0, self::ANALYST_REPORT_HEAD),
-                'length' => mb_strlen($content),
+                'timestamp' => (int)$report['timestamp'],
+                // What the card's event reference shows on hover.
+                'event_peek' => $event,
+                // Excerpt, words and references, as the reports index.
+                'digest' => EventReportDigestTool::digest($content),
             );
         }
         $out['total'] = count($reports);
@@ -12972,9 +13390,12 @@ class ValueIntelligence extends AppModel
      * primary-key lookup and means no event's level can be read off a
      * row this viewer should not have.
      *
+     * The same read carries what the card's event peek shows.
+     *
      * @param array $user
      * @param array $rows fetchReports-shaped
-     * @return array event id => distribution, sharing_group_id
+     * @return array event id => `eventPeeks` row (distribution,
+     *  sharing_group_id and the peek's fields)
      */
     private function reportEventAudiences(array $user, array $rows)
     {
@@ -12982,22 +13403,7 @@ class ValueIntelligence extends AppModel
         foreach ($rows as $row) {
             $ids[(int)$row['EventReport']['event_id']] = true;
         }
-        if (empty($ids)) {
-            return array();
-        }
-        $events = $this->model('Event')->fetchSimpleEvents(
-            $user,
-            array('conditions' => array('Event.id' => array_keys($ids)))
-        );
-        $out = array();
-        foreach ($events as $event) {
-            $out[(int)$event['Event']['id']] = array(
-                'distribution' => (int)$event['Event']['distribution'],
-                'sharing_group_id' =>
-                    (int)$event['Event']['sharing_group_id'],
-            );
-        }
-        return $out;
+        return $this->eventPeeks($user, array_keys($ids));
     }
 
     /**
@@ -13527,6 +13933,10 @@ class ValueIntelligence extends AppModel
         }
         return array(
             'kind' => $isOpinion ? 'opinion' : 'note',
+            'id' => isset($row['id']) ? (int)$row['id'] : null,
+            'uuid' => isset($row['uuid']) ? $row['uuid'] : null,
+            'created' => $row['created'],
+            'can_edit' => !empty($row['_canEdit']),
             'org' => $org,
             'org_key' => $key,
             'org_id' => $orgId,
@@ -13664,8 +14074,7 @@ class ValueIntelligence extends AppModel
      * campaign's own default value carries four opinions and all four
      * are ADMIN's — 100, 100, 80, then 10. Rolled up to one lane that
      * value would draw a single disputing organisation over a set that
-     * is three-quarters agreement, and the tug-bar's clause would read
-     * *every organisation disputes*. So every opinion gets its lane,
+     * is three-quarters agreement. So every opinion gets its lane,
      * an organisation's lanes sit together, and the sub-line's *N
      * opinions from M organisations* is what tells the reader the two
      * counts differ.
@@ -15861,11 +16270,66 @@ class ValueIntelligence extends AppModel
      */
     private function enrichmentView(array $run, $all = false)
     {
-        return ValueEnrichmentTool::view(
+        return $this->enrichmentFieldOrder(ValueEnrichmentTool::view(
             $run,
             $all,
             self::ENRICHMENT_ELEMENT_CAP
+        ));
+    }
+
+    /**
+     * An answer's object attributes in the order their template reads
+     * them, highest `ui-priority` first as the event view orders an
+     * object (`MispObject::fieldOrderByTemplate`); a relation the
+     * template does not list keeps its place, last.
+     *
+     * Matched on the template name: a shaped answer, stored or fresh,
+     * no longer carries the template uuid.
+     *
+     * @param array $run
+     * @return array
+     */
+    private function enrichmentFieldOrder(array $run)
+    {
+        if (empty($run['objects'])) {
+            return $run;
+        }
+        $names = array_values(array_unique(array_filter(
+            array_column($run['objects'], 'name')
+        )));
+        if (empty($names)) {
+            return $run;
+        }
+        $uuids = $this->model('ObjectTemplate')->find('list', array(
+            'conditions' => array('ObjectTemplate.name' => $names),
+            'fields' => array('ObjectTemplate.name', 'ObjectTemplate.uuid'),
+            'recursive' => -1,
+        ));
+        if (empty($uuids)) {
+            return $run;
+        }
+        $order = $this->model('MispObject')->fieldOrderByTemplate(
+            array_values($uuids)
         );
+        foreach ($run['objects'] as $i => $object) {
+            $uuid = isset($uuids[$object['name']])
+                ? $uuids[$object['name']] : null;
+            if ($uuid === null || empty($order[$uuid])
+                || empty($object['attributes'])
+            ) {
+                continue;
+            }
+            $rank = $order[$uuid];
+            // A stable sort: equal ranks keep the module's order.
+            usort(
+                $run['objects'][$i]['attributes'],
+                function ($a, $b) use ($rank) {
+                    return ($rank[(string)$a['relation']] ?? PHP_INT_MAX)
+                        <=> ($rank[(string)$b['relation']] ?? PHP_INT_MAX);
+                }
+            );
+        }
+        return $run;
     }
 
     /**
@@ -16577,6 +17041,9 @@ class ValueIntelligence extends AppModel
             'warninglist' => $this->verdictWarninglistBand($context),
             'composition_note' => $this->verdictCompositionNote($verdict,
                 $profile),
+            'profile_scope' => empty($profile)
+                ? null
+                : ClassRegistry::init('AnalystProfile')->scopeOf($profile),
         );
         return array_merge($panels, $this->verdictCurves($verdict));
     }

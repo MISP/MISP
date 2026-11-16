@@ -86,18 +86,18 @@ $heading = strpos($heading, '%s') === false
  * in for it — colour alone is not a claim a reader can rely on.
  */
 $marks = array(
-    'ok' => array('fa-circle-check', 'vp-e-mark-ok'),
-    'silent' => array('fa-circle-minus', 'vp-e-mark-quiet'),
-    'error' => array('fa-triangle-exclamation', 'vp-e-mark-bad'),
-    'timeout' => array('fa-hourglass-half', 'vp-e-mark-warn'),
-    'refused' => array('fa-ban', 'vp-e-mark-bad'),
-    'profile_refused' => array('fa-ban', 'vp-e-mark-quiet'),
-    'unreachable' => array('fa-plug-circle-xmark', 'vp-e-mark-bad'),
-    'ineligible' => array('fa-circle-question', 'vp-e-mark-quiet'),
-    'auto_not_allowed' => array('fa-hand', 'vp-e-mark-quiet'),
-    'auto_typed' => array('fa-hand', 'vp-e-mark-quiet'),
-    'needs_occurrence' => array('fa-ban', 'vp-e-mark-quiet'),
-    'expired' => array('fa-clock-rotate-left', 'vp-e-mark-quiet'),
+    'ok' => array('fa-circle-check'),
+    'silent' => array('fa-circle-minus'),
+    'error' => array('fa-triangle-exclamation'),
+    'timeout' => array('fa-hourglass-half'),
+    'refused' => array('fa-ban'),
+    'profile_refused' => array('fa-ban'),
+    'unreachable' => array('fa-plug-circle-xmark'),
+    'ineligible' => array('fa-circle-question'),
+    'auto_not_allowed' => array('fa-hand'),
+    'auto_typed' => array('fa-hand'),
+    'needs_occurrence' => array('fa-ban'),
+    'expired' => array('fa-clock-rotate-left'),
 );
 $mark = isset($marks[$state]) ? $marks[$state] : $marks['ok'];
 
@@ -159,12 +159,6 @@ $prose = array(
     ),
 );
 
-$noDismiss = __(
-    'Disabled — a dismissal has nowhere to be remembered. Nothing'
-    . ' records that a module ran, so nothing can record that you'
-    . ' rejected part of what it returned.'
-);
-
 $canPick = $this->Acl->canAccess('values', 'newEvent');
 
 /**
@@ -209,38 +203,6 @@ $pickControl = function ($pick) {
         . '<span data-vp-ne-pick-label>' . h(__('Pick')) . '</span></button>';
 };
 
-/**
- * The per-element action, drawn once and reused on every row. An object
- * takes it whole; the attribute rows inside it carry none.
- *
- * @param bool $wide Whether the label is spelled out
- * @param array|null $pick From $pickFor; an object draws its own in its head
- * @return string
- */
-$actions = function ($wide = false, $pick = null) use ($noDismiss, $pickControl) {
-    $out = '<span class="vp-e-el-acts">' . $pickControl($pick);
-    $buttons = array(
-        array(__('Dismiss'), 'fa-xmark', $noDismiss),
-    );
-    foreach ($buttons as $button) {
-        $out .= '<button type="button" disabled'
-            . ' class="btn btn-sm btn-outline-secondary disabled"'
-            . ' title="' . h($button[2]) . '">'
-            . '<i class="fas ' . h($button[1]) . '"></i>'
-            . ($wide ? '<span>' . h($button[0]) . '</span>' : '')
-            . '<span class="visually-hidden">' . h($button[0])
-            . '</span></button>';
-    }
-    return $out . '</span>';
-};
-
-/**
- * `Already in MISP`, where it is.
- *
- * @param array $element
- * @param bool $short Whether the chip is a mark rather than a phrase
- * @return string
- */
 $knownChip = function (array $element, $short = false) {
     if (empty($element['known'])) {
         return '';
@@ -289,19 +251,12 @@ $token = isset($this->request->params['_Token']['key'])
     : '';
 
 /*
- * §10's per-object expansion, decided on the attribute rows rather
- * than on the object count. The attributes are the answer — they are
- * the reason the module was asked — so the pane opens objects until
- * the open rows stop being a list a reader can scan, and folds the
- * rest. `mmdb_lookup` returns three objects of ten rows and opens
- * whole; `circl_passivedns` returns two hundred of seven and opens
- * the first eight, which is where the reader is looking.
- *
- * A folded card is not silent about what it holds: its head carries
- * the first of its values, so no object here is a shell somebody has
- * to open to find out whether it is worth opening.
+ * Objects open until their attribute rows pass this budget, the first one
+ * always; the rest stay folded rows, as in the objects index, each naming
+ * the first value that tells it from its siblings. `circl_passivedns`
+ * (two hundred objects of seven rows) opens the first three.
  */
-$rowBudget = 60;
+$rowBudget = 24;
 
 /*
  * The filter, offered only where scanning has become the problem it
@@ -343,106 +298,60 @@ $manyObjects = count($run['objects']) > 1;
      data-vp-e-total="<?= h($run['total']) ?>"
      data-vp-e-token="<?= h($token) ?>">
 
-    <div class="vp-e-res-head">
-        <i class="fas <?= h($mark[0]) ?> vp-e-mark <?= h($mark[1]) ?>"
-           aria-hidden="true"></i>
-        <div class="vp-e-res-headtext">
-            <div class="vp-e-cold-title"><?= h($heading) ?></div>
-
-            <?php
-            /*
-             * The provenance line: what the module *is* and what this
-             * press cost. Chips rather than a run of text: they
-             * are five unrelated facts and a reader looks for one of
-             * them at a time.
-             */
-            ?>
-            <div class="vp-e-chips">
-                <?php
-                /*
-                 * Where the answer came from, and it leads the chips
-                 * because it changes what every other one means: a
-                 * `took` of 4.9 s describes a query somebody else made
-                 * two hours ago, not this reader's press.
-                 *
-                 * When, never who (D27) — the store knows which
-                 * analyst ran it and no surface says so.
-                 */
-                ?>
+    <?php
+    $labels = array(
+        'ok' => __('Answered'),
+        'silent' => __('Answered with nothing'),
+        'error' => __('Module error'),
+        'timeout' => __('Ran out of time'),
+        'refused' => __('Not sent'),
+        'profile_refused' => __('Never run, by your profile'),
+        'unreachable' => __('Service did not answer'),
+        'ineligible' => __('Not offered for this value'),
+        'auto_not_allowed' => __('Not run on its own'),
+        'auto_typed' => __('Not run on its own'),
+        'needs_occurrence' => __('Not sent'),
+        'expired' => __('No longer kept'),
+    );
+    $tones = array('ok' => 'ok', 'timeout' => 'warn', 'error' => 'bad', 'refused' => 'bad', 'unreachable' => 'bad');
+    $answered = in_array($state, array('ok', 'silent', 'error', 'timeout'), true);
+    ?>
+    <div class="vp-e-res-head" title="<?= h($heading) ?>">
+        <span class="vp-e-res-state is-<?= h(isset($tones[$state]) ? $tones[$state] : 'quiet') ?>">
+            <i class="fas <?= h($mark[0]) ?>" aria-hidden="true"></i>
+            <?= h(isset($labels[$state]) ? $labels[$state] : $heading) ?>
+            <?php if ($answered): ?>
                 <?php if (!empty($run['from_store'])): ?>
-                    <span class="vp-e-chip"
-                          title="<?= h(__(
-                            'Kept for your organisation. Nothing was'
-                            . ' sent anywhere to show you this.'
-                          )) ?>">
-                        <i class="fas fa-clock-rotate-left"
-                           aria-hidden="true"></i>
-                        <?= h(__('asked')) ?>
-                        <?= $this->element(
-                            'Values/View/value_enrichment_age',
-                            array('askedAge' => $run['age'])
-                        ) ?>
+                    <span class="vp-e-res-age" title="<?= h(__('Kept for your organisation. Nothing was sent anywhere to show you this.')) ?>">
+                        <?= $this->element('Values/View/value_enrichment_age', array('askedAge' => $run['age'])) ?>
                     </span>
+                <?php else: ?>
+                    <span class="vp-e-res-age"><?= h(__('just now')) ?></span>
                 <?php endif; ?>
-                <?php if (!empty($run['kinds'])): ?>
-                    <span class="vp-e-chip"><?= h(implode(
-                        '+',
-                        $run['kinds']
-                    )) ?></span>
-                <?php endif; ?>
-                <?php if ($run['format'] !== null): ?>
-                    <span class="vp-e-chip font-monospace"><?= h(
-                        $run['format']
-                    ) ?></span>
-                <?php endif; ?>
-                <?php if ($run['type'] !== null): ?>
-                    <span class="vp-e-chip">
-                        <?= h(__('asked as')) ?>
-                        <span class="font-monospace"><?= h(
-                            $run['type']
-                        ) ?></span>
-                    </span>
-                <?php endif; ?>
-                <span class="vp-e-chip">
-                    <i class="fas fa-stopwatch"></i>
-                    <?= h(sprintf(__('%d ms'), $run['took'])) ?>
-                </span>
-                <?php if ($state === 'ok'): ?>
-                    <span class="vp-e-chip vp-e-chip-n">
-                        <span class="vp-e-num"><?= h(
-                            $run['total']
-                        ) ?></span>
-                        <?= h(__n(
-                            'element returned',
-                            'elements returned',
-                            $run['total']
-                        )) ?>
-                    </span>
-                <?php endif; ?>
-                <?php
-                /*
-                 * **This said *nothing stored* until 2026-09-21**, two
-                 * chips along from one reading *asked 2 hours ago* —
-                 * the answer had been served out of the store it
-                 * claimed did not exist. What it was reaching for is
-                 * still true and is what an analyst needs: nothing
-                 * here is written into MISP. Every run is kept for the
-                 * organisation, and neither fact implies the other.
-                 */
-                ?>
-                <span class="vp-e-chip vp-e-chip-quiet"
-                      title="<?= h(__(
-                        'The answer is kept for your organisation so'
-                        . ' that opening this value again does not ask'
-                        . ' the module again. Nothing is written into'
-                        . ' MISP.'
-                      )) ?>">
-                    <i class="fas fa-database"></i>
-                    <?= h(__('kept, not written')) ?>
-                </span>
-            </div>
-        </div>
-
+            <?php endif; ?>
+        </span>
+        <span class="vp-e-res-meta">
+            <?php if ($run['type'] !== null): ?>
+                <span><?= h(__('asked as')) ?> <span class="vp-e-type"><?= h($run['type']) ?></span></span>
+            <?php endif; ?>
+            <span><?= h(sprintf(__('took %d ms'), $run['took'])) ?></span>
+            <?php if ($state === 'ok'): ?>
+                <span><?= h(sprintf(__n('%s element', '%s elements', $run['total']), number_format($run['total']))) ?></span>
+            <?php endif; ?>
+            <span title="<?= h(__('The answer is kept for your organisation so that opening this value again does not ask the module again. Nothing is written into MISP until you pick it for an event.')) ?>">
+                <i class="fas fa-database" aria-hidden="true"></i> <?= h(__('kept for your organisation, not added to any event')) ?>
+            </span>
+        </span>
+        <?php if ($answered): ?>
+            <span class="vp-e-res-acts">
+                <?= $this->element('Values/View/value_enrichment_button', array(
+                    'module' => array('name' => $run['module'], 'type' => $run['type']),
+                    'canRun' => true,
+                    'noRun' => '',
+                    'label' => __('Ask again'),
+                )) ?>
+            </span>
+        <?php endif; ?>
     </div>
 
     <?php if (isset($prose[$state])): ?>
@@ -583,408 +492,212 @@ $manyObjects = count($run['objects']) > 1;
         </div>
     <?php endif; ?>
 
+    <?php
+    /*
+     * What the module returned, drawn as the indexes draw attributes and
+     * objects: the shared value cell, category, type and IDS badges, the
+     * object header. Nothing a module's answer has not got yet (distribution,
+     * tags, sightings, correlations) gets a column.
+     */
+    $valueCell = function (array $attribute, $short = false) use ($knownChip) {
+        return $this->element('genericElementsBS5/IndexTable/Fields/attribute_value', array(
+            'row' => array('Attribute' => $attribute),
+            'field' => array('data_path' => 'Attribute', 'remote' => true, 'show_distribution' => false),
+        )) . $knownChip($attribute, $short);
+    };
+    $idsCell = function (array $attribute) {
+        return $this->element('genericElementsBS5/IndexTable/Fields/ids', array(
+            'row' => $attribute,
+            'field' => array('data_path' => 'to_ids', 'readonly' => true),
+        ));
+    };
+    $attributeHead = '<thead><tr><th>' . h(__('Value')) . '</th><th>' . h(__('Category')) . '</th>'
+        . '<th>' . h(__('Type')) . '</th><th class="text-center">' . h(__('IDS')) . '</th>';
+    ?>
+
     <?php if (!empty($run['attributes'])): ?>
         <div data-vp-e-section>
-        <div class="vp-e-group">
-            <span class="misp-icon misp-icon-attribute misp-hexagone"
-                  aria-hidden="true"></span>
-            <span data-vp-e-group-n><?= h(sprintf(
-                __n(
-                    '%d attribute',
-                    '%d attributes',
+            <div class="vp-e-group">
+                <span class="misp-icon misp-icon-attribute misp-hexagone" aria-hidden="true"></span>
+                <span data-vp-e-group-n><?= h(sprintf(
+                    __n('%d attribute', '%d attributes', count($run['attributes'])),
                     count($run['attributes'])
-                ),
-                count($run['attributes'])
-            )) ?></span>
-        </div>
-        <div class="vp-e-list">
-            <?php foreach ($run['attributes'] as $attribute): ?>
-                <?php $pick = $pickFor($attribute, 'attribute'); ?>
-                <?php
-                /*
-                 * Two lines, not one wrapped one. The value is what a
-                 * reader is here for and it goes first at full width;
-                 * the type, the category and the IDS flag are what
-                 * they check afterwards, and they sit under it in a
-                 * fixed order so the eye finds the same fact in the
-                 * same place on every row.
-                 */
-                ?>
-                <div class="vp-e-el" data-vp-e-item<?= $pickAttr($pick) ?>>
-                    <div class="vp-e-el-body">
-                        <div class="vp-e-el-top">
-                            <span class="vp-e-val"><?= h(
-                                $attribute['value']
-                            ) ?></span>
-                            <?= $knownChip($attribute) ?>
-                        </div>
-                        <div class="vp-e-el-sub">
-                            <?php if (!empty($attribute['type'])): ?>
-                                <span class="vp-e-type"><?= h(
-                                    $attribute['type']
-                                ) ?></span>
-                            <?php endif; ?>
-                            <?php if (!empty($attribute['category'])): ?>
-                                <span class="vp-e-meta"><?= h(
-                                    $attribute['category']
-                                ) ?></span>
-                            <?php endif; ?>
-                            <?php if (!empty($attribute['to_ids'])): ?>
-                                <span class="vp-e-ids" title="<?= h(__(
-                                    'The module marked this one'
-                                    . ' actionable for detection.'
-                                )) ?>"><?= h(__('IDS')) ?></span>
-                            <?php endif; ?>
-                            <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $attribute['comment'] ?? '', 'inline' => true]) ?>
-                        </div>
-                    </div>
-                    <?= $actions(false, $pick) ?>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                )) ?></span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 ix-table vp-e-table">
+                    <?= $attributeHead ?><?= $canPick ? '<th></th>' : '' ?></tr></thead>
+                    <tbody>
+                        <?php foreach ($run['attributes'] as $attribute): ?>
+                            <?php $pick = $pickFor($attribute, 'attribute'); ?>
+                            <tr data-vp-e-item<?= $pickAttr($pick) ?>>
+                                <td class="text-break"><?= $valueCell($attribute) ?></td>
+                                <td><?= $this->element('genericElementsBS5/Badges/category', array('category' => $attribute['category'] ?? '', 'full' => false)) ?></td>
+                                <td><?= $this->element('genericElementsBS5/Badges/type', array('type' => $attribute['type'] ?? '')) ?></td>
+                                <td class="text-center"><?= $idsCell($attribute) ?></td>
+                                <?php if ($canPick): ?>
+                                    <td class="vp-e-pickcell"><?= $pickControl($pick) ?></td>
+                                <?php endif; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($run['objects'])): ?>
         <div data-vp-e-section>
-        <div class="vp-e-group">
-            <span class="misp-icon misp-icon-object misp-hexagone"
-                  aria-hidden="true"></span>
-            <span data-vp-e-group-n><?= h(sprintf(
-                __n('%d object', '%d objects', count($run['objects'])),
-                count($run['objects'])
-            )) ?></span>
-            <?php if (count($run['objects']) > 1): ?>
-                <?php
-                /*
-                 * One press for the whole answer, in both directions.
-                 * A reader comparing two hundred passive-DNS records
-                 * wants every table at once; a reader who has found
-                 * theirs wants the rest out of the way.
-                 */
-                ?>
-                <button type="button" class="vp-e-allfold"
-                        data-vp-e-fold-all="open"
-                        data-vp-e-open-label="<?= h(__('Expand all')) ?>"
-                        data-vp-e-close-label="<?= h(__('Collapse all')) ?>">
-                    <i class="fas fa-chevron-down" data-vp-e-fold-icon></i>
-                    <span data-vp-e-fold-label><?= h(
-                        __('Expand all')
-                    ) ?></span>
-                </button>
-            <?php endif; ?>
-        </div>
-        <?php $left = $rowBudget; ?>
-        <?php foreach ($run['objects'] as $object): ?>
-            <?php
-            $rows = count($object['attributes']);
-            /*
-             * The first object always opens whatever it holds: a
-             * hundred-row object folded on arrival would leave a pane
-             * whose only content is a shut card.
-             */
-            $open = $left === $rowBudget || $left - $rows >= 0;
-            $left -= $rows;
-
-            /*
-             * What a folded head says it holds. Values, because they
-             * are what the reader is scanning for — the relations
-             * repeat across every object of the same template and
-             * would say the same thing on all two hundred cards.
-             */
-            /*
-             * A column nothing in this object fills is a question the
-             * object has no answer to. `mmdb_lookup` sets no IDS flag
-             * on any of its ten rows, and a header over ten blanks
-             * reads as ten negatives rather than as silence.
-             */
-            $hasCategory = false;
-            $hasIds = false;
-            foreach ($object['attributes'] as $attribute) {
-                if (!empty($attribute['category'])) {
-                    $hasCategory = true;
-                }
-                if (!empty($attribute['to_ids'])) {
-                    $hasIds = true;
-                }
-            }
-
-            $peek = array();
-            $spare = array();
-            foreach ($object['attributes'] as $attribute) {
-                $value = (string)$attribute['value'];
-                if ($value === '') {
-                    continue;
-                }
-                $relation = (string)$attribute['relation'];
-                if ($manyObjects
-                    && isset($common[$relation])
-                    && $common[$relation] !== false
-                ) {
-                    continue;
-                }
-                /*
-                 * `count: 1` and `rrtype: A` vary across the answer
-                 * and still say nothing you could find a record by.
-                 * They are kept back rather than dropped: an object
-                 * whose values are all this short would otherwise
-                 * fold into a head with nothing on it.
-                 */
-                if (mb_strlen($value) < 3) {
-                    $spare[] = $value;
-                    continue;
-                }
-                $peek[] = $value;
-                if (count($peek) === 3) {
-                    break;
-                }
-            }
-            while (count($peek) < 3 && !empty($spare)) {
-                $peek[] = array_shift($spare);
-            }
-            ?>
-            <?php $pick = $pickFor($object, 'object'); ?>
-            <div class="vp-e-obj" data-vp-e-item data-vp-e-obj<?= $pickAttr($pick) ?>>
-
-                <?php
-                /*
-                 * The whole head is the control, which is what MISP's
-                 * own object accordion does. A 1.15rem chevron beside
-                 * a card the reader is already pointing at is a hit
-                 * target they have to aim for, and there is nothing
-                 * else in the head to click.
-                 */
-                ?>
-                <div class="vp-e-obj-top">
-                <button type="button"
-                        class="vp-e-obj-head"
-                        data-vp-e-disc
-                        aria-expanded="<?= $open ? 'true' : 'false' ?>">
-                    <i class="fas fa-chevron-right vp-e-obj-chev"
-                       aria-hidden="true"></i>
-
-                    <span class="misp-icon misp-icon-object misp-hexagone
-                                 vp-e-obj-icon" aria-hidden="true"></span>
-
-                    <span class="vp-e-obj-name"><?= h(
-                        $object['name']
-                    ) ?></span>
-
-                    <?php if (!empty($object['meta_category'])): ?>
-                        <span class="vp-e-obj-cat"><?= h(
-                            $object['meta_category']
-                        ) ?></span>
-                    <?php endif; ?>
-
-                    <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $object['comment'] ?? '', 'inline' => true]) ?>
-
-                    <?php if (!empty($peek)): ?>
-                        <span class="vp-e-obj-peek"><?= h(implode(
-                            ' · ',
-                            $peek
-                        )) ?><?= count($object['attributes'])
-                            > count($peek) ? h(' …') : '' ?></span>
-                    <?php endif; ?>
-
-                    <span class="vp-e-obj-count"><?= h(sprintf(
-                        __n(
-                            '%d attribute',
-                            '%d attributes',
-                            $rows
-                        ),
-                        $rows
-                    )) ?></span>
-                </button>
-                <?php if ($pick !== null): ?>
-                    <span class="vp-e-obj-pick"><?= $pickControl($pick) ?></span>
+            <div class="vp-e-group">
+                <span class="misp-icon misp-icon-object misp-hexagone" aria-hidden="true"></span>
+                <span data-vp-e-group-n><?= h(sprintf(
+                    __n('%d object', '%d objects', count($run['objects'])),
+                    count($run['objects'])
+                )) ?></span>
+                <?php if (count($run['objects']) > 1): ?>
+                    <button type="button" class="vp-e-allfold"
+                            data-vp-e-fold-all="open"
+                            data-vp-e-open-label="<?= h(__('Expand all')) ?>"
+                            data-vp-e-close-label="<?= h(__('Collapse all')) ?>">
+                        <i class="fas fa-chevron-down" data-vp-e-fold-icon></i>
+                        <span data-vp-e-fold-label><?= h(__('Expand all')) ?></span>
+                    </button>
                 <?php endif; ?>
-                </div>
-
-                <div class="<?= $open ? '' : 'd-none' ?>"
-                     data-vp-e-fold>
-
-                    <?php if (!empty($object['description'])): ?>
-                        <div class="vp-e-obj-desc"><?= h(
-                            $object['description']
-                        ) ?></div>
-                    <?php endif; ?>
-
-                    <?php if (empty($object['attributes'])): ?>
-                        <div class="vp-e-obj-desc"><?= h(__(
-                            'The module returned this object with no'
-                            . ' attributes.'
-                        )) ?></div>
-                    <?php else: ?>
-                        <div class="vp-e-otable-wrap">
-                            <table class="vp-e-otable">
-                                <thead>
-                                    <tr>
-                                        <th><?= h(__('Relation')) ?></th>
-                                        <th><?= h(__('Value')) ?></th>
-                                        <th><?= h(__('Type')) ?></th>
-                                        <?php if ($hasCategory): ?>
-                                            <th><?= h(
-                                                __('Category')
-                                            ) ?></th>
-                                        <?php endif; ?>
-                                        <?php if ($hasIds): ?>
-                                            <th class="text-center"><?= h(
-                                                __('IDS')
-                                            ) ?></th>
-                                        <?php endif; ?>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                <?php foreach (
-                                    $object['attributes'] as $attribute
-                                ): ?>
-                                    <tr>
-                                        <td class="vp-e-rel-name"><?= h(
-                                            $attribute['relation']
-                                        ) ?></td>
-                                        <td>
-                                            <span class="vp-e-val"><?= h(
-                                                $attribute['value']
-                                            ) ?></span>
-                                            <?= $knownChip(
-                                                $attribute,
-                                                true
-                                            ) ?>
-                                            <?= $this->element(
-                                                'genericElementsBS5/Badges/comment',
-                                                ['comment' => $attribute['comment'] ?? '']
-                                            ) ?>
-                                        </td>
-                                        <td>
-                                            <?php if (!empty(
-                                                $attribute['type']
-                                            )): ?>
-                                                <span class="vp-e-type"><?=
-                                                    h($attribute['type'])
-                                                ?></span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <?php if ($hasCategory): ?>
-                                            <td class="vp-e-meta"><?= h(
-                                                $attribute['category']
-                                            ) ?></td>
-                                        <?php endif; ?>
-                                        <?php if ($hasIds): ?>
-                                            <td class="text-center">
-                                                <?php if (!empty(
-                                                    $attribute['to_ids']
-                                                )): ?>
-                                                    <span class="vp-e-ids"
-                                                          title="<?= h(__(
-                                                            'The module'
-                                                            . ' marked this'
-                                                            . ' one actionable'
-                                                            . ' for detection.'
-                                                          )) ?>"><?= h(
-                                                        __('IDS')
-                                                    ) ?></span>
-                                                <?php endif; ?>
-                                            </td>
-                                        <?php endif; ?>
-                                    </tr>
-                                <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="vp-e-obj-foot">
-                        <span class="vp-e-obj-footnote"><?= h(__(
-                            'MISP adds an object whole.'
-                        )) ?></span>
-                        <?= $actions(true) ?>
-                    </div>
-                </div>
             </div>
-        <?php endforeach; ?>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 ix-table oi-table vp-e-table">
+                    <?php $left = $rowBudget; ?>
+                    <?php foreach ($run['objects'] as $object): ?>
+                        <?php
+                        $rows = count($object['attributes']);
+                        // The first object always opens; the rest while the open rows stay scannable.
+                        $open = $left === $rowBudget || $left - $rows >= 0;
+                        $left -= $rows;
+
+                        // The header names the first value that tells this object from its siblings.
+                        $first = null;
+                        foreach ($object['attributes'] as $attribute) {
+                            $value = (string)$attribute['value'];
+                            $relation = (string)$attribute['relation'];
+                            if ($value === '' || ($manyObjects && isset($common[$relation]) && $common[$relation] !== false)) {
+                                continue;
+                            }
+                            if ($first === null || (mb_strlen((string)$first['value']) < 3 && mb_strlen($value) >= 3)) {
+                                $first = $attribute;
+                            }
+                            if (mb_strlen($value) >= 3) {
+                                break;
+                            }
+                        }
+                        if ($first === null && !empty($object['attributes'])) {
+                            $first = reset($object['attributes']);
+                        }
+                        $pick = $pickFor($object, 'object');
+                        ?>
+                        <tbody data-vp-e-item data-vp-obj<?= $pickAttr($pick) ?>>
+                            <tr<?= $open ? ' class="oi-open"' : '' ?>>
+                                <td class="oi-col-object" title="<?= h((string)($object['description'] ?? '')) ?>">
+                                    <div class="oi-object">
+                                        <button type="button" class="oi-expand" data-vp-obj-disc
+                                                aria-expanded="<?= $open ? 'true' : 'false' ?>"
+                                                title="<?= h(__('Show its attributes')) ?>">
+                                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                                        </button>
+                                        <?= $this->element('Objects/object_header', array(
+                                            'object' => array(
+                                                'name' => $object['name'],
+                                                'meta-category' => $object['meta_category'] ?? '',
+                                                'template_version' => $object['template_version'] ?? null,
+                                            ),
+                                            'ctx' => array(
+                                                'count' => $rows,
+                                                'deleted' => false,
+                                                'distribution' => false,
+                                                'firstValue' => $first === null ? '' : (string)$first['value'],
+                                                'firstRelation' => $first === null ? '' : (string)$first['relation'],
+                                            ),
+                                        )) ?>
+                                    </div>
+                                    <?= $this->element('genericElementsBS5/Badges/comment', array('comment' => $object['comment'] ?? '', 'class' => 'oi-comment')) ?>
+                                </td>
+                                <?php if ($canPick): ?>
+                                    <td class="vp-e-pickcell"><?= $pickControl($pick) ?></td>
+                                <?php endif; ?>
+                            </tr>
+                            <tr class="oi-detail<?= $open ? '' : ' d-none' ?>" data-vp-obj-fold>
+                                <td colspan="<?= $canPick ? 2 : 1 ?>">
+                                    <div class="oi-card">
+                                        <?php if (empty($object['attributes'])): ?>
+                                            <div class="vp-e-obj-empty"><?= h(__('The module returned this object with no attributes.')) ?></div>
+                                        <?php else: ?>
+                                            <table class="table table-hover align-middle mb-0 ix-table vp-e-table">
+                                                <?= $attributeHead ?></tr></thead>
+                                                <tbody>
+                                                    <?php foreach ($object['attributes'] as $attribute): ?>
+                                                        <tr>
+                                                            <td class="text-break"><?= $valueCell($attribute, true) ?></td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <?= $this->element('genericElementsBS5/Badges/category', array(
+                                                                        'category' => $attribute['category'] ?? '',
+                                                                        'full' => (string)($attribute['relation'] ?? '') !== '',
+                                                                    )) ?>
+                                                                    <?= $this->element('genericElementsBS5/Badges/object_relation', array('relation' => $attribute['relation'] ?? '')) ?>
+                                                                </div>
+                                                            </td>
+                                                            <td><?= $this->element('genericElementsBS5/Badges/type', array('type' => $attribute['type'] ?? '')) ?></td>
+                                                            <td class="text-center"><?= $idsCell($attribute) ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    <?php endforeach; ?>
+                </table>
+            </div>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($run['elements'])): ?>
         <div data-vp-e-section>
-        <div class="vp-e-group">
-            <i class="fas fa-list" aria-hidden="true"></i>
-            <span data-vp-e-group-n><?= h(sprintf(
-                __n(
-                    '%d element',
-                    '%d elements',
+            <div class="vp-e-group">
+                <i class="fas fa-list" aria-hidden="true"></i>
+                <span data-vp-e-group-n><?= h(sprintf(
+                    __n('%d element', '%d elements', count($run['elements'])),
                     count($run['elements'])
-                ),
-                count($run['elements'])
-            )) ?></span>
-        </div>
-        <div class="vp-e-list">
-            <?php foreach ($run['elements'] as $element): ?>
-                <?php $pick = $pickFor($element, 'element'); ?>
-                <div class="vp-e-el" data-vp-e-item<?= $pickAttr($pick) ?>>
-                    <div class="vp-e-el-body">
-                        <div class="vp-e-el-top">
-                            <span class="vp-e-val"><?= h(
-                                $element['value']
-                            ) ?></span>
-                            <?= $knownChip($element) ?>
-                        </div>
-                        <?php if (!empty($element['types'])): ?>
-                            <div class="vp-e-el-sub">
-                                <?php foreach (
-                                    $element['types'] as $type
-                                ): ?>
-                                    <span class="vp-e-type"><?= h(
-                                        $type
-                                    ) ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <?= $actions(false, $pick) ?>
-                </div>
-            <?php endforeach; ?>
-        </div>
+                )) ?></span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 ix-table vp-e-table">
+                    <thead><tr><th><?= h(__('Value')) ?></th><th><?= h(__('Type')) ?></th><?= $canPick ? '<th></th>' : '' ?></tr></thead>
+                    <tbody>
+                        <?php foreach ($run['elements'] as $element): ?>
+                            <?php $pick = $pickFor($element, 'element'); ?>
+                            <tr data-vp-e-item<?= $pickAttr($pick) ?>>
+                                <td class="text-break">
+                                    <span class="fw-semibold font-monospace"><?= h($element['value']) ?></span><?= $knownChip($element, true) ?>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <?php foreach ($element['types'] ?? array() as $type): ?>
+                                            <?= $this->element('genericElementsBS5/Badges/type', array('type' => $type)) ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </td>
+                                <?php if ($canPick): ?>
+                                    <td class="vp-e-pickcell"><?= $pickControl($pick) ?></td>
+                                <?php endif; ?>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     <?php endif; ?>
 
-    <?php
-    /*
-     * Offered only where a run actually happened. `ineligible` and
-     * `unreachable` did not ask anything, and a *Run again* under
-     * either would be inviting a press that is not the one that would
-     * help. A timeout gets one, because pressing again is exactly what
-     * might work. Reaching this element at all means `perm_add`, since
-     * the ACL gates the action — so the control is never the disabled
-     * variant here.
-     */
-    ?>
-    <?php if (in_array(
-        $state,
-        array('ok', 'silent', 'error', 'timeout'),
-        true
-    )): ?>
-        <div class="vp-e-res-foot">
-            <?= $this->element(
-                'Values/View/value_enrichment_button',
-                array(
-                    'module' => array(
-                        'name' => $run['module'],
-                        'type' => $run['type'],
-                    ),
-                    'canRun' => true,
-                    'noRun' => '',
-                    'label' => __('Run again'),
-                )
-            ) ?>
-            <span class="small text-muted">
-                <?= h(__(
-                    'Re-running asks the module again — this page'
-                    . ' remembers no previous answer to compare'
-                    . ' against.'
-                )) ?>
-            </span>
-        </div>
-    <?php endif; ?>
 
 </div>

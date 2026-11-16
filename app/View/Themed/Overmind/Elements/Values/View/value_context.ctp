@@ -1,173 +1,120 @@
 <?php
 /**
- * What the community has labelled this value.
+ * What the community has labelled this value, drawn as the event
+ * overview's Context card: contradictions first, then the labels sorted
+ * into Attribution, Behaviour, Classification and Mitigation.
  *
- * Tags are grouped by taxonomy rather than listed flat, because a
- * taxonomy is the unit that can disagree with itself: two events putting
- * `tlp:amber` and `tlp:green` on the same value is a fact about the
- * value, and a flat list hides it. Where a taxonomy is ordinal —
- * `admiralty-scale` and its kin — the group renders as a position on a
- * scale instead of a string nobody reads.
+ * A label reaches this card from the value's occurrences or from their
+ * events; a chip's title gives each count in its own unit, since their
+ * sum would count nothing. A pinned handling taxonomy shows its most
+ * restrictive label and counts the others.
  *
- * **One list over both scopes.** A label reaches this card from the
- * value's occurrences or from the events those occurrences sit in, and
- * the two are drawn together: an attribute is covered by its event's
- * labelling, so *tagged on the report* and *tagged on the indicator*
- * are one statement about the value made at two removes. They were two
- * sections with a glyph telling them apart for one day; what that
- * bought was a heading and half the card's height separating a long
- * list from a usually empty one, since most attributes carry no tag of
- * their own.
- *
- * **No `×N` beside a chip, and that is the fold's price.** The
- * occurrence scope counts occurrences and the event scope counts
- * events; their union is a third number neither read holds and buying
- * it costs a second pass over the value's `attribute_tags`. So each
- * chip's title states whichever counts it has, under their own names,
- * and the page keeps its rule that every `×N` on it counts one thing.
- * `ValueIntelligence::mergeTagScopes` carries both.
- *
- * **Clusters are grouped under their galaxy**, which is the thing they
- * are members of. Flat, the card put a tool, a threat actor and four
- * ATT&CK techniques in one run with each chip repeating its own kind in
- * small print; the galaxy is what they have in common, so it heads them
- * and is said once.
- *
- * Lazily loaded into `.ajax-tab-content` from
- * ValuesController::viewContext.
+ * Lazily loaded from ValuesController::viewContext.
  *
  * @var array $valueIntelligence
  * @var string $valueB64
  */
+App::uses('EventContextTool', 'Tools/EventOverview');
+App::uses('FontAwesomeHelper', 'View/Helper');
+
 $profile = $valueIntelligence;
 $taxonomies = $profile['tags'];
 $galaxies = $profile['galaxies'];
 $tagCap = isset($profile['tag_cap']) ? $profile['tag_cap'] : null;
+// Techniques a galaxy lists before "Show N more".
+$techniquesShown = 8;
 
-/*
- * **The dimensions the reader always wants, and this value has none
- * of** (`02-context-priority.md` §4). Only a pinned taxonomy or galaxy
- * is drawn absent, because an unlabelled value is not an unrestricted
- * one and a reader who does not notice the label is missing will
- * assume they saw it. It says nothing about what they cannot see: no
- * tag of this dimension is on this value *within what this reader may
- * read*, which is the page's standing rule, and there is no count of
- * anything withheld.
- */
+// Pinned by the reader's analyst profile, and absent from this value.
 $absent = array();
-if (!empty($profile['absent'])) {
-    foreach (array('taxonomies', 'galaxies') as $kind) {
-        foreach ($profile['absent'][$kind] as $row) {
-            $absent[] = array('key' => $row['key'], 'kind' => $kind);
-        }
+foreach (array('taxonomies', 'galaxies') as $kind) {
+    $rows = isset($profile['absent'][$kind]) ? $profile['absent'][$kind] : array();
+    foreach ($rows as $row) {
+        $absent[] = array('key' => $row['key'], 'kind' => $kind);
     }
 }
 
-/*
- * **A pinned handling label renders the most restrictive one, and
- * counts the rest** (§4). A value's context tags come from every
- * occurrence's event as well as from the attributes, so a shared value
- * almost always carries more than one `tlp` — and a reader who sees
- * `tlp:clear` in the pinned slot and misses `tlp:red` two chips away
- * has been misled in exactly the way the tier exists to prevent. The
- * others are named in the count's title rather than dropped.
- */
-foreach ($taxonomies as $at => $taxonomy) {
-    if (empty($taxonomy['lead'])) {
-        continue;
-    }
-    $others = array();
-    foreach ($taxonomy['tags'] as $tag) {
-        if ($tag['name'] !== $taxonomy['lead']['tag']['name']) {
-            $others[] = $tag['name'];
-        }
-    }
-    $taxonomies[$at]['tags'] = array($taxonomy['lead']['tag']);
-    $taxonomies[$at]['lead_more'] = $taxonomy['lead']['others'];
-    $taxonomies[$at]['lead_others'] = $others;
-}
-
-$conflicts = 0;
+$conflicts = array();
+$tags = array();
 foreach ($taxonomies as $taxonomy) {
     if (!empty($taxonomy['conflict'])) {
-        $conflicts++;
+        $names = array();
+        foreach ($taxonomy['tags'] as $tag) {
+            if (!empty($tag['conflict'])) {
+                $names[] = $tag['name'];
+            }
+        }
+        $conflicts[] = array(
+            'taxonomy' => $taxonomy['taxonomy'],
+            'tags' => empty($names)
+                ? array_column($taxonomy['tags'], 'name')
+                : $names,
+        );
+    }
+    $rows = $taxonomy['tags'];
+    if (!empty($taxonomy['lead'])) {
+        $lead = $taxonomy['lead']['tag'];
+        $others = array();
+        foreach ($taxonomy['tags'] as $tag) {
+            if ($tag['name'] !== $lead['name']) {
+                $others[] = $tag['name'];
+            }
+        }
+        $lead['_more'] = (int)$taxonomy['lead']['others'];
+        $lead['_others'] = $others;
+        $rows = array($lead);
+    }
+    if (!empty($taxonomy['scale']) && count($rows) === 1) {
+        $rows[0]['_scale'] = $taxonomy['scale'];
+    }
+    foreach ($rows as $row) {
+        $tags[] = $row;
     }
 }
 
+$tagCount = 0;
+foreach ($taxonomies as $taxonomy) {
+    $tagCount += count($taxonomy['tags']);
+}
 $clusterCount = 0;
+$byRow = array(
+    'attribution' => array(),
+    'behaviour' => array(),
+    'clusters' => array(),
+    'mitigation' => array(),
+);
 foreach ($galaxies as $galaxy) {
     $clusterCount += count($galaxy['clusters']);
+    $row = isset($galaxy['row'], $byRow[$galaxy['row']])
+        ? $galaxy['row']
+        : 'clusters';
+    $byRow[$row][] = $galaxy;
+}
+$techniqueCount = 0;
+foreach ($byRow['behaviour'] as $galaxy) {
+    $techniqueCount += count($galaxy['clusters']);
 }
 
 /**
- * A row per taxonomy, or the taxonomies flowed into one band.
- *
- * **A height budget, and the number is measured.** A taxonomy row costs
- * 49px whether it holds one chip or ten, and folding the events' labels
- * in takes `8.8.8.8` from three taxonomies to ten — six of them a
- * single chip. A row each was 518px of a card the Overview holds at
- * 534, nearly all of it the white space to the right of a one-chip
- * group in a 1,000px card.
- *
- * Flowed, the same ten groups are 170px and **keep their names**: each
- * is its taxonomy's label and then its chips, wrapping as one unit, so
- * what is given up is the column alignment rather than the grouping.
- * What a row does buy is the ordinal scale, which needs the width — so
- * five, the point at which a value's taxonomies stop fitting as rows,
- * and below it the card draws exactly what it drew before it had two
- * scopes to fold.
- *
- * No scale is drawn in the flowed band, and on a value this broadly
- * labelled there would be none to draw in any case: a position means
- * *one tag of this dimension*, and `8.8.8.8` carries `tlp:white`,
- * `tlp:amber` and `tlp:red` from three different reports.
- */
-const TAXONOMY_ROW_BUDGET = 5;
-$flat = count($taxonomies) > TAXONOMY_ROW_BUDGET;
-/*
- * Galaxies pay the same rent and are charged it the same way. `443` is
- * attributed to **nine** of them, which as a row each was 550px — more
- * than the whole card was before — against the two flat rows the
- * clusters occupied when they were only the occurrences'.
- */
-$flatGalaxies = count($galaxies) > TAXONOMY_ROW_BUDGET;
-
-/**
- * How many clusters of one galaxy the card draws before it says how
- * many more there are.
- *
- * ATT&CK is why: `8.8.8.8`'s events attribute it to twenty techniques,
- * which is 237px of one galaxy — more than the card's whole tag
- * section. Six is two lines of it, and the group still says what it
- * belongs to and how much of it was left out.
- */
-const CLUSTERS_PER_GALAXY = 6;
-
-
-/**
- * What a chip's two counts say, in the units they were read in.
- *
- * Both, one or neither: a label on the events alone — which is most of
- * them — says so rather than reading as a count of nothing.
+ * Where a label was read, each count in its own unit.
  *
  * @param int|null $occurrences
  * @param int|null $events
  * @return string
  */
 $reach = function ($occurrences, $events) {
-    $onEvents = $events === null ? null : sprintf(
-        __n(
-            'On %s event this value appears in',
-            'On %s events this value appears in',
-            $events
-        ),
-        number_format($events)
-    );
-    if ($occurrences === null) {
-        return $onEvents === null ? '' : $onEvents;
+    $parts = array();
+    if ($events !== null) {
+        $parts[] = sprintf(
+            __n(
+                'On %s event this value appears in',
+                'On %s events this value appears in',
+                $events
+            ),
+            number_format($events)
+        );
     }
-    if ($onEvents === null) {
-        return sprintf(
+    if ($occurrences !== null) {
+        $parts[] = sprintf(
             __n(
                 'On %s occurrence of this value',
                 'On %s occurrences of this value',
@@ -176,40 +123,171 @@ $reach = function ($occurrences, $events) {
             number_format($occurrences)
         );
     }
-    return $onEvents . sprintf(
-        __n(
-            ', and on %s occurrence of it directly',
-            ', and on %s occurrences of it directly',
-            $occurrences
-        ),
-        number_format($occurrences)
-    );
+    return implode("\n", $parts);
 };
 
-$subtitle = implode(' &nbsp;·&nbsp; ', array(
-    h(sprintf(
-        __n('%s taxonomy', '%s taxonomies', count($taxonomies)),
-        count($taxonomies)
-    )),
-    h(sprintf(
-        __n('%s galaxy cluster', '%s galaxy clusters', $clusterCount),
-        $clusterCount
-    )),
-));
+$chipOptions = array(
+    'note' => function ($source) use ($reach) {
+        return $reach(
+            isset($source['occurrences']) ? $source['occurrences'] : null,
+            isset($source['events']) ? $source['events'] : null
+        );
+    },
+    'suffix' => function ($source) {
+        $out = '';
+        if (!empty($source['_scale'])) {
+            $scale = $source['_scale'];
+            $segments = '';
+            for ($i = 1; $i <= $scale['of']; $i++) {
+                $segments .= $i <= $scale['position']
+                    ? '<i class="is-on"></i>'
+                    : '<i></i>';
+            }
+            $out .= sprintf(
+                '<span class="vp-scale-mini" title="%s">%s</span>',
+                h(sprintf(
+                    __('%1$s · %2$s (%3$s of %4$s)'),
+                    $scale['label'],
+                    $scale['reading'],
+                    $scale['position'],
+                    $scale['of']
+                )),
+                $segments
+            );
+        }
+        if (!empty($source['_more'])) {
+            $out .= sprintf(
+                '<span class="vp-tag-more" title="%s">%s</span>',
+                h(implode(', ', $source['_others'])),
+                h(sprintf(
+                    __n(
+                        'and %s other label',
+                        'and %s other labels',
+                        $source['_more']
+                    ),
+                    number_format($source['_more'])
+                ))
+            );
+        }
+        return $out;
+    },
+);
 
+/**
+ * The clusters of some galaxies, as TagChip rows.
+ *
+ * @param array $groups
+ * @return array
+ */
+$clusterRows = function (array $groups) {
+    $out = array();
+    foreach ($groups as $galaxy) {
+        foreach ($galaxy['clusters'] as $cluster) {
+            $out[] = array(
+                'id' => $cluster['id'],
+                'value' => $cluster['name'],
+                'galaxy' => $galaxy['galaxy'],
+                'galaxy_id' => isset($galaxy['galaxy_id'])
+                    ? $galaxy['galaxy_id']
+                    : null,
+                'icon' => isset($galaxy['icon']) ? $galaxy['icon'] : null,
+                'occurrences' => $cluster['occurrences'],
+                'events' => $cluster['events'],
+            );
+        }
+    }
+    return $out;
+};
+
+/**
+ * Techniques or courses of action, a list per galaxy, as the event's
+ * Behaviour row draws them.
+ *
+ * @param array $groups
+ * @return string
+ */
+$techniques = function (array $groups) use ($baseurl, $reach, $techniquesShown) {
+    ob_start();
+    foreach ($groups as $galaxy) {
+        $count = count($galaxy['clusters']);
+        $icon = empty($galaxy['icon']) ? '' : sprintf(
+            '<i class="%s fa-%s" aria-hidden="true"></i>',
+            h(FontAwesomeHelper::findNamespace($galaxy['icon'])),
+            h($galaxy['icon'])
+        );
+        $name = empty($galaxy['galaxy_id'])
+            ? '<span>' . h($galaxy['galaxy']) . '</span>'
+            : sprintf(
+                '<a href="%s">%s</a>',
+                h($baseurl . '/galaxies/view/' . (int)$galaxy['galaxy_id']),
+                h($galaxy['galaxy'])
+            );
+        echo '<section class="eo-tech-group">';
+        printf(
+            '<h6 class="eo-tech-galaxy">%s%s<small>%s</small></h6>',
+            $icon,
+            $name,
+            $count
+        );
+        echo '<ul class="eo-techniques">';
+        foreach ($galaxy['clusters'] as $at => $cluster) {
+            $source = array('value' => $cluster['name']);
+            $href = empty($cluster['id'])
+                ? null
+                : $baseurl . '/galaxy_clusters/view/' . (int)$cluster['id'];
+            printf(
+                '<li%s title="%s">%s<span class="eo-tech-id">%s</span>'
+                    . '<span class="eo-tech-name">%s</span>%s</li>',
+                $at >= $techniquesShown ? ' class="vp-tech-extra" hidden' : '',
+                h(trim($cluster['name'] . "\n\n" . $reach(
+                    $cluster['occurrences'],
+                    $cluster['events']
+                ))),
+                $href ? '<a href="' . h($href) . '">' : '<span>',
+                h((string)EventContextTool::techniqueId($source)),
+                h(EventContextTool::techniqueName($source)),
+                $href ? '</a>' : '</span>'
+            );
+        }
+        echo '</ul>';
+        if ($count > $techniquesShown) {
+            $more = $count - $techniquesShown;
+            printf(
+                '<button type="button" class="vp-tech-more" data-vp-tech-more'
+                    . ' aria-expanded="false" data-less="%s">%s</button>',
+                h(__('Show fewer')),
+                h(sprintf(
+                    __n('Show %s more', 'Show %s more', $more),
+                    number_format($more)
+                ))
+            );
+        }
+        echo '</section>';
+    }
+    return ob_get_clean();
+};
+
+$subtitle = h(sprintf(__n('%s tag', '%s tags', $tagCount), number_format($tagCount)))
+    . ' · '
+    . h(sprintf(
+        __n('%s galaxy cluster', '%s galaxy clusters', $clusterCount),
+        number_format($clusterCount)
+    ));
+
+$hasLabels = !empty($taxonomies) || !empty($galaxies);
 $headerExtra = null;
-if ($conflicts > 0) {
-    $headerExtra = '<span class="vp-conflict" title="'
-        . h(__(
-            'Tags from the same taxonomy contradict each other here.'
-            . ' Shown as they are, not resolved to one.'
-        ))
-        . '"><i class="fas fa-code-branch"></i>'
-        . h(sprintf(__('%s in conflict'), $conflicts))
-        . '</span>';
+if ($hasLabels) {
+    $headerExtra = '<div class="input-group input-group-sm eo-filter">'
+        . '<span class="input-group-text border-end-0">'
+        . '<i class="fas fa-search text-muted small"></i></span>'
+        . '<input type="search" class="form-control border-start-0 ps-0"'
+        . ' data-vp-label-filter autocomplete="off"'
+        . ' placeholder="' . h(__('Filter labels…')) . '"'
+        . ' aria-label="' . h(__('Filter labels')) . '">'
+        . '</div>';
 }
 ?>
-<div class="card shadow-sm mb-3 vp-panel"
+<div class="card shadow-sm mb-3 vp-panel vp-context"
      style="--vp-panel-color: var(--tag);">
 
     <?= $this->element('Values/View/value_panel_header', array(
@@ -220,313 +298,89 @@ if ($conflicts > 0) {
         'panelExtra' => $headerExtra,
     )) ?>
 
-    <?php if (empty($taxonomies) && empty($galaxies) && empty($absent)): ?>
+    <?php if (!$hasLabels && empty($absent)): ?>
         <div class="vp-empty">
             <i class="fas fa-tag"></i>
             <span><?= __('Nobody has tagged this value.') ?></span>
         </div>
     <?php else: ?>
 
-        <?php if (empty($taxonomies) && empty($galaxies)): ?>
-            <?php
-            /*
-             * Pinned and nothing else: the value is untagged, and the
-             * absences below are the whole of what the card has to
-             * say. Both statements are drawn, because *nobody tagged
-             * this* and *this dimension is not recorded* answer
-             * different questions.
-             */
-            ?>
-            <div class="vp-empty">
-                <i class="fas fa-tag"></i>
-                <span><?= __('Nobody has tagged this value.') ?></span>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($absent)): ?>
-            <div class="vp-tax vp-tax-absent">
-                <div class="vp-tax-name"><?= __('Always shown') ?></div>
-                <div class="vp-tax-body">
-                    <div class="vp-tax-tags">
-                        <?php foreach ($absent as $row): ?>
-                            <span class="vp-absent"
-                                  title="<?= h($row['kind'] === 'galaxies'
-                                      ? __('You always see this galaxy.'
-                                          . ' Nothing on this value is'
-                                          . ' attributed to one of its'
-                                          . ' clusters.')
-                                      : __('You always see this'
-                                          . ' taxonomy. Nothing on this'
-                                          . ' value carries a label'
-                                          . ' from it.')) ?>">
-                                <span class="vp-absent-name">
-                                    <?= h($row['key']) ?>
-                                </span>
-                                <span class="vp-absent-note">
-                                    <?= __('not recorded') ?>
-                                </span>
-                            </span>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($tagCap !== null): ?>
-            <?php
-            /*
-             * A cap is not a permission (§14.6), so it is stated on the
-             * panel rather than left to be inferred from a list that
-             * stops. It also explains the scales' absence: none is
-             * drawn on a capped read, because a position means *one tag
-             * of this dimension* and a truncated list cannot tell that
-             * from *one that was read*.
-             */
-            ?>
-            <div class="vp-filter-note">
-                <i class="fas fa-filter"></i>
-                <span><?= h(sprintf(
-                    __('The %s most-carried labels. This value has more,'
-                        . ' so no taxonomy is drawn as a scale here.'),
-                    number_format($tagCap)
-                )) ?></span>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($flat): ?>
-            <div class="vp-tax vp-tax-flat">
-                <div class="vp-tax-body">
-                    <div class="vp-tax-tags">
-                        <?php foreach ($taxonomies as $taxonomy): ?>
-                            <span class="vp-tax-group">
-                                <span class="vp-tax-group-name">
-                                    <?= h($taxonomy['taxonomy']) ?>
-                                    <?php if (!empty(
-                                        $taxonomy['conflict']
-                                    )): ?>
-                                        <span class="vp-conflict-dot"
-                                              title="<?= h(sprintf(
-                                                  __('What has been'
-                                                      . ' said about'
-                                                      . ' this value'
-                                                      . ' disagrees'
-                                                      . ' about %s'),
-                                                  $taxonomy['taxonomy']
-                                              )) ?>"></span>
-                                    <?php endif; ?>
-                                </span>
-                                <?php foreach (
-                                    $taxonomy['tags'] as $tag
-                                ): ?>
-                                    <span class="vp-tag"
-                                          title="<?= h($reach(
-                                              $tag['occurrences'],
-                                              $tag['events']
-                                          )) ?>">
-                                        <?= $this->element(
-                                            'genericElementsBS5/Badges/tag',
-                                            array(
-                                                'tag' => $tag,
-                                                'local' => !empty(
-                                                    $tag['local']
-                                                ),
-                                                'hiddenClass' => '',
-                                            )
-                                        ) ?>
-                                    </span>
+        <?php if (!empty($conflicts)): ?>
+            <div class="eo-tag-warnings" role="alert">
+                <?php foreach ($conflicts as $conflict): ?>
+                    <div class="eo-tag-warning">
+                        <i class="fas fa-code-branch"></i>
+                        <div class="min-w-0 eo-note-body">
+                            <span class="fw-semibold"><?= h(sprintf(
+                                __('The %s labels on this value contradict each other'),
+                                $conflict['taxonomy']
+                            )) ?></span>
+                            <span class="small"><?= __('Shown as they are, not resolved to one.') ?></span>
+                            <div class="eo-tag-warning-tags">
+                                <?php foreach ($conflict['tags'] as $name): ?>
+                                    <code><?= h($name) ?></code>
                                 <?php endforeach; ?>
-                                <?php if (!empty(
-                                    $taxonomy['lead_more']
-                                )): ?>
-                                    <span class="vp-tag-more"
-                                          title="<?= h(implode(
-                                              ', ',
-                                              $taxonomy['lead_others']
-                                          )) ?>"><?= h(sprintf(
-                                        __n(
-                                            'and %s other label',
-                                            'and %s other labels',
-                                            $taxonomy['lead_more']
-                                        ),
-                                        number_format(
-                                            $taxonomy['lead_more']
-                                        )
-                                    )) ?></span>
-                                <?php endif; ?>
-                            </span>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <?php foreach ($flat ? array() : $taxonomies as $taxonomy): ?>
-            <div class="vp-tax">
-                <div class="vp-tax-name">
-                    <?= h($taxonomy['taxonomy']) ?>
-                    <?php if (!empty($taxonomy['conflict'])): ?>
-                        <span class="vp-conflict-dot"
-                              title="<?= h(__(
-                                  'What has been said about this value'
-                                  . ' disagrees'
-                              )) ?>"></span>
-                    <?php endif; ?>
-                </div>
-                <div class="vp-tax-body">
-
-                    <?php if (!empty($taxonomy['scale'])):
-                        $scale = $taxonomy['scale']; ?>
-                        <div class="vp-scale">
-                            <div class="vp-scale-track">
-                                <?php for ($i = 1;
-                                    $i <= $scale['of'];
-                                    $i++
-                                ): ?>
-                                    <span class="vp-scale-seg<?=
-                                        $i <= $scale['position']
-                                            ? ' vp-scale-seg-on'
-                                            : '' ?>"></span>
-                                <?php endfor; ?>
-                            </div>
-                            <div class="vp-scale-reading">
-                                <span class="fw-semibold">
-                                    <?= h($scale['reading']) ?>
-                                </span>
-                                <span class="text-muted">
-                                    <?= h($scale['label']) ?>
-                                    <?= h(sprintf(
-                                        __('(%1$s of %2$s)'),
-                                        $scale['position'],
-                                        $scale['of']
-                                    )) ?>
-                                </span>
                             </div>
                         </div>
-                    <?php endif; ?>
-
-                    <div class="vp-tax-tags">
-                        <?php foreach ($taxonomy['tags'] as $tag): ?>
-                            <?php
-                            /*
-                             * Neither `attribute_tags` nor `event_tags`
-                             * records who applied a tag, so no scope
-                             * here can say *who said it* — the tooltip
-                             * named the carrying events' creator
-                             * organisations once and was withdrawn for
-                             * claiming more than it knew.
-                             */
-                            ?>
-                            <span class="vp-tag" title="<?= h($reach(
-                                $tag['occurrences'],
-                                $tag['events']
-                            )) ?>">
-                                <?= $this->element(
-                                    'genericElementsBS5/Badges/tag',
-                                    array(
-                                        'tag' => $tag,
-                                        'local' => !empty($tag['local']),
-                                        'hiddenClass' => '',
-                                    )
-                                ) ?>
-                            </span>
-                        <?php endforeach; ?>
-                        <?php if (!empty($taxonomy['lead_more'])): ?>
-                            <span class="vp-tag-more" title="<?= h(
-                                implode(', ', $taxonomy['lead_others'])
-                            ) ?>"><?= h(sprintf(
-                                __n(
-                                    'and %s other label',
-                                    'and %s other labels',
-                                    $taxonomy['lead_more']
-                                ),
-                                number_format($taxonomy['lead_more'])
-                            )) ?></span>
-                        <?php endif; ?>
                     </div>
-
-                </div>
-            </div>
-        <?php endforeach; ?>
-
-        <?php
-        /**
-         * One galaxy's clusters, capped, with what was left out said.
-         *
-         * @param array $galaxy
-         * @return string
-         */
-        $clusters = function ($galaxy) use ($reach) {
-            $shown = array_slice(
-                $galaxy['clusters'],
-                0,
-                CLUSTERS_PER_GALAXY
-            );
-            $more = count($galaxy['clusters']) - count($shown);
-            ob_start();
-            foreach ($shown as $cluster) {
-                ?>
-                <span class="vp-tag" title="<?= h($reach(
-                    $cluster['occurrences'],
-                    $cluster['events']
-                )) ?>">
-                    <?= $this->TagChip->cluster(array(
-                        'id' => isset($cluster['id']) ? $cluster['id'] : null,
-                        'value' => $cluster['name'],
-                        'galaxy' => $galaxy['galaxy'],
-                    ), array('display' => 'leaf')) ?>
-                </span>
-                <?php
-            }
-            if ($more > 0) {
-                ?>
-                <span class="vp-galaxy-more"><?= h(sprintf(
-                    __n(
-                        'and %s more cluster',
-                        'and %s more clusters',
-                        $more
-                    ),
-                    number_format($more)
-                )) ?></span>
-                <?php
-            }
-            return ob_get_clean();
-        };
-        ?>
-
-        <?php if ($flatGalaxies && !empty($galaxies)): ?>
-            <div class="vp-tax vp-tax-flat vp-tax-galaxies">
-                <div class="vp-tax-body">
-                    <div class="vp-tax-tags">
-                        <?php foreach ($galaxies as $galaxy): ?>
-                            <span class="vp-tax-group">
-                                <span class="vp-tax-group-name">
-                                    <span class="misp-icon
-                                                 misp-icon-galaxy
-                                                 misp-simple"></span>
-                                    <?= h($galaxy['galaxy']) ?>
-                                </span>
-                                <?= $clusters($galaxy) ?>
-                            </span>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
-        <?php foreach ($flatGalaxies ? array() : $galaxies as $galaxy): ?>
-            <div class="vp-tax vp-tax-galaxies">
-                <div class="vp-tax-name">
-                    <span class="misp-icon misp-icon-galaxy
-                                 misp-simple"></span>
-                    <?= h($galaxy['galaxy']) ?>
-                </div>
-                <div class="vp-tax-body">
-                    <div class="vp-tax-tags">
-                        <?= $clusters($galaxy) ?>
+        <dl class="eo-rows">
+            <dt><?= __('Attribution') ?></dt>
+            <dd>
+                <?php if (empty($byRow['attribution'])): ?>
+                    <span class="eo-none"><i class="fas fa-user-secret"></i><?= __('None stated') ?></span>
+                <?php else: ?>
+                    <?= $this->TagChip->clusters($clusterRows($byRow['attribution']), $chipOptions) ?>
+                <?php endif; ?>
+            </dd>
+
+            <?php if (!empty($byRow['behaviour'])): ?>
+                <dt><?= __('Behaviour') ?><small><?= h(sprintf(
+                    __n('%s technique', '%s techniques', $techniqueCount),
+                    number_format($techniqueCount)
+                )) ?></small></dt>
+                <dd><?= $techniques($byRow['behaviour']) ?></dd>
+            <?php endif; ?>
+
+            <?php if (!empty($tags) || !empty($byRow['clusters']) || !empty($absent)): ?>
+                <dt><?= __('Classification') ?></dt>
+                <dd>
+                    <div class="eo-chips">
+                        <?php foreach ($absent as $row): ?>
+                            <span class="eo-absent" title="<?= h($row['kind'] === 'galaxies'
+                                ? __('Pinned by your analyst profile. Nothing on this value is attributed to one of its clusters.')
+                                : __('Pinned by your analyst profile. Nothing on this value carries a label from it.')) ?>">
+                                <i class="fas fa-thumbtack"></i><?= h($row['key']) ?> <em><?= __('not set') ?></em>
+                            </span>
+                        <?php endforeach; ?>
+                        <?= $this->TagChip->collection($tags, $chipOptions) ?>
+                        <?php if (!empty($byRow['clusters'])): ?>
+                            <?= $this->TagChip->clusters($clusterRows($byRow['clusters']), $chipOptions) ?>
+                        <?php endif; ?>
                     </div>
-                </div>
+                </dd>
+            <?php endif; ?>
+
+            <?php if (!empty($byRow['mitigation'])): ?>
+                <dt><?= __('Mitigation') ?></dt>
+                <dd><?= $techniques($byRow['mitigation']) ?></dd>
+            <?php endif; ?>
+        </dl>
+
+        <?php if ($tagCap !== null): ?>
+            <div class="eo-card-foot">
+                <span class="eo-legend">
+                    <i class="fas fa-filter"></i>
+                    <?= h(sprintf(
+                        __('The %s most-carried labels. This value has more, so no taxonomy is drawn as a scale.'),
+                        number_format($tagCap)
+                    )) ?>
+                </span>
             </div>
-        <?php endforeach; ?>
+        <?php endif; ?>
 
     <?php endif; ?>
 

@@ -25,8 +25,8 @@
  * first of them is dropped when that panel renders no sibling table.
  * `initRelationSummary` in `value-intelligence.js` does both.
  *
- * **The units differ and each card says which.** Values, siblings,
- * relations, matches, remote events, references, claims — seven
+ * **The units differ and each card says which.** Objects, values,
+ * relations, matches, sources, references, claims — seven
  * notions and seven units, so nothing here is a total and nothing
  * invites being summed. Same rule the "What is counted" card in the
  * rail states at length.
@@ -44,7 +44,7 @@ $sections = array(
         'key' => 'siblings',
         'anchor' => 'vp-rel-sec-cooccurrence',
         'title' => __('In the same object'),
-        'unit' => __('siblings'),
+        'unit' => __('objects'),
         'icon' => 'misp-icon misp-icon-object misp-simple',
         'colour' => 'var(--vp-rel-co)',
     ),
@@ -75,30 +75,6 @@ $sections = array(
         'colour' => 'var(--vp-rel-co)',
     ),
     array(
-        'key' => 'dated',
-        'anchor' => 'vp-rel-sec-dated',
-        'title' => __('Dated relations'),
-        'unit' => __('relations'),
-        'icon' => 'fas fa-clock-rotate-left',
-        'colour' => 'var(--vp-rel-object)',
-    ),
-    array(
-        'key' => 'near',
-        'anchor' => 'vp-rel-sec-near',
-        'title' => __('Near-matches'),
-        'unit' => __('matches'),
-        'icon' => 'fas fa-code-compare',
-        'colour' => 'var(--vp-rel-near)',
-    ),
-    array(
-        'key' => 'external',
-        'anchor' => 'vp-rel-sec-external',
-        'title' => __('Outside this instance'),
-        'unit' => __('remote events'),
-        'icon' => 'fas fa-cloud-arrow-down',
-        'colour' => 'var(--vp-rel-external)',
-    ),
-    array(
         'key' => 'references',
         'anchor' => 'vp-rel-sec-references',
         'title' => __('Object relationships'),
@@ -113,6 +89,30 @@ $sections = array(
         'unit' => __('claims'),
         'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
         'colour' => 'var(--vp-rel-human)',
+    ),
+    array(
+        'key' => 'external',
+        'anchor' => 'vp-rel-sec-external',
+        'title' => __('Outside this instance'),
+        'unit' => __('sources'),
+        'icon' => 'fas fa-cloud-arrow-down',
+        'colour' => 'var(--vp-rel-external)',
+    ),
+    array(
+        'key' => 'near',
+        'anchor' => 'vp-rel-sec-near',
+        'title' => __('Near-matches'),
+        'unit' => __('matches'),
+        'icon' => 'fas fa-code-compare',
+        'colour' => 'var(--vp-rel-near)',
+    ),
+    array(
+        'key' => 'dated',
+        'anchor' => 'vp-rel-sec-dated',
+        'title' => __('Dated relations'),
+        'unit' => __('relations'),
+        'icon' => 'fas fa-clock-rotate-left',
+        'colour' => 'var(--vp-rel-object)',
     ),
 );
 ?>

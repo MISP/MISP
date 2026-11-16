@@ -205,7 +205,6 @@
     font-weight: 400;
 }
 
-
 .vp-dates-tbl {
     width: 100%;
     margin: 0;
@@ -343,8 +342,7 @@
  * One grid, three columns, four shared rows (name, figure, glyph,
  * reading); each cell is a subgrid of it, so the figures share a
  * baseline and the glyphs a line whatever wraps, and only the reading
- * row varies in height. The stance cell is `value_verdict_stance`, which
- * the Assessment tab's lean band draws too, as `vp-ax-stance-wide`.
+ * row varies in height.
  */
 .vp-ax {
     --vp-ax-ink: var(--bs-body-color);
@@ -630,72 +628,3 @@
     font-weight: 600;
 }
 
-/* The same stance in the tab's lean band: the figure beside the bar. */
-.vp-ax-solo {
-    gap: 0;
-}
-
-.vp-ax-stance-wide {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    column-gap: 18px;
-    align-items: center;
-}
-
-.vp-ax-stance-wide > .vp-ax-fig {
-    grid-column: 1;
-    grid-row: 1;
-    margin-top: 0;
-    font-size: 22px;
-    line-height: 26px;
-}
-
-.vp-ax-stance-wide > .vp-ax-glyph {
-    grid-column: 2;
-    grid-row: 1;
-    height: 12px;
-    margin-top: 0;
-}
-
-.vp-ax-stance-wide .vp-ax-track {
-    height: 6px;
-}
-
-.vp-ax-stance-wide .vp-ax-mark {
-    height: 12px;
-}
-
-.vp-ax-stance-wide > .vp-ax-name {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: start;
-    margin-top: 1px;
-}
-
-.vp-ax-stance-wide > .vp-ax-read {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: start;
-    margin-top: 0;
-}
-
-.vp-ax-stance-wide .vp-ax-notes {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 2px 16px;
-    margin-top: 3px;
-}
-
-.vp-ax-stance-wide.vp-ax-absent > .vp-ax-read {
-    grid-row: 1;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 2px 16px;
-    align-self: center;
-}
-
-.vp-ax-stance-wide.vp-ax-absent .vp-ax-notes {
-    margin-top: 0;
-}

@@ -46,7 +46,7 @@
  *
  * The breakdown at the foot is the tab's arithmetic, stated rather than
  * left to be inferred. **Eight notions and five units** — values,
- * relations, remote events, references, claims — so each row names its
+ * relations, sources, references, claims — so each row names its
  * own unit and nothing is summed into one strength.
  *
  * **This is still the only panel on the page that reads the correlation
@@ -237,7 +237,7 @@ if (!$nothingCached) {
  * so this card, the contents strip at the top of the tab and the panel
  * headers all say the same thing in the same words.
  *
- * The units differ — values, relations, remote events, references,
+ * The units differ — values, relations, sources, references,
  * claims — so each row names its own rather than letting eight bars in
  * one group imply they are the same thing. Nothing here is summed.
  *
@@ -287,7 +287,7 @@ $split = array(
     array(
         'key' => 'external',
         'label' => __('Outside this instance'),
-        'unit' => __('remote events'),
+        'unit' => __('sources'),
         'colour' => 'var(--vp-rel-external)',
         'ungoverned' => false,
     ),

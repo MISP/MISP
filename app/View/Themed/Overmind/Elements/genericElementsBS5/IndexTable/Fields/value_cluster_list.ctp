@@ -34,7 +34,8 @@ App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
  * Expected:
  *   $field['data_path']    `Cluster` — `name`, `galaxy`, `type`,
  *                          `tag_name`
- *   $field['max_visible']  clusters drawn before the `+N` fold; 3
+ *   $field['max_visible']  units drawn before the `+N` toggle (a
+ *                          galaxy's block is one unit); 3
  *   $field['plan']         the reader's label priority, optional —
  *                          absent, or declaring no galaxy, and the
  *                          clusters are drawn as they arrived
@@ -72,19 +73,11 @@ foreach (array_values($clusters) as $cluster) {
         'galaxy' => isset($cluster['galaxy']) ? $cluster['galaxy'] : '',
     );
 }
-$hiddenCount = max(0, count($chips) - $maxVisible);
 ?>
 <div class="tag-container d-inline-flex flex-wrap align-items-center">
-    <?= $this->TagChip->clusters(array_slice($chips, 0, $maxVisible)) ?>
-    <?= $this->TagChip->clusters(
-        array_slice($chips, $maxVisible),
-        array('class' => 'd-none extra-tag')
-    ) ?>
-
-    <?php if ($hiddenCount > 0): ?>
-        <span class="badge bg-secondary text-white me-1 mb-1 tag-expand"
-              style="cursor:pointer;"
-              data-hidden="<?= (int)$hiddenCount ?>"
-              onclick="toggleTags(this)">+<?= h($hiddenCount) ?></span>
-    <?php endif; ?>
+    <?php // Folded and limited by TagChip itself, as Fields/galaxy does. ?>
+    <?= $this->TagChip->clusters($chips, [
+        'fold' => 5,
+        'limit' => $maxVisible,
+    ]) ?>
 </div>

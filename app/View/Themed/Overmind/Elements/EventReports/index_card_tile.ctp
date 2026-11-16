@@ -15,12 +15,18 @@
  * The selection box, the preview, the analyst badges and the menu are the
  * sections Elements/EventReports/index configures; the rest is read from the
  * row and its `ctx`.
+ *
+ * `compact` (default false) is the tile in a list beside other content (the
+ * value page's Collaboration rail): no report icon, the event (Attributes/
+ * event_ref) in place of the report's id, no facts and no foot — the name
+ * opens the report.
  */
 $report = $row['EventReport'] ?? [];
 if (empty($report['id'])) {
     return;
 }
 $ctx = $row['ctx'];
+$compact = !empty($compact);
 $section = function ($name) use ($sections) {
     return implode('', $sections[$name] ?? []);
 };
@@ -31,7 +37,7 @@ $timestamp = (int)($report['timestamp'] ?? 0);
 $excerpt = $ctx['digest']['excerpt'];
 
 $facts = [];
-if ($ctx['origin']) {
+if ($ctx['origin'] && !$compact) {
     $facts[__('Event')] = $this->element('EventReports/index_event', ['row' => $row]);
     if (!empty($row['Event']['Orgc'])) {
         $facts[__('Creator org')] = $this->element('genericElementsBS5/IndexTable/Fields/organisation', [
@@ -44,14 +50,16 @@ $facts = array_filter($facts, function ($html) {
     return trim($html) !== '';
 });
 ?>
-<div class="card-body er-tile">
+<div class="card-body er-tile<?= $compact ? ' is-compact' : '' ?>">
     <div class="er-tile-head">
-        <span class="er-tile-lead">
-            <i class="misp-icon misp-icon-report misp-simple text-report" aria-hidden="true"></i>
-            <?php if (!empty($sections['selector'])): ?>
-                <span class="er-tile-sel"><?= $section('selector') ?></span>
-            <?php endif; ?>
-        </span>
+        <?php if (!$compact): ?>
+            <span class="er-tile-lead">
+                <i class="misp-icon misp-icon-report misp-simple text-report" aria-hidden="true"></i>
+                <?php if (!empty($sections['selector'])): ?>
+                    <span class="er-tile-sel"><?= $section('selector') ?></span>
+                <?php endif; ?>
+            </span>
+        <?php endif; ?>
         <span class="ov-obj-dist"
               style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
               title="<?= h($distTitle) ?>">
@@ -72,7 +80,11 @@ $facts = array_filter($facts, function ($html) {
                 <?php endif; ?>
             </div>
             <div class="er-tile-sub">
-                <span class="er-tile-id">#<?= (int)$report['id'] ?></span>
+                <?php if ($compact): ?>
+                    <?= $this->element('Attributes/event_ref', ['event' => $row['Event'] ?? []]) ?>
+                <?php else: ?>
+                    <span class="er-tile-id">#<?= (int)$report['id'] ?></span>
+                <?php endif; ?>
                 <?php if (!empty($report['deleted'])): ?>
                     <span class="ov-obj-deleted"><i class="fas fa-trash"></i><?= __('Deleted') ?></span>
                 <?php endif; ?>
@@ -101,18 +113,20 @@ $facts = array_filter($facts, function ($html) {
         </dl>
     <?php endif; ?>
 
-    <div class="er-tile-foot">
-        <?php if ($ctx['reader']): ?>
-            <button type="button" class="er-tile-open" data-report-read="<?= (int)$report['id'] ?>">
-                <i class="fas fa-book-open" aria-hidden="true"></i><?= __('Read') ?>
-            </button>
-        <?php else: ?>
-            <a class="er-tile-open" href="<?= h($baseurl . '/event_reports/view/' . (int)$report['id']) ?>">
-                <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i><?= __('Open') ?>
-            </a>
-        <?php endif; ?>
-        <?php if (!empty($sections['analyst'])): ?>
-            <div class="er-tile-analyst"><?= $section('analyst') ?></div>
-        <?php endif; ?>
-    </div>
+    <?php if (!$compact): ?>
+        <div class="er-tile-foot">
+            <?php if ($ctx['reader']): ?>
+                <button type="button" class="er-tile-open" data-report-read="<?= (int)$report['id'] ?>">
+                    <i class="fas fa-book-open" aria-hidden="true"></i><?= __('Read') ?>
+                </button>
+            <?php else: ?>
+                <a class="er-tile-open" href="<?= h($baseurl . '/event_reports/view/' . (int)$report['id']) ?>">
+                    <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i><?= __('Open') ?>
+                </a>
+            <?php endif; ?>
+            <?php if (!empty($sections['analyst'])): ?>
+                <div class="er-tile-analyst"><?= $section('analyst') ?></div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 </div>

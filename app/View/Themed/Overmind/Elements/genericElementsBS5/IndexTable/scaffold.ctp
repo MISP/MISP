@@ -51,13 +51,16 @@ echo '<div id="' . $containerId . '_content" data-ifp-scope="' . h($item_url) . 
                 ]); ?>
             </div>
 
+            <?php // `card_view => false`: an index with no card view renders none. ?>
+            <?php if (($scaffold_data['data']['card_view'] ?? true) !== false): ?>
             <div id="cardView" class="d-none">
                 <?= $this->element(
-                'genericElementsBS5/IndexTable/index_card', 
+                'genericElementsBS5/IndexTable/index_card',
                 [
                     'scaffold_data' => $scaffold_data
                 ]); ?>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 
