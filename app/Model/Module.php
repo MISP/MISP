@@ -17,6 +17,13 @@ class Module extends AppModel
         'AI' => array('ai')
     );
 
+    // Server validators a module-declared setting `test` may name; never executed otherwise.
+    const SETTING_TESTS = [
+        'testBool', 'testBoolTrue', 'testBoolFalse', 'testForEmpty', 'testForNumeric',
+        'testForPositiveInteger', 'testForPortNumber', 'testURL', 'testUuid',
+        'testForPath', 'testForWritableDir', 'testLocalOrg', 'testLocalOrgStrict'
+    ];
+
     // private
     const TYPE_TO_FAMILY = array(
         'Import' => 'Import',
@@ -484,7 +491,7 @@ class Module extends AppModel
                                         'type' => $value['type'] ?? 'string',
                                         'description' => $value['description'] ?? null,
                                         'null' => $value['null'] ?? null,
-                                        'test' => $value['test'] ?? null,
+                                        'test' => in_array($value['test'] ?? null, self::SETTING_TESTS, true) ? $value['test'] : null,
                                         'bigField' => $value['bigField'] ?? false,
                                         'cli_only' => $value['cli_only'] ?? false,
                                         'redacted' => $value['redacted'] ?? false
