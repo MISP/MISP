@@ -1047,6 +1047,11 @@
 
     IG().on('added', function (d) {
         var r = d.report || {};
+        // Every item turned down on its own, such as a value no attribute holds
+        if (!(r.added || []).length && !(r.present || []).length && (r.refused || []).length) {
+            refuse({ collection: d.collection, items: d.items, message: r.refused[0].error || 'Not added' });
+            return;
+        }
         var entry = {
             id: String(++seq), keys: (r.added || []).slice(), present: (r.present || []).slice(),
             count: (r.added || []).length, refused: (r.refused || []).length, labels: {}, at: Date.now(), fresh: true
@@ -1103,8 +1108,8 @@
         renderTray();
     });
 
-    document.addEventListener('intel-graph:refused', function (e) {
-        var d = e.detail || {};
+    document.addEventListener('intel-graph:refused', function (e) { refuse(e.detail || {}); });
+    function refuse(d) {
         if (!d.collection) return;
         var entry = { id: String(++seq), kind: 'refused', keys: [], present: [], labels: {}, at: Date.now(),
                       count: 0, items: d.items, message: d.message || ('HTTP ' + d.status), status: d.status, fresh: true };
@@ -1117,7 +1122,7 @@
         renderTray();
         shakeBanner();
         say('Not added. ' + entry.message);
-    });
+    }
 
     IG().on('pick', function (d) {
         pending = d.items || null;
