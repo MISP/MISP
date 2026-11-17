@@ -84,7 +84,7 @@ $fields = [
         'url' => $eventViewURL,
     ]),
     $col('title', [
-        'name' => __('Title'),
+        'name' => __('Info'),
         'sort' => 'info',
         'element' => 'event_title',
         'url' => $eventViewURL,

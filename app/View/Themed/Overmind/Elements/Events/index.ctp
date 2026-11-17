@@ -152,7 +152,7 @@ $fields = [
         'url' => $baseurl . '/events/view/%id%',
     ]),
     $col('title', [
-        'name' => __('Title'),
+        'name' => __('Info'),
         'sort' => 'Event.info',
         'element' => 'event_title',
     ]),
