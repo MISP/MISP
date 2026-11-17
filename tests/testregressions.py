@@ -4878,5 +4878,208 @@ class CorrelationGenerationRequiresPost(unittest.TestCase):
         self.assertEqual(405, self._get('correlations/generateOccurrences').status_code)
 
 
+class ObjectRevisionKeepsStoredAttributes(unittest.TestCase):
+    """An object revision held in the session never decides which attribute rows a save writes.
+
+    objects/revise_object stored the submitted attributes, ids included, and a later
+    objects/edit/<id>/cur_object_tmp_uuid:<uuid> merged them into the stored object before the
+    diff, which then saved leftover entries by their own id with no ownership check. A user able
+    to edit their own object could so rewrite or soft-delete an attribute of another
+    organisation's private event. Needs a web session: API-key requests drop the PHP session.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_uuids = []
+        cls.event_ids = []
+        try:
+            role_id = least_privileged_role(cls.admin, 'perm_add', 'perm_modify')
+            templates = send(cls.admin, 'GET', 'objectTemplates/index')
+            template = None
+            for entry in templates:
+                candidate = entry['ObjectTemplate']
+                if candidate['name'] == 'ip-port' and candidate['active']:
+                    if template is None or int(candidate['version']) > int(template['version']):
+                        template = candidate
+            if template is None:
+                raise unittest.SkipTest('the ip-port object template is not available')
+            cls.template = template
+            org_a = make_org(cls.admin, 'regression revision org')
+            cls.created_orgs.append(org_a)
+            org_b = make_org(cls.admin, 'regression revision victim org')
+            cls.created_orgs.append(org_b)
+            cls.user_a = make_user(cls.admin, org_a.id, role_id)
+            cls.created_users.append(cls.user_a)
+            cls.password = 'Rg%s-%sAa1!' % (random(), random())
+            check_response(cls.admin.update_user(
+                {'password': cls.password, 'confirm_password': cls.password,
+                 'change_pw': 0, 'termsaccepted': 1}, cls.user_a.id))
+            connector_a = PyMISP(url, cls.user_a.authkey)
+            connector_a.global_pythonify = True
+
+            event_a = MISPEvent()
+            event_a.info = 'regression revision own event %s' % random()
+            event_a.distribution = 0
+            obj = MISPObject('ip-port', standalone=False)
+            obj.template_uuid = template['uuid']
+            obj.template_version = template['version']
+            obj.add_attribute('ip', type='ip-dst', value='192.0.2.%d' % (int(random(), 16) % 250 + 1))
+            obj.add_attribute('dst-port', type='port', value='4443')
+            event_a.add_object(obj)
+            cls.event_a = check_response(connector_a.add_event(event_a))
+            cls.event_ids.append(cls.event_a.id)
+            cls.event_uuids.append(cls.event_a.uuid)
+            cls.object_id = int(cls.event_a.objects[0].id)
+
+            victim = MISPEvent()
+            victim.info = 'regression revision victim event %s' % random()
+            victim.distribution = 0
+            victim.add_attribute('text', 'victim-value-' + random())
+            # created by an organisation B member: the admin's own org would own it otherwise
+            user_b = make_user(cls.admin, org_b.id, role_id)
+            cls.created_users.append(user_b)
+            connector_b = PyMISP(url, user_b.authkey)
+            connector_b.global_pythonify = True
+            cls.victim_event = check_response(connector_b.add_event(victim))
+            cls.event_ids.append(cls.victim_event.id)
+            cls.event_uuids.append(cls.victim_event.uuid)
+            cls.victim_attribute_id = int(cls.victim_event.attributes[0].id)
+            cls.victim_before = cls._attribute(cls.victim_attribute_id)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in cls.event_ids:
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id)
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row)
+            if row.get('event_uuid') in cls.event_uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for user in cls.created_users:
+            cls.admin.delete_user(user)
+        for org in cls.created_orgs:
+            cls.admin.delete_organisation(org)
+
+    @classmethod
+    def _attribute(cls, attribute_id):
+        reply = send(cls.admin, 'POST', 'attributes/restSearch',
+                     data={'returnFormat': 'json', 'eventid': cls.victim_event.id,
+                           'deleted': [0, 1]})
+        found = [a for a in reply['Attribute'] if int(a['id']) == int(attribute_id)][0]
+        return {'value': str(found['value']), 'deleted': int(found['deleted']),
+                'object_id': int(found['object_id']), 'event_id': int(found['event_id'])}
+
+    def _object(self):
+        reply = send(self.admin, 'GET', 'objects/view/%s' % self.object_id)
+        return reply['Object']
+
+    def _login(self):
+        session = requests.Session()
+        login = session.get(url + '/users/login', allow_redirects=False)
+        form = login.text[login.text.index('id="UserLoginForm"'):]
+        form = form[:form.index('</form>')]
+        fields = {}
+        for tag in re.findall(r'<input[^>]*>', form):
+            name = re.search(r'name="([^"]+)"', tag)
+            value = re.search(r'value="([^"]*)"', tag)
+            if name and value:
+                fields[name.group(1)] = html.unescape(value.group(1))
+        fields['data[User][email]'] = self.user_a.email
+        fields['data[User][password]'] = self.password
+        session.post(url + '/users/login', data=fields, allow_redirects=False)
+        # The key header only exempts the calls from the form-hash check; the user is already
+        # signed in by the cookie, so the session (and the stored revision) survives them.
+        session.headers.update({'Accept': 'application/json', 'Content-Type': 'application/json',
+                                'Authorization': self.user_a.authkey})
+        return session
+
+    @staticmethod
+    def _flatten(prefix, value, out):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                ObjectRevisionKeepsStoredAttributes._flatten('%s[%s]' % (prefix, k), v, out)
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                ObjectRevisionKeepsStoredAttributes._flatten('%s[%s]' % (prefix, i), v, out)
+        else:
+            out[prefix] = '' if value is None else str(value)
+
+    def _revise(self, session, attributes):
+        """Returns the cur_object_tmp_uuid the revision answer carries. Posted as the object
+        form does (urlencoded, HTML answer): the JSON view of this action does not exist."""
+        obj = self._object()
+        fields = {}
+        self._flatten('data', {'Object': {
+            'distribution': 0, 'comment': '', 'template_uuid': obj['template_uuid'],
+            'template_version': obj['template_version'], 'name': obj['name'],
+            'meta-category': obj['meta-category']}, 'Attribute': attributes}, fields)
+        response = session.post(
+            '%s/objects/revise_object/edit/%s/%s/%s' % (
+                url, self.event_a.id, self.template['id'], self.object_id),
+            data=fields, allow_redirects=False,
+            headers={'Accept': 'text/html', 'Content-Type': 'application/x-www-form-urlencoded'})
+        self.assertEqual(200, response.status_code,
+                         'revise_object answered %s' % response.status_code)
+        found = re.search(r'name="data\[Object\]\[cur_object_tmp_uuid\]"[^>]*value="([0-9a-f-]{36})"',
+                          response.text) or \
+            re.search(r'value="([0-9a-f-]{36})"[^>]*name="data\[Object\]\[cur_object_tmp_uuid\]"',
+                      response.text)
+        self.assertIsNotNone(found, 'the revision answer carries no cur_object_tmp_uuid')
+        return found.group(1)
+
+    @staticmethod
+    def _entry(relation, attr_type, value, **extra):
+        entry = {'object_relation': relation, 'type': attr_type, 'category': 'Network activity',
+                 'value': value, 'distribution': 5, 'to_ids': 0, 'comment': ''}
+        entry.update(extra)
+        return entry
+
+    def _own_attributes(self):
+        return [self._entry(a['object_relation'], a['type'], a['value'], uuid=a['uuid'])
+                for a in self._object()['Attribute']]
+
+    def _post_edit(self, session, path, attributes):
+        obj = self._object()
+        return session.post(
+            '%s/objects/edit/%s' % (url, path),
+            data=json.dumps({'Object': {'distribution': 0, 'comment': obj.get('comment', ''),
+                                        'name': obj['name']},
+                             'Attribute': attributes}),
+            allow_redirects=False)
+
+    def test_foreign_attribute_id_is_not_written(self):
+        session = self._login()
+        own = self._own_attributes()
+        probe = self._entry('ip', 'ip-dst', '198.51.100.77', id=self.victim_attribute_id)
+        revision = self._revise(session, own + [probe])
+        response = self._post_edit(
+            session, '%s/cur_object_tmp_uuid:%s' % (self.object_id, revision), own)
+        self.assertLess(response.status_code, 400, 'objects/edit answered %s' % response.status_code)
+        self.assertEqual(self.victim_before, self._attribute(self.victim_attribute_id),
+                         'a revision rewrote an attribute of another organisation')
+
+    def test_new_attribute_through_revision(self):
+        session = self._login()
+        before = {a['uuid']: a['value'] for a in self._object()['Attribute']}
+        added = self._entry('ip', 'ip-dst', '203.0.113.%d' % (int(random(), 16) % 250 + 1))
+        own = self._own_attributes()
+        self._revise(session, own + [added])
+        response = self._post_edit(session, str(self.object_id), own + [added])
+        self.assertLess(response.status_code, 400, 'objects/edit answered %s' % response.status_code)
+        after = self._object()['Attribute']
+        values = {a['value'] for a in after if not int(a['deleted'])}
+        self.assertIn(added['value'], values, 'the revised new attribute was not saved')
+        for uuid, value in before.items():
+            self.assertTrue(any(a['uuid'] == uuid and a['value'] == value and not int(a['deleted'])
+                                for a in after), 'an original attribute was lost')
+
+
 if __name__ == '__main__':
     unittest.main()
