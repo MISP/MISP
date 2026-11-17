@@ -9573,11 +9573,7 @@ class Event extends AppModel
             throw new NotFoundException('Invalid event.');
         }
         $modulePayload = array('module' => $module['name']);
-        if (isset($module['meta']['config'])) {
-            foreach ($module['meta']['config'] as $conf) {
-                $modulePayload['config'][$conf] = Configure::read('Plugin.Export_' . $module['name'] . '_' . $conf);
-            }
-        }
+        $modulePayload['config'] = $this->Module->getModuleConfig($module, 'Export', $user);
         $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
             App::uses('JSONConverterTool', 'Tools');
@@ -9958,13 +9954,7 @@ class Event extends AppModel
             return true;
         }
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $settings = array();
-                foreach ($temp['meta']['config'] as $conf) {
-                    $settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
-                }
-                $enabledModules['modules'][$k]['config'] = $settings;
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
 
         $attributes_added = 0;

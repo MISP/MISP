@@ -4532,13 +4532,7 @@ class MispAttribute extends AppModel
         }
         $options = array();
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $settings = array();
-                foreach ($temp['meta']['config'] as $conf) {
-                    $settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
-                }
-                $enabledModules['modules'][$k]['config'] = $settings;
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
         $attributes_added = 0;
         $tagsRemoved = 0;

@@ -87,6 +87,42 @@ class Module extends AppModel
 
     private $moduleTimeoutDefaults = [];
 
+    /** Only credentials may be overridden; endpoints and module controls stay instance-wide. */
+    public static function isPersonalCredential($name)
+    {
+        return is_string($name) && preg_match('/(?:^|_)(?:api_?key|auth_?key|api_?token|access_token|token|key|api_?id|client_id|client_secret|username|password|api_?password)$/iD', $name) === 1;
+    }
+
+    /** Resolve configuration for the explicit execution user, including background jobs. */
+    public function getModuleConfig(array $module, $moduleFamily, array $user)
+    {
+        if (empty($module['meta']['config'])) {
+            return [];
+        }
+        $personal = empty($user['id']) ? [] : $this->personalModuleApiKeys($user['id']);
+        $overrides = $personal[$moduleFamily][$module['name']] ?? [];
+        $config = [];
+        foreach ($module['meta']['config'] ?? [] as $key => $definition) {
+            $name = is_string($key) ? $key : (is_array($definition) ? $definition['name'] : $definition);
+            $value = $this->moduleConfigSetting('Plugin.' . $moduleFamily . '_' . $module['name'] . '_' . $name);
+            if (self::isPersonalCredential($name) && isset($overrides[$name]) && is_string($overrides[$name]) && $overrides[$name] !== '') {
+                $value = $overrides[$name];
+            }
+            $config[$name] = $value;
+        }
+        return $config;
+    }
+
+    protected function moduleConfigSetting($name)
+    {
+        return Configure::read($name);
+    }
+
+    protected function personalModuleApiKeys($userId)
+    {
+        return ClassRegistry::init('UserSetting')->getModuleApiKeys($userId);
+    }
+
     public function validateIPField($value)
     {
         if (!filter_var($value, FILTER_VALIDATE_IP) === false) {
