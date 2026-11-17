@@ -5181,5 +5181,119 @@ class AuthKeyAddCanonicalUserId(unittest.TestCase):
         self.assertEqual(before, self._keys_of(self.upper))
 
 
+class LoginLockoutCanonicalAddress(unittest.TestCase):
+    """The web login must answer a NUL-byte password alike for known and unknown addresses,
+    must not let accent/width-folded aliases of an address log in, and must count failures
+    under one case-folded key, so an address with a non-ASCII capital is locked out too."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.users = []
+        cls.org = None
+        try:
+            cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+            cls.org = make_org(cls.admin, 'regression lockout org')
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for user in cls.users:
+            cls.admin.delete_user(user.id)
+        if cls.org is not None:
+            cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % cls.org.id)
+
+    def _fixture(self, local):
+        user = MISPUser()
+        user.email = '%s-%s@test.local' % (local, random())
+        user.org_id = self.org.id
+        user.role_id = self.role_id
+        user = check_response(self.admin.add_user(user))
+        type(self).users.append(user)
+        password = 'Rg%s-%sAa1!' % (random(), random())
+        check_response(self.admin.update_user(
+            {'password': password, 'confirm_password': password,
+             'change_pw': 0, 'termsaccepted': 1}, user.id))
+        return user, password
+
+    def _attempt(self, session, email, password):
+        login = session.get(url + '/users/login', allow_redirects=False)
+        form = login.text[login.text.index('id="UserLoginForm"'):]
+        form = form[:form.index('</form>')]
+        fields = {}
+        for tag in re.findall(r'<input[^>]*>', form):
+            name = re.search(r'name="([^"]+)"', tag)
+            value = re.search(r'value="([^"]*)"', tag)
+            if name and value:
+                fields[name.group(1)] = html.unescape(value.group(1))
+        fields['data[User][email]'] = email
+        fields['data[User][password]'] = password
+        return session.post(url + '/users/login', data=fields, allow_redirects=False)
+
+    def _logged_in(self, session, email):
+        me = session.get(url + '/users/view/me.json', allow_redirects=False,
+                         headers={'Accept': 'application/json'})
+        return me.status_code == 200 and me.json()['User']['email'].lower() == email.lower()
+
+    def _login(self, email, password, stored=None):
+        """(response, logged in as the stored address) for a fresh session."""
+        session = requests.Session()
+        response = self._attempt(session, email, password)
+        return response, self._logged_in(session, stored or email)
+
+    def test_good_login_is_detected(self):
+        user, password = self._fixture('lockout')
+        response, ok = self._login(user.email, password)
+        self.assertTrue(ok, response.status_code)
+        self.assertFalse(self._login(user.email, password + 'x')[1])
+
+    def test_nul_password_answers_alike(self):
+        user, _ = self._fixture('lockout')
+        known = self._login(user.email, 'bad\x00pass')[0].status_code
+        unknown = self._login('lockout-unknown-%s@test.local' % random(), 'bad\x00pass')[0].status_code
+        self.assertEqual(known, unknown)
+        self.assertNotEqual(500, known)
+
+    def test_folded_alias_cannot_log_in(self):
+        user, password = self._fixture('lockout')
+        self.assertTrue(self._login(user.email.upper(), password, user.email)[1], 'upper-case control failed')
+        local, domain = user.email.split('@')
+        for alias in ('\u013a' + local[1:], '\uff4c' + local[1:]):
+            response, ok = self._login(alias + '@' + domain, password, user.email)
+            self.assertFalse(ok, 'folded alias %r logged in (%s)' % (alias, response.status_code))
+
+    def _capital_fixture(self):
+        user, password = self._fixture('\u00c4rger')
+        self.assertTrue(user.email.startswith('\u00c4rger-'), user.email)
+        return user, password
+
+    def _assert_locked(self, user, password):
+        response, ok = self._login(user.email, password)
+        self.assertEqual(403, response.status_code)
+        self.assertFalse(ok)
+
+    def test_non_ascii_capital_address_locks_out(self):
+        user, password = self._capital_fixture()
+        for _ in range(5):
+            self.assertFalse(self._login(user.email, 'wrong-' + password)[1])
+        self._assert_locked(user, password)
+
+    def test_case_variants_share_one_counter(self):
+        user, password = self._capital_fixture()
+        local, domain = user.email.split('@')
+        lower = local.lower() + '@' + domain
+        upper = local.upper() + '@' + domain
+        for email in (lower,) * 3 + (upper,) * 2:
+            self.assertFalse(self._login(email, 'wrong-' + password)[1])
+        self._assert_locked(user, password)
+        other, other_password = self._capital_fixture()
+        lower = other.email.split('@')[0].lower() + '@' + domain
+        self.assertTrue(self._login(lower, other_password, other.email)[1], 'lower-case variant did not log in')
+
+
 if __name__ == '__main__':
     unittest.main()
