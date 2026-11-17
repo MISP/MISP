@@ -143,41 +143,17 @@ $children = array(
         'chip_label' => __('Search'),
         'placeholder' => __('Filter by event, comment or UUID'),
     ),
-);
-if (!empty($orgs)) {
-    $children[] = $list('org', __('Reported by'), $facet('org'), $orgs, $orgHtml,
-        'misp-icon misp-icon-organisation misp-simple');
-}
-if (!empty($objects)) {
-    $children[] = $list('object', __('Context'), $objectCounts, $objects, $objectHtml,
-        'misp-icon misp-icon-object misp-simple');
-}
-if (!empty($types)) {
-    $children[] = $list('type', __('Type'), $facet('type'), $types, $typeHtml);
-}
-$children[] = $list('ids', __('IDS'), $idsCounts, $idsLabels, $idsHtml, 'fas fa-shield-halved');
-if (!empty($categories)) {
-    $children[] = $list('category', __('Category'), $facet('category'), $categories);
-}
-if (!empty($distributions)) {
-    $children[] = $list('distribution', __('Distribution'), $facet('distribution'), $distributions);
-}
-$children[] = array(
-    'type' => 'picker',
-    'name' => 'tags',
-    'label' => __('Tags'),
-    'icon' => 'fas fa-tag',
-    'source' => $baseurl . '/tags/pickerSearch',
-    'separator' => '||',
-    'resolved' => $filterLabels['tag'],
-    'hint' => __('On the occurrence or its event.'),
-    'group' => $group,
-    'top' => $topTags,
-    'top_total' => $topTagsTotal,
-    'browser' => array(
-        'kind' => 'tag',
-        'scopes' => $baseurl . '/tags/pickerScopes',
-        'tree' => $baseurl . '/tags/pickerTree',
+    array(
+        'key' => 'event',
+        'label' => __('Event'),
+        'shown' => true,
+        'field' => array(
+            'name' => __('Event'),
+            // Its id and icon, a peek on hover; the class reaches the heading too.
+            'element' => 'event_peek',
+            'data_path' => 'Event.id, Event.info',
+            'class' => 'idx-col-event_peek',
+        ),
     ),
 );
 $children[] = array(

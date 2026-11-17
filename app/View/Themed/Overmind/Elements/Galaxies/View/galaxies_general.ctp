@@ -1,9 +1,27 @@
 <?php
 App::uses('GalaxyMatrixLayout', 'Tools');
+App::uses('EventMatrixTool', 'Tools/EventOverview');
 $iconClass = !empty($data['icon']) ? $this->FontAwesome->getClass($data['icon']) : 'fas fa-shapes';
 $palette = $this->GalaxyColour->palette($data['name'] ?? '');
 $connectorPrefix = 'misp-galaxy:' . ($data['type'] ?? '') . '=';
-$killChains = is_array($data['kill_chain_order'] ?? null) ? array_filter($data['kill_chain_order']) : [];
+$killChains = [];
+foreach (is_array($data['kill_chain_order'] ?? null) ? $data['kill_chain_order'] : [] as $chain => $phases) {
+    $phases = array_values(array_filter((array)$phases, function ($phase) {
+        return is_string($phase) && trim($phase) !== '';
+    }));
+    if (!empty($phases)) {
+        $killChains[$chain] = $phases;
+    }
+}
+$kcId = 'gx-kc-' . (int)($data['id'] ?? 0);
+// Columns per row for each width tier of misp-matrix.css, rows balanced
+$kcColumns = function ($count) {
+    $vars = [];
+    foreach ([2, 3, 4, 5, 6, 7, 8, 10] as $max) {
+        $vars[] = sprintf('--kc-c%d:%d', $max, (int)ceil($count / ceil($count / $max)));
+    }
+    return implode(';', $vars);
+};
 
 $labelClass = 'text-body-secondary text-uppercase fw-bold';
 $labelStyle = 'font-size:.7rem;';
@@ -112,26 +130,68 @@ $flags = [
         </div>
 
         <?php if (!empty($killChains)): ?>
-            <div>
-                <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Kill chain') ?></div>
-                <div class="d-flex flex-column gap-2">
-                    <?php foreach ($killChains as $chain => $phases): ?>
-                        <div class="d-flex flex-wrap align-items-center gap-1">
-                            <?php if (count($killChains) > 1): ?>
-                                <span class="small fw-semibold me-1"><?= h(GalaxyMatrixLayout::formatTactic($chain)) ?></span>
-                            <?php endif; ?>
-                            <?php foreach (array_values((array)$phases) as $i => $phase): ?>
-                                <?php if ($i > 0): ?>
-                                    <i class="fas fa-chevron-right fa-xs text-body-secondary opacity-50"></i>
-                                <?php endif; ?>
-                                <span class="badge rounded-pill fw-normal border"
-                                      style="background:<?= h($palette['badgeBg']) ?>;color:<?= h($palette['badgeText']) ?>;border-color:<?= h($palette['badgeBorder']) ?> !important;">
-                                    <span class="opacity-50 me-1"><?= $i + 1 ?></span><?= h(GalaxyMatrixLayout::formatTactic($phase)) ?>
-                                </span>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endforeach; ?>
+            <div class="gx-kc-set">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <span class="<?= $labelClass ?>" style="<?= $labelStyle ?>"><?= __('Kill chain') ?></span>
+                    <?php if (!empty($isMatrixGalaxy)): ?>
+                        <a href="#tab-matrix" class="gx-kc-open">
+                            <i class="fas fa-table-cells" aria-hidden="true"></i><?= __('Open the matrix') ?><i class="fas fa-arrow-right fa-xs" aria-hidden="true"></i>
+                        </a>
+                    <?php endif; ?>
                 </div>
+                <?php if (count($killChains) > 1): ?>
+                    <?php
+                    $kcFront = count($killChains) > 7 ? 6 : count($killChains);
+                    $kcPick = function ($c, $chain, $phases, $inMenu) use ($kcId, $data) {
+                        $name = EventMatrixTool::tabLabel($chain, $data['type'] ?? '');
+                        return sprintf(
+                            '<button type="button" class="%s"%s data-kc-pick="%d" data-kc-name="%s" aria-controls="%s">%s<span class="gx-kc-pick-n">%d</span></button>',
+                            $inMenu ? 'dropdown-item d-flex justify-content-between gap-3' : 'mx-full-tab',
+                            $inMenu ? '' : sprintf(' role="tab" aria-selected="%s"', $c === 0 ? 'true' : 'false'),
+                            $c, h($name), h($kcId . '-' . $c), h($name), count($phases)
+                        );
+                    };
+                    ?>
+                    <div class="gx-kc-pick" role="tablist" aria-label="<?= h(__('Kill chains')) ?>">
+                        <?php $c = 0; ?>
+                        <?php foreach (array_slice($killChains, 0, $kcFront, true) as $chain => $phases): ?>
+                            <?= $kcPick($c++, $chain, $phases, false) ?>
+                        <?php endforeach; ?>
+                        <?php if ($kcFront < count($killChains)): ?>
+                            <div class="dropdown mx-full-more">
+                                <button type="button" class="mx-full-tab dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static"
+                                        aria-expanded="false" aria-selected="false" data-kc-more="<?= h(__('%s more', count($killChains) - $kcFront)) ?>">
+                                    <?= h(__('%s more', count($killChains) - $kcFront)) ?>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <?php foreach (array_slice($killChains, $kcFront, null, true) as $chain => $phases): ?>
+                                        <li><?= $kcPick($c++, $chain, $phases, true) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                <?php $c = 0; ?>
+                <?php foreach ($killChains as $chain => $phases): ?>
+                    <div id="<?= h($kcId . '-' . $c) ?>" role="tabpanel" data-kc-chain="<?= $c ?>"<?= $c > 0 ? ' hidden' : '' ?>>
+                        <ol class="gx-kc" style="<?= $kcColumns(count($phases)) ?>"
+                            aria-label="<?= h(EventMatrixTool::tabLabel($chain, $data['type'] ?? '')) ?>">
+                            <?php foreach ($phases as $i => $phase): ?>
+                                <?php
+                                $tone = $this->GalaxyColour->stepPalette($i, count($phases));
+                                $phaseLabel = GalaxyMatrixLayout::formatTactic($phase);
+                                ?>
+                                <li class="gx-kc-step" title="<?= h($phaseLabel) ?>"
+                                    style="--kc-bg:<?= h($tone['tintBg']) ?>;--kc-fg:<?= h($tone['headerText']) ?>;--kc-n:<?= h($tone['tintIcon']) ?>;">
+                                    <span class="gx-kc-i"><?= sprintf('%02d', $i + 1) ?></span>
+                                    <span class="gx-kc-l"><?= h($phaseLabel) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ol>
+                    </div>
+                    <?php $c++; ?>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 

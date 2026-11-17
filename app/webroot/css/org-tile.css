@@ -13,3 +13,50 @@
 .dk-logo.is-mono { color: #fff; font-size: 9.5px; font-weight: 700; letter-spacing: .02em; background: var(--dk-mono-0); }
 .dk-logo.m1 { background: var(--dk-mono-1); } .dk-logo.m2 { background: var(--dk-mono-2); }
 .dk-logo.m3 { background: var(--dk-mono-3); } .dk-logo.m4 { background: var(--dk-mono-4); } .dk-logo.m5 { background: var(--dk-mono-5); }
+
+/* An organisation in any index (Badges/organisation): tile, the reader's
+   grade in its corner, the name beside, the description under it. */
+.org-id {
+    --org-id-size: 24px;
+    display: inline-flex; align-items: center; gap: 8px;
+    min-width: 0; max-width: 100%; vertical-align: middle; line-height: 1.25;
+}
+.org-id-mark { position: relative; flex: none; display: inline-flex; }
+.org-id .dk-logo { width: var(--org-id-size); height: var(--org-id-size); }
+.org-id .dk-logo img { max-width: var(--org-id-size); max-height: var(--org-id-size); }
+.org-id .dk-logo.is-mono { font-size: calc(var(--org-id-size) * .4); }
+/* the letters clear the corner while the grade shows there */
+.org-id-mark:has(.og-badge:not(.is-empty)) > .dk-logo.is-mono,
+tr:hover .org-id-mark:has(.og-badge) > .dk-logo.is-mono,
+.idx-card:hover .org-id-mark:has(.og-badge) > .dk-logo.is-mono,
+.dk-card:hover .org-id-mark:has(.og-badge) > .dk-logo.is-mono,
+.org-id-mark:has(.og-badge:focus-visible, .og-badge[aria-expanded="true"]) > .dk-logo.is-mono {
+    place-items: start; padding: 3px 0 0 3px;
+}
+.org-id-text { display: flex; flex-direction: column; min-width: 0; }
+.org-id-name {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-weight: 600; text-decoration: none;
+}
+a.org-id-name { color: var(--bs-link-color); }
+a.org-id-name:hover { color: var(--bs-link-hover-color); text-decoration: underline; }
+span.org-id-name { color: var(--bs-secondary-color); }
+.org-id-desc {
+    max-width: 22rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: .75rem; color: var(--bs-secondary-color);
+}
+.org-id-desc.is-full { max-width: none; white-space: normal; overflow-wrap: anywhere; }
+.org-id:has(.org-id-desc.is-full) { align-items: flex-start; }
+/* In a column sized by its content: the name never gives way. */
+.org-id.is-fit .org-id-name { flex: none; overflow: visible; }
+
+/* An organisation's own page: its tile, large, in a ring tinted local or
+   remote, the reader's grade in the corner (Organisations/View). */
+.org-hero { position: relative; flex: none; display: inline-flex; width: 110px; height: 110px; }
+.org-hero-tile {
+    width: 100%; height: 100%; padding: 3px; border-radius: 50%; overflow: hidden;
+    display: grid; place-items: center; background: var(--bs-body-bg);
+}
+.org-hero-tile .dk-logo { width: 100%; height: 100%; border-radius: 50%; }
+.org-hero-tile .dk-logo img { max-width: 72px; max-height: 72px; }
+.org-hero-tile .dk-logo.is-mono { font-size: 2.25rem; letter-spacing: .03em; }

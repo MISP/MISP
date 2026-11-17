@@ -114,9 +114,7 @@ $extras = $ei->extras($event, $card['graphs']);
         <a href="<?= h($baseurl . '/events/view/' . $id) ?>" title="<?= h($event['info']) ?>"><?= h($event['info']) ?></a>
     </h3>
     <div class="dk-org">
-        <?= $ei->orgTile($orgc) ?>
-        <a class="dk-orgname" href="<?= h($baseurl . '/organisations/view/' . ($orgc['id'] ?? '')) ?>" title="<?= h($ei->orgTitle($row)) ?>"><?= h($orgc['name'] ?? '') ?></a>
-        <?= $ei->grade($card['grade'] ?? null, $orgc, $orgGrading ?? null) ?>
+        <?= $this->element('genericElementsBS5/Badges/organisation', ['org' => $orgc, 'orgTitle' => $ei->orgTitle($row)]) ?>
         <span class="dk-marks"><?= $ei->markings($card['markings']) ?></span>
     </div>
     <div class="dk-meta">

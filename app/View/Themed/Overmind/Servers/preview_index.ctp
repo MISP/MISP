@@ -84,7 +84,7 @@ $fields = [
         'url' => $eventViewURL,
     ]),
     $col('title', [
-        'name' => __('Title'),
+        'name' => __('Info'),
         'sort' => 'info',
         'element' => 'event_title',
         'url' => $eventViewURL,
@@ -254,7 +254,7 @@ $tableConfig = [
 ];
 
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['org-tile', 'events-index-cards', 'events-index-table'],
+    'css' => ['events-index-cards', 'events-index-table'],
     'js' => ['events-index-cards', 'events-index-table', 'preview-index-counts'],
 ]);
 

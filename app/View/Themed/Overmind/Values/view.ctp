@@ -17,7 +17,7 @@ App::uses('ValueLean', 'Tools/ValueIntelligence');
 echo $this->element('genericElements/assetLoader', array(
     'css' => array(
         'value-palette', 'value-widgets', 'misp-brush', 'misp-matrix',
-        'org-tile', 'tile-drawer', 'value-intelligence', 'value-new-event',
+        'tile-drawer', 'value-intelligence', 'value-new-event',
         // The Collaboration tab's reports are the reports index's card tiles.
         'event-reports-index',
         // Enrichment answers draw their objects as the objects index rows.

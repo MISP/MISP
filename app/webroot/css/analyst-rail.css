@@ -3,10 +3,6 @@
   --adr-accent-rgb: var(--bs-analystData-rgb, 143, 45, 86);
   --adr-opinion: var(--bs-success);
   --adr-rel: var(--bs-orange, #fd7e14);
-  --adr-pos: var(--bs-success);
-  --adr-neg: var(--bs-danger);
-  --adr-mid: var(--bs-secondary-color);
-  --adr-track: color-mix(in srgb, var(--bs-body-color) 12%, transparent);
   --adr-line: var(--bs-border-color-translucent, var(--bs-border-color));
   --adr-surface: var(--bs-card-bg, var(--bs-body-bg));
   min-width: 0;
@@ -16,9 +12,27 @@
 [data-bs-theme="dark"] .adr-card,
 [data-misp-mode="dark"] .adr-card {
   --adr-accent: color-mix(in srgb, var(--bs-analystData, #8f2d56) 55%, #fff);
+}
+/* The stance gauge (AnalystData/stance) carries its tones, as it is also
+   drawn outside a card. */
+.adr-stance {
+  --adr-pos: var(--bs-success);
+  --adr-neg: var(--bs-danger);
+  --adr-mid: var(--bs-secondary-color);
+  --adr-track: color-mix(in srgb, var(--bs-body-color) 12%, transparent);
+}
+[data-bs-theme="dark"] .adr-stance,
+[data-misp-mode="dark"] .adr-stance {
   --adr-pos: #3fbf86;
   --adr-neg: #f0727f;
   --adr-track: color-mix(in srgb, var(--bs-body-color) 18%, transparent);
+}
+/* A note's or an opinion's text in an index cell: the card's text, clamp and
+   "Read more", at the table's size. */
+.adr-card.adr-cell {
+  overflow: visible;
+  font-size: inherit;
+  max-width: 46rem;
 }
 .adr-card ul, .adr-card p { margin: 0; padding: 0; list-style: none; }
 .adr-card button { font: inherit; }

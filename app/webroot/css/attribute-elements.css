@@ -21,11 +21,6 @@
     min-width: 0;
     overflow-wrap: anywhere;
 }
-/* Under the value's text, past the event icon. */
-.attr-value:has(> .attr-value-line > .ev-peek) > .om-comment {
-    padding-left: calc(22px + .5rem);
-}
-
 /* A comment (Badges/comment), every record's: muted, led by its glyph, one
    line that never widens what holds it, the title holding the rest. */
 .om-comment {

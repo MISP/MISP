@@ -9,8 +9,6 @@ if (empty($attribute)) {
 }
 
 $isCard = isset($viewMode) && $viewMode === 'card';
-// `event_peek`: rows from any event lead with their event's icon; a card has it in its head.
-$peekEvent = !$isCard && !empty($field['event_peek']) ? ($row['Event'] ?? null) : null;
 
 if (isset($row['Attribute'])) {
     $row = $row['Attribute'];
@@ -90,9 +88,6 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
 
 <div class="attr-value">
     <div class="attr-value-line">
-        <?php if ($peekEvent) {
-            echo $this->element('Attributes/event_peek', ['event' => $peekEvent]);
-        } ?>
         <?php // `show_distribution` false: the index draws distribution in a column of its own. ?>
         <?php if (!$isCard && ($field['show_distribution'] ?? true)) {
                 echo $this->element(

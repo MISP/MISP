@@ -113,8 +113,7 @@ $fields = [
         'display_in' => ['table', 'card'],
         'function' => function (array $row) {
             return isset($row['Org']['name'])
-                ? '<span class="d-inline-flex align-items-center"><i class="fas fa-building me-1 text-muted"></i>'
-                    . h($row['Org']['name']) . '</span>'
+                ? $this->element('genericElementsBS5/Badges/organisation', ['org' => $row['Org']])
                 : '<span class="text-muted d-inline-flex align-items-center"><i class="fas fa-gear me-1"></i>'
                     . h(__('SYSTEM')) . '</span>';
         },

@@ -15,18 +15,25 @@
  *   mayCollect         bool   may add to a collection
  *   enrichmentEnabled  bool   Plugin.Enrichment_services_enable
  *
+ * A soft-deleted object offers only Restore and Delete permanently, and no
+ * menu at all to whoever may not modify its event.
+ *
  * Read from the view: $baseurl, $me.
  */
 $objId = (int)$object['id'];
 $uuid = (string)($object['uuid'] ?? '');
 $isDeleted = !empty($object['deleted']);
 $canEdit = !empty($canEdit);
-$mayGraph = !empty($mayGraph) && !$isDeleted;
-$mayCollect = !empty($mayCollect) && !$isDeleted;
+$mayGraph = !empty($mayGraph);
+$mayCollect = !empty($mayCollect);
 $editUrl = $baseurl . '/objects/edit/' . $objId;
 $deleteUrl = $baseurl . '/objects/delete/' . $objId . ($isDeleted ? '/true' : '');
 $enrichUrl = $baseurl . '/events/queryEnrichment/' . $objId . '/0/Enrichment/Object';
 $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . h($uuid);
+$restoreUrl = $baseurl . '/objects/restore/' . $objId;
+if ($isDeleted && !$canEdit) {
+    return;
+}
 ?>
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">
     <div class="dropdown">
@@ -38,6 +45,22 @@ $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . 
             <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <?php if ($isDeleted): ?>
+            <li>
+                <a class="dropdown-item text-success justify-content-start" href="<?= $restoreUrl ?>"
+                   onclick="event.preventDefault(); openModal('<?= $restoreUrl ?>', 'md');">
+                    <i class="fas fa-rotate-left me-2"></i>
+                    <?= __('Restore') ?>
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item text-danger justify-content-start" href="<?= $deleteUrl ?>"
+                   onclick="event.preventDefault(); openModal('<?= $deleteUrl ?>', 'md');">
+                    <i class="fas fa-trash me-2"></i>
+                    <?= __('Delete permanently') ?>
+                </a>
+            </li>
+            <?php else: ?>
             <li>
                 <a class="dropdown-item justify-content-start" href="#"
                    onclick="event.preventDefault(); copyValueToClipboard('<?= h($uuid) ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
@@ -59,11 +82,11 @@ $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . 
                 <a class="dropdown-item text-danger justify-content-start" href="<?= $deleteUrl ?>"
                    onclick="event.preventDefault(); openModal('<?= $deleteUrl ?>', 'md');">
                     <i class="fas fa-trash me-2"></i>
-                    <?= $isDeleted ? __('Delete permanently') : __('Delete') ?>
+                    <?= __('Delete') ?>
                 </a>
             </li>
             <?php endif; ?>
-            <?php if ($canEdit && !empty($enrichmentEnabled) && !$isDeleted): ?>
+            <?php if ($canEdit && !empty($enrichmentEnabled)): ?>
             <li><hr class="dropdown-divider"></li>
             <li>
                 <a class="dropdown-item justify-content-start" href="<?= $enrichUrl ?>"
@@ -99,6 +122,7 @@ $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . 
                     <?= __('Add to collection') ?>
                 </a>
             </li>
+            <?php endif; ?>
             <?php endif; ?>
         </ul>
     </div>

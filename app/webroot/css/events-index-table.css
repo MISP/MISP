@@ -89,14 +89,19 @@
 .te-title:focus-visible { outline: 2px solid var(--dk-accent); outline-offset: 1px; border-radius: 2px; }
 .te-extmark { flex: none; font-size: .7rem; color: var(--bs-tertiary-color); cursor: default; }
 
-/* org */
-.te-org { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.te-org .dk-logo { width: 20px; height: 20px; border-radius: 4px; }
-.te-org .dk-logo img { max-width: 20px; max-height: 20px; }
-.te-org .dk-logo.is-mono { font-size: 8.5px; }
-.te-org a { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--bs-body-color); text-decoration: none; }
-.te-org a:hover { color: var(--dk-accent); text-decoration: underline; }
-.te-org .dk-grade { margin-left: auto; }
+/* proposals (the proposal index): count, then the proposing orgs' tiles */
+.te-prop { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--bs-body-color); text-decoration: none; white-space: nowrap; }
+.te-prop > i { font-size: .8rem; color: var(--bs-tertiary-color); }
+.te-prop b { font-weight: 650; font-variant-numeric: tabular-nums; }
+.te-prop:hover b { color: var(--dk-accent); text-decoration: underline; }
+.te-prop-orgs { display: inline-flex; align-items: center; margin-left: 2px; }
+.te-prop-orgs .dk-logo { width: 18px; height: 18px; border-radius: 4px; box-shadow: 0 0 0 2px var(--bs-body-bg); }
+.te-prop-orgs .dk-logo + .dk-logo { margin-left: -3px; }
+.te-prop-orgs .dk-logo img { max-width: 18px; max-height: 18px; }
+.te-prop-orgs .dk-logo.is-mono { font-size: 7.5px; }
+.te-prop-more { margin-left: 5px; font-size: .7rem; color: var(--bs-secondary-color); }
+/* ...which the extras column then leaves out */
+.te-index.is-proposals .te-table .dk-x-proposals { display: none; }
 .te-quiet { color: var(--bs-secondary-color); }
 .te-faint { color: var(--bs-tertiary-color); }
 

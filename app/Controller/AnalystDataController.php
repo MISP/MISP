@@ -476,7 +476,13 @@ class AnalystDataController extends AppController
             $this->layout = false;
         }
         if ($overmind) {
-            $this->__setTargetExistence($this->viewVars['data'] ?? []);
+            $rows = $this->viewVars['data'] ?? [];
+            $user = $this->Auth->user();
+            $this->__describeTargets($rows);
+            $this->set('orgGrading', ClassRegistry::init('AnalystProfile')->gradingFor($user));
+            // The cards' foot: what hangs off each record
+            $uuids = Hash::extract($rows, '{n}.' . $this->modelSelection . '.uuid');
+            $this->set('analystCounts', $this->AnalystData->attachedCounts($user, $uuids));
         }
         $this->_setViewElements();
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
@@ -508,40 +514,29 @@ class AnalystDataController extends AppController
     }
 
     /**
-     * Tell the index which of the rendered targets still resolve, so a UUID
-     * pointing at something this instance no longer holds is rendered as text
-     * instead of a link into a "not found" page. A value target is described
-     * too, as its SHA-256 alone says nothing.
+     * Describe the targets of the rendered rows, so the index draws each one
+     * by what it is, and a UUID pointing at something this instance does not
+     * hold, or the user may not see, as text instead of a link.
      *
      * @param array $rows the page of analyst data about to be rendered
      */
-    private function __setTargetExistence(array $rows)
+    private function __describeTargets(array $rows)
     {
         $model = $this->modelSelection;
         $targets = [];
-        $values = [];
         foreach ($rows as $row) {
             foreach (['object', 'related_object'] as $end) {
                 $type = $row[$model][$end . '_type'] ?? '';
                 $address = $row[$model][AnalystData::addressColumn($type, $end)] ?? '';
-                if (empty($address)) {
-                    continue;
-                }
-                $target = ['type' => $type, 'address' => $address];
-                if (in_array($type, AnalystData::SHA256_TARGETS, true)) {
-                    $values[] = $target;
-                } else {
-                    $targets[] = $target;
+                if (!empty($address)) {
+                    $targets[] = ['type' => $type, 'address' => $address];
                 }
             }
         }
-        $user = $this->Auth->user();
-        $described = empty($values) ? [] : $this->AnalystData->describeTargets($user, $values);
+        $described = empty($targets)
+            ? []
+            : $this->AnalystData->describeTargets($this->Auth->user(), $targets);
         $this->set('analystTargets', $described);
-        $this->set(
-            'analystTargetExists',
-            $this->AnalystData->existingTargets($user, $targets) + array_fill_keys(array_keys($described), true)
-        );
     }
 
     /**

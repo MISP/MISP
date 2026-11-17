@@ -51,20 +51,10 @@ $fields = [
     ],
     [
         'name' => __('Event'),
-        'class' => 'oi-col-event',
+        'element' => 'event_peek',
+        'data_path' => 'Event.id, Event.info',
+        'header_class' => 'idx-col-event_peek',
         'display_in' => ['table'],
-        'element' => 'custom',
-        'function' => function ($row) use ($baseurl) {
-            return sprintf(
-                '<a class="oi-event" href="%s/events/view/%d" title="%s"><span class="oi-event-id">#%d</span>'
-                    . '<span class="oi-event-info">%s</span></a>',
-                h($baseurl),
-                (int)$row['Event']['id'],
-                h($row['Event']['info']),
-                (int)$row['Event']['id'],
-                h($row['Event']['info'])
-            );
-        },
     ],
     [
         'name' => __('Creator org'),

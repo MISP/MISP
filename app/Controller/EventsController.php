@@ -943,7 +943,19 @@ class EventsController extends AppController
 
     public function index()
     {
+        return $this->__eventIndex();
+    }
 
+    /**
+     * The events index, over all the events the user may see or over a part
+     * of them: $scope['conditions'] narrows the list, and $scope['proposals']
+     * attaches each event's proposals (the Overmind proposal index).
+     *
+     * @param array $scope
+     * @return CakeResponse|null
+     */
+    private function __eventIndex(array $scope = [])
+    {
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin()) {
             $conditions = $this->Event->createEventConditions($this->Auth->user());
@@ -951,6 +963,9 @@ class EventsController extends AppController
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
             }
             $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
+        }
+        if (!empty($scope['conditions'])) {
+            $this->paginate['conditions']['AND'][] = $scope['conditions'];
         }
         // list the events
         $urlparams = "";
@@ -1039,6 +1054,9 @@ class EventsController extends AppController
             ));
         }
         $events = $this->__attachInfoToEvents($attachColumns, $events);
+        if (!empty($scope['proposals'])) {
+            $events = $this->__attachProposalsToEvents($events);
+        }
 
         $this->__noKeyNotification();
         App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
@@ -1403,6 +1421,60 @@ class EventsController extends AppController
             $events = $this->Event->EventReport->attachReportCountsToEvents($user, $events);
         }
 
+        return $events;
+    }
+
+    /**
+     * Each event's open proposals: how many, the last one's time, and the
+     * organisations that made them, most proposals first. One query for the
+     * page, one for the organisations.
+     *
+     * @param array $events
+     * @return array with Event.Proposals: count, last, orgs (id, name, uuid, count)
+     */
+    private function __attachProposalsToEvents(array $events)
+    {
+        $eventIds = array_map('intval', Hash::extract($events, '{n}.Event.id'));
+        if (empty($eventIds)) {
+            return $events;
+        }
+        $this->loadModel('ShadowAttribute');
+        $rows = $this->ShadowAttribute->find('all', [
+            'fields' => [
+                'ShadowAttribute.event_id', 'ShadowAttribute.org_id',
+                'COUNT(*) AS n', 'MAX(ShadowAttribute.timestamp) AS last',
+            ],
+            'conditions' => ['ShadowAttribute.event_id' => $eventIds, 'ShadowAttribute.deleted' => 0],
+            'group' => ['ShadowAttribute.event_id', 'ShadowAttribute.org_id'],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        $orgs = $this->Event->Orgc->find('all', [
+            'conditions' => ['Orgc.id' => array_unique(Hash::extract($rows, '{n}.ShadowAttribute.org_id'))],
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+            'recursive' => -1,
+        ]);
+        $orgs = Hash::combine($orgs, '{n}.Orgc.id', '{n}.Orgc');
+        $byEvent = [];
+        foreach ($rows as $row) {
+            $eventId = (int)$row['ShadowAttribute']['event_id'];
+            $orgId = (int)$row['ShadowAttribute']['org_id'];
+            $n = (int)$row[0]['n'];
+            $entry = $byEvent[$eventId] ?? ['count' => 0, 'last' => 0, 'orgs' => []];
+            $entry['count'] += $n;
+            $entry['last'] = max($entry['last'], (int)$row[0]['last']);
+            $entry['orgs'][] = ($orgs[$orgId] ?? ['id' => $orgId, 'name' => (string)$orgId, 'uuid' => null]) + ['count' => $n];
+            $byEvent[$eventId] = $entry;
+        }
+        foreach ($events as &$event) {
+            $entry = $byEvent[(int)$event['Event']['id']] ?? ['count' => 0, 'last' => 0, 'orgs' => []];
+            usort($entry['orgs'], function ($a, $b) {
+                return $b['count'] <=> $a['count'];
+            });
+            $event['Event']['Proposals'] = $entry;
+            $event['Event']['proposals_count'] = $entry['count'];
+        }
+        unset($event);
         return $events;
     }
 
@@ -7009,6 +7081,16 @@ class EventsController extends AppController
 
     public function proposalEventIndex()
     {
+        if ($this->theme === 'Overmind' && !$this->_isRest()) {
+            // The events index, over the events with proposals: for a site
+            // admin all of them, for anyone else those of their organisation.
+            $proposals = 'exists (select id from shadow_attributes where shadow_attributes.event_id = Event.id'
+                . ' and shadow_attributes.deleted = FALSE'
+                . ($this->_isSiteAdmin() ? '' : ' and shadow_attributes.event_org_id = ' . (int)$this->Auth->user('org_id'))
+                . ')';
+            $this->set('indexAction', 'proposalEventIndex');
+            return $this->__eventIndex(['conditions' => $proposals, 'proposals' => true]);
+        }
         $this->loadModel('ShadowAttribute');
         $conditions = array('ShadowAttribute.deleted' => 0);
         if (!$this->_isSiteAdmin()) {
@@ -9568,6 +9650,28 @@ class EventsController extends AppController
             $this->set('workflows', $allowedWorkflows);
             $this->render('ajax/run_workflow');
         }
+    }
+
+    /**
+     * An event's peek, the popover the indexes open on an event's id
+     * (Elements/Events/peek_link): fetched on the first hover.
+     *
+     * @param int $id
+     */
+    public function peek($id)
+    {
+        $this->request->allowMethod(['get']);
+        if ($this->theme !== 'Overmind') {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        App::uses('EventPeekBatch', 'Tools/EventOverview');
+        $events = EventPeekBatch::forIds($this->_closeSession(), [(int)$id]);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->set('event', reset($events));
+        $this->layout = false;
+        $this->render('/Elements/Events/peek');
     }
 
     public function getEventInfoById($id)

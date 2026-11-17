@@ -37,6 +37,12 @@ $timestamp = (int)($report['timestamp'] ?? 0);
 $excerpt = $ctx['digest']['excerpt'];
 
 $facts = [];
+if ($ctx['origin']) {
+    // Its peek on the index of every event's reports, its origin's title in an extended event's tab.
+    $facts[__('Event')] = $ctx['reader']
+        ? $this->element('EventReports/index_event', ['row' => $row])
+        : $this->element('Events/peek_link', ['id' => $row['Event']['id'] ?? 0, 'info' => $row['Event']['info'] ?? null]);
+}
 if ($ctx['origin'] && !$compact) {
     $facts[__('Event')] = $this->element('EventReports/index_event', ['row' => $row]);
     if (!empty($row['Event']['Orgc'])) {

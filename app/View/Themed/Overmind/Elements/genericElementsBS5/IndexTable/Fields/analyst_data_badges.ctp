@@ -8,6 +8,8 @@
  *   / ['relationship_inbound_path'] — Hash paths to the attached arrays
  *   $field['uuid_path']    — Hash path to the object's uuid
  *   $field['object_type']  — the parent object type (e.g. 'Attribute')
+ *   $field['readonly']     — bool, or callable($row): the counts without the
+ *                            modal, for a deleted object and its attributes
  */
 $noteCount    = count((array)Hash::get($row, $field['note_path'] ?? ''));
 $opinionCount = count((array)Hash::get($row, $field['opinion_path'] ?? ''));
@@ -19,7 +21,10 @@ $total        = $noteCount + $opinionCount + $relCount;
 $uuid       = (string)Hash::get($row, $field['uuid_path'] ?? '');
 $objectType = $field['object_type'] ?? 'Attribute';
 
-if ($uuid === '') {
+$readonly = $field['readonly'] ?? false;
+$readonly = is_callable($readonly) ? (bool)$readonly($row) : !empty($readonly);
+
+if ($uuid === '' || ($readonly && $total === 0)) {
     echo '<span class="text-muted">&mdash;</span>';
     return;
 }
@@ -34,8 +39,12 @@ $onclick = sprintf(
         <i class="fas fa-comment-slash"></i>
     </a>
 <?php else: ?>
+    <?php if ($readonly): ?>
+    <span class="d-flex flex-wrap align-items-center gap-1">
+    <?php else: ?>
     <span class="d-flex flex-wrap align-items-center gap-1" role="button"
           title="<?= __('View analyst data') ?>" style="cursor:pointer;" onclick="<?= $onclick ?>">
+    <?php endif; ?>
         <?php if ($noteCount): ?>
             <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
                 <i class="misp-icon misp-icon-analyst-note misp-simple me-1"></i><?= $noteCount ?>

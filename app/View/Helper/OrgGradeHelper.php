@@ -1,6 +1,5 @@
 <?php
 App::uses('AppHelper', 'View/Helper');
-App::uses('EventCardTool', 'Tools/EventOverview');
 App::uses('OrgGradeTool', 'Tools/AnalystProfile');
 
 /**
@@ -9,7 +8,33 @@ App::uses('OrgGradeTool', 'Tools/AnalystProfile');
  */
 class OrgGradeHelper extends AppHelper
 {
-    public $helpers = ['OrgImg'];
+    /** @var array|null|false false until read */
+    private $reading = false;
+
+    /** @var bool */
+    private $configured = false;
+
+    /**
+     * The reader's grading for this page: the controller's `orgGrading`
+     * when it set one, else resolved once for the logged-in user.
+     *
+     * @return array|null
+     */
+    public function reading()
+    {
+        if ($this->reading === false) {
+            $vars = $this->_View->viewVars;
+            if (array_key_exists('orgGrading', $vars)) {
+                $this->reading = $vars['orgGrading'];
+            } else {
+                $me = $vars['me'] ?? null;
+                $this->reading = empty($me['id'])
+                    ? null
+                    : ClassRegistry::init('AnalystProfile')->gradingFor($me);
+            }
+        }
+        return $this->reading;
+    }
 
     /**
      * @param array|null $grading OrgGradeTool::reading()
@@ -22,16 +47,18 @@ class OrgGradeHelper extends AppHelper
     }
 
     /**
-     * What org-grade.js needs, once per page, plus its assets.
+     * What org-grade.js needs, plus its assets: the first call of a render
+     * prints them, later ones return nothing.
      *
      * @param array|null $grading
      * @return string
      */
     public function config($grading)
     {
-        if (!$this->enabled($grading)) {
+        if ($this->configured || !$this->enabled($grading)) {
             return '';
         }
+        $this->configured = true;
         $config = [
             'url' => $this->_View->viewVars['baseurl'] . '/analystProfiles/grade/',
             'target' => $grading['target'],
@@ -85,29 +112,6 @@ class OrgGradeHelper extends AppHelper
             h($name . ': ' . $label),
             $grade === null ? '<i class="fas fa-plus" aria-hidden="true"></i>' : h($grade)
         );
-    }
-
-    /**
-     * The organisation's logo, or a monogram when it has none, carrying the
-     * badge. Without a profile in force, the logo alone as before.
-     *
-     * @param array $org
-     * @param array|null $grading
-     * @param int $size
-     * @return string
-     */
-    public function mark(array $org, $grading, $size = 24)
-    {
-        $logo = $this->OrgImg->getOrgLogoV2($org, $size);
-        $badge = $this->badge($org, $grading);
-        if ($badge === '') {
-            return $logo;
-        }
-        if ($logo === '') {
-            $mono = EventCardTool::monogram($org);
-            $logo = sprintf('<span class="og-monogram" aria-hidden="true">%s</span>', h($mono['letters']));
-        }
-        return '<span class="og-mark">' . $logo . $badge . '</span>';
     }
 
     /**

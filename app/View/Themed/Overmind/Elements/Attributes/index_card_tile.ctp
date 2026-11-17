@@ -7,7 +7,7 @@
  * Sized as the objects index's cards (Objects/index_card_tile) and handled as
  * the events index's (Events/index_card): the attribute icon leads and gives
  * way to the selection box on hover, the menu shows on hover. Then the
- * event (Attributes/event_peek) on an index whose rows come from any event,
+ * event (Events/peek_link) on an index whose rows come from any event,
  * the distribution otherwise, the category and type (drawn as the table draws them) and the
  * last change (as the page header gives it) over the value, the facts closed
  * by the IDS and correlation toggles, and a foot with the sightings and the

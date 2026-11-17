@@ -629,13 +629,25 @@ class AnalystData extends AppModel
             ]);
             return array_column(array_column($rows, 'Object'), 'uuid');
         }
+        if ($type === 'EventReport') {
+            $rows = ClassRegistry::init('EventReport')->fetchReports($user, [
+                'conditions' => ['EventReport.uuid' => $uuids],
+                'fields' => ['EventReport.uuid'],
+            ]);
+            return array_column(array_column($rows, 'EventReport'), 'uuid');
+        }
 
         $model = ClassRegistry::init($type);
         $alias = $model->alias;
+        $siteAdmin = !empty($user['Role']['perm_site_admin']);
         if ($type === 'Event') {
             $conditions = $model->createEventConditions($user);
-        } elseif (in_array($type, self::ANALYST_DATA_TYPES, true)) {
+        } elseif (in_array($type, self::TYPES, true) || in_array($type, ['GalaxyCluster', 'Galaxy'], true)) {
             $conditions = $model->buildConditions($user);
+        } elseif ($type === 'Collection') {
+            $conditions = $model->buildConditions($user['id']);
+        } elseif ($type === 'SharingGroup' && !$siteAdmin) {
+            $conditions = ["{$alias}.id" => $model->authorizedIds($user)];
         } else {
             $conditions = [];
         }
@@ -660,7 +672,10 @@ class AnalystData extends AppModel
      * @param array $targets list of ['type' => string, 'address' => string]
      * @return array address => ['label' => string, 'meta' => string[]]; a
      *               SHA-256 in lower case, whose entry also holds the
-     *               value's full text as 'value'
+     *               value's full text as 'value'. Other entries also hold
+     *               the row read ('record'), the event it belongs to
+     *               ('event': id, info) and, for an object, its attribute
+     *               'count' and leading attribute ('headline').
      */
     public function describeTargets(array $user, array $targets): array
     {
@@ -685,64 +700,171 @@ class AnalystData extends AppModel
                 }
             }
         }
+        // model, fields of the meta line, label field, other fields the views draw
         $models = [
-            'Event' => ['Event', ['id', 'info', 'date'], 'info'],
-            'Attribute' => ['MispAttribute', ['type', 'value', 'event_id'], 'value'],
-            'Object' => ['MispObject', ['name', 'meta-category', 'event_id'], 'name'],
-            'EventReport' => ['EventReport', ['name', 'event_id'], 'name'],
-            'GalaxyCluster' => ['GalaxyCluster', ['value', 'type'], 'value'],
-            'Galaxy' => ['Galaxy', ['name', 'type'], 'name'],
-            'Note' => ['Note', ['note', 'language'], 'note'],
-            'Opinion' => ['Opinion', ['opinion', 'comment'], 'comment'],
-            'Relationship' => ['Relationship', ['relationship_type', 'related_object_type'], 'relationship_type'],
-            'Organisation' => ['Organisation', ['name', 'type'], 'name'],
-            'SharingGroup' => ['SharingGroup', ['name'], 'name'],
+            'Event' => ['Event', ['id', 'info', 'date'], 'info', ['attribute_count']],
+            'Attribute' => ['MispAttribute', ['type', 'value', 'event_id'], 'value', ['id', 'category']],
+            'Object' => ['MispObject', ['name', 'meta-category', 'event_id'], 'name', ['id', 'template_uuid']],
+            'EventReport' => ['EventReport', ['name', 'event_id'], 'name', ['id']],
+            'GalaxyCluster' => ['GalaxyCluster', ['value', 'type'], 'value', ['id', 'galaxy_id', 'description']],
+            'Galaxy' => ['Galaxy', ['name', 'type'], 'name', ['id', 'icon']],
+            'Note' => ['Note', ['note', 'language'], 'note', ['id', 'authors']],
+            'Opinion' => ['Opinion', ['opinion', 'comment'], 'comment', ['id']],
+            'Relationship' => ['Relationship', ['relationship_type', 'related_object_type'], 'relationship_type', ['id']],
+            'Organisation' => ['Organisation', ['name', 'type'], 'name', ['id', 'uuid']],
+            'SharingGroup' => ['SharingGroup', ['name'], 'name', ['id']],
+            'Collection' => ['Collection', ['name', 'type'], 'name', ['id']],
+            'Workspace' => ['Workspace', ['name'], 'name', ['id']],
         ];
         $visible = $this->existingTargets($user, $targets);
+        $uuidsByType = [];
         foreach ($targets as $target) {
             $type = $target['type'] ?? '';
-            $uuid = $target['address'] ?? '';
-            if (empty($visible[$uuid]) || !isset($models[$type])) {
-                continue;
+            $uuid = (string)($target['address'] ?? '');
+            if (!empty($visible[$uuid]) && isset($models[$type])) {
+                $uuidsByType[$type][$uuid] = $uuid;
             }
-            list($modelName, $fields, $labelField) = $models[$type];
+        }
+        foreach ($uuidsByType as $type => $uuids) {
+            list($modelName, $fields, $labelField, $extra) = $models[$type];
             $model = ClassRegistry::init($modelName);
             $alias = $model->alias;
-            $row = $model->find('first', [
-                'conditions' => ["{$alias}.uuid" => $uuid],
+            $rows = $model->find('all', [
+                'conditions' => ["{$alias}.uuid" => array_values($uuids)],
                 'fields' => array_map(function ($field) use ($alias) {
                     return "{$alias}.{$field}";
-                }, $fields),
+                }, array_unique(array_merge(['uuid'], $fields, $extra))),
                 'recursive' => -1,
                 // An attribute's value is read through the value dictionary, in its callbacks
                 'callbacks' => $modelName === 'MispAttribute',
             ]);
-            if (empty($row[$alias])) {
-                continue;
-            }
-            $row = $row[$alias];
-            $label = (string)($row[$labelField] ?? '');
-            $meta = [];
-            foreach ($fields as $field) {
-                if ($field === $labelField || !isset($row[$field]) || $row[$field] === '') {
-                    continue;
+            foreach ($rows as $row) {
+                $row = $row[$alias];
+                $label = (string)($row[$labelField] ?? '');
+                $meta = [];
+                foreach ($fields as $field) {
+                    if ($field === $labelField || !isset($row[$field]) || $row[$field] === '') {
+                        continue;
+                    }
+                    if ($field === 'id') {
+                        $meta[] = '#' . $row[$field];
+                    } elseif ($field === 'event_id') {
+                        $meta[] = __('Event #%s', $row[$field]);
+                    } elseif ($field === 'opinion') {
+                        $meta[] = __('%s/100', $row[$field]);
+                    } else {
+                        $meta[] = (string)$row[$field];
+                    }
                 }
-                if ($field === 'id') {
-                    $meta[] = '#' . $row[$field];
-                } elseif ($field === 'event_id') {
-                    $meta[] = __('Event #%s', $row[$field]);
-                } elseif ($field === 'opinion') {
-                    $meta[] = __('%s/100', $row[$field]);
-                } else {
-                    $meta[] = (string)$row[$field];
-                }
+                $described[$row['uuid']] = [
+                    'label' => mb_strimwidth($label, 0, 160, '…'),
+                    'meta' => $meta,
+                    'type' => $type,
+                    'record' => $row,
+                ];
             }
-            $described[$uuid] = [
-                'label' => mb_strimwidth($label, 0, 160, '…'),
-                'meta' => $meta,
-            ];
         }
+        return $this->__describeTargetContext($user, $described);
+    }
+
+    /**
+     * The event of each described attribute, object and report, an object's
+     * attribute count and leading attribute, and a cluster's galaxy.
+     *
+     * @param array $user
+     * @param array $described as describeTargets() builds it
+     * @return array
+     */
+    private function __describeTargetContext(array $user, array $described): array
+    {
+        $eventIds = $objects = $galaxyIds = [];
+        foreach ($described as $address => $entry) {
+            $record = $entry['record'] ?? [];
+            if (!empty($record['event_id'])) {
+                $eventIds[(int)$record['event_id']] = true;
+            }
+            if (($entry['type'] ?? '') === 'Object') {
+                $objects[$address] = ['Object' => $record];
+            }
+            if (($entry['type'] ?? '') === 'GalaxyCluster' && !empty($record['galaxy_id'])) {
+                $galaxyIds[(int)$record['galaxy_id']] = true;
+            }
+        }
+        $events = empty($eventIds) ? [] : ClassRegistry::init('Event')->find('list', [
+            'conditions' => ['Event.id' => array_keys($eventIds)],
+            'fields' => ['Event.id', 'Event.info'],
+            'recursive' => -1,
+        ]);
+        $headlines = [];
+        if (!empty($objects)) {
+            $ids = array_map('intval', Hash::extract($objects, '{s}.Object.id'));
+            $headlines = ClassRegistry::init('MispObject')->indexHeadlines($user, array_values($objects), $ids);
+        }
+        $galaxies = empty($galaxyIds) ? [] : Hash::combine(ClassRegistry::init('Galaxy')->find('all', [
+            'conditions' => ['Galaxy.id' => array_keys($galaxyIds)],
+            'fields' => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
+            'recursive' => -1,
+        ]), '{n}.Galaxy.id', '{n}.Galaxy');
+
+        foreach ($described as $address => &$entry) {
+            $record = $entry['record'] ?? [];
+            $eventId = (int)($record['event_id'] ?? 0);
+            if ($eventId > 0 && isset($events[$eventId])) {
+                $entry['event'] = ['id' => $eventId, 'info' => $events[$eventId]];
+            }
+            if (isset($objects[$address])) {
+                $headline = $headlines[(int)$record['id']] ?? null;
+                $entry['count'] = (int)($headline['count'] ?? 0);
+                $entry['headline'] = $headline['headline'] ?? null;
+            }
+            if (isset($galaxies[(int)($record['galaxy_id'] ?? 0)])) {
+                $entry['record']['Galaxy'] = $galaxies[(int)$record['galaxy_id']];
+            }
+        }
+        unset($entry);
         return $described;
+    }
+
+    /**
+     * How many notes, opinions and relationships the user may see hang off
+     * each of $uuids, a relationship counted from either end. One grouped
+     * query per type and end.
+     *
+     * @param array $user
+     * @param string[] $uuids
+     * @return array uuid => ['Note' => int, 'Opinion' => int, 'Relationship' => int]
+     */
+    public function attachedCounts(array $user, array $uuids): array
+    {
+        $uuids = array_values(array_unique(array_filter(array_map('strval', $uuids))));
+        $counts = [];
+        if (empty($uuids)) {
+            return $counts;
+        }
+        $ends = [
+            ['Note', 'object_uuid'],
+            ['Opinion', 'object_uuid'],
+            ['Relationship', 'object_uuid'],
+            ['Relationship', 'related_object_uuid'],
+        ];
+        foreach ($ends as list($type, $column)) {
+            $model = ClassRegistry::init($type);
+            $alias = $model->alias;
+            $conditions = $model->buildConditions($user);
+            $conditions['AND'][] = ["{$alias}.{$column}" => $uuids];
+            $rows = $model->find('all', [
+                'conditions' => $conditions,
+                'fields' => ["{$alias}.{$column}", 'COUNT(*) AS n'],
+                'group' => ["{$alias}.{$column}"],
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+            foreach ($rows as $row) {
+                $uuid = $row[$alias][$column];
+                $counts[$uuid][$type] = ($counts[$uuid][$type] ?? 0) + (int)$row[0]['n'];
+            }
+        }
+        return $counts;
     }
 
     public function deduceAnalystDataType(array $analystData)

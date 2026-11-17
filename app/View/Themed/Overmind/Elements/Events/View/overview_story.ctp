@@ -24,7 +24,7 @@ $graphHint = $hasObjects
     ];
 $graphHintAction = function () use ($hasObjects, $addObjectUrl) {
     if ($hasObjects) {
-        return '<button type="button" class="btn btn-sm btn-correlation" data-eo-tab="pivot-explorer">'
+        return '<button type="button" class="btn btn-sm btn-correlation text-white" data-eo-tab="pivot-explorer">'
             . '<i class="fas fa-link me-1"></i>' . __('Link objects') . '</button>';
     }
     return sprintf(

@@ -85,6 +85,21 @@ class GalaxyColour
     }
 
     /**
+     * Hue of one step of an ordered sequence (a kill chain's phases, a
+     * matrix's columns): blue for the first step, crimson for the last.
+     *
+     * @param int $index 0-based
+     * @param int $count
+     * @return int
+     */
+    public static function stepHue($index, $count)
+    {
+        $count = max(1, (int)$count);
+        $ratio = $count > 1 ? min(1, max(0, (int)$index / ($count - 1))) : 0;
+        return (int)round(210 + 145 * $ratio);
+    }
+
+    /**
      * Metallic sheen overlay shared by every galaxy pill/badge.
      *
      * @return string

@@ -113,16 +113,17 @@ $fields = [
     ]
 ];
 
-// A card shows its event in its head, where the event's own tab shows the distribution.
+// Rows from any event say which, before their value: its id and icon, a peek of it on hover.
+// A card has it in its head, where the event's own tab shows the distribution.
 if (!empty($show_event_id)) {
     $fields[] = [
         'name' => __('Event'),
-        'element' => 'custom',
-        'function' => function ($row) {
-            return empty($row['Event']) ? '' : $this->element('Attributes/event_peek', ['event' => $row['Event']]);
-        },
+        'sort' => 'Attribute.event_id',
+        'element' => 'event_peek',
+        'data_path' => 'Event.id, Event.info',
+        'header_class' => 'idx-col-event_peek',
         'card_section' => 'event',
-        'display_in' => ['card'],
+        'display_in' => ['table', 'card'],
     ];
 }
 
@@ -145,8 +146,6 @@ $fields = array_merge($fields, [
         'data_path' => $path(''),
         'element' => 'attribute_value',
         'show_distribution' => false,
-        // Rows from any event lead with their event: its title, state and orgs on hover.
-        'event_peek' => !empty($show_event_id),
         // The one cell that wraps, up to about two lines.
         'value_cap' => 128,
         'card_section' => 'value',
@@ -294,6 +293,16 @@ $fields = array_merge($fields, [
                 'icon' => 'rotate-left',
                 'url' => $baseurl . '/attributes/restore/%id%',
                 'class' => 'text-success',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete permanently'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%/1',
+                'class' => 'text-danger',
                 'requirement' => function($row) use ($_rowMayModify) {
                     return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
                 }
