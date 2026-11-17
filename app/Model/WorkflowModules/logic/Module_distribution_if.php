@@ -5,8 +5,8 @@ class Module_distribution_if extends WorkflowBaseLogicModule
 {
     public $id = 'distribution-if';
     public $name = 'IF :: Distribution';
-    public $version = '0.3';
-    public $description = 'Distribution IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used.';
+    public $version = '0.4';
+    public $description = 'Distribution IF / ELSE condition block. The `then` output will be used if the encoded conditions is satisfied, otherwise the `else` output will be used. With the Attribute scope, the condition must hold for every attribute, object attributes included.';
     public $icon = 'code-branch';
     public $inputs = 1;
     public $outputs = 2;
@@ -87,28 +87,38 @@ class Module_distribution_if extends WorkflowBaseLogicModule
         $operator = $params['condition']['value'];
         $selected_distribution = $params['distribution']['value'];
         $selected_sharing_groups = !empty($params['sharing_group_id']['value']) ? $params['sharing_group_id']['value'] : [];
-        $final_distribution = $this->__getPropagatedDistribution($data['Event']);
-        if ($scope == 'attribute') {
-            if (count($data['Event']['Attribute']) == 0) {
-                return false; // No attributes will not pass validation
-            }
-            $final_distribution = $this->__getPropagatedDistribution(
-                $data['Event'],
-                $data['Event']['Attribute'][0]['Object'] ?? [],
-                $data['Event']['Attribute'][0]
-            );
+        if ($scope != 'attribute') {
+            return $this->__evaluateTarget($data['Event'], [], [], $scope, $operator, $selected_distribution, $selected_sharing_groups, $errors);
         }
+        $targets = [];
+        foreach ($data['Event']['Attribute'] ?? [] as $attribute) {
+            $targets[] = [$attribute['Object'] ?? [], $attribute];
+        }
+        foreach ($data['Event']['Object'] ?? [] as $object) {
+            foreach ($object['Attribute'] ?? [] as $attribute) {
+                $targets[] = [$object, $attribute];
+            }
+        }
+        if (empty($targets)) {
+            return false; // No attributes will not pass validation
+        }
+        foreach ($targets as [$object, $attribute]) { // The condition must hold for every attribute
+            if (!$this->__evaluateTarget($data['Event'], $object, $attribute, $scope, $operator, $selected_distribution, $selected_sharing_groups, $errors)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function __evaluateTarget(array $event, array $object, array $attribute, $scope, $operator, $selected_distribution, $selected_sharing_groups, array &$errors): bool
+    {
+        $final_distribution = $this->__getPropagatedDistribution($event, $object, $attribute);
         if (!in_array($final_distribution, range(0, 4))) {
             $errors[] = __('Distribution level not supported');
             return false; // distribution  not supported
         }
         if ($selected_distribution == 4 && $final_distribution == 4) {
-            $final_sharing_group = $this->__extractSharingGroupIDs(
-                $data['Event'],
-                $data['Event']['Attribute'][0]['Object'] ?? [],
-                $data['Event']['Attribute'][0] ?? [],
-                $scope
-            );
+            $final_sharing_group = $this->__extractSharingGroupIDs($event, $object, $attribute, $scope);
             if ($operator == 'equals') {
                 if (empty($selected_sharing_groups)) {
                     return empty($final_sharing_group);
