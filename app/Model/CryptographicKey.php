@@ -161,19 +161,51 @@ class CryptographicKey extends AppModel
 
     /**
      * @param string $data
+     * @param bool $exact Sign the bytes as they are instead of the data with all whitespace removed
      * @return false|string Signature
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws Crypt_GPG_KeyNotFoundException
      */
-    public function signWithInstanceKey($data)
+    public function signWithInstanceKey($data, $exact = false)
     {
         if (!$this->ingestInstanceKey()) {
             return false;
         }
-        $data = preg_replace("/\s+/", "", $data);
+        if (!$exact) {
+            $data = preg_replace("/\s+/", "", $data);
+        }
         $signature = $this->getGpg()->sign($data, Crypt_GPG::SIGN_MODE_DETACHED, Crypt_GPG::ARMOR_BINARY);
         return $signature;
+    }
+
+    /**
+     * Signs data for a receiving MISP: over the exact bytes for 3.0 and later, over the data without
+     * whitespace for older versions, both ways when the receiver is not a MISP.
+     *
+     * @param string $data
+     * @param string|null $peerVersion MISP version of the receiver, null when it is not a MISP
+     * @return array|false Signature headers, base64 encoded
+     * @throws Crypt_GPG_BadPassphraseException
+     * @throws Crypt_GPG_Exception
+     * @throws Crypt_GPG_KeyNotFoundException
+     */
+    public function signatureHeaders($data, $peerVersion)
+    {
+        $headers = [];
+        if ($peerVersion === null || version_compare($peerVersion, '3.0.0', '<')) {
+            $headers['x-pgp-signature'] = $this->signWithInstanceKey($data);
+        }
+        if ($peerVersion === null || version_compare($peerVersion, '3.0.0', '>=')) {
+            $headers['x-pgp-signature-v2'] = $this->signWithInstanceKey($data, true);
+        }
+        foreach ($headers as $name => $signature) {
+            if (empty($signature)) {
+                return false;
+            }
+            $headers[$name] = base64_encode($signature);
+        }
+        return $headers;
     }
 
     public function verifySignatureAndGetFingerprint($data, $signature)
@@ -201,9 +233,10 @@ class CryptographicKey extends AppModel
      * @param string $data
      * @param string $signature
      * @param string $key
+     * @param bool $exact Verify the bytes as they are instead of the data with all whitespace removed
      * @return string|false Fingerprint of $key when it made the signature
      */
-    public function verifySignature($data, $signature, $key)
+    public function verifySignature($data, $signature, $key, $exact = false)
     {
         $this->error = false;
         $fingerprint = $this->__extractPGPKeyData($key);
@@ -211,7 +244,9 @@ class CryptographicKey extends AppModel
             $this->error = self::ERROR_INVALID_KEY;
             return false;
         }
-        $data = preg_replace("/\s+/", "", $data);
+        if (!$exact) {
+            $data = preg_replace("/\s+/", "", $data);
+        }
         try {
             $verifiedSignature = $this->getGpg()->verify($data, $signature);
         } catch (Exception $e) {
@@ -316,9 +351,13 @@ class CryptographicKey extends AppModel
     }
 
     /**
+     * An exact-byte signature, when given, is the only one checked. Without it, the whitespace-free
+     * signature is refused for a body whose signer marked it with `signature_version`.
+     *
+     * @param string|null $exact_signature base64 signature over the exact bytes (x-pgp-signature-v2)
      * @return string|false Fingerprint of the event's key that made the signature
      */
-    public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
+    public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event, $exact_signature = null)
     {
         if (empty($user)) {
             $user = 'SYSTEM';
@@ -334,24 +373,33 @@ class CryptographicKey extends AppModel
             $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
             return false;
         }
-        $pgp_signature = base64_decode($pgp_signature);
+        $exact = !empty($exact_signature);
+        $signature = base64_decode($exact ? $exact_signature : $pgp_signature);
         foreach ($eventCryptoGraphicKey as $supplied_key) {
             if (!empty($supplied_key['revoked'])) {
                 continue;
             }
-            $fingerprint = $this->verifySignature($raw_data, $pgp_signature, $supplied_key['key_data']);
+            $fingerprint = $this->verifySignature($raw_data, $signature, $supplied_key['key_data'], $exact);
             if ($fingerprint) {
+                if ($exact) {
+                    return $fingerprint;
+                }
                 try {
-                    $unsigned = $this->__hasUnsignedWhitespace(JsonTool::decodeArray($raw_data));
+                    $data = JsonTool::decodeArray($raw_data);
+                    $unsigned = $this->__hasUnsignedWhitespace($data);
                 } catch (Exception $e) {
+                    $data = [];
                     $unsigned = true;
                 }
                 if ($unsigned) {
                     $message = __('The signed data has whitespace in a key or an identifier, which the signature does not cover.');
-                    $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
-                    return false;
+                } else if (isset($data['Event']) && is_array($data['Event']) && array_key_exists('signature_version', $data['Event'])) {
+                    $message = __('The event was signed over its exact bytes, but that signature is missing.');
+                } else {
+                    return $fingerprint;
                 }
-                return $fingerprint;
+                $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
+                return false;
             }
         }
         $message = __('Could not validate the signature.');

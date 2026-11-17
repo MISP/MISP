@@ -2249,6 +2249,8 @@ class EventsController extends AppController
         $event = $this->__fetchViewEvent($user, $conditions);
         if ($event['Event']['protected']) {
             $this->RestResponse->signContents = true;
+            // Signed along: a 3.0 receiver then refuses this body without its exact-byte signature
+            $event['Event']['signature_version'] = 2;
         }
         return $this->__restResponse($event);
     }
@@ -5395,7 +5397,8 @@ class EventsController extends AppController
                 !$this->Auth->user('Role')['perm_sync_internal']
             ) {
                 $pgp_signature = $this->request->header('x-pgp-signature');
-                if (empty($pgp_signature)) {
+                $exact_signature = $this->request->header('x-pgp-signature-v2');
+                if (empty($pgp_signature) && empty($exact_signature)) {
                     throw new MethodNotAllowedException(__('Protected event failed signature validation as no key was provided.'));
                 }
                 $raw_data = $this->request->input();
@@ -5403,7 +5406,8 @@ class EventsController extends AppController
                     $raw_data,
                     $this->Auth->user(),
                     $pgp_signature,
-                    $this->request->data
+                    $this->request->data,
+                    $exact_signature
                 );
                 if (!$fingerprint) {
                     throw new MethodNotAllowedException(__('Protected event failed signature validation.'));
@@ -6174,7 +6178,8 @@ class EventsController extends AppController
             !$this->Auth->user('Role')['perm_sync_internal']
         ) {
             $pgp_signature = $this->request->header('x-pgp-signature');
-            if (empty($pgp_signature)) {
+            $exact_signature = $this->request->header('x-pgp-signature-v2');
+            if (empty($pgp_signature) && empty($exact_signature)) {
                 throw new MethodNotAllowedException(__('Protected event failed signature validation as no key was provided.'));
             }
             $raw_data = $this->request->input();
@@ -6183,7 +6188,8 @@ class EventsController extends AppController
                     $raw_data,
                     $this->Auth->user(),
                     $pgp_signature,
-                    $event
+                    $event,
+                    $exact_signature
                 )
             ) {
                 throw new MethodNotAllowedException(__('Protected event failed signature validation.'));
