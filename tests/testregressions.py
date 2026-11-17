@@ -4864,5 +4864,19 @@ class EventTemplateImportDefaultFlag(unittest.TestCase):
         self.assertEqual(1, self._stored(template_id))
 
 
+class CorrelationGenerationRequiresPost(unittest.TestCase):
+    """The top-correlation and occurrence regeneration actions refuse a bodyless GET."""
+
+    def _get(self, path):
+        return requests.get('%s/%s' % (url, path), allow_redirects=False, timeout=120,
+                            headers={'Authorization': key, 'Accept': 'application/json'})
+
+    def test_generate_top_correlations_refuses_get(self):
+        self.assertEqual(405, self._get('correlations/generateTopCorrelations').status_code)
+
+    def test_generate_occurrences_refuses_get(self):
+        self.assertEqual(405, self._get('correlations/generateOccurrences').status_code)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -60,6 +60,7 @@ class CorrelationsController extends AppController
 
     public function generateTopCorrelations()
     {
+        $this->request->allowMethod(['post']);
         $result = $this->Correlation->generateTopCorrelationsRouter();
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($result, 'json');
@@ -211,6 +212,7 @@ class CorrelationsController extends AppController
 
     public function generateOccurrences()
     {
+        $this->request->allowMethod(['post']);
         $this->loadModel('OverCorrelatingValue');
         $this->OverCorrelatingValue->generateOccurrencesRouter();
         if (Configure::read('MISP.background_jobs')) {
