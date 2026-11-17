@@ -9338,7 +9338,6 @@ class Server extends AppModel
                     'Publish Galaxy clusters' => 'MISP/app/Console/cake Event publish_galaxy_clusters [cluster_id] [job_id] [user_id] [pass_along]',
                     'Cache event' => 'MISP/app/Console/cake Event cache [user_id] [event_id] [export_type]',
                     'Cache bro' => 'MISP/app/Console/cake Event cachebro [user_id] [event_id]',
-                    'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
                     'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',
