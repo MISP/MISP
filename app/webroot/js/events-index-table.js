@@ -24,6 +24,7 @@
         { k: 'id', w: 56 },
         { k: 'title', flex: true, min: 316, nmin: 200 },
         { k: 'orgc', w: 124, narrow: 84 },
+        { k: 'props', w: 116 },
         { k: 'owner', w: 120, opt: 'owner_org' },
         { k: 'user', w: 150, opt: 'creator_user' },
         { k: 'mk', w: 122 },
