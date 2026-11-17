@@ -49,3 +49,14 @@ span.org-id-name { color: var(--bs-secondary-color); }
 .org-id:has(.org-id-desc.is-full) { align-items: flex-start; }
 /* In a column sized by its content: the name never gives way. */
 .org-id.is-fit .org-id-name { flex: none; overflow: visible; }
+
+/* An organisation's own page: its tile, large, in a ring tinted local or
+   remote, the reader's grade in the corner (Organisations/View). */
+.org-hero { position: relative; flex: none; display: inline-flex; width: 110px; height: 110px; }
+.org-hero-tile {
+    width: 100%; height: 100%; padding: 3px; border-radius: 50%; overflow: hidden;
+    display: grid; place-items: center; background: var(--bs-body-bg);
+}
+.org-hero-tile .dk-logo { width: 100%; height: 100%; border-radius: 50%; }
+.org-hero-tile .dk-logo img { max-width: 72px; max-height: 72px; }
+.org-hero-tile .dk-logo.is-mono { font-size: 2.25rem; letter-spacing: .03em; }

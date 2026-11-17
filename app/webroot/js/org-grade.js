@@ -80,7 +80,7 @@
 
     function paint(b, g) {
         var org = orgOf(b);
-        var variant = ['is-large', 'is-square'].filter(function (c) { return b.classList.contains(c); });
+        var variant = ['is-large', 'is-square', 'is-hero'].filter(function (c) { return b.classList.contains(c); });
         b.setAttribute('data-grade', g);
         b.className = ['og-badge'].concat(variant, g ? 'og-tone-' + tone(g) : 'is-empty').join(' ');
         b.innerHTML = g ? g : '<i class="fas fa-plus" aria-hidden="true"></i>';
@@ -88,6 +88,14 @@
         var label = g ? 'Graded ' + gradeWords(g) + via + '. Change the grade' : 'Grade ' + org.name;
         b.title = label;
         b.setAttribute('aria-label', org.name + ': ' + label);
+    }
+
+    // A grade spelled out beside its badge: data-grade-words-for="<uuid>".
+    function paintWords(uuid, g) {
+        document.querySelectorAll('[data-grade-words-for="' + uuid + '"]').forEach(function (el) {
+            el.textContent = g ? C.labels[g] : (el.getAttribute('data-grade-empty') || C.labels.unrated);
+            el.classList.toggle('is-empty', !g);
+        });
     }
 
     /* the menu */
@@ -370,6 +378,7 @@
                 void b.offsetWidth;
                 if (res.body.grade) b.classList.add('is-fresh');
             });
+            paintWords(org.uuid, picker.grade);
             if (res.body.forked) {
                 document.querySelectorAll('.og-badge').forEach(function (b) {
                     paint(b, b.getAttribute('data-grade') || '');

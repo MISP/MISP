@@ -20,7 +20,11 @@ foreach ($menus['right'] as $item) {
 <nav class="rail-nav" aria-label="<?= h(__('Main')) ?>">
     <div class="rail-bar">
         <a class="rail-brand" href="<?= empty($homepage['path']) ? $baseurl . '/' : $baseurl . h($homepage['path']) ?>"<?= empty($mispVersionFull) ? '' : ' title="' . h(__('MISP %s', $mispVersionFull)) . '"' ?>>
-            <?= $this->Html->image('misp-logo-main-cmyk-icon coul.png', ['alt' => __('MISP Logo')]) ?>
+            <?php
+            $logo = date('n') === '12'
+                ? 'misp-logo-main-cmyk-icon coul-xmas.png'
+                : 'misp-logo-main-cmyk-icon coul.png';
+            echo $this->Html->image($logo, ['alt' => __('MISP Logo')]); ?>
         </a>
         <div class="rail-menu" id="rail-menu">
             <ul class="rail-groups rail-groups--start">
