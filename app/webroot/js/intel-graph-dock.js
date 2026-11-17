@@ -1,8 +1,8 @@
 // The workspace dock: the collection the analyst works in, drawn over
 // whatever page they are on and laid out by the workspace's graph. Docked,
-// it is a drawer against the right edge, full height under the navbar, as
-// wide as the analyst drags it; it covers the page's right edge and never
-// reflows the page. Undocked, it is a window moved by its head and resized
+// it is a drawer against the right or the left edge, full height under the
+// navbar, as wide as the analyst drags it; it covers that edge of the page
+// and never reflows it. Undocked, it is a window moved by its head and resized
 // from its edges, kept as the corner it is nearest to so it stays put when
 // the browser window changes size. Closing is the only way out of the way.
 //
@@ -32,7 +32,7 @@
     var switchBtn = find('[data-ig-switch]');
     var menu = find('[data-ig-menu]');
     var nameEl = find('[data-ig-name]');
-    var widenBtn = find('[data-ig-widen]');
+    var sideBtn = find('[data-ig-side]');
     var undockBtn = find('[data-ig-undock]');
     var dockBtn = find('[data-ig-dock]');
     var moveHandle = find('[data-ig-move]');
@@ -62,11 +62,19 @@
 
     function IG() { return window.IntelGraph; }
     function baseurl() { return (window.IntelGraphConfig && window.IntelGraphConfig.baseurl) || ''; }
-    // The graph the page draws in full lays the workspace out.
+    // The page draws the workspace in full: the graph laying it out, or the
+    // collection page opened on its Pivot Explorer tab.
     function pageShowsActive() {
-        var shown = window.IntelGraphConfig && window.IntelGraphConfig.shown;
         var a = IG().active();
-        return !!shown && !!a && !!a.Graph && lower(a.Graph.uuid) === lower(shown);
+        if (!a || !a.Collection) return false;
+        var shown = window.IntelGraphConfig && window.IntelGraphConfig.shown;
+        if (shown) return !!a.Graph && lower(a.Graph.uuid) === lower(shown);
+        var page = document.querySelector('[data-igw-page]');
+        if (!page || lower(page.getAttribute('data-igw-collection')) !== lower(a.Collection.uuid)) return false;
+        // The hash picks the tab once the page has loaded
+        if (window.location.hash) return window.location.hash === '#tab-pivot-explorer';
+        var pane = document.getElementById('tab-pivot-explorer');
+        return !!pane && pane.classList.contains('active');
     }
     function lower(s) { return String(s || '').toLowerCase(); }
 
@@ -101,8 +109,9 @@
     function write(key, value) {
         try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* kept for this page only */ }
     }
-    var prefs = Object.assign({ open: false, width: 0, wide: false, tray: true, mode: 'docked', win: null, scope: 'org' }, read(KEY, {}));
+    var prefs = Object.assign({ open: false, width: 0, wide: false, side: 'right', tray: true, mode: 'docked', win: null, scope: 'org' }, read(KEY, {}));
     if (prefs.mode !== 'floating') prefs.mode = 'docked';
+    if (prefs.side !== 'left') prefs.side = 'right';
     if (prefs.scope !== 'mine') prefs.scope = 'org';
     if (!validWin(prefs.win)) prefs.win = null;
     function validWin(w) {
@@ -111,7 +120,7 @@
         });
     }
     function remember() {
-        write(KEY, { open: prefs.open, width: prefs.width, wide: prefs.wide, tray: prefs.tray, mode: prefs.mode, win: prefs.win, scope: prefs.scope });
+        write(KEY, { open: prefs.open, width: prefs.width, wide: prefs.wide, side: prefs.side, tray: prefs.tray, mode: prefs.mode, win: prefs.win, scope: prefs.scope });
     }
 
     // Recent arrivals, per graph: what the analyst sent while browsing,
@@ -217,12 +226,15 @@
         return { left: left, top: top, w: right - left, h: bottom - top };
     }
 
+    function onLeft() { return prefs.side === 'left'; }
     function place() {
-        var b = bounds(), w = width(), float = floating();
+        var b = bounds(), w = width(), float = floating(), left = onLeft();
         html.style.setProperty('--ig-so-w', w + 'px');
         html.style.setProperty('--ig-so-top', measureNav() + 'px');
         panel.classList.toggle('is-floating', float);
+        panel.classList.toggle('is-left', left);
         html.classList.toggle('ig-so-docked', opened && !float);
+        html.classList.toggle('ig-so-left', left);
         if (float) {
             var rect = drag || winRect();
             panel.style.setProperty('--ig-fw-left', rect.left + 'px');
@@ -231,7 +243,7 @@
             panel.style.setProperty('--ig-fw-h', rect.h + 'px');
         }
         grip.hidden = float;
-        widenBtn.hidden = float;
+        sideBtn.hidden = float;
         undockBtn.hidden = float;
         dockBtn.hidden = !float;
         moveHandle.hidden = !float;
@@ -240,9 +252,10 @@
         grip.setAttribute('aria-valuemax', String(b.max));
         grip.setAttribute('aria-valuenow', String(w));
         grip.setAttribute('aria-valuetext', w + ' pixels; ' + Math.max(0, b.vw - w) + ' pixels of the page left uncovered');
-        widenBtn.setAttribute('aria-pressed', prefs.wide ? 'true' : 'false');
-        widenBtn.title = prefs.wide ? 'Back to your width' : 'Widen the panel';
-        widenBtn.setAttribute('aria-label', widenBtn.title);
+        sideBtn.title = left ? 'Move to the right' : 'Move to the left';
+        sideBtn.setAttribute('aria-label', sideBtn.title);
+        dockBtn.title = left ? 'Dock to the left' : 'Dock to the right';
+        dockBtn.setAttribute('aria-label', dockBtn.title);
     }
     var placing = 0;
     function placeSoon() {
@@ -271,7 +284,7 @@
         slotButtons().forEach(function (b) {
             b.setAttribute('aria-expanded', opened ? 'true' : 'false');
             var side = b.querySelector('.ig-slot-side');
-            if (side) side.className = 'fas ' + (floating() ? 'fa-window-restore' : 'fa-angles-left') + ' ig-slot-side';
+            if (side) side.className = 'fas ' + (floating() ? 'fa-window-restore' : onLeft() ? 'fa-angles-right' : 'fa-angles-left') + ' ig-slot-side';
             var n = b.querySelector('[data-ig-unseen]');
             if (!n) return;
             var show = !opened && (unseen.added > 0 || unseen.refused);
@@ -367,13 +380,16 @@
     }
     // Side panels (side-panel.js) share the right edge and give way.
     function announceDocked() {
-        if (opened && !floating()) document.dispatchEvent(new CustomEvent('intel-graph:docked'));
+        if (opened && !floating() && !onLeft()) document.dispatchEvent(new CustomEvent('intel-graph:docked'));
     }
+    // keepOpen: shut on this page only, still open on the next
     function closeDock(opts) {
         if (!opened) return;
         opened = false;
-        prefs.open = false;
-        remember();
+        if (!(opts && opts.keepOpen)) {
+            prefs.open = false;
+            remember();
+        }
         hideMenu();
         place();
         syncSlot();
@@ -1744,11 +1760,11 @@
         e.preventDefault();
         grip.setPointerCapture(e.pointerId);
         panel.classList.add('is-resizing');
-        var startX = e.clientX, startW = width();
+        var startX = e.clientX, startW = width(), out = onLeft() ? -1 : 1;
         function move(ev) {
             prefs.wide = false;
             var b = bounds();
-            prefs.width = Math.min(b.max, Math.max(b.min, startW + (startX - ev.clientX)));
+            prefs.width = Math.min(b.max, Math.max(b.min, startW + out * (startX - ev.clientX)));
             placeSoon();
         }
         function up() {
@@ -1767,8 +1783,9 @@
     grip.addEventListener('dblclick', toggleWide);
     grip.addEventListener('keydown', function (e) {
         var b = bounds(), w = width(), step = e.shiftKey ? STEP * 4 : STEP;
-        if (e.key === 'ArrowLeft') w += step;
-        else if (e.key === 'ArrowRight') w -= step;
+        var wider = onLeft() ? 'ArrowRight' : 'ArrowLeft', narrower = onLeft() ? 'ArrowLeft' : 'ArrowRight';
+        if (e.key === wider) w += step;
+        else if (e.key === narrower) w -= step;
         else if (e.key === 'Home') w = b.min;
         else if (e.key === 'End') w = b.max;
         else return;
@@ -1784,8 +1801,44 @@
         remember();
         place();
     }
-    widenBtn.addEventListener('click', toggleWide);
     window.addEventListener('resize', placeSoon);
+
+    /* ── left or right ─────────────────────────────────────── */
+    // Out of one edge and in from the other; the graph stays mounted.
+    var flipping = false;
+    function flipSide() {
+        if (flipping) return;
+        hideMenu();
+        clearCallouts();
+        var swap = function () {
+            prefs.side = onLeft() ? 'right' : 'left';
+            remember();
+            place();
+            announceDocked();
+            syncSlot();
+            say(onLeft() ? 'Moved to the left.' : 'Moved to the right.');
+        };
+        if (reducedMotion()) { swap(); return; }
+        flipping = true;
+        panel.classList.add('is-off');
+        setTimeout(function () {
+            panel.classList.add('is-jumping');
+            swap();
+            void panel.offsetWidth;
+            panel.classList.remove('is-jumping');
+            if (opened) panel.classList.remove('is-off');
+            flipping = false;
+        }, 180);
+    }
+    sideBtn.addEventListener('click', flipSide);
+
+    // Already on the collection page, the link only switches its tab
+    fullLink.addEventListener('click', function (e) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+        var to = new URL(fullLink.href, window.location.href), here = window.location;
+        if (to.origin + to.pathname + to.search !== here.origin + here.pathname + here.search) return;
+        closeDock({ keepOpen: true });
+    });
 
     /* ── undocking ─────────────────────────────────────────── */
     // The graph stays mounted: only its container changes, and the stage's
@@ -1800,7 +1853,7 @@
         place();
         announceDocked();
         syncSlot();
-        say(mode === 'floating' ? 'Undocked into a window.' : 'Docked to the right.');
+        say(mode === 'floating' ? 'Undocked into a window.' : onLeft() ? 'Docked to the left.' : 'Docked to the right.');
         (mode === 'floating' ? moveHandle : undockBtn).focus({ preventScroll: true });
     }
     undockBtn.addEventListener('click', function () { setMode('floating'); });
@@ -1921,6 +1974,7 @@
         open: openDock, close: closeDock, toggle: toggle, handle: function () { return current; },
         isOpen: function () { return opened; },
         prefs: function () { return Object.assign({}, prefs); }, width: width, bounds: bounds,
-        mode: function () { return prefs.mode; }, setMode: setMode, rect: winRect
+        mode: function () { return prefs.mode; }, setMode: setMode, rect: winRect,
+        side: function () { return prefs.side; }, flipSide: flipSide
     };
 }());

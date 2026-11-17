@@ -52,7 +52,7 @@
             if (p !== except && p.isOpen() && p.mode() === 'docked') p.close();
         });
         var dock = window.IntelGraphDock;
-        if (dock && dock.isOpen() && dock.mode() === 'docked') dock.close();
+        if (dock && dock.isOpen() && dock.mode() === 'docked' && dock.side() !== 'left') dock.close();
     }
     document.addEventListener('intel-graph:docked', function () {
         panels.forEach(function (p) { if (p.isOpen() && p.mode() === 'docked') p.close(); });

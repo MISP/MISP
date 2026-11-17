@@ -52,6 +52,15 @@
 }
 .ig-so[hidden] { display: none; }
 .ig-so.is-off { transform: translateX(100%); }
+.ig-so.is-left:not(.is-floating) {
+    right: auto; left: 0;
+    border-left: 0; border-right: 1px solid var(--bs-border-color);
+}
+.ig-so.is-left:not(.is-floating).is-off { transform: translateX(-100%); }
+.ig-so.is-left:not(.is-floating)::before { left: auto; right: -1px; }
+.ig-so.is-left .ig-so-grip { left: auto; right: -6px; }
+/* moved to the other edge while out of sight */
+.ig-so.is-jumping { transition: none; }
 /* a page dropdown opening next to the dock shows over it */
 .ig-so.is-under { z-index: 999; }
 

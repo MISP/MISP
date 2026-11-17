@@ -37,8 +37,8 @@
                 <button type="button" class="ig-so-tool" data-ig-dock hidden title="<?= __('Dock to the right') ?>" aria-label="<?= __('Dock to the right') ?>">
                     <i class="fas fa-table-columns" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="ig-so-tool" data-ig-widen aria-pressed="false" title="<?= __('Widen the panel') ?>" aria-label="<?= __('Widen the panel') ?>">
-                    <i class="fas fa-left-right" aria-hidden="true"></i>
+                <button type="button" class="ig-so-tool" data-ig-side title="<?= __('Move to the left') ?>" aria-label="<?= __('Move to the left') ?>">
+                    <i class="fas fa-arrow-right-arrow-left" aria-hidden="true"></i>
                 </button>
                 <a class="ig-so-tool" data-ig-full href="#" title="<?= __('Open full page') ?>" aria-label="<?= __('Open full page') ?>">
                     <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
