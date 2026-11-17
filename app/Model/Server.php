@@ -7401,14 +7401,6 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'restrict_server_signing_to_host_org' => [
-                    'level' => self::SETTING_RECOMMENDED,
-                    'description' => __('Restrict server signing via /encryptionKeys/serverSign to host org only users, even for users that otherwise meet role requirements. This setting defaults to false. Site admins are exempt from this requirement, even when the setting is enabled.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
             ),
             'SMIME' => array(
                 'branch' => 1,

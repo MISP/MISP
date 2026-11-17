@@ -120,7 +120,6 @@ class ServerSettingGroups
                     'GnuPG.email',
                     'GnuPG.password',
                     'GnuPG.key_fetching_disabled',
-                    'GnuPG.restrict_server_signing_to_host_org',
                 ),
             ),
             array(
