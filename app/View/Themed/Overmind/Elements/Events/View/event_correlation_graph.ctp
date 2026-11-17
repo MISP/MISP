@@ -4,10 +4,11 @@ $eventInfo = addslashes(h($data['Event']['info'] ?? ''));
 $eventDate = addslashes(h($data['Event']['date'] ?? ''));
 
 // The filter bar wears the index filter bars' look, whose stylesheet the
-// ajax tabs bring along and this one, drawn with the page, has to ask for.
+// ajax tabs bring along and this one, drawn with the page, has to ask for;
+// their script too, for its `/` and `f` keys.
 echo $this->element('genericElements/assetLoader', [
     'css' => ['index-filters'],
-    'js' => ['d3', 'd3-sankey.min']
+    'js' => ['d3', 'd3-sankey.min', 'index-filters']
 ]);
 
 // Sortable headings of the correlated events: key => label
@@ -22,8 +23,9 @@ $corrColumns = [
 <div class="corr-index">
 
     <!-- Filter bar: the search narrows the graph and the list, the panel holds the filters.
-         Drawn as the index filter bars, but filtering here, so no data-ifp-bar. -->
-    <div class="ifp-bar d-flex flex-wrap align-items-center corr-bar">
+         Drawn as the index filter bars, but filtering here, so no data-ifp-bar;
+         data-ifp-keys gives it their `/` and `f` (index-filters.js). -->
+    <div class="ifp-bar d-flex flex-wrap align-items-center corr-bar" data-ifp-keys>
         <label class="ifp-query" id="corr-search-box">
             <i class="fas fa-search ifp-q-icon" aria-hidden="true"></i>
             <input id="corr-search" type="search" autocomplete="off" spellcheck="false"

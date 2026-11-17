@@ -1616,6 +1616,22 @@
         })[0];
     }
 
+    // A bar that only wears the index bars' look and filters by itself
+    // (data-ifp-keys: the event's Correlation and Timeline tabs) gets the keys
+    // too: `f` presses its Filters button, which its own script answers.
+    function toggleOwnPanel(event) {
+        var own = onScreen('[data-ifp-keys] .ifp-fbtn');
+        if (!own) { return; }
+        event.preventDefault();
+        own.click();
+        var panel = document.getElementById(own.getAttribute('aria-controls') || '');
+        var first = panel && !panel.hidden ? Array.prototype.filter.call(
+            panel.querySelectorAll('input, button, select, [tabindex]:not([tabindex="-1"])'),
+            function (el) { return el.offsetParent !== null && !el.disabled; }
+        )[0] : null;
+        (first || own).focus();
+    }
+
     // `/` puts the cursor in the search of the index on screen, `f` opens or
     // closes its Filters panel.
     document.addEventListener('keydown', function (event) {
@@ -1624,7 +1640,7 @@
         var t = event.target;
         if (t.isContentEditable || (t.closest && t.closest('input, textarea, select')) || document.querySelector('.modal.show')) { return; }
         if (key === '/') {
-            var field = onScreen('[data-ifp-bar] .ifp-query input');
+            var field = onScreen('[data-ifp-bar] .ifp-query input, [data-ifp-keys] .ifp-query input');
             if (!field) { return; }
             event.preventDefault();
             field.focus();
@@ -1633,7 +1649,11 @@
         }
         // A picker or the column browser open in the panel keeps its own keys.
         var btn = openPanel && openPanel.isConnected ? filtersBtnOf(openPanel) : onScreen('[data-ifp-bar] [data-ifp-filters]');
-        if (!btn || open || browserOpen()) { return; }
+        if (!btn) {
+            toggleOwnPanel(event);
+            return;
+        }
+        if (open || browserOpen()) { return; }
         var bar = btn.closest('[data-ifp-bar]');
         var panel = panelOf(bar);
         event.preventDefault();
