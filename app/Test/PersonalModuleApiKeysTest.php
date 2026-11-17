@@ -232,6 +232,82 @@ class PersonalModuleApiKeysTest extends TestCase
         $this->assertStringNotContainsString('new-secret', $legacy->captured['Log']['change']);
     }
 
+    public function testAttributeEnrichmentSendsTheExecutionUsersCredentials()
+    {
+        $module = new PersonalKeysEnrichmentModule();
+        $module->settings = $this->module->settings;
+        $module->credentials = $this->module->credentials;
+        $module->listings = [$this->listing];
+        ClassRegistry::$instances['Module'] = $module;
+        Configure::write('Plugin.Enrichment_virustotal_enabled', true);
+        Configure::write('Plugin.Enrichment_virustotal_apikey', 'instance-key');
+        Configure::write('MISP.background_jobs', false);
+        $attribute = new PersonalKeysTestAttribute();
+        $attribute->Event = new class {
+            public function find($type, $options) { return ['Event' => ['id' => 7]]; }
+            public function handleModuleResult($result, $eventId) { return []; }
+        };
+        foreach ([1 => 'alice-key', 2 => 'bob-key', 3 => 'instance-key'] as $userId => $expected) {
+            $params = ['user' => ['id' => $userId, 'org_id' => 1, 'Role' => ['perm_site_admin' => false]], 'id' => 42, 'modules' => ['virustotal']];
+            // The synchronous router and the background job both call enrichment().
+            $attribute->enrichmentRouter($params);
+            $this->assertSame($expected, end($module->requests)['config']['apikey']);
+            $this->assertSame(0, $attribute->enrichment($params));
+            $this->assertSame($expected, end($module->requests)['config']['apikey']);
+        }
+        $this->assertCount(6, $module->requests);
+        Configure::write('Plugin.Enrichment_virustotal_enabled', false);
+        $attribute->enrichment($params);
+        $this->assertCount(6, $module->requests);
+    }
+
+    public function testCliRotationKeepsPersonalCredentialsReadableWithTheNewKey()
+    {
+        [$shell, $setting, $context] = $this->rotationHarness();
+        foreach ([str_repeat('A', 32), str_repeat('B', 32)] as $newKey) {
+            $context->steps = [];
+            // Omit --old to exercise the command's configured-key fallback.
+            $shell->params = ['new' => $newKey];
+            $shell->reencrypt();
+            $this->assertSame(['begin', 'system', 'server', 'cerebrate', 'personal', 'save-key', 'commit'], $context->steps);
+            $this->assertSame($newKey, Configure::read('Security.encryption_key'));
+            $this->assertSame($this->module->credentials[1], $setting->getModuleApiKeys(1));
+            $this->assertStringNotContainsString('alice-key', $setting->rows[1]['UserSetting']['value']);
+        }
+    }
+
+    public function testCliRotationRollsBackWithoutSavingNewKeyWhenPersonalRotationFails()
+    {
+        [$shell, $setting, $context] = $this->rotationHarness();
+        $setting->failUpdate = true;
+        $shell->params = ['new' => str_repeat('A', 32)];
+        try {
+            $shell->reencrypt();
+            $this->fail('The failed personal credential update must abort key rotation.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Could not rotate personal module credentials.', $e->getMessage());
+        }
+        $this->assertSame(['begin', 'system', 'server', 'cerebrate', 'personal', 'rollback'], $context->steps);
+        $this->assertNull(Configure::read('Security.encryption_key'));
+        $this->assertSame($this->module->credentials[1], $setting->getModuleApiKeys(1));
+    }
+
+    private function rotationHarness()
+    {
+        $context = new PersonalKeysRotationContext();
+        $setting = new PersonalKeysRotationSetting();
+        $setting->context = $context;
+        $setting->rows[1] = ['UserSetting' => ['id' => 10, 'value' => JsonTool::encode($this->module->credentials[1])]];
+        ClassRegistry::$instances = [
+            'SystemSetting' => new PersonalKeysRotationParticipant($context, 'system'),
+            'Cerebrate' => new PersonalKeysRotationParticipant($context, 'cerebrate'),
+            'UserSetting' => $setting,
+        ];
+        $shell = new PersonalKeysTestAdminShell();
+        $shell->Server = new PersonalKeysRotationServer($context);
+        return [$shell, $setting, $context];
+    }
+
     private function config($userId)
     {
         return $this->module->getModuleConfig($this->listing, 'Enrichment', ['id' => $userId]);

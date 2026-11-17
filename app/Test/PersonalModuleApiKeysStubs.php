@@ -132,3 +132,97 @@ class PersonalKeysTestSetting extends UserSetting
     }
 }
 
+
+// These entry points must load against the same isolated framework stubs.
+if (!class_exists('ClassRegistry', false)) {
+    class ClassRegistry
+    {
+        public static $instances = [];
+        public static function init($name) { return self::$instances[$name]; }
+    }
+}
+if (!class_exists('AppShell', false)) {
+    class AppShell {}
+}
+require_once __DIR__ . '/../Model/MispAttribute.php';
+require_once __DIR__ . '/../Console/Command/AdminShell.php';
+
+class PersonalKeysEnrichmentModule extends PersonalKeysTestModule
+{
+    public $requests = [];
+
+    public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false, $triggerData = [], $skipTrigger = false)
+    {
+        $this->requests[] = $postData;
+        return [];
+    }
+}
+
+class PersonalKeysTestAttribute extends MispAttribute
+{
+    public $Event;
+    public $Module;
+
+    public function __construct() {}
+
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false)
+    {
+        return [['Attribute' => [
+            'id' => 42, 'event_id' => 7, 'object_id' => 0,
+            'uuid' => 'd1849030-b2b9-43d0-a30a-a1433bb4ba3a',
+            'type' => 'sha256', 'value' => str_repeat('a', 64),
+        ]]];
+    }
+}
+
+class PersonalKeysTestAdminShell extends AdminShell
+{
+    public $params = [];
+    public $Server;
+
+    public function out($message) {}
+    public function error($message, $details = null) { throw new RuntimeException($message); }
+}
+
+class PersonalKeysRotationContext
+{
+    public $steps = [];
+    public function begin() { $this->steps[] = 'begin'; }
+    public function commit() { $this->steps[] = 'commit'; }
+    public function rollback() { $this->steps[] = 'rollback'; }
+}
+
+class PersonalKeysRotationServer
+{
+    private $context;
+    public function __construct($context) { $this->context = $context; }
+    public function getDataSource() { return $this->context; }
+    public function reencryptAuthKeys($old, $new) { $this->context->steps[] = 'server'; }
+    public function serverSettingsSaveValue($name, $value, $skipHooks = false)
+    {
+        $this->context->steps[] = 'save-key';
+        Configure::write($name, $value);
+        return true;
+    }
+}
+
+class PersonalKeysRotationParticipant
+{
+    private $context;
+    private $name;
+    public function __construct($context, $name) { $this->context = $context; $this->name = $name; }
+    public function reencrypt($old, $new) { $this->context->steps[] = $this->name; }
+    public function reencryptAuthKeys($old, $new) { $this->reencrypt($old, $new); }
+}
+
+class PersonalKeysRotationSetting extends PersonalKeysTestSetting
+{
+    public $context;
+    public $failUpdate = false;
+
+    public function updateAll($fields, $conditions = true)
+    {
+        $this->context->steps[] = 'personal';
+        return !$this->failUpdate && parent::updateAll($fields, $conditions);
+    }
+}
