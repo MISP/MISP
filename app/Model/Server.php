@@ -1656,6 +1656,16 @@ class Server extends AppModel
     }
 
     /**
+     * Only `test*` validators may be invoked by name; a setting definition cannot reach other methods.
+     * @param mixed $test
+     * @return bool
+     */
+    private static function isSettingTest($test)
+    {
+        return is_string($test) && strpos($test, 'test') === 0 && method_exists('Server', $test);
+    }
+
+    /**
      * @param array $serverSettings
      * @param array $moduleTypes
      * @return array
@@ -1843,6 +1853,8 @@ class Server extends AppModel
             if (!empty($leafValue['test'])) {
                 if ($leafValue['test'] instanceof Closure) {
                     $result = $leafValue['test']($setting);
+                } elseif (!self::isSettingTest($leafValue['test'])) {
+                    $result = true;
                 } else {
                     $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
                 }
@@ -2879,6 +2891,8 @@ class Server extends AppModel
             if (isset($setting['test'])) {
                 if ($setting['test'] instanceof Closure) {
                     $testResult = $setting['test']($value);
+                } elseif (!self::isSettingTest($setting['test'])) {
+                    $testResult = true;
                 } else {
                     $testResult = $this->{$setting['test']}($value);
                 }

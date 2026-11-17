@@ -113,6 +113,9 @@ class RPZExport
 					$options['filters'][$v] = $this->getIdByPolicy($options['filters'][$v]);
 				}
 			}
+			if (isset($options['filters'][$v]) && $v !== 'policy' && !$this->validRequestValue($v, $options['filters'][$v])) {
+				unset($options['filters'][$v]);
+			}
 			if (isset($options['filters'][$v])) {
 				$this->rpzSettings[$v] = $options['filters'][$v];
 			} else {
@@ -128,6 +131,31 @@ class RPZExport
 			}
 		}
 		return '';
+	}
+
+	private function validRequestValue($name, $value)
+	{
+		if (!is_string($value) && !is_int($value)) {
+			return false;
+		}
+		$value = (string)$value;
+		switch ($name) {
+			case 'walled_garden':
+				return filter_var($value, FILTER_VALIDATE_IP) !== false || $this->isHostname($value);
+			case 'ns':
+			case 'ns_alt':
+			case 'email':
+				return $this->isHostname($value);
+			case 'serial':
+				return preg_match('/^(?:[0-9]|\$date|\$time)+\z/', $value) === 1;
+			default:
+				return preg_match('/^[0-9]+[smhdwSMHDW]?\z/', $value) === 1;
+		}
+	}
+
+	private function isHostname($value)
+	{
+		return preg_match('/^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*\.?\z/', $value) === 1;
 	}
 
 	public function footer($options = array())
