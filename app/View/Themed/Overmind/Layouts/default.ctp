@@ -320,6 +320,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 $bs5Js[] = $useRail ? 'overmind-rail' : 'overmind-navbar';
                 $bs5Js[] = 'onboarding';
                 $bs5Js[] = 'overmind-invaders';
+                $bs5Js[] = 'overmind-ambient';
             }
             echo $this->element('genericElements/assetLoader', [
                 'js' => $bs5Js,
