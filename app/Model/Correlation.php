@@ -713,6 +713,9 @@ class Correlation extends AppModel
         if (str_contains($ip, '/')) { // IP is CIDR
             list($networkIp, $mask) = explode('/', $ip);
             $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+            if ($this->isCidrTooBroad($ip_version, $mask)) {
+                return [];
+            }
 
             $conditions = array(
                 'type' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'),
@@ -775,7 +778,12 @@ class Correlation extends AppModel
             $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
             $cidrList = $this->getCidrList();
             foreach ($cidrList as $cidr) {
-                if (filter_var(explode("/",$cidr)[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $cidrParts = explode('/', $cidr);
+                $cidrVersion = filter_var($cidrParts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+                if (isset($cidrParts[1]) && $this->isCidrTooBroad($cidrVersion, $cidrParts[1])) {
+                    continue;
+                }
+                if ($cidrVersion === 4) {
                     if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
                         $ipValues[] = $cidr;
                     }
@@ -794,6 +802,17 @@ class Correlation extends AppModel
             ));
         }
         return $extraConditions;
+    }
+
+    /**
+     * Prefixes shorter than /8 (IPv4) or /16 (IPv6) match too much of the instance to correlate on.
+     * @param int $ipVersion 4 or 6
+     * @param string|int $mask
+     * @return bool
+     */
+    private function isCidrTooBroad($ipVersion, $mask)
+    {
+        return (int)$mask < ($ipVersion === 4 ? 8 : 16);
     }
 
     // using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
