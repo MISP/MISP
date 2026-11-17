@@ -5081,5 +5081,105 @@ class ObjectRevisionKeepsStoredAttributes(unittest.TestCase):
                                 for a in after), 'an original attribute was lost')
 
 
+class AuthKeyAddCanonicalUserId(unittest.TestCase):
+    """authKeys/add takes the target user id only as a JSON int or a digit string.
+
+    The ownership check cast the id with (int) while Cake saved the same float rounded to
+    14 significant digits, so user N posting 46.9999999999999-style ids got a key for N+1.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_keys = []
+        cls.users = []
+        cls.org = None
+        try:
+            role_id = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if role['name'] == 'User' and int(role['perm_auth']) \
+                        and not int(role['perm_site_admin']) and not int(role['perm_admin']):
+                    role_id = int(role['id'])
+            if role_id is None:
+                raise unittest.SkipTest('no stock User role with perm_auth')
+            cls.org = make_org(cls.admin, 'regression authkey float org')
+            cls.users = [make_user(cls.admin, cls.org.id, role_id),
+                         make_user(cls.admin, cls.org.id, role_id)]
+            cls.lower, cls.upper = int(cls.users[0].id), int(cls.users[1].id)
+            if cls.upper != cls.lower + 1:
+                raise unittest.SkipTest('the two users do not have consecutive ids')
+            for user in cls.users:
+                cls.created_keys += cls._keys_of(int(user.id))
+            created = send(cls.admin, 'POST', 'authKeys/add/%s' % cls.lower,
+                           data={'comment': 'regression'})
+            cls.created_keys.append(int(created['AuthKey']['id']))
+            cls.lower_client = PyMISP(url, created['AuthKey']['authkey_raw'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        keys = set(cls.created_keys)
+        for user in cls.users:
+            keys.update(cls._keys_of(int(user.id)))
+        for key_id in keys:
+            cls.admin._prepare_request('POST', 'authKeys/delete/%s' % key_id)
+        for user in cls.users:
+            cls.admin.delete_user(user)
+        if cls.org is not None:
+            cls.admin.delete_organisation(cls.org)
+
+    @classmethod
+    def _keys_of(cls, user_id):
+        response = cls.admin._prepare_request('GET', 'authKeys/index/user_id:%s' % user_id)
+        body = response.json()
+        return [int(k['AuthKey']['id']) for k in body if int(k['AuthKey']['user_id']) == int(user_id)]
+
+    def _add(self, user_id):
+        response = self.lower_client._prepare_request(
+            'POST', 'authKeys/add', data={'user_id': user_id, 'comment': 'regression'})
+        self.last = response
+        if response.status_code < 300:
+            body = response.json()
+            type(self).created_keys.append(int(body['AuthKey']['id']))
+            return body['AuthKey']
+        return None
+
+    def test_float_user_id_is_refused(self):
+        digits = len(str(self.lower))
+        value = self.lower + 1 - 10 ** -(15 - digits)
+        self.assertEqual(self.lower, int(value))
+        self.assertEqual(float(self.upper), float('%.14g' % value))
+        before = self._keys_of(self.upper)
+        added = self._add(value)
+        print('float user_id %r -> %s %s' % (value, self.last.status_code, self.last.text[:200]))
+        self.assertIsNone(added, 'a float user id was accepted')
+        self.assertGreaterEqual(self.last.status_code, 400)
+        self.assertEqual(before, self._keys_of(self.upper), 'the next user received a key')
+
+    def test_own_user_id_forms_still_work(self):
+        for value in (self.lower, str(self.lower)):
+            added = self._add(value)
+            self.assertIsNotNone(added, 'own id %r refused: %s' % (value, self.last.text[:200]))
+            self.assertEqual(self.lower, int(added['user_id']))
+        response = self.lower_client._prepare_request(
+            'POST', 'authKeys/add/me', data={'comment': 'regression'})
+        self.assertLess(response.status_code, 300, response.text[:200])
+        added = response.json()['AuthKey']
+        type(self).created_keys.append(int(added['id']))
+        self.assertEqual(self.lower, int(added['user_id']))
+
+    def test_other_users_id_is_refused(self):
+        before = self._keys_of(self.upper)
+        added = self._add(self.upper)
+        self.assertIsNone(added, 'a key was created for another user')
+        self.assertGreaterEqual(self.last.status_code, 400)
+        self.assertEqual(before, self._keys_of(self.upper))
+
+
 if __name__ == '__main__':
     unittest.main()

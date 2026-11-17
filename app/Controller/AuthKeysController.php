@@ -230,6 +230,13 @@ class AuthKeysController extends AppController
         if ($user_id === 'me' || $user_id === false) {
             $user_id = $this->Auth->user('id');
         }
+        // A JSON float passes an (int) check, yet Cake saves it rounded up.
+        if (!is_int($user_id) &&
+            !(is_string($user_id) && ctype_digit($user_id))
+        ) {
+            throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
+        }
+        $user_id = (int)$user_id;
         // For modal display in Overmind (the add form on GET, the
         // generated-key display on POST success, or the form+errors on failure).
         // Must be set BEFORE CRUD->add, which renders displayOnSuccess internally.
