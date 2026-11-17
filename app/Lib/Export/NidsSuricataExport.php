@@ -482,9 +482,9 @@ class NidsSuricataExport extends NidsExport
                 $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
                 $tag = 'tag:session,600,seconds;';
                 if (!array_key_exists('path', $data)) {
-                    $data['path'] = NidsExport::replaceIllegalChars($data['host']);
                     $content = 'flow:to_server,established; http.header; content:"' . $data['host'] . '"; nocase;';
                 } else {
+                    $data['path'] = NidsExport::replaceIllegalChars($data['path']);
                     $content = 'flow:to_server,established; http.header; content:"' . $data['host'] . '"; fast_pattern; nocase; http.uri; content:"' . $data['path'] . '"; nocase;';
                 }
                 break;
@@ -499,7 +499,6 @@ class NidsSuricataExport extends NidsExport
                 $suricata_dst_ip = '$EXTERNAL_NET';
                 $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
                 if (!array_key_exists('path', $data)) {
-                    $data['path'] = NidsExport::replaceIllegalChars($data['host']);
                     $content = 'tls.sni; content:"' . $data['host'] . '"; nocase;';
                 } else {
                     $createRule = false;
