@@ -468,6 +468,7 @@ class ServerSettingGroups
                     'Security.workflow_enable_arbitrary_urls',
                     'Security.eventreport_enable_arbitrary_urls',
                     'Security.eventreport_max_fetch_size',
+                    'Security.max_decompressed_size',
                 ),
             ),
             array(

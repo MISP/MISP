@@ -7,6 +7,7 @@ App::uses('RandomTool', 'Tools');
 App::uses('SharingGroup', 'Model');
 App::uses('TmpFileTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
+App::uses('DecompressTool', 'Tools');
 
 class Feed extends AppModel
 {
@@ -2676,14 +2677,30 @@ class Feed extends AppModel
             throw new Exception("Remote server returns ZIP file, but there is a problem with reading filename.");
         }
 
-        $zip->close();
-
-        $destinationFile = FileAccessTool::createTempFile();
-        $result = copy("zip://$zipFile#$filename", $destinationFile);
-        if ($result === false) {
+        $stream = $zip->getStream($filename);
+        if ($stream === false) {
+            $zip->close();
             throw new Exception("Remote server returns ZIP file, that contains '$filename' file, but this file cannot be extracted.");
         }
 
-        return FileAccessTool::readAndDelete($destinationFile);
+        $limit = DecompressTool::limit();
+        $data = '';
+        try {
+            while (!feof($stream)) {
+                $chunk = fread($stream, 65536);
+                if ($chunk === false) {
+                    throw new Exception("Remote server returns ZIP file, that contains '$filename' file, but this file cannot be extracted.");
+                }
+                $data .= $chunk;
+                if ($limit && strlen($data) > $limit) {
+                    throw new Exception("File '$filename' in the ZIP file returned by the remote server exceeds the maximum allowed size of $limit bytes once decompressed.");
+                }
+            }
+        } finally {
+            fclose($stream);
+            $zip->close();
+        }
+
+        return $data;
     }
 }

@@ -6924,6 +6924,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'max_decompressed_size' => array(
+                    'level' => 1,
+                    'description' => __('Maximum size, in bytes, of compressed data once decompressed: request bodies sent to this instance (a larger one is refused with 413) and responses fetched from feeds and sync servers, including a zip feed\'s file (a larger one fails the fetch). Leave empty or 0 to use the PHP memory limit in force (no limit when that is -1, which is common for background workers). Large events need this at least as large as their JSON.'),
+                    'value' => 0,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
                 'syslog' => array(
                     'level' => 0,
                     'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
