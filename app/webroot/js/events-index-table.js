@@ -23,7 +23,7 @@
         { k: 'state', w: 30 },
         { k: 'id', w: 56 },
         { k: 'title', flex: true, min: 316, nmin: 200 },
-        { k: 'orgc', w: 124, narrow: 84 },
+        { k: 'orgc', w: 136, narrow: 116 },
         { k: 'props', w: 116 },
         { k: 'owner', w: 120, opt: 'owner_org' },
         { k: 'user', w: 150, opt: 'creator_user' },
@@ -48,8 +48,6 @@
     var LANES = ['attrib', 'behav', 'classif'];
     // Dropped in this order while the columns do not fit; 'narrow' tightens the rest.
     var STEPS = ['ext', 'date', 'user', 'owner', 'pub', 'narrow', 'extras'];
-    // Graded org names keep about nine characters; the lanes give way.
-    var GRADED = { w: 150, narrow: 136 };
     // Icon-sized columns keep their width.
     var FIXED = { sel: true, state: true, dist: true, act: true };
     var WIDTHS_KEY = 'misp.eventIndex.columnWidths';
@@ -94,14 +92,11 @@
     };
 
     Table.prototype.baseWidth = function (c) {
-        if (c.k === 'orgc' && this.cfg.graded) return this.narrow ? GRADED.narrow : GRADED.w;
         return this.narrow && c.narrow ? c.narrow : c.w;
     };
 
     Table.prototype.minOf = function (c) {
-        var m = this.narrow && c.nmin ? c.nmin : c.min;
-        // A technique id needs the whole of Behaviour's minimum.
-        return this.cfg.graded && c.ctx && this.narrow && c.k !== 'behav' ? m - 8 : m;
+        return this.narrow && c.nmin ? c.nmin : c.min;
     };
 
     // The smallest a column may be dragged to.

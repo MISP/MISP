@@ -90,6 +90,8 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['attribute-elements', ['preload' => true]],
                 // An event's id and icon in any index, and the peek it opens (Events/peek_link).
                 ['event-peek', ['preload' => true]],
+                // An organisation in any index or modal (Badges/organisation).
+                ['org-tile', ['preload' => true]],
                 // The rail's styles come with the theme.
                 $useRail ? null : ['overmind-navbar', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],

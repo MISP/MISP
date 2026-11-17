@@ -1,23 +1,17 @@
 <?php
-$remoteOrg = $row['RemoteOrg'] ?? [];
-$ownerOrg = $row['Organisation'] ?? [];
+// A server's remote org and the local org owning the connection.
+$orgs = [
+    __('Remote') => $row['RemoteOrg'] ?? [],
+    __('Owner') => $row['Organisation'] ?? [],
+];
 ?>
-<div class="d-flex flex-column gap-1">
-    <?php if (!empty($remoteOrg['id']) && !empty($remoteOrg['name'])): ?>
-        <a
-            href="<?= h($baseurl . '/organisations/view/' . $remoteOrg['id']) ?>"
-            class="text-decoration-none"
-        >
-            <strong><?= __('Remote') ?>:</strong> <?= h($remoteOrg['name']) ?>
-        </a>
-    <?php endif; ?>
-
-    <?php if (!empty($ownerOrg['id']) && !empty($ownerOrg['name'])): ?>
-        <a
-            href="<?= h($baseurl . '/organisations/view/' . $ownerOrg['id']) ?>"
-            class="text-decoration-none"
-        >
-            <strong><?= __('Owner') ?>:</strong> <?= h($ownerOrg['name']) ?>
-        </a>
-    <?php endif; ?>
+<div class="d-flex flex-column gap-2">
+    <?php foreach ($orgs as $label => $org): ?>
+        <?php if (!empty($org['id']) && !empty($org['name'])): ?>
+            <div class="d-flex flex-column">
+                <span class="text-body-secondary small text-nowrap"><?= h($label) ?></span>
+                <?= $this->element('genericElementsBS5/Badges/organisation', ['org' => $org]) ?>
+            </div>
+        <?php endif; ?>
+    <?php endforeach; ?>
 </div>

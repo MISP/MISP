@@ -117,7 +117,7 @@ $P = $this->Paginator;
 
                                     <td class="small">
                                         <?php if (isset($item['Organisation']) && !empty($item['Organisation']['id'])): ?>
-                                            <?= $this->OrgImg->getOrgLogo($item, 24) ?>
+                                            <?= $this->element('genericElementsBS5/Badges/organisation', ['org' => $item['Organisation']]) ?>
                                         <?php elseif (!empty($a['org_id']) && (int)$a['org_id'] !== 0): ?>
                                             <em class="text-muted"><?= __('Deleted org #%s', h($a['org_id'])) ?></em>
                                         <?php else: ?>

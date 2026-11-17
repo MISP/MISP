@@ -11,8 +11,6 @@
     --og-void-bg: #b02a37;
     --og-void-fg: #fff;
     --og-ring: var(--bs-body-bg, #fff);
-    --og-monogram-bg: rgba(12, 58, 74, .07);
-    --og-monogram-fg: #4d7886;
     --og-empty-line: rgba(19, 113, 142, .55);
     --og-empty-fg: #13718E;
     --og-note-bg: rgba(24, 146, 177, .05);
@@ -30,8 +28,6 @@
     --og-less-fg: #2a1800;
     --og-void-bg: #f0717c;
     --og-void-fg: #2a080c;
-    --og-monogram-bg: rgba(255, 255, 255, .07);
-    --og-monogram-fg: #9aa2a9;
     --og-empty-line: rgba(51, 195, 238, .6);
     --og-empty-fg: #33C3EE;
     --og-note-bg: rgba(255, 255, 255, .04);
@@ -51,30 +47,6 @@
     margin-right: 3px;
 }
 .eo-org-tile.og-mark { overflow: visible; margin-right: 0; }
-
-.og-monogram {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: var(--og-monogram-bg);
-    color: var(--og-monogram-fg);
-    font-size: .5625rem;
-    font-weight: 700;
-    letter-spacing: .02em;
-    line-height: 1;
-    user-select: none;
-}
-.og-mark:has(.og-badge:not(.is-empty)) > .og-monogram,
-tr:hover .og-mark > .og-monogram,
-.idx-card:hover .og-mark > .og-monogram,
-.og-mark:has(.og-badge:focus-visible, .og-badge[aria-expanded="true"]) > .og-monogram {
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 4px 0 0 3px;
-}
 
 .og-badge {
     position: absolute;
@@ -159,8 +131,7 @@ tr:hover .og-badge.is-empty,
 .og-badge.is-saving { animation: og-breathe .9s ease-in-out infinite; }
 .og-badge.is-fresh { animation: og-land .42s cubic-bezier(.3, 1.6, .5, 1); }
 
-/* the square beside the name: events index, the Value page's organisations */
-.te-org .og-badge.is-square { margin-left: auto; }
+/* the square beside the name: the Value page's organisations */
 .vp-grade {
     display: inline-flex;
     align-items: center;

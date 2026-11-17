@@ -140,14 +140,10 @@ $modified = strtotime((string)($record['modified'] ?? '')) ?: $created;
     <div class="adk-head"><?= $head ?></div>
 
     <div class="dk-org">
-        <?= $ei->orgTile($orgc) ?>
-        <?php if (!empty($orgc['id'])): ?>
-            <a class="dk-orgname" href="<?= h($baseurl . '/organisations/view/' . $orgc['id']) ?>"
-               title="<?= h(__('Created by %s', $orgc['name'] ?? '')) ?>"><?= h($orgc['name'] ?? '') ?></a>
-        <?php else: ?>
-            <span class="dk-orgname" title="<?= h(__('Created by %s', $orgc['name'] ?? '')) ?>"><?= h($orgc['name'] ?? '') ?></span>
-        <?php endif; ?>
-        <?= $ei->grade(null, $orgc, $orgGrading ?? null) ?>
+        <?= $this->element('genericElementsBS5/Badges/organisation', [
+            'org' => $orgc,
+            'orgTitle' => __('Created by %s', $orgc['name'] ?? ''),
+        ]) ?>
     </div>
 
     <div class="dk-meta">

@@ -34,8 +34,8 @@ $fields = [
     [
         'name' => __('Name'),
         'sort' => 'Organisation.name',
-        'data_path' => 'Organisation.name',
-        'element' => 'name_description',
+        'data_path' => 'Organisation',
+        'element' => 'organisation',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],

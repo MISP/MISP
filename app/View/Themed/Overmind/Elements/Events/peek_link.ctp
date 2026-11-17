@@ -16,7 +16,7 @@ $info = (string)($info ?? '');
 // The peek's org tile, chips and markings, once per page (or AJAX fragment).
 if (empty($this->viewVars['_eventPeekAssets'])) {
     $this->viewVars['_eventPeekAssets'] = true;
-    echo $this->element('genericElements/assetLoader', ['css' => ['org-tile', 'events-index-cards']]);
+    echo $this->element('genericElements/assetLoader', ['css' => ['events-index-cards']]);
 }
 ?>
 <a href="<?= h($baseurl . '/events/view/' . $id) ?>" class="ev-ref"

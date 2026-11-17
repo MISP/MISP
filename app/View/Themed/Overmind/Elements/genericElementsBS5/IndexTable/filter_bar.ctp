@@ -197,7 +197,7 @@ if ($pickerMode) {
         ($filter_bar['transport'] ?? 'path') === 'query' ? ($this->request->query ?? []) : null
     );
     echo $this->element('genericElements/assetLoader', [
-        'css' => array_merge(['org-tile', 'index-filters'], $strip ? ['misp-brush'] : []),
+        'css' => array_merge(['index-filters'], $strip ? ['misp-brush'] : []),
         'js' => array_merge($strip ? ['misp-brush'] : [], ['index-filters']),
     ]);
     if ($browserStrings !== null) {

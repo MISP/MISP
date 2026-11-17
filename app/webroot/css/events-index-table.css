@@ -89,8 +89,6 @@
 .te-title:focus-visible { outline: 2px solid var(--dk-accent); outline-offset: 1px; border-radius: 2px; }
 .te-extmark { flex: none; font-size: .7rem; color: var(--bs-tertiary-color); cursor: default; }
 
-/* org: .te-org is in org-tile.css */
-
 /* proposals (the proposal index): count, then the proposing orgs' tiles */
 .te-prop { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--bs-body-color); text-decoration: none; white-space: nowrap; }
 .te-prop > i { font-size: .8rem; color: var(--bs-tertiary-color); }

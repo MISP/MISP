@@ -22,10 +22,10 @@ class ServersController extends AppController
                 'fields' => array('User.id', 'User.org_id', 'User.email'),
             ),
             'Organisation' => array(
-                'fields' => array('Organisation.name', 'Organisation.id'),
+                'fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'),
             ),
             'RemoteOrg' => array(
-                'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
+                'fields' => array('RemoteOrg.name', 'RemoteOrg.id', 'RemoteOrg.uuid'),
             ),
         ),
         'maxLimit' => 9999,

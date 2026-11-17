@@ -41,8 +41,9 @@ $col['orgc'] = [
     'name' => __('Creator org'),
     'sort' => $m . '.orgc_uuid',
     'data_path' => $m . '.Orgc',
-    'element' => 'org_cell',
-    'title' => __('Created by %s'),
+    'element' => 'organisation',
+    'org_title' => __('Created by %s'),
+    'fit' => true,
     'display_in' => ['table'],
 ];
 
@@ -188,7 +189,7 @@ $fields[] = [
 
 <?php
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['org-tile', 'events-index-cards', 'analyst-data-index'],
+    'css' => ['events-index-cards', 'analyst-data-index'],
     'js' => ['events-index-cards'],
 ]);
 echo $this->OrgGrade->config($orgGrading ?? null);

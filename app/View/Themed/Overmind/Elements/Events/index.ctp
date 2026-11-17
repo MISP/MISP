@@ -307,9 +307,6 @@ $tableConfig = [
     'hidden' => $hiddenColumns,
     'saved' => $savedHiddenColumns ?? null,
     'defaults' => array_values(array_intersect(['is_extension', 'publish_timestamp', 'owner_org', 'creator_user'], $possible)),
-    'graded' => $this->OrgGrade->enabled($orgGrading ?? null) || !empty(array_filter(array_map(function ($event) {
-        return $event['EventCard']['grade'] ?? null;
-    }, $events))),
 ];
 
 $children = [];
@@ -566,7 +563,7 @@ $statsHtml = isset($indexStats) ? $this->element('Events/index_stats', [
  */
 
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['org-tile', 'events-index-cards', 'events-index-table', 'intel-graph-thumbs'],
+    'css' => ['events-index-cards', 'events-index-table', 'intel-graph-thumbs'],
     'js' => ['events-index-cards', 'events-index-table', 'intel-graph-thumb', 'intel-graph-thumbs'],
 ]);
 

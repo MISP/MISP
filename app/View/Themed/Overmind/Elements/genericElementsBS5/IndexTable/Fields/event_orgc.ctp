@@ -1,10 +1,7 @@
 <?php
-// Overmind events index: the creator org, and the reader's grade of it. A
-// remote event's org has no local record to link to.
-$orgc = $row['Orgc'] ?? [];
-$ei = $this->EventIndex;
-echo $ei->orgCell(
-    $orgc,
-    $ei->orgTitle($row),
-    $ei->grade($row['EventCard']['grade'] ?? null, $orgc, $orgGrading ?? null)
-);
+// Overmind events index: the creator org. A remote event's org has no local
+// record to link to.
+echo $this->element('genericElementsBS5/Badges/organisation', [
+    'org' => $row['Orgc'] ?? [],
+    'orgTitle' => $this->EventIndex->orgTitle($row),
+]);
