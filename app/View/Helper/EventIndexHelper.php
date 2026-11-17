@@ -93,6 +93,36 @@ class EventIndexHelper extends AppHelper
         return sprintf('<span class="dk-logo is-mono m%d" aria-hidden="true">%s</span>', $mono['index'], h($mono['letters']));
     }
 
+    /**
+     * An org as the events index's table draws it (org-tile.css): its tile,
+     * its name, linked when it has a local record, and the reader's grade.
+     *
+     * @param array $org id, uuid, name
+     * @param string $title
+     * @param string $grade grade(), already rendered
+     * @param bool $fit the name never shrinks, for a column sized by its content
+     * @return string
+     */
+    public function orgCell(array $org, $title, $grade = '', $fit = false)
+    {
+        $name = h($org['name'] ?? '');
+        $name = empty($org['id'])
+            ? sprintf('<span title="%s">%s</span>', h($title), $name)
+            : sprintf(
+                '<a href="%s" title="%s">%s</a>',
+                h($this->baseurl() . '/organisations/view/' . $org['id']),
+                h($title),
+                $name
+            );
+        return sprintf(
+            '<span class="te-org%s">%s%s%s</span>',
+            $fit ? ' is-fit' : '',
+            $this->orgTile($org, 20),
+            $name,
+            $grade
+        );
+    }
+
     public function orgTitle(array $row)
     {
         $org = $row['Org'] ?? [];

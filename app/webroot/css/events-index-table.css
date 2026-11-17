@@ -89,14 +89,7 @@
 .te-title:focus-visible { outline: 2px solid var(--dk-accent); outline-offset: 1px; border-radius: 2px; }
 .te-extmark { flex: none; font-size: .7rem; color: var(--bs-tertiary-color); cursor: default; }
 
-/* org */
-.te-org { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.te-org .dk-logo { width: 20px; height: 20px; border-radius: 4px; }
-.te-org .dk-logo img { max-width: 20px; max-height: 20px; }
-.te-org .dk-logo.is-mono { font-size: 8.5px; }
-.te-org a { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--bs-body-color); text-decoration: none; }
-.te-org a:hover { color: var(--dk-accent); text-decoration: underline; }
-.te-org .dk-grade { margin-left: auto; }
+/* org: .te-org is in org-tile.css */
 .te-quiet { color: var(--bs-secondary-color); }
 .te-faint { color: var(--bs-tertiary-color); }
 

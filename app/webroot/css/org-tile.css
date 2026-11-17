@@ -13,3 +13,15 @@
 .dk-logo.is-mono { color: #fff; font-size: 9.5px; font-weight: 700; letter-spacing: .02em; background: var(--dk-mono-0); }
 .dk-logo.m1 { background: var(--dk-mono-1); } .dk-logo.m2 { background: var(--dk-mono-2); }
 .dk-logo.m3 { background: var(--dk-mono-3); } .dk-logo.m4 { background: var(--dk-mono-4); } .dk-logo.m5 { background: var(--dk-mono-5); }
+
+/* An org in an index's cell (EventIndexHelper::orgCell()): tile, name, grade. */
+.te-org { display: flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
+.te-org .dk-logo { width: 20px; height: 20px; border-radius: 4px; }
+.te-org .dk-logo img { max-width: 20px; max-height: 20px; }
+.te-org .dk-logo.is-mono { font-size: 8.5px; }
+.te-org a { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--bs-body-color); text-decoration: none; }
+.te-org a:hover { color: var(--dk-accent, var(--bs-link-color)); text-decoration: underline; }
+.te-org .dk-grade { margin-left: auto; }
+/* In a column sized by its content: the name never gives way. */
+.te-org.is-fit > a,
+.te-org.is-fit > span:not(.dk-logo) { flex: none; overflow: visible; }

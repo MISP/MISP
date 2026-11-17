@@ -845,7 +845,7 @@ class MispObject extends AppModel
         }
 
         $ids = array_map('intval', Hash::extract($rows, '{n}.Object.id'));
-        $headlines = $this->__indexHeadlines($user, $rows, $ids);
+        $headlines = $this->indexHeadlines($user, $rows, $ids);
         list($out, $in) = $this->indexReferenceCounts($user, $ids);
 
         $orgIds = array_unique(Hash::extract($rows, '{n}.Event.orgc_id'));
@@ -895,7 +895,7 @@ class MispObject extends AppModel
      * @param int[] $ids
      * @return array object id => ['count' => int, 'headline' => array|null]
      */
-    private function __indexHeadlines(array $user, array $rows, array $ids)
+    public function indexHeadlines(array $user, array $rows, array $ids)
     {
         $attributes = $this->Attribute->fetchAttributesSimple($user, [
             'conditions' => [

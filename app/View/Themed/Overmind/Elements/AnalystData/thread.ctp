@@ -156,38 +156,8 @@ $initials = function ($name) {
     return strtoupper($letters);
 };
 
-$stance = function ($score) {
-    $v = max(0, min(100, (int)$score));
-    if ($v <= 20) {
-        return [__('Strongly disagree'), 'neg', $v];
-    }
-    if ($v <= 40) {
-        return [__('Disagree'), 'neg', $v];
-    }
-    if ($v <= 60) {
-        return [__('Neutral'), 'mid', $v];
-    }
-    if ($v <= 80) {
-        return [__('Agree'), 'pos', $v];
-    }
-    return [__('Strongly agree'), 'pos', $v];
-};
-
-$gauge = function ($score) use ($stance) {
-    list($label, $tone, $v) = $stance($score);
-    $offset = abs($v - 50);
-    if ($v === 50) {
-        $mark = '<span class="adr-gauge-dot"></span>';
-    } else {
-        $side = $v > 50 ? 'left' : 'right';
-        $mark = sprintf('<span class="adr-gauge-fill adr-gauge-%s" style="width:%d%%"></span>', $side, $offset);
-    }
-    return sprintf(
-        '<div class="adr-stance adr-tone-%s" title="%s">'
-        . '<span class="adr-gauge" aria-hidden="true"><span class="adr-gauge-mid"></span>%s</span>'
-        . '<span class="adr-stance-label">%s</span><span class="adr-stance-score">%d</span></div>',
-        $tone, h(__('%s, %s out of 100', $label, $v)), $mark, h($label), $v
-    );
+$gauge = function ($score) {
+    return $this->element('AnalystData/stance', ['score' => $score]);
 };
 
 $button = function ($icon, $label, $url, $class = 'adr-act', $size = null) {

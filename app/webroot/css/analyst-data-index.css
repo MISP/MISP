@@ -1,0 +1,103 @@
+/* Analyst data indexes (Overmind), card view (Elements/AnalystData/index_card):
+   the events index's card (events-index-cards.css) and grid, as tall as what
+   the record says. --adk-c is the kind's colour. */
+
+/* events-index-cards.css may load again further down the page (a target's
+   event peek), hence the doubled class. */
+.dk-card.adk-card {
+    height: 100%;
+}
+.adk-card .dk-lead > .misp-icon { color: var(--adk-c); }
+.adk-card .dk-lead > .fas { font-size: 12px; color: var(--adk-c); }
+
+/* kicker: the note's language, a workspace's original */
+.adk-kick {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 500;
+    color: var(--dk-ink2);
+}
+.adk-kick .text-muted { display: none; }
+.adk-fork {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+.adk-fork a {
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: inherit;
+}
+
+/* head: what the record says, its link covering the card */
+.adk-head {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    margin-top: 6px;
+}
+.adk-main {
+    min-width: 0;
+    color: var(--dk-ink);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+.adk-main::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: var(--dk-radius);
+}
+.adk-main:focus-visible { outline: none; }
+.adk-card:has(.adk-main:focus-visible) { outline: 2px solid var(--dk-accent); outline-offset: 2px; }
+.adk-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+    white-space: pre-line;
+    font-size: .875rem;
+    line-height: 1.45;
+}
+.adk-verb,
+.adk-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: .96rem;
+    font-weight: 650;
+    line-height: 1.3;
+}
+.adk-card:hover :is(.adk-verb, .adk-name) { color: color-mix(in srgb, var(--dk-accent) 70%, var(--dk-ink)); }
+.adk-none { font-style: italic; color: var(--dk-ink3); }
+.adk-head > .adr-stance { font-size: .8rem; }
+.adk-card[data-kind="Workspace"] .adk-head {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+/* what it is about */
+.adk-rows {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 7px 10px;
+    margin: 10px 0 12px;
+}
+.adk-rows > dt { margin: 0; height: 22px; }
+.adk-rows > dd { margin: 0; min-width: 0; }
+.adk-rows .adt { max-width: none; }
+
+/* Above the card's link: the target's links and peek, the grade, the graph. */
+.adk-card :is(.adt a, .adt .ev-ref, .igt, .og-badge) {
+    position: relative;
+    z-index: 2;
+}
