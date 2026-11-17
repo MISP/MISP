@@ -24,6 +24,10 @@ class ValueFacetTool
     // Addresses per containing() statement
     const PROBE_ADDRESSES = 500;
 
+    // CIDRs with a shorter prefix than this (IPv4 /8, IPv6 /16) do not correlate
+    const MIN_CORRELATION_PREFIX_V4 = 8;
+    const MIN_CORRELATION_PREFIX_V6 = 16;
+
     // IPv4 is stored in the v4-mapped block, ::ffff:0:0/96
     const V4_FIRST = "\0\0\0\0\0\0\0\0\0\0\xff\xff\0\0\0\0";
     const V4_LAST = "\0\0\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff";
@@ -103,6 +107,20 @@ class ValueFacetTool
     }
 
     /**
+     * @param array $range [start, end, prefix] as ipRange() returns it
+     * @return bool Whether the range is a CIDR too broad to correlate on.
+     */
+    public static function isTooBroadToCorrelate(array $range)
+    {
+        if ($range[2] >= 128) {
+            return false;
+        }
+        return self::isIpv4($range[0])
+            ? $range[2] < 96 + self::MIN_CORRELATION_PREFIX_V4
+            : $range[2] < self::MIN_CORRELATION_PREFIX_V6;
+    }
+
+    /**
      * The starts a range holding the address can have: the address under
      * each mask. An IPv4 address is held only by IPv4 ranges, never by an
      * IPv6 range wider than the v4-mapped block.
@@ -163,9 +181,10 @@ class ValueFacetTool
      * address itself, in any spelling.
      *
      * @param array $addresses [key => 16-byte address]
+     * @param bool $correlating Leave out the CIDRs too broad to correlate on.
      * @return array [key => [value id => true for a range wider than one address]]
      */
-    public function containing(array $addresses)
+    public function containing(array $addresses, $correlating = false)
     {
         $found = [];
         foreach (array_chunk($addresses, self::PROBE_ADDRESSES, true) as $chunk) {
@@ -183,6 +202,18 @@ class ValueFacetTool
                 $this->db->name('ip_start'),
                 implode(', ', array_map([$this->dialect, 'binaryLiteral'], array_values(array_unique(array_merge(...array_values($starts))))))
             );
+            if ($correlating) {
+                $prefix = $this->db->name('prefix');
+                $sql .= sprintf(
+                    ' AND %1$s >= %2$d AND (%1$s >= %3$d OR %4$s NOT BETWEEN %5$s AND %6$s)',
+                    $prefix,
+                    self::MIN_CORRELATION_PREFIX_V6,
+                    96 + self::MIN_CORRELATION_PREFIX_V4,
+                    $this->db->name('ip_start'),
+                    $this->dialect->binaryLiteral(self::V4_FIRST),
+                    $this->dialect->binaryLiteral(self::V4_LAST)
+                );
+            }
             $rows = [];
             foreach ($this->fetchRows($sql) as $row) {
                 $rows[$this->bytes($row['ip_start'])][] = [(int)$row['value_id'], $this->bytes($row['ip_end'])];
