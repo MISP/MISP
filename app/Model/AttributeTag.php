@@ -314,6 +314,51 @@ class AttributeTag extends AppModel
 
 
     // Fetch all tags attached to attribute belonging to supplied event. No ACL if user not provided
+    /**
+     * How many attributes of the events, among those $user can see, carry
+     * each tag of one galaxy.
+     *
+     * @param array $user
+     * @param array $eventIds
+     * @param string $galaxyType e.g. mitre-attack-pattern
+     * @return array tag name => attribute count
+     */
+    public function galaxyTagCounts(array $user, array $eventIds, $galaxyType)
+    {
+        $prefix = 'misp-galaxy:' . $galaxyType . '=';
+        $conditions = [
+            'AttributeTag.event_id' => $eventIds,
+            'Tag.name LIKE' => str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $prefix) . '%',
+            'Attribute.deleted' => 0,
+            'OR' => ['Attribute.object_id' => 0, 'Object.deleted' => 0],
+        ];
+        $acl = $this->Attribute->buildConditions($user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
+        }
+        $rows = $this->find('all', [
+            'recursive' => -1,
+            'fields' => ['Tag.name', 'COUNT(DISTINCT AttributeTag.attribute_id) AS count'],
+            'joins' => [
+                ['table' => 'tags', 'alias' => 'Tag', 'type' => 'INNER',
+                    'conditions' => ['Tag.id = AttributeTag.tag_id']],
+                ['table' => 'attributes', 'alias' => 'Attribute', 'type' => 'INNER',
+                    'conditions' => ['Attribute.id = AttributeTag.attribute_id']],
+                ['table' => 'events', 'alias' => 'Event', 'type' => 'INNER',
+                    'conditions' => ['Event.id = Attribute.event_id']],
+                ['table' => 'objects', 'alias' => 'Object', 'type' => 'LEFT',
+                    'conditions' => ['Object.id = Attribute.object_id']],
+            ],
+            'conditions' => $conditions,
+            'group' => ['Tag.name'],
+        ]);
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row['Tag']['name']] = (int)$row[0]['count'];
+        }
+        return $counts;
+    }
+
     public function getTagScores($user=false, $eventId=0, $allowedTags=array())
     {
         if ($user === false) {

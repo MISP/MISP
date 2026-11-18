@@ -58,13 +58,14 @@ function showToast(message, variant = 'success') {
  * the dialog for every later open.
  *
  *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *   'fullscreen' the whole viewport (the galaxy matrix)
  *******************************/
 function setModalSize(size, dialog) {
     dialog = dialog || document.querySelector('#mainModal .modal-dialog');
     if (!dialog) {
         return;
     }
-    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl', 'modal-fullscreen');
     if (size && size !== 'md') {
         dialog.classList.add('modal-' + size);
     }

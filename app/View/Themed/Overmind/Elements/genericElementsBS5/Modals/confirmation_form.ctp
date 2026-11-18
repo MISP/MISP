@@ -15,8 +15,9 @@
  *   $url          => POST target
  *   $message      => the question
  * Optional:
- *   $hiddenField  => name of the hidden field carrying the payload (default 'id');
- *                    false when the payload already travels in the POST URL
+ *   $hiddenField  => name of the hidden field carrying the payload (default 'id'),
+ *                    or a list of them; false when the payload already travels
+ *                    in the POST URL
  *   $submitLabel  => submit button label (default Yes)
  *   $submitIcon   => Font Awesome icon name without the "fa-" prefix; it also
  *                    becomes the header's watermark glyph
@@ -125,7 +126,9 @@ $text = function ($value) use ($escape) {
         'class' => 'm-0',
     ]);
     if ($hiddenField !== false) {
-        echo $this->Form->hidden($hiddenField);
+        foreach ((array)$hiddenField as $field) {
+            echo $this->Form->hidden($field);
+        }
     }
     ?>
 
