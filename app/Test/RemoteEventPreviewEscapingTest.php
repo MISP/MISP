@@ -141,12 +141,12 @@ class RemoteEventPreviewEscapingTest extends TestCase
         }
     }
 
-    public function testOvermindPreviewCopiesTheRemoteUuidAsAString()
+    /** The remote object preview draws each object's foot (Objects/object_index_detail). */
+    public function testOvermindObjectFootCopiesTheRemoteUuidAsAString()
     {
-        $object = $this->remoteObject('uuid') + ['id' => 1, 'objectType' => 'object'];
         $html = $this->render(
-            'Themed/Overmind/Elements/Servers/View/preview_object.ctp',
-            ['data' => ['Event' => ['id' => 1], 'objects' => [$object]]]
+            'Themed/Overmind/Elements/Objects/object_foot.ctp',
+            ['object' => $this->remoteObject('uuid')]
         );
         $this->assertEscaped($html);
         $copies = array_values(array_filter($this->handlers($html), function ($handler) {

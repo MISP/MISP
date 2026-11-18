@@ -16,9 +16,10 @@ $version = (string)($object['template_version'] ?? '');
     <span class="oi-card-uuid">
         <i class="fas fa-fingerprint"></i>
         <code class="user-select-all"><?= h($uuid) ?></code>
+        <?php // A remote preview passes the other side's uuid, which nothing validated ?>
         <button type="button" class="btn btn-sm btn-link p-0 lh-1"
                 title="<?= h(__('Copy UUID')) ?>"
-                onclick="copyValueToClipboard('<?= h($uuid) ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
+                onclick="copyValueToClipboard(<?= h(json_encode($uuid)) ?>, <?= h(json_encode(__('UUID copied to clipboard'))) ?>);">
             <i class="fas fa-copy"></i>
         </button>
     </span>
