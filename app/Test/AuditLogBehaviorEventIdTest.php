@@ -45,7 +45,9 @@ class AuditLogBehaviorEventIdTest extends TestCase
         if (!class_exists('AppModel', false)) {
             class_alias('AuditLogEventIdAppModelStub', 'AppModel');
         }
-        require_once __DIR__ . '/../Model/AuditLog.php';
+        if (!class_exists('AuditLog', false)) {
+            require_once __DIR__ . '/../Model/AuditLog.php';
+        }
         require_once __DIR__ . '/../Model/Behavior/AuditLogBehavior.php';
     }
 
