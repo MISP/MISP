@@ -18,16 +18,11 @@ if (!class_exists('App', false)) {
 if (!class_exists('AppModel', false)) {
     class AppModel
     {
+        public $validationErrors = [];
     }
 }
 if (!class_exists('Inflector', false)) {
-    class Inflector
-    {
-        public static function underscore($word)
-        {
-            return strtolower(preg_replace('/(?<=\w)([A-Z])/', '_$1', $word));
-        }
-    }
+    require_once __DIR__ . '/../Lib/cakephp/lib/Cake/Utility/Inflector.php';
 }
 
 require_once __DIR__ . '/../Model/AnalystData.php';

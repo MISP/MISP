@@ -124,6 +124,19 @@ ALLOW = [Entry(*e) for e in [
     ('app/Model/MispAttribute.php', 'MispAttribute::buildFilterConditions',
      'filter names, which reach generic_add_filter as plain keys',
      ('dynamic',), 2),
+    ('app/Model/MispAttribute.php', 'MispAttribute::REST_SEARCH_ORDER_FIELDS',
+     'the sortable fields of findOrder and the query order check: value is '
+     'translated, no value column is listed', ('fields',), 1),
+    ('app/Test/BroExportEventInfoTest.php',
+     'BroExportEventInfoTest::stubClass',
+     'a hydrated row in eval\'d PHP source, read by the exporter',
+     ('condition',), 1),
+    ('app/Test/BroExportSeparatorTest.php',
+     'BroExportSeparatorTest::testOrganisationNameCannotBreakTheLine',
+     'a hydrated row handed to the exporter, read in PHP', ('dynamic',), 1),
+    ('app/Test/CidrCorrelationFloorTest.php', 'CidrCorrelationFloorTest::cidr',
+     'a hydrated row handed to cidrCorrelation, read in PHP',
+     ('dynamic',), 1),
 ]]
 
 # Sites still reading the text columns, by the task that moves them. That

@@ -41,7 +41,7 @@ if (!class_exists('NotFoundException', false)) {
 if (!class_exists('Validation', false)) {
     class Validation
     {
-        public static function uuid($value) { return preg_match('/^[0-9a-f-]{36}$/i', $value); }
+        public static function uuid($value) { return (bool)preg_match('/^[0-9a-f-]{36}$/i', $value); }
     }
 }
 if (!function_exists('__')) {
