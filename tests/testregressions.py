@@ -3274,7 +3274,11 @@ class OrganisationDetailsSyncScope(unittest.TestCase):
                                   'SharingGroupOrg': roster}}
         response = connector._prepare_request('POST', 'events/add', data=event)
         self.assertEqual(200, response.status_code, response.text[:300])
-        created = response.json().get('Event', {})
+        try:
+            created = response.json().get('Event', {})
+        except ValueError:
+            self.fail('events/add answered %s (redirects %s) with a non-JSON body: %s' % (
+                response.url, [r.status_code for r in response.history], response.text[:2000]))
         self.assertTrue(created.get('id'), response.text[:300])
         self.event_ids.append(int(created['id']))
         self.event_uuids.append(created['uuid'])
