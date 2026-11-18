@@ -3459,7 +3459,14 @@ class UsersController extends AppController
         if ($this->_isSiteAdmin()) {
             return true;
         }
-        return !Configure::read('MISP.disable_user_login_change');
+        if (Configure::read('MISP.disable_user_login_change')) {
+            return false;
+        }
+        // External backends find accounts by e-mail: a self-chosen address
+        // would capture a directory identity on its first login.
+        return empty(Configure::read('Security.auth')) &&
+            !Configure::read('ApacheSecureAuth.apacheEnv') &&
+            !Configure::read('Plugin.CustomAuth_enable');
     }
 
     /**

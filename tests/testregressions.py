@@ -5295,5 +5295,114 @@ class LoginLockoutCanonicalAddress(unittest.TestCase):
         self.assertTrue(self._login(lower, other_password, other.email)[1], 'lower-case variant did not log in')
 
 
+class LoginChangeExternalAuth(unittest.TestCase):
+    """While external authentication is configured, only site admins may change a login e-mail.
+
+    LDAP/Shibboleth-style backends find accounts by e-mail, so a self-chosen address would
+    capture a directory identity on its first login. CustomAuth is the switchable signal; its
+    header is parked on an unused name first so it never captures the suite's API requests.
+    """
+    HEADER = 'Plugin.CustomAuth_header'
+    ENABLE = 'Plugin.CustomAuth_enable'
+
+    @classmethod
+    def _setting(cls, name):
+        return send(cls.admin, 'GET', 'servers/getSetting/%s' % name)['value']
+
+    @classmethod
+    def _set(cls, name, value):
+        send(cls.admin, 'POST', 'servers/serverSettingsEdit/%s' % name, data={'value': value})
+        got = cls._setting(name)
+        if got != value:
+            raise Exception('%s is %r, wanted %r' % (name, got, value))
+
+    @classmethod
+    def _external_auth(cls, on):
+        if on:
+            cls._set(cls.HEADER, 'X_MISP_REGRESSION_UNUSED')
+            cls._set(cls.ENABLE, True)
+        else:
+            cls._set(cls.ENABLE, False)
+            cls._set(cls.HEADER, 'AUTHORIZATION')
+
+    @classmethod
+    def _role(cls, name):
+        for entry in send(cls.admin, 'GET', 'roles'):
+            role = entry['Role'] if 'Role' in entry else entry
+            if role['name'] == name:
+                return int(role['id'])
+        raise unittest.SkipTest('no stock %s role' % name)
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.users = []
+        cls.org = None
+        try:
+            cls.org = make_org(cls.admin, 'regression login change org')
+            cls.org_admin = make_user(cls.admin, cls.org.id, cls._role('Org Admin'))
+            cls.plain = make_user(cls.admin, cls.org.id, cls._role('User'))
+            cls.users = [cls.org_admin, cls.plain]
+            cls.clients = {}
+            for name, user in (('org_admin', cls.org_admin), ('plain', cls.plain)):
+                created = send(cls.admin, 'POST', 'authKeys/add/%s' % user.id,
+                               data={'comment': 'regression'})
+                cls.clients[name] = PyMISP(url, created['AuthKey']['authkey_raw'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls._external_auth(False)
+        finally:
+            for user in cls.users:
+                cls.admin.delete_user(user.id)
+            if cls.org is not None:
+                cls.admin.delete_organisation(cls.org.id)
+
+    def _email(self):
+        return send(self.admin, 'GET', 'admin/users/view/%s' % self.plain.id)['User']['email']
+
+    def _attempt(self, editor):
+        """Change the plain user's e-mail as `editor`; returns (target, stored address)."""
+        target = 'captured-%s@test.local' % random()
+        if editor == 'plain':
+            api, path = self.clients['plain'], 'users/edit/me'
+        elif editor == 'org_admin':
+            api, path = self.clients['org_admin'], 'admin/users/edit/%s' % self.plain.id
+        else:
+            api, path = self.admin, 'admin/users/edit/%s' % self.plain.id
+        response = api._prepare_request('POST', path, data={'email': target})
+        print('%s -> %s %s' % (editor, response.status_code, response.text[:120]))
+        return target, self._email()
+
+    def _run(self, editor, external):
+        self._external_auth(external)
+        try:
+            return self._attempt(editor)
+        finally:
+            self._external_auth(False)
+
+    def test_self_service_login_change_without_external_auth(self):
+        target, stored = self._run('plain', False)
+        self.assertEqual(target, stored)
+
+    def test_self_service_login_change_refused_with_external_auth(self):
+        target, stored = self._run('plain', True)
+        self.assertNotEqual(target, stored, 'the e-mail change was accepted')
+
+    def test_org_admin_login_change_refused_with_external_auth(self):
+        target, stored = self._run('org_admin', True)
+        self.assertNotEqual(target, stored, 'the e-mail change was accepted')
+
+    def test_site_admin_login_change_allowed_with_external_auth(self):
+        target, stored = self._run('site_admin', True)
+        self.assertEqual(target, stored)
+
+
 if __name__ == '__main__':
     unittest.main()
