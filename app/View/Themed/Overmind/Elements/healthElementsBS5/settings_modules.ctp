@@ -46,7 +46,6 @@ $serviceSection = array(
     'errorsByLevel' => $errorsByLevel,
 );
 $counts = array(
-    'all' => count($modules),
     'enabled' => count(array_filter(array_column($modules, 'enabled'))),
     'config' => count(array_filter(array_column($modules, 'needsConfig'))),
 );
@@ -67,25 +66,24 @@ $counts = array(
 
 <div class="row g-3 ss-modules" data-ss-modules>
     <div class="col-xl-8">
+        <?= $this->element('healthElementsBS5/settings_filter_bar', array(
+            'search' => array(
+                'attr' => 'data-ss-module-filter',
+                'placeholder' => __('Filter modules'),
+            ),
+            'toggles' => array(
+                array(
+                    'key' => 'enabled', 'label' => __('Only enabled'), 'icon' => 'fas fa-toggle-on',
+                    'count' => $counts['enabled'], 'countAttr' => array('data-ss-module-count' => 'enabled'),
+                ),
+                array(
+                    'key' => 'config', 'label' => __('Only needing configuration'), 'icon' => 'fas fa-circle-exclamation',
+                    'count' => $counts['config'], 'countAttr' => array('data-ss-module-count' => 'config'),
+                ),
+            ),
+            'toggleAttr' => 'data-ss-module-only',
+        )) ?>
         <div class="card shadow-sm">
-            <div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center border-bottom">
-                <div class="flex-grow-1" style="max-width: 320px; min-width: 200px;">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text"><i class="fas fa-magnifying-glass"></i></span>
-                        <input class="form-control" type="search" data-ss-module-filter autocomplete="off"
-                               aria-label="<?= h(__('Filter modules')) ?>" placeholder="<?= h(__('Filter modules')) ?>">
-                    </div>
-                </div>
-                <button type="button" class="ss-toggle active" data-ss-module-chip="all" aria-pressed="true">
-                    <?= __('All') ?> <span class="text-muted"><?= h($counts['all']) ?></span>
-                </button>
-                <button type="button" class="ss-toggle" data-ss-module-chip="enabled" aria-pressed="false">
-                    <span class="ss-dot ss-dot-2"></span><?= __('Enabled') ?> <span class="text-muted" data-ss-module-count="enabled"><?= h($counts['enabled']) ?></span>
-                </button>
-                <button type="button" class="ss-toggle" data-ss-module-chip="config" aria-pressed="false">
-                    <span class="ss-dot ss-dot-1"></span><?= __('Needs configuration') ?> <span class="text-muted" data-ss-module-count="config"><?= h($counts['config']) ?></span>
-                </button>
-            </div>
             <div class="card-body">
                 <div class="ss-module-grid">
                     <?php foreach ($modules as $id => $module): ?>

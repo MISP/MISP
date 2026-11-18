@@ -7,6 +7,14 @@ $headerDescription = __('');
 
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
+if ($isSiteAdmin) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Managed Imported Pictures'),
+        'icon' => 'images',
+        'url' => $baseurl . '/eventReports/managedImportedPictures',
+    ];
+}
 
 $this->set('headerTitle', $headerTitle);
 $this->set('headerDescription', $headerDescription);

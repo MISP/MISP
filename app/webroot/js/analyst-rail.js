@@ -58,6 +58,13 @@
     });
 
     document.addEventListener('shown.bs.tab', function () { markClamps(document); });
+    // An index's cells: when its fragment arrives, and when it swaps table and cards
+    document.addEventListener('misp:container-loaded', function (e) { markClamps(e.target); });
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('#viewList, #viewCard')) {
+            setTimeout(function () { markClamps(document); });
+        }
+    });
     document.addEventListener('shown.bs.modal', function () { markClamps(document); });
 
     if (document.readyState === 'loading') {

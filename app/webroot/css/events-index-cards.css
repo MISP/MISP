@@ -1,6 +1,8 @@
 /* Overmind events index — card view (Elements/Events/index_card.ctp). */
 
-.dk-index {
+/* The tokens also serve an event's peek (Events/peek). */
+.dk-index,
+.ev-peek-popover {
     --dk-card-h: 252px;
     --dk-gap: 12px;
     --dk-radius: 10px;
@@ -20,7 +22,7 @@
     --dk-gx-hair: #dacbfc;
     --dk-mk-clear: #c9ccd1;
 }
-[data-misp-mode="dark"] .dk-index {
+[data-misp-mode="dark"] :is(.dk-index, .ev-peek-popover) {
     --dk-amber-ink: #f0a02a;
     --dk-amber-bg: #3a2c10;
     --dk-amber-line: #a8741a;
@@ -90,8 +92,8 @@
 .dk-state.is-unpub::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; margin-right: 5px; vertical-align: 1px; }
 .dk-state.is-pending { color: var(--dk-amber-ink); background: var(--dk-amber-bg); border: 1px solid var(--dk-amber-line); border-radius: 999px; padding: 0 7px 0 6px; line-height: 16px; }
 .dk-state.is-pending::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--dk-amber-line); margin-right: 5px; vertical-align: 1px; }
-.dk-id { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--dk-ink2); }
-.dk-menu { position: relative; z-index: 3; }
+.dk-id { flex: none; font-variant-numeric: tabular-nums; color: var(--dk-ink2); }
+.dk-menu { margin-left: auto; position: relative; z-index: 3; }
 .dk-menu .checkbox-actions-wrapper { margin: 0; background: none; border-radius: 0; }
 .dk-menu .row-menu-toggle {
     width: 22px; height: 20px; padding: 0 !important; border: 0; border-radius: 5px;
@@ -114,11 +116,7 @@
 
 /* org + marking */
 .dk-org { display: flex; align-items: center; gap: 7px; margin-top: 7px; height: 24px; min-width: 0; }
-.dk-orgname {
-    position: relative; z-index: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-size: .84rem; font-weight: 600; color: var(--dk-ink); text-decoration: none;
-}
-.dk-orgname:hover { color: var(--dk-accent); text-decoration: underline; }
+.dk-org .org-id { position: relative; z-index: 2; font-size: .84rem; }
 .dk-marks { margin-left: auto; display: flex; gap: 4px; flex: none; }
 .dk-mk {
     --c: #888;
@@ -163,9 +161,9 @@
 .dk-chip > span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .dk-chip i { font-size: .82em; flex: none; }
 .dk-chip:focus-visible { outline: 2px solid var(--dk-accent); outline-offset: 1px; }
-.dk-chip.is-gx { background: var(--dk-gx-wash); border-color: var(--dk-gx-hair); }
+.dk-chip.is-gx { background: var(--dk-gx-wash); border-color: color-mix(in srgb, var(--dk-gx) 60%, transparent); }
 .dk-chip.is-gx i { color: var(--dk-gx-ink); }
-.dk-chip.is-attr { border-color: color-mix(in srgb, var(--dk-gx) 60%, transparent); font-weight: 600; }
+.dk-chip.is-attr {font-weight: 600; }
 .dk-chip.is-unheld { border-style: dashed; background: transparent; }
 .dk-chip.is-tag { border-left: 3px solid var(--tc, var(--dk-line)); padding-left: 6px; }
 [data-misp-mode="dark"] .dk-chip.is-tag { border-left-color: color-mix(in srgb, var(--tc, var(--dk-line)) 70%, #fff); }
@@ -330,6 +328,7 @@
 .dk-n b { font-size: 1rem; font-weight: 650; color: var(--dk-ink); margin-right: 4px; }
 .dk-n.is-zero b { color: var(--dk-ink3); font-weight: 500; }
 .dk-n.is-zero > i { opacity: .38; }
+a.dk-n, a.dk-n:hover { color: inherit; text-decoration: none; cursor: pointer; }
 .dk-card { container-type: inline-size; }
 @container (max-width: 380px) {
     .dk-foot:has(.dk-xtra) .dk-n { min-width: 3.3em; }

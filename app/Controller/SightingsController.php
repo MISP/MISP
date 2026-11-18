@@ -136,14 +136,17 @@ class SightingsController extends AppController
         }
         $input_id = $id;
         $id = $this->Sighting->explodeIdList($id);
+        $user = $this->Auth->user();
+        $attributes = [];
+        $events = [];
         if ($context == 'attribute') {
             $this->loadModel('MispAttribute');
-            $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
+            $attributes = $this->MispAttribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
             if (empty($attributes)) {
                 throw new MethodNotAllowedException('Invalid attribute.');
             }
         } else {
-            $events = $this->Sighting->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'metadata' => true));
+            $events = $this->Sighting->Event->fetchEvent($user, array('eventid' => $id, 'metadata' => true));
             if (empty($events)) {
                 throw new MethodNotAllowedException('Invalid event.');
             }
@@ -151,6 +154,22 @@ class SightingsController extends AppController
         $this->set('context', $context);
         $this->set('id', $input_id);
         if ($this->theme === "Overmind") {
+            // The modal draws its journal, summary and timeline from one list.
+            App::uses('SightingDigestTool', 'Tools');
+            $sightings = $this->Sighting->listSightings($user, $id, $context);
+            $sightedIds = array_unique(Hash::extract($sightings, '{n}.Sighting.attribute_id'));
+            if ($context !== 'attribute' && !empty($sightedIds)) {
+                $this->loadModel('MispAttribute');
+                $attributes = $this->MispAttribute->fetchAttributes($user, [
+                    'conditions' => ['Attribute.id' => $sightedIds],
+                    'flatten' => 1,
+                ]);
+            }
+            $this->set('attributes', Hash::combine($attributes, '{n}.Attribute.id', '{n}'));
+            $this->set('event', $context === 'attribute' ? ($attributes[0]['Event'] ?? []) : $events[0]['Event']);
+            $this->set('sightings', $sightings);
+            $this->set('summary', SightingDigestTool::summary($sightings, $user['org_id']));
+            $this->set('timeline', SightingDigestTool::timeline($sightings));
             $this->layout = false;
         }
         $this->render('/Sightings/ajax/advanced');

@@ -69,13 +69,13 @@ $fields = [
         'card_section' => 'top',
         'display_in' => ['table', 'card'],
     ],
+    // The event the proposal is for, a peek on hover.
     [
         'name' => __('Event'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id, Event.info',
-        'element' => 'event',
-        'org_data_path' => 'Event.Orgc',
-        'url' => $baseurl . '/events/view/%event_id%',
+        'element' => 'event_peek',
+        'header_class' => 'idx-col-event_peek',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],

@@ -19,11 +19,9 @@
  *        'col'         => 3,                 // bootstrap column width
  *        'placeholder' => '', 'step' => '', 'help' => '',
  *      ]
- *  - $input_class : extra classes on every control. This is where the two
- *                   bars differ and the only reason this is a parameter: the
- *                   log card wires TomSelect through `tom-select`, the
- *                   scaffold through `topbar-filter`, and the scaffold's URL
- *                   builders read `.topbar-filter[name]`.
+ *  - $input_class : extra classes on every control; the scaffold wires
+ *                   TomSelect through `topbar-filter`, and its URL builders
+ *                   read `.topbar-filter[name]`.
  */
 $fields = $fields ?? [];
 $inputClass = $input_class ?? '';

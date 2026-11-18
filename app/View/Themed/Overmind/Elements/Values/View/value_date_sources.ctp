@@ -26,6 +26,8 @@
  * @var string $clockLabel The clock setting, in words
  * @var int|null $lastSighting Newest `date_sighting`, or null
  * @var int $sightingTotal
+ * @var bool $roomy Drawn at reading size, for a wide modal rather than
+ *                  a card on the value page
  */
 $lastSighting = isset($lastSighting) ? $lastSighting : null;
 $sightingTotal = isset($sightingTotal) ? (int)$sightingTotal : 0;
@@ -167,7 +169,7 @@ $rows = array(
     ),
 );
 ?>
-<details class="vp-dates">
+<details class="vp-dates<?= empty($roomy) ? '' : ' is-roomy' ?>">
     <summary>
         <?= h(__('The dates behind this')) ?>
         <span class="vp-dates-sub"><?= h(sprintf(

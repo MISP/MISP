@@ -12,18 +12,18 @@ $submitId = $isEdit
     : h($event['Event']['id'] ?? '');
 
 /* Initial card border colours */
-$toIdsChecked        = !empty($attrData['to_ids']);
-$disableCorrelChecked = !empty($attrData['disable_correlation']);
+$toIdsChecked   = !empty($attrData['to_ids']);
+$correlChecked  = empty($attrData['disable_correlation']);
 
-$idsBorder    = $toIdsChecked        ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-line, #dee2e6)';
-$correlBorder = $disableCorrelChecked ? 'var(--misp-check-off-line, #dee2e6)'  : 'var(--misp-tone-green-solid, #198754)';
+$idsBorder    = $toIdsChecked  ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-line, #dee2e6)';
+$correlBorder = $correlChecked ? 'var(--misp-tone-green-solid, #198754)'  : 'var(--misp-check-off-line, #dee2e6)';
 
 $idsIconStyle    = $toIdsChecked
     ? 'color:var(--misp-tone-yellow-solid, #ffc107);opacity:1;'
     : 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;';
-$correlIconStyle = $disableCorrelChecked
-    ? 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;'
-    : 'color:var(--misp-tone-green-solid, #198754);opacity:1;';
+$correlIconStyle = $correlChecked
+    ? 'color:var(--misp-tone-green-solid, #198754);opacity:1;'
+    : 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;';
 
 /*
  * An attribute inside an object takes its category and type from the object's
@@ -31,6 +31,7 @@ $correlIconStyle = $disableCorrelChecked
  */
 $lockedByObject = $isEdit && !empty($objectAttribute);
 $lockedMessage  = __('Category and type come from the object template and cannot be changed on an attribute that belongs to an object.');
+$typeLocked     = $lockedByObject || ($isEdit && !empty($attachment));
 
 echo $this->Form->create('Attribute', ['novalidate' => true]);
 ?>
@@ -51,47 +52,51 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="row g-3">
 
             <div class="col-md-6" data-tour="attribute-category">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Category') ?>
-                    <span class="badge bg-attribute"
-                          style="font-size:.55rem; opacity:.8; font-weight:700;">
-                        <?= __('REQUIRED') ?>
-                    </span>
-                </div>
-                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
-                    <?= $this->Form->select('category', $categories, array_filter([
-                        'id'    => 'AttributeCategory',
-                        'class' => 'form-select',
-                        'value' => $currentCat,
-                        'empty' => __('(choose one)'),
-                        'disabled' => $lockedByObject,
-                        'data-locked' => $lockedByObject ? '1' : null,
-                    ], function ($v) { return $v !== null && $v !== false; })) ?>
-                </span>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('Category'),
+                    'required' => true,
+                    'for' => 'AttributeCategory',
+                ]) ?>
+                <?= $this->element('genericElementsBS5/Forms/input_field', [
+                    'type' => 'select',
+                    'field' => 'category',
+                    'id' => 'AttributeCategory',
+                    'accent' => 'attribute',
+                    'icon' => 'fas fa-layer-group',
+                    'options' => $categories,
+                    'value' => $currentCat,
+                    'empty' => __('Choose a category'),
+                    'locked' => $lockedByObject,
+                    'lockedTitle' => $lockedMessage,
+                ]) ?>
                 <div id="notice_category" class="mt-2"
                      style="display:none;overflow:hidden;"></div>
             </div>
 
             <div class="col-md-6" data-tour="attribute-type">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Type') ?>
-                    <span class="badge bg-attribute"
-                          style="font-size:.55rem; opacity:.8; font-weight:700;">
-                        <?= __('REQUIRED') ?>
-                    </span>
-                </div>
-                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
-                    <?= $this->Form->select('type', $types, array_filter([
-                        'id'       => 'AttributeType',
-                        'class'    => 'form-select',
-                        'value'    => $currentType,
-                        'empty'    => __('(choose category first)'),
-                        'disabled' => ($isEdit && !empty($attachment)) || $lockedByObject,
-                        'data-locked' => $lockedByObject ? '1' : null,
-                    ], function ($v) { return $v !== null && $v !== false; })) ?>
-                </span>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('Type'),
+                    'required' => true,
+                    'for' => 'AttributeType',
+                ]) ?>
+                <?= $this->element('genericElementsBS5/Forms/input_field', [
+                    'type' => 'select',
+                    'field' => 'type',
+                    'id' => 'AttributeType',
+                    'accent' => 'attribute',
+                    'icon' => 'fas fa-shapes',
+                    'options' => $types,
+                    'value' => $currentType,
+                    'empty' => __('Choose a category first'),
+                    'locked' => $typeLocked,
+                    'lockedTitle' => $lockedByObject ? $lockedMessage : null,
+                    'inputAttrs' => [
+                        'data-placeholder-first' => __('Choose a category first'),
+                        'data-placeholder-pick' => __('Choose a type'),
+                    ],
+                ]) ?>
                 <div id="notice_type" class="mt-2" style="display:none;"></div>
             </div>
 
@@ -100,25 +105,37 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
         <!-- ── VALUE ───────────────────────────────────────────── -->
         <div class="w-100" data-tour="attribute-value">
-            <div class="text-attribute fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Value') ?>
-                <span class="badge bg-attribute"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
-            <?= $this->Form->textarea('value', [
-                'id'          => 'AttributeValue',
-                'class'       => 'w-100 rounded-2 p-3',
-                'style'       => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical;'
-                    . ' outline:none; font-size:.9rem; min-height:88px;'
-                    . ' color:inherit; font-family:inherit;',
-                'rows'        => 4,
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'attribute',
+                'label' => __('Value'),
+                'required' => true,
+                'for' => 'AttributeValue',
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/input_field', [
+                'type' => 'textarea',
+                'field' => 'value',
+                'id' => 'AttributeValue',
+                'accent' => 'attribute',
+                'mono' => true,
+                'rows' => 3,
                 'placeholder' => __('Enter the indicator value, hash, IP, domain, or raw observable…')
                     . "\n\n"
                     . __('For batch import, enter one value per line.'),
+                /* initAttributeForm() fills both halves as the value, the type
+                 * and the batch switch change. */
+                'footHtml' => sprintf(
+                    '<span data-value-check></span><span data-value-count></span>'
+                        . '<script type="application/json" data-value-labels>%s</script>',
+                    json_encode([
+                        'checked' => __('Checked as'),
+                        'pick' => __('Pick a type to check the value'),
+                        'batch' => __('One value per line with Batch import'),
+                        'char' => __('1 character'),
+                        'chars' => __('%s characters'),
+                        'value' => __('1 value'),
+                        'values' => __('%s values'),
+                    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)
+                ),
             ]) ?>
         </div>
 
@@ -127,13 +144,16 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="w-100">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
                 'accent' => 'attribute',
-                'label' => __('Contextual Comment'),
+                'label' => __('Comment'),
+                'for' => 'AttributeComment',
             ]) ?>
-            <?= $this->Form->text('comment', [
-                'id'          => 'AttributeComment',
-                'class'       => 'w-100 border-0 bg-transparent py-1',
-                'style'       => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
-                    . ' outline:none; font-size:.925rem;',
+            <?= $this->element('genericElementsBS5/Forms/input_field', [
+                'type' => 'textarea',
+                'field' => 'comment',
+                'id' => 'AttributeComment',
+                'accent' => 'attribute',
+                'icon' => 'fas fa-comment',
+                'rows' => 2,
                 'placeholder' => __('Add a contextual comment…'),
             ]) ?>
         </div>
@@ -223,23 +243,28 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                                   h-100 w-100 user-select-none mb-0"
                            style="cursor:pointer; border:1px solid <?= $correlBorder ?>;
                                   transition:border-color .15s;">
+                        <?php /* Ticked posts disable_correlation=0, unticked the hidden 1. */ ?>
                         <?= $this->Form->checkbox('disable_correlation', [
-                            'id'    => 'AttributeDisableCorrelation',
-                            'class' => 'form-check-input flex-shrink-0',
-                            'style' => 'margin-top:0;',
+                            'id'          => 'AttributeCorrelate',
+                            'value'       => '0',
+                            'hiddenField' => '1',
+                            'checked'     => $correlChecked,
+                            'class'       => 'form-check-input flex-shrink-0',
+                            'style'       => 'margin-top:0;',
+                            'data-locked-title' => __('This type never correlates'),
                         ]) ?>
                         <div class="flex-fill">
                             <div class="fw-bold text-uppercase"
                                  style="font-size:.72rem; letter-spacing:.06em; line-height:1.2;">
-                                <?= __('Disable Correlation') ?>
+                                <?= __('Correlation') ?>
                             </div>
                             <div class="text-muted"
                                  style="font-size:.76rem; margin-top:.2rem; line-height:1.3;">
-                                <?= __('Exclude from correlation engine') ?>
+                                <?= __('Match the value against other events') ?>
                             </div>
                         </div>
                         <i id="icon-correl"
-                           class="fas fa-<?= $disableCorrelChecked ? 'link-slash' : 'link' ?>"
+                           class="fas fa-<?= $correlChecked ? 'link' : 'link-slash' ?>"
                            style="font-size:.95rem; <?= $correlIconStyle ?>
                                   transition:color .15s;"></i>
                     </label>
@@ -255,8 +280,8 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                     <strong><?= __('FOR IDS') ?></strong>
                     <?= __('means that this attribute should trigger detection rules and is not for contextual reference.') ?>
                     <br>
-                    <strong><?= __('DISABLE CORRELATION') ?></strong>
-                    <?= __('prevents MISP from generating correlation graphs for this value.') ?>
+                    <strong><?= __('CORRELATION') ?></strong>
+                    <?= __('links this value to the events holding the same value. Untick it to keep the value out of the correlation engine.') ?>
                 </div>
             </div>
 

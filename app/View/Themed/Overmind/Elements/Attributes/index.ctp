@@ -113,31 +113,42 @@ $fields = [
     ]
 ];
 
+// Rows from any event say which, before their value: its id and icon, a peek of it on hover.
+// A card has it in its head, where the event's own tab shows the distribution.
 if (!empty($show_event_id)) {
     $fields[] = [
-        'name' => __('Event ID'),
-        'sort' => $path('event_id'),
-        'data_path' => 'Event.id',
-        'element' => 'id',
-        'url' => $baseurl . '/events/view/%id%',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'name' => __('Event'),
+        'sort' => 'Attribute.event_id',
+        'element' => 'event_peek',
+        'data_path' => 'Event.id, Event.info',
+        'header_class' => 'idx-col-event_peek',
+        'card_section' => 'event',
+        'display_in' => ['table', 'card'],
+    ];
+}
+
+// Inside an event every row shares the event's distribution unless set
+// apart, so the column is there; the instance-wide index leaves it out.
+if ($inEventView) {
+    $fields[] = [
+        'name' => __('Distribution'),
+        'header_html' => '<i class="fas fa-share-nodes"></i>',
+        'header_title' => __('Distribution'),
+        'data_path' => $path('distribution'),
+        'element' => 'distribution',
+        'display_in' => ['table']
     ];
 }
 
 $fields = array_merge($fields, [
     [
-        'name' => __('Distribution'),
-        'data_path' => $path('distribution'),
-        'element' => 'distribution',
-        'card_section' => 'top',
-        'display_in' => ['card']
-    ],
-    [
         'name' => __('Value'),
         'data_path' => $path(''),
         'element' => 'attribute_value',
-        'card_section' => 'title',
+        'show_distribution' => false,
+        // The one cell that wraps, up to about two lines.
+        'value_cap' => 128,
+        'card_section' => 'value',
         'display_in' => ['table', 'card']
     ],
     [
@@ -145,7 +156,7 @@ $fields = array_merge($fields, [
         'sort' => $path('category'),
         'data_path' => $path('category'),
         'element' => 'category',
-        'card_section' => 'attribute',
+        'card_section' => 'category',
         'display_in' => ['table', 'card']
     ],
     [
@@ -153,31 +164,11 @@ $fields = array_merge($fields, [
         'sort' => $path('type'),
         'data_path' => $path('type'),
         'element' => 'type',
-        'card_section' => 'attribute',
+        'card_section' => 'type',
         'display_in' => ['table', 'card']
     ],
 ]);
 
-if (!empty($show_event_id)) {
-    $fields = array_merge($fields, [
-    [
-        'name' => __('Creator Org'),
-        'sort' => 'Event.Orgc.name',
-        'data_path' => 'Event.Orgc',
-        'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Owner Org'),
-        'sort' => 'Event.Org.name',
-        'data_path' => 'Event.Org',
-        'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['card']
-    ]
-    ]);
-}
 
 $fields = array_merge($fields, [
     [
@@ -185,7 +176,7 @@ $fields = array_merge($fields, [
         'data_path' => $path('AttributeTag'),
         'element' => 'tag_list',
         'plan' => $labelPlan ?? null,
-        'card_section' => 'tag',
+        'card_section' => 'tags',
         'display_in' => ['table', 'card'],
         // Cell actions are handled by the tag_list element
         'add_tag' => $_rowMayTag,
@@ -199,7 +190,7 @@ $fields = array_merge($fields, [
         'data_path' => $path('Galaxy'),
         'element' => 'galaxy',
         'plan' => $labelPlan ?? null,
-        'card_section' => 'galaxy',
+        'card_section' => 'galaxies',
         'display_in' => ['table', 'card'],
         // Cell actions are handled by the galaxy element
         'add_galaxy' => $_rowMayTag,
@@ -210,47 +201,52 @@ $fields = array_merge($fields, [
     ],
     [
         'name' => __('IDS'),
+        'header_html' => '<i class="fas fa-shield-halved"></i>',
+        'header_title' => __('IDS'),
+        'header_class' => 'text-center',
+        'class' => 'text-center',
         'data_path' => $path('to_ids'),
         'element' => 'ids',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Correlate'),
+        'header_html' => '<i class="fas fa-link"></i>',
+        'header_title' => __('Correlate'),
+        'header_class' => 'text-center',
+        'class' => 'text-center',
         'data_path' => $path('disable_correlation'),
         'element' => 'correlate',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Related Events'),
+        'header_html' => h(__('Related')),
+        'header_title' => __('Related Events'),
         'element' => 'relatedEvents',
-        'card_section' => 'top',
+        'max_visible' => 2,
+        'card_section' => 'related',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Feed hits'),
+        'header_html' => h(__('Feeds')),
+        'header_title' => __('Feed hits'),
         'element' => 'feedHits',
-        'card_section' => 'meta',
+        'card_section' => 'feeds',
         'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Last Modified'),
-        'data_path' => $path('timestamp'),
-        'element' => 'timestamp',
-        'mode' => 'modified',
-        'card_section' => 'meta',
-        'display_in' => ['card']
     ],
     [
         'name' => __('Sightings'),
         'element' => 'sightings',
         'sightings' => isset($sightingsData) ? $sightingsData : ['data' => [], 'csv' => []],
-        'card_section' => 'meta',
+        'card_section' => 'sightings',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Analyst data'),
+        'header_html' => h(__('Analyst')),
+        'header_title' => __('Analyst data'),
         'element' => 'analyst_data_badges',
         'note_path' => $path('Note'),
         'opinion_path' => $path('Opinion'),
@@ -258,14 +254,16 @@ $fields = array_merge($fields, [
         'relationship_inbound_path' => $path('RelationshipInbound'),
         'uuid_path' => $path('uuid'),
         'object_type' => 'Attribute',
-        'card_section' => 'meta',
+        'card_section' => 'analyst',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Actions'),
+        'header_html' => '',
+        'header_title' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Attribute.id',
-        'card_section' => 'extra',
+        'card_section' => 'actions',
         'actions' => [
             [
                 'type' => 'copy',
@@ -295,6 +293,16 @@ $fields = array_merge($fields, [
                 'icon' => 'rotate-left',
                 'url' => $baseurl . '/attributes/restore/%id%',
                 'class' => 'text-success',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete permanently'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%/1',
+                'class' => 'text-danger',
                 'requirement' => function($row) use ($_rowMayModify) {
                     return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
                 }
@@ -688,7 +696,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $attributes,
-            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
+            'table_class' => 'ai-table',
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxl' => 3, 'xxxxl' => 4],
+            'card_element' => 'Attributes/index_card_tile',
             'primary_id_path' => $path('id'),
             'row_class_callable' => function($row) use ($inExtensionView, $extensionEvents) {
                 $classes = [];

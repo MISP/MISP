@@ -24,7 +24,7 @@ $attrDeleted = !empty($attr['deleted']);
 ?>
 <div class="dropdown">
     <button
-        class="btn btn-sm btn-light p-1 obj-attr-actions"
+        class="btn btn-sm p-1 row-menu-toggle obj-attr-actions"
         type="button"
         data-bs-toggle="dropdown"
         aria-expanded="false"
@@ -87,12 +87,16 @@ $attrDeleted = !empty($attr['deleted']);
             </a>
         </li>
         <?php endif; ?>
+        <?php
+            // A soft-deleted attribute can only go for good.
+            $deleteUrl = $baseurl . '/attributes/delete/' . $attrId . ($attrDeleted ? '/1' : '');
+        ?>
         <li>
             <a class="dropdown-item text-danger justify-content-start"
-               href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
-               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'md');">
+               href="<?= $deleteUrl ?>"
+               onclick="event.preventDefault(); openModal('<?= $deleteUrl ?>', 'md');">
                 <i class="fas fa-trash me-2"></i>
-                <?= __('Delete') ?>
+                <?= $attrDeleted ? __('Delete permanently') : __('Delete') ?>
             </a>
         </li>
         <?php endif; ?>

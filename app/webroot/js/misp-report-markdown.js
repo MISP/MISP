@@ -171,6 +171,8 @@
 
         if (scope === 'tag') {
             if (!/^[^\n)]+$/.test(elementId)) { return false; }
+        } else if (scope === 'suggestion') {
+            if (isPicture || !/^\d+$/.test(elementId)) { return false; }
         } else if (!UUID_RE.test(elementId)) {
             return false;
         }
@@ -225,6 +227,7 @@
             this.renderingRules[RENDERING_RULES[i]] = true;
         }
         this.parsingRules = {image: true, link: true, misp: true};
+        this.suggestionSource = null;
 
         this.md = window.markdownit({html: false, linkify: true, typographer: true});
         this._installRules();
@@ -263,6 +266,22 @@
 
     Renderer.prototype.hasProxy = function () {
         return this.proxy !== null;
+    };
+
+    /* After a save that added attributes or tags the report now points to. */
+    Renderer.prototype.reload = function () {
+        this.hintCache = null;
+        this.ready = this._loadProxy();
+        return this.ready;
+    };
+
+    /**
+     * Manual extraction marks each occurrence it offers as `@[suggestion](n)`;
+     * the source answers {key, value, checked, current} for occurrence n, or
+     * null to print nothing.
+     */
+    Renderer.prototype.setSuggestionSource = function (source) {
+        this.suggestionSource = typeof source === 'function' ? source : null;
     };
 
     Renderer.prototype.setRenderingRule = function (name, enabled) {
@@ -370,6 +389,9 @@
         var scope = meta.scope;
         var elementId = meta.elementId;
 
+        if (scope === 'suggestion') {
+            return this._renderSuggestion(elementId);
+        }
         if (SCOPES.indexOf(scope) === -1) {
             return this._invalid(scope, elementId);
         }
@@ -436,6 +458,18 @@
             + '<span class="ov-md-matrix-name">' + esc(galaxy.name) + '</span>'
             + '<a class="ov-md-matrix-link" href="' + esc(base() + '/galaxies/view/' + galaxy.id) + '">'
             + 'galaxy</a></span>';
+    };
+
+    Renderer.prototype._renderSuggestion = function (index) {
+        var entry = this.suggestionSource ? this.suggestionSource(Number(index)) : null;
+        if (!entry) { return ''; }
+        return '<span class="ov-md-el ov-md-suggest' + (entry.checked ? '' : ' is-off')
+            + (entry.current ? ' is-current' : '') + '"'
+            + ' data-suggestion="' + esc(index) + '" role="checkbox" tabindex="0"'
+            + ' aria-checked="' + (entry.checked ? 'true' : 'false') + '">'
+            + '<span class="ov-md-el-k"><i class="ov-md-suggest-box fas fa-check"></i>'
+            + esc(entry.key) + '</span>'
+            + '<span class="ov-md-el-v">' + esc(entry.value) + '</span></span>';
     };
 
     /**

@@ -4,9 +4,11 @@
  * (index-filters.js): the bar's toggles, then its pickers in sections.
  *
  * A child's `group` names its section; children without one share a section.
+ * A section draws its `list` children first, packed in columns, then the
+ * rest as a grid of buttons.
  *
  * @var string $id
- * @var array $items picker, time and value_match children, in bar order
+ * @var array $items picker, list, time, value and value_match children, in bar order
  * @var array $toggles button children
  * @var IndexFilterState $state
  * @var callable $keysOf child => the unprefixed URL keys it sets
@@ -15,6 +17,8 @@
  *            panel repeats its chips since it covers that row
  * @var array $currentFilters
  * @var string $filterId
+ * @var bool $deferred whether filters wait for Apply; the foot is then the
+ *            draft index-filters.js draws instead of the applied chips
  */
 $sections = [];
 foreach ($items as $child) {
@@ -42,10 +46,23 @@ $section = 0;
             if ($group === '') {
                 $group = count($sections) === 1 ? __('Filters') : __('Other filters');
             }
+            $lists = array_filter($children, function ($child) { return $child['type'] === 'list'; });
+            $children = array_filter($children, function ($child) { return $child['type'] !== 'list'; });
             ?>
             <section class="ifp-sec">
                 <div class="ifp-sec-label" data-ifp-swap="sec-<?= $section++ ?>"><?= h($group) ?><?php
                     if ($set): ?><span class="badge rounded-pill bg-primary"><?= $set ?></span><?php endif; ?></div>
+                <?php if ($lists): ?>
+                    <div class="ifp-lists">
+                        <?php foreach ($lists as $child): ?>
+                            <?= $this->element('genericElementsBS5/IndexTable/filter_list', [
+                                'child' => $child,
+                                'state' => $state,
+                            ]) ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($children): ?>
                 <div class="ifp-grid">
                     <?php foreach ($children as $child): ?>
                         <?php if ($child['type'] === 'picker'): ?>
@@ -55,6 +72,12 @@ $section = 0;
                             ]) ?>
                         <?php elseif ($child['type'] === 'time'): ?>
                             <?= $this->element('genericElementsBS5/IndexTable/filter_time', [
+                                'child' => $child,
+                                'state' => $state,
+                                'deferred' => !empty($deferred),
+                            ]) ?>
+                        <?php elseif ($child['type'] === 'value'): ?>
+                            <?= $this->element('genericElementsBS5/IndexTable/filter_value', [
                                 'child' => $child,
                                 'state' => $state,
                             ]) ?>
@@ -68,14 +91,19 @@ $section = 0;
                         <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
             </section>
         <?php endforeach; ?>
     </div>
 
-    <div class="ifp-win-foot">
-        <?= $this->element('genericElementsBS5/IndexTable/filter_chips', $chipsData + [
-            'swap' => 'win-chips',
-            'empty' => __('No filter active'),
-        ]) ?>
-    </div>
+    <?php if (!empty($deferred)): ?>
+        <div class="ifp-win-foot" data-ifp-draft></div>
+    <?php else: ?>
+        <div class="ifp-win-foot">
+            <?= $this->element('genericElementsBS5/IndexTable/filter_chips', $chipsData + [
+                'swap' => 'win-chips',
+                'empty' => __('No filter active'),
+            ]) ?>
+        </div>
+    <?php endif; ?>
 </div>

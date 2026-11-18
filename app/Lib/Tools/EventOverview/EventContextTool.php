@@ -37,9 +37,7 @@ class EventContextTool
     ) {
         $plan = ValueLabelPriority::planFor($profile);
         $markingNamespaces = ValueLabelPriority::markings($profile);
-        $attribution = array_flip(
-            ValueLabelPriority::attribution($profile) ?: GalaxyCategory::typesIn(GalaxyCategory::NAMED_THREAT)
-        );
+        $attribution = self::attributionTypes($profile);
         $rollup = is_array($rollup) ? $rollup : [];
 
         $rows = [
@@ -224,25 +222,56 @@ class EventContextTool
             'level' => $level,
             'count' => $count,
         ];
+        $row = self::rowOf($type, $attribution);
+        if ($row === 'behaviour' || $row === 'mitigation') {
+            $item['technique'] = self::techniqueId($cluster);
+        }
+        $rows[$row][] = $item;
+    }
+
+    /**
+     * The galaxy types the Attribution row takes: the profile's list, or
+     * the named threats.
+     *
+     * @param array|null $profile
+     * @return array galaxy type => index
+     */
+    public static function attributionTypes($profile)
+    {
+        return array_flip(
+            ValueLabelPriority::attribution($profile) ?: GalaxyCategory::typesIn(GalaxyCategory::NAMED_THREAT)
+        );
+    }
+
+    /**
+     * The row a galaxy's clusters sit in: attribution, behaviour,
+     * mitigation or clusters (Classification).
+     *
+     * @param string $type galaxy type
+     * @param array $attribution attributionTypes()
+     * @return string
+     */
+    public static function rowOf($type, array $attribution)
+    {
+        $type = mb_strtolower((string)$type);
         $classified = GalaxyCategory::of($type);
         if (isset($attribution[$type])) {
-            $rows['attribution'][] = $item;
-        } elseif ($classified === null
+            return 'attribution';
+        }
+        if ($classified === null
             ? strpos($type, 'attack-pattern') !== false
             : GalaxyCategory::isAttackPattern($type)
         ) {
-            $item['technique'] = self::techniqueId($cluster);
-            $rows['behaviour'][] = $item;
-        } elseif ($classified === null
+            return 'behaviour';
+        }
+        if ($classified === null
             ? strpos($type, 'course-of-action') !== false
             : $classified['category'] === GalaxyCategory::DEFENSIVE
                 && $classified['sub_category'] === GalaxyCategory::COURSE_OF_ACTION
         ) {
-            $item['technique'] = self::techniqueId($cluster);
-            $rows['mitigation'][] = $item;
-        } else {
-            $rows['clusters'][] = $item;
+            return 'mitigation';
         }
+        return 'clusters';
     }
 
     /**

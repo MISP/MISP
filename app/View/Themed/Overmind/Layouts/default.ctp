@@ -87,6 +87,11 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['tom-select.bootstrap5.min', ['preload' => true]],
                 ['mainOvermind', ['preload' => true]],
                 ['index-table', ['preload' => true]],
+                ['attribute-elements', ['preload' => true]],
+                // An event's id and icon in any index, and the peek it opens (Events/peek_link).
+                ['event-peek', ['preload' => true]],
+                // An organisation in any index or modal (Badges/organisation).
+                ['org-tile', ['preload' => true]],
                 // The rail's styles come with the theme.
                 $useRail ? null : ['overmind-navbar', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
@@ -148,6 +153,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
     <?php if ($isLegacyFullViewportPage): ?>
         <style>
             /* Give the workflow editor full viewport height */
+            body[data-controller="workflows"][data-action="editor"] {
+                overflow: hidden;
+            }
             body[data-controller="workflows"][data-action="editor"] .root-container {
                 height: 100vh;
                 margin-top: 0;
@@ -312,6 +320,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 $bs5Js[] = $useRail ? 'overmind-rail' : 'overmind-navbar';
                 $bs5Js[] = 'onboarding';
                 $bs5Js[] = 'overmind-invaders';
+                $bs5Js[] = 'overmind-ambient';
             }
             echo $this->element('genericElements/assetLoader', [
                 'js' => $bs5Js,

@@ -54,8 +54,8 @@ $variant = isset($variant) ? $variant : null;
 $runType = isset($runType) && $runType !== null
     ? $runType
     : $module['type'];
-$tone = $variant === 'secondary' ? 'btn-outline-secondary'
-    : 'btn-outline-primary';
+$tones = array('secondary' => 'btn-outline-secondary', 'primary' => 'btn-primary');
+$tone = isset($tones[$variant]) ? $tones[$variant] : 'btn-outline-primary';
 $icon = $mode === null ? 'fas fa-play' : 'fas fa-clock-rotate-left';
 ?>
 <button type="button"

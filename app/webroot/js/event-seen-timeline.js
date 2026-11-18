@@ -3,6 +3,10 @@
 // brushed window are asked of the server, which caps what it returns.
 // Rows are placed by their seen dates, their timestamp or when the attribute
 // was created, the basis.
+//
+// The search, the Filters panel and the basis switch sit in the filter bar
+// over the card (Elements/Events/View/event_timeline): `scope` is the tab's
+// whole block, `root` the card the script redraws.
 (function () {
     'use strict';
 
@@ -129,21 +133,22 @@
         return t % DAY === 0 ? isoDay(t) : isoDay(t) + ' ' + hms(t);
     }
 
-    // A seen date as a UTC datetime-local value, to the second.
+    // A seen date as the date field's posted value (UTC ISO), to the second.
     function toInput(us) {
         if (us == null) {
             return '';
         }
         var t = ms(us);
-        return isoDay(t) + 'T' + hms(t);
+        return isoDay(t) + ' ' + hms(t);
     }
 
-    // A datetime-local value read as UTC: null when empty, NaN when invalid.
+    // The date field's posted value read as UTC: null when empty, NaN when
+    // invalid.
     function fromInput(value) {
         if (!value) {
             return null;
         }
-        var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/
+        var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/
             .exec(value);
         return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0))
             : NaN;
@@ -253,6 +258,8 @@
     function Tab(root) {
         var self = this;
         this.root = root;
+        this.scope = root.closest('[data-timeline-index]') || root;
+        this.panel = this.scope.querySelector('[data-etl-panel]');
         this.url = root.getAttribute('data-url');
         this.state = {
             basis: storedBasis(), q: '', kind: '', facet: '', category: '',
@@ -260,12 +267,11 @@
         };
         this.request = null;
         this.reset();
-        root.addEventListener('click', function (e) {
-            var basis = e.target.closest('[data-etl-basis]');
-            if (basis) {
-                self.setBasis(basis.getAttribute('data-etl-basis'));
-            }
-        });
+        var group = this.scope.querySelector('[data-etl-basis-group]');
+        if (group) {
+            group.innerHTML = this.basisHtml();
+        }
+        this.bindBar();
         window.addEventListener('resize', function () {
             self.syncOverview();
         });
@@ -300,7 +306,7 @@
 
     Tab.prototype.markBasis = function () {
         var basis = this.state.basis;
-        this.root.querySelectorAll('.etl-basis [data-etl-basis]')
+        this.scope.querySelectorAll('.etl-basis [data-etl-basis]')
             .forEach(function (b) {
                 var on = b.getAttribute('data-etl-basis') === basis;
                 b.classList.toggle('active', on);
@@ -439,9 +445,13 @@
             + '<div class="me-2"><div class="fw-bold lh-1">Timeline</div>'
             + '<div class="small text-muted mt-1">' + this.subLine(dated)
             + '</div></div>'
-            + this.basisHtml()
-            + (dated ? this.toolbar(data.facets || {}) : '')
             + '</div></div><div class="etl-body"></div>';
+        // Nothing dated, nothing to filter: the bar keeps the basis switch only.
+        this.scope.classList.toggle('etl-nothing', !dated);
+        this.showPanel(false);
+        if (this.panel) {
+            this.panel.innerHTML = dated ? this.toolbar(data.facets || {}) : '';
+        }
         var body = this.root.querySelector('.etl-body');
         body.addEventListener('click', function (e) {
             var undated = e.target.closest('[data-etl-undated]');
@@ -461,6 +471,7 @@
                     + BASES.timestamp.icon + '"></i>Place them by when they'
                     + ' were last modified</button>'
                 : '';
+            this.syncFilterUi();
             body.innerHTML = '<div class="etl-empty" data-timeline-empty>'
                 + '<div class="etl-empty-ico">'
                 + '<i class="fas fa-calendar-xmark"></i></div>'
@@ -523,8 +534,9 @@
         ledgerHost.addEventListener('scroll', function () {
             self.closeSeen();
         }, true);
-        this.bindToolbar();
-        if (this.restoreFilters()) {
+        var dropped = this.restoreFilters();
+        this.syncFilterUi();
+        if (dropped) {
             this.load(false);
         }
     };
@@ -533,7 +545,7 @@
     // drops those it no longer offers. True when one was dropped.
     Tab.prototype.restoreFilters = function () {
         var s = this.state;
-        var root = this.root;
+        var root = this.scope;
         var dropped = false;
         root.querySelector('[data-timeline-search]').value = s.q;
         var kind = root.querySelector('[data-etl-kind="' + s.kind + '"]');
@@ -556,17 +568,15 @@
 
     Tab.prototype.basisHtml = function () {
         var basis = this.state.basis;
-        return '<div class="btn-group btn-group-sm etl-basis" role="group"'
-            + ' aria-label="Place rows by">'
-            + Object.keys(BASES).map(function (key) {
-                var b = BASES[key];
-                var on = key === basis;
-                return '<button type="button" class="btn'
-                    + (on ? ' active' : '') + '" data-etl-basis="' + key
-                    + '" aria-pressed="' + on + '" title="' + esc(b.title)
-                    + '"><i class="fas ' + b.icon + '"></i>' + esc(b.button)
-                    + '</button>';
-            }).join('') + '</div>';
+        return Object.keys(BASES).map(function (key) {
+            var b = BASES[key];
+            var on = key === basis;
+            return '<button type="button" class="ifp-segv-btn'
+                + (on ? ' active' : '') + '" data-etl-basis="' + key
+                + '" aria-pressed="' + on + '" title="' + esc(b.title)
+                + '"><i class="fas ' + b.icon + '" aria-hidden="true"></i>'
+                + '<span>' + esc(b.button) + '</span></button>';
+        }).join('');
     };
 
     Tab.prototype.subLine = function (dated) {
@@ -608,72 +618,245 @@
                 + num((facets.events || {})[id]) + ')</option>';
         }).join('');
         function kind(value, label, n) {
-            return '<button type="button" class="btn btn-outline-secondary"'
+            return '<button type="button" class="ifp-segv-btn"'
                 + ' data-etl-kind="' + value + '"' + (n ? '' : ' disabled')
                 + '>' + label + '<span class="etl-kind-n">' + num(n)
                 + '</span></button>';
         }
-        return '<div class="etl-toolbar">'
-            + '<input type="search" class="form-control form-control-sm'
-            + ' etl-search" placeholder="Search values"'
-            + ' aria-label="Search the timeline" data-timeline-search>'
-            + '<div class="btn-group btn-group-sm etl-kind" role="group"'
-            + ' aria-label="Kind">'
-            + '<button type="button" class="btn btn-outline-secondary active"'
+        function field(label, select) {
+            return '<label class="etl-field"><span>' + label + '</span>'
+                + select + '</label>';
+        }
+        return '<div class="ifp-panel-body">'
+            + '<section class="ifp-sec"><div class="ifp-sec-label">Rows</div>'
+            + '<div class="ifp-segv etl-kind" role="group" aria-label="Kind">'
+            + '<button type="button" class="ifp-segv-btn active"'
             + ' data-etl-kind="">All</button>'
             + kind('attribute', 'Attributes', counts.attributes)
             + kind('object', 'Objects', counts.objects)
-            + '</div>'
-            + '<select class="form-select form-select-sm w-auto"'
-            + ' data-etl-filter="facet" aria-label="Type or object name"'
-            + (typeOptions ? '' : ' disabled') + '>'
-            + '<option value="">Any type</option>' + typeOptions + '</select>'
-            + '<select class="form-select form-select-sm w-auto"'
-            + ' data-etl-filter="category" aria-label="Category">'
-            + '<option value="">Any category</option>'
-            + options(facets.categories, '') + '</select>'
+            + '</div></section>'
+            + '<section class="ifp-sec"><div class="ifp-sec-label">'
+            + 'Attributes and objects</div><div class="ifp-grid etl-fields">'
+            + field('Type or object', '<select class="form-select form-select-sm"'
+                + ' data-etl-filter="facet" aria-label="Type or object name"'
+                + (typeOptions ? '' : ' disabled') + '>'
+                + '<option value="">Any type</option>' + typeOptions + '</select>')
+            + field('Category', '<select class="form-select form-select-sm"'
+                + ' data-etl-filter="category" aria-label="Category">'
+                + '<option value="">Any category</option>'
+                + options(facets.categories, '') + '</select>')
             + (this.extended
-                ? '<select class="form-select form-select-sm w-auto"'
+                ? field('Event', '<select class="form-select form-select-sm"'
                     + ' data-etl-filter="event" aria-label="Source event">'
                     + '<option value="">All ' + this.eventIds.length
-                    + ' events</option>' + eventOptions + '</select>'
+                    + ' events</option>' + eventOptions + '</select>')
                 : '')
-            + '</div>';
+            + '</div></section></div>'
+            + '<div class="ifp-win-foot"><span class="ifp-chips-none me-auto"'
+            + ' data-etl-summary></span><button type="button"'
+            + ' class="btn btn-sm btn-outline-secondary" data-etl-clear>'
+            + '<i class="fa-solid fa-rotate-left me-1"></i>Reset filters'
+            + '</button></div>';
     };
 
-    Tab.prototype.bindToolbar = function () {
+    // Once, on the whole block: the panel's content is redrawn with the card,
+    // the bar's search and basis switch are not.
+    Tab.prototype.bindBar = function () {
         var self = this;
-        var root = this.root;
+        var scope = this.scope;
+        var search = scope.querySelector('[data-timeline-search]');
         var timer;
-        root.querySelector('[data-timeline-search]')
-            .addEventListener('input', function () {
-                var value = this.value.trim();
-                clearTimeout(timer);
-                timer = setTimeout(function () {
-                    if (value !== self.state.q) {
-                        self.state.q = value;
-                        self.load(false);
-                    }
-                }, SEARCH_DELAY);
+        function setQuery(value, now) {
+            var box = scope.querySelector('[data-etl-query]');
+            if (box) {
+                box.classList.toggle('has-value', search.value !== '');
+            }
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                if (value !== self.state.q) {
+                    self.state.q = value;
+                    self.syncFilterUi();
+                    self.load(false);
+                }
+            }, now ? 0 : SEARCH_DELAY);
+        }
+        if (search) {
+            search.addEventListener('input', function () {
+                setQuery(search.value.trim());
             });
-        root.querySelectorAll('[data-etl-kind]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                self.state.kind = btn.getAttribute('data-etl-kind');
+            search.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && search.value !== '') {
+                    e.stopPropagation();
+                    search.value = '';
+                    setQuery('', true);
+                }
+            });
+        }
+        scope.addEventListener('click', function (e) {
+            var t = e.target;
+            var basis = t.closest('[data-etl-basis]');
+            if (basis) {
+                self.setBasis(basis.getAttribute('data-etl-basis'));
+                return;
+            }
+            if (t.closest('[data-etl-filters]')) {
+                self.showPanel(self.panel && self.panel.hidden);
+                return;
+            }
+            if (t.closest('[data-etl-search-clear]')) {
+                search.value = '';
+                setQuery('', true);
+                search.focus();
+                return;
+            }
+            var kind = t.closest('[data-etl-kind]');
+            if (kind) {
+                self.state.kind = kind.getAttribute('data-etl-kind');
                 self.markKind();
+                self.syncFilterUi();
                 self.load(false);
-            });
+                return;
+            }
+            var chip = t.closest('[data-etl-chip]');
+            if (chip) {
+                e.preventDefault();
+                self.dropFilter(chip.getAttribute('data-etl-chip'));
+                return;
+            }
+            // The card's own clear buttons are the card's (build).
+            if (t.closest('[data-etl-clear]') && !self.root.contains(t)) {
+                self.clearFilters();
+            }
         });
-        root.querySelectorAll('select[data-etl-filter]').forEach(function (s) {
-            s.addEventListener('change', function () {
-                self.state[s.getAttribute('data-etl-filter')] = s.value;
+        scope.addEventListener('change', function (e) {
+            var select = e.target.closest('select[data-etl-filter]');
+            if (select) {
+                self.state[select.getAttribute('data-etl-filter')] = select.value;
+                self.syncFilterUi();
                 self.load(false);
-            });
+            }
         });
+        document.addEventListener('click', function (e) {
+            if (self.panel && !self.panel.hidden && !self.panel.contains(e.target)
+                && !e.target.closest('[data-etl-filters]')) {
+                self.showPanel(false);
+            }
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && self.panel && !self.panel.hidden) {
+                self.showPanel(false);
+                var btn = scope.querySelector('[data-etl-filters]');
+                if (btn) {
+                    btn.focus();
+                }
+            }
+        });
+    };
+
+    Tab.prototype.showPanel = function (show) {
+        if (!this.panel) {
+            return;
+        }
+        this.panel.hidden = !show;
+        var btn = this.scope.querySelector('[data-etl-filters]');
+        if (btn) {
+            btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+        }
+    };
+
+    // The filters' chips under the bar, the Filters button's count, the
+    // panel's summary.
+    Tab.prototype.syncFilterUi = function () {
+        var s = this.state;
+        var self = this;
+        var chips = [];
+        function chip(key, label, value) {
+            chips.push('<span class="ifp-chip"><span class="ifp-chip-label">'
+                + esc(label) + '<span class="ifp-chip-op">:</span> '
+                + '<span class="ifp-chip-value">' + esc(value) + '</span></span>'
+                + '<a href="#" class="ifp-chip-x" data-etl-chip="' + key + '"'
+                + ' title="Remove this filter" aria-label="Remove this filter">'
+                + '<i class="fas fa-times" aria-hidden="true"></i></a></span>');
+        }
+        if (s.q) {
+            chip('q', 'Search', s.q);
+        }
+        if (s.kind) {
+            chip('kind', 'Rows', s.kind === 'object' ? 'Objects' : 'Attributes');
+        }
+        if (s.facet) {
+            var f = s.facet.split(/:(.*)/);
+            chip('facet', f[0] === 'o' ? 'Object' : 'Type', f[1]);
+        }
+        if (s.category) {
+            chip('category', 'Category', s.category);
+        }
+        if (s.event) {
+            var ev = this.events && this.events[s.event];
+            chip('event', 'Event', '#' + s.event + (ev ? ' ' + ev.info : ''));
+        }
+        var panelCount = (s.kind ? 1 : 0) + (s.facet ? 1 : 0)
+            + (s.category ? 1 : 0) + (s.event ? 1 : 0);
+        var scope = this.scope;
+        var box = scope.querySelector('[data-etl-chips]');
+        if (box) {
+            box.innerHTML = chips.join('') + (chips.length
+                ? '<button type="button" class="ifp-clear" data-etl-clear>'
+                    + 'Clear all</button>'
+                : '');
+        }
+        var badge = scope.querySelector('[data-etl-filters-count]');
+        if (badge) {
+            badge.textContent = panelCount;
+            badge.hidden = panelCount === 0;
+        }
+        var btn = scope.querySelector('[data-etl-filters]');
+        if (btn) {
+            btn.classList.toggle('is-set', panelCount > 0);
+        }
+        var summary = scope.querySelector('[data-etl-summary]');
+        if (summary) {
+            summary.textContent = panelCount === 0 ? 'No filter active'
+                : plural(panelCount, 'filter', 'filters') + ' active';
+        }
+        var reset = scope.querySelector('[data-etl-panel] [data-etl-clear]');
+        if (reset) {
+            reset.disabled = panelCount === 0 && !s.q;
+        }
+        var row = scope.querySelector('[data-etl-row]');
+        if (row) {
+            row.hidden = !self.ledger;
+        }
+    };
+
+    Tab.prototype.dropFilter = function (key) {
+        var s = this.state;
+        if (key === 'q') {
+            var search = this.scope.querySelector('[data-timeline-search]');
+            if (search) {
+                search.value = '';
+            }
+            var box = this.scope.querySelector('[data-etl-query]');
+            if (box) {
+                box.classList.remove('has-value');
+            }
+        }
+        if (!(key in s)) {
+            return;
+        }
+        s[key] = '';
+        var select = this.scope.querySelector('select[data-etl-filter="' + key + '"]');
+        if (select) {
+            select.value = '';
+        }
+        this.markKind();
+        this.syncFilterUi();
+        this.load(false);
     };
 
     Tab.prototype.markKind = function () {
         var kind = this.state.kind;
-        this.root.querySelectorAll('[data-etl-kind]').forEach(function (b) {
+        this.scope.querySelectorAll('[data-etl-kind]').forEach(function (b) {
             b.classList.toggle('active',
                 b.getAttribute('data-etl-kind') === kind);
         });
@@ -777,6 +960,13 @@
         this.syncOverview();
         this.windowLine(win, false);
         this.noticeEl.innerHTML = this.noticeHtml();
+        var count = this.scope.querySelector('[data-etl-count]');
+        if (count) {
+            count.innerHTML = '<b>' + num(data.in_window) + '</b> '
+                + (data.in_window === 1 ? 'row' : 'rows') + ' in the window'
+                + (this.filtersOn() ? ', filtered' : '');
+        }
+        this.syncFilterUi();
     };
 
     Tab.prototype.filtersOn = function () {
@@ -800,10 +990,6 @@
             + (!live && this.state.win
                 ? '<button type="button" class="btn btn-link"'
                     + ' data-etl-reset-window>Show the whole span</button>'
-                : '')
-            + (!live && this.filtersOn()
-                ? '<button type="button" class="btn btn-link" data-etl-clear>'
-                    + 'Clear filters</button>'
                 : '');
     };
 
@@ -955,12 +1141,17 @@
         s.facet = '';
         s.category = '';
         s.event = '';
-        this.root.querySelector('[data-timeline-search]').value = '';
-        this.root.querySelectorAll('select[data-etl-filter]')
+        this.scope.querySelector('[data-timeline-search]').value = '';
+        var box = this.scope.querySelector('[data-etl-query]');
+        if (box) {
+            box.classList.remove('has-value');
+        }
+        this.scope.querySelectorAll('select[data-etl-filter]')
             .forEach(function (select) {
                 select.value = '';
             });
         this.markKind();
+        this.syncFilterUi();
         this.load(false);
     };
 
@@ -1078,23 +1269,51 @@
         var r = entry.row;
         var it = r.data;
         var stamp = it.timestamp == null ? null : ms(it.timestamp);
+        // The markup of Elements/genericElementsBS5/Forms/date_field in its
+        // datetime mode, bound by initDateFields(); a last seen may not
+        // precede the first seen.
+        var dateLabels = esc(JSON.stringify({
+            open: 'Open calendar', prev: 'Previous', next: 'Next',
+            today: 'Now', clear: 'Clear', done: 'Done', time: 'Time (UTC)',
+            invalid: 'Enter a date as DD/MM/YYYY, optionally followed by'
+                + ' HH:MM:SS.',
+            range: 'Last seen cannot be before first seen.'
+        }));
         function field(key, label) {
+            var other = key === 'first_seen'
+                ? ' data-date-before="#etl-seen-last_seen"'
+                : ' data-date-after="#etl-seen-first_seen"';
             return '<div class="etl-seen-field">'
-                + '<label for="etl-seen-' + key + '">' + label + '</label>'
+                + '<label for="etl-seen-' + key + 'Display">' + label + '</label>'
                 + '<div class="etl-seen-input">'
-                + '<input type="datetime-local" step="1" id="etl-seen-' + key
-                + '" class="form-control form-control-sm" name="' + key
-                + '" value="' + toInput(it[key]) + '">'
+                + '<div class="ov-date" data-date-field="1"'
+                + ' data-date-mode="datetime"' + other
+                + ' data-date-labels="' + dateLabels + '"'
+                + ' style="--ov-date-accent:var(--bs-primary);">'
+                + '<div class="ov-date-box" data-date-box>'
+                + '<i class="fas fa-calendar-days ov-date-glyph"'
+                + ' aria-hidden="true"></i>'
+                + '<input type="text" id="etl-seen-' + key + 'Display"'
+                + ' class="ov-date-input" data-date-display inputmode="numeric"'
+                + ' autocomplete="off" aria-haspopup="dialog"'
+                + ' aria-expanded="false" placeholder="DD/MM/YYYY HH:MM:SS">'
+                + '<span class="ov-date-utc" aria-hidden="true">UTC</span>'
+                + '<button type="button" class="ov-date-btn d-none"'
+                + ' data-date-clear title="Clear" aria-label="Clear '
+                + label.toLowerCase() + '"><i class="fas fa-xmark"></i></button>'
+                + '<button type="button" class="ov-date-btn" data-date-toggle'
+                + ' title="Open calendar" aria-label="Open calendar">'
+                + '<i class="fas fa-chevron-down"></i></button></div>'
+                + '<input type="text" id="etl-seen-' + key + '" name="' + key
+                + '" class="d-none" tabindex="-1" aria-hidden="true"'
+                + ' autocomplete="off" data-date-value="1" value="'
+                + toInput(it[key]) + '"></div>'
                 + (stamp == null ? ''
                     : '<button type="button" class="btn btn-sm etl-seen-tool"'
                         + ' data-etl-seen-fill="' + key + '" title="Use the'
                         + ' modification time" aria-label="Use the modification'
-                        + ' time"><i class="fas ' + BASES.timestamp.icon
-                        + '"></i></button>')
-                + '<button type="button" class="btn btn-sm etl-seen-tool"'
-                + ' data-etl-seen-clear="' + key + '" title="Clear"'
-                + ' aria-label="Clear ' + label.toLowerCase() + '">'
-                + '<i class="fas fa-xmark"></i></button></div></div>';
+                        + ' time"><i class="fas fa-clock"></i></button>')
+                + '</div></div>';
         }
         var chip = r.envelope
             ? '<span class="etl-chip etl-chip-obj">object</span>'
@@ -1136,7 +1355,8 @@
                 }
             },
             onKey: function (e) {
-                if (e.key === 'Escape') {
+                // An open calendar takes its own Escape first.
+                if (e.key === 'Escape' && !el.querySelector('.ov-date.is-open')) {
                     e.preventDefault();
                     e.stopPropagation();
                     self.closeSeen(true);
@@ -1155,25 +1375,30 @@
 
         el.addEventListener('click', function (e) {
             var fill = e.target.closest('[data-etl-seen-fill]');
-            var clear = e.target.closest('[data-etl-seen-clear]');
             if (fill) {
-                form.elements[fill.getAttribute('data-etl-seen-fill')].value =
-                    toInput(it.timestamp);
-            } else if (clear) {
-                var input = form.elements[clear.getAttribute('data-etl-seen-clear')];
-                input.value = '';
-                input.focus();
+                var wrap = form.elements[fill.getAttribute('data-etl-seen-fill')]
+                    .closest('[data-date-field]');
+                if (wrap && wrap.ovDateField) {
+                    wrap.ovDateField.set(toInput(it.timestamp));
+                }
             } else if (e.target.closest('[data-etl-seen-cancel]')) {
                 self.closeSeen(true);
             }
         });
         form.addEventListener('submit', function (e) {
+            // Set by the date fields' guard when one cannot be read.
+            var refused = e.defaultPrevented;
             e.preventDefault();
-            self.saveSeen(pop, form);
+            if (!refused) {
+                self.saveSeen(pop, form);
+            }
         });
 
+        if (window.initDateFields) {
+            window.initDateFields(el);
+        }
         this.placeSeen(el, button.getBoundingClientRect());
-        form.elements.first_seen.focus();
+        el.querySelector('#etl-seen-first_seenDisplay').focus();
     };
 
     // Under the button, its right edge on the button's; above it when there

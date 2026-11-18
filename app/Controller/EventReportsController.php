@@ -24,8 +24,8 @@ class EventReportsController extends AppController
             'SharingGroup' => array('fields' => array('id', 'name', 'uuid')),
             'Event' => array(
                 'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
-                'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-                'Org' => array('fields' => array('Org.id', 'Org.name'))
+                'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name', 'Orgc.uuid')),
+                'Org' => array('fields' => array('Org.id', 'Org.name', 'Org.uuid'))
             ),
             'EventReportTag' => [
                 'Tag'
@@ -519,9 +519,13 @@ class EventReportsController extends AppController
             $report['EventReport']['content'] = $dataResults['replacementResult']['contentWithReplacements'];
             $contextResults = $this->EventReport->extractWithReplacements($this->Auth->user(), $report);
             $typeToCategoryMapping = $this->EventReport->Event->Attribute->typeToCategoryMapping();
+            $defaultCategories = array_map(function ($definition) {
+                return $definition['default_category'];
+            }, $this->EventReport->Event->Attribute->typeDefinitions);
             $data = [
                 'complexTypeToolResult' => $dataResults['complexTypeToolResult'],
                 'typeToCategoryMapping' => $typeToCategoryMapping,
+                'defaultCategories' => $defaultCategories,
                 'replacementValues' => $dataResults['replacementResult']['replacedValues'],
                 'replacementContext' => $contextResults['replacedContext']
             ];

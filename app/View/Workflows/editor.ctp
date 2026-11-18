@@ -224,7 +224,7 @@ $debugEnabled = !empty($selectedWorkflow['Workflow']['debug_enabled']);
                                 <?php endif; ?>
                                 <?php foreach ($workflowBlueprints as $workflowBlueprint) : ?>
                                     <li class="control-edit-bp-blocks">
-                                        <a href="<?= $baseurl . '/workflowBlueprints/edit/' . h($workflowBlueprint['WorkflowBlueprint']['id']) ?>" title="<?= h($workflowBlueprint['WorkflowBlueprint']['description']) ?>" data-bp-id="<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>">
+                                        <a href="<?= $baseurl . '/workflowBlueprints/edit/' . h($workflowBlueprint['WorkflowBlueprint']['id']) . '/1' ?>" title="<?= h($workflowBlueprint['WorkflowBlueprint']['description']) ?>" data-bp-id="<?= h($workflowBlueprint['WorkflowBlueprint']['id']) ?>">
                                             <?= h($workflowBlueprint['WorkflowBlueprint']['name']) ?>
                                             <small class="text-muted">[<?= h(substr($workflowBlueprint['WorkflowBlueprint']['uuid'], 0, 4)) ?>...]</small>
                                         </a>

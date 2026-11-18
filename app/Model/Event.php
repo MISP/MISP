@@ -790,7 +790,7 @@ class Event extends AppModel
             ));
             $objectCounts = Hash::combine($objectCounts, '{n}.Object.event_id', '{n}.0.count');
         } else {
-            $objectCounts = $this->__countObjectsUpTo($eventIds, $limit + 1);
+            $objectCounts = $this->__countUpTo($this->Object, $eventIds, $limit + 1);
         }
         foreach ($events as $key => $event) {
             $count = (int)($objectCounts[$event['Event']['id']] ?? 0);
@@ -804,13 +804,41 @@ class Event extends AppModel
     }
 
     /**
+     * Attaches `attributes_in_objects_only` to each event of an index list:
+     * true when it has attributes but none outside an object, which the
+     * event view's Attributes tab leaves out. One index probe per event that
+     * has objects; the others are not looked at.
+     *
+     * @param array $events with `object_count` attached
+     * @return array
+     */
+    public function attachAttributesInObjectsOnlyToEvents(array $events)
+    {
+        $eventIds = [];
+        foreach ($events as $event) {
+            if (!empty($event['Event']['attribute_count']) && !empty($event['Event']['object_count'])) {
+                $eventIds[] = (int)$event['Event']['id'];
+            }
+        }
+        $loose = empty($eventIds)
+            ? []
+            : $this->__countUpTo($this->Attribute, $eventIds, 1, ['Attribute.object_id' => 0]);
+        foreach ($events as $key => $event) {
+            $events[$key]['Event']['attributes_in_objects_only'] = ($loose[(int)$event['Event']['id']] ?? null) === 0;
+        }
+        return $events;
+    }
+
+    /**
+     * @param Model $model Object or Attribute
      * @param array $eventIds
      * @param int $limit
-     * @return array event id => non-deleted objects, at most $limit
+     * @param array $conditions on top of the event and not deleted
+     * @return array event id => non-deleted rows, at most $limit
      */
-    private function __countObjectsUpTo(array $eventIds, $limit)
+    private function __countUpTo(Model $model, array $eventIds, $limit, array $conditions = [])
     {
-        $db = $this->Object->getDataSource();
+        $db = $model->getDataSource();
         $counts = [];
         foreach (array_chunk($eventIds, 50) as $chunk) {
             $branches = [];
@@ -818,17 +846,17 @@ class Event extends AppModel
                 $counts[$eventId] = 0;
                 $branches[] = '(' . $db->buildStatement([
                     'fields' => [sprintf('%d AS %s', $eventId, $db->name('event_id'))],
-                    'table' => $db->fullTableName($this->Object),
-                    'alias' => 'Object',
+                    'table' => $db->fullTableName($model),
+                    'alias' => $model->alias,
                     'conditions' => [
-                        'Object.event_id' => (int)$eventId,
-                        'Object.deleted' => 0,
-                    ],
+                        $model->alias . '.event_id' => (int)$eventId,
+                        $model->alias . '.deleted' => 0,
+                    ] + $conditions,
                     'order' => null,
                     'group' => null,
                     'limit' => $limit,
                     'offset' => null,
-                ], $this->Object) . ')';
+                ], $model) . ')';
             }
             $rows = $db->fetchAll(
                 sprintf(

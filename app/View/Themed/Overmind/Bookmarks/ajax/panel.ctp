@@ -12,7 +12,7 @@ $sections = [
 $total = count($mine) + count($shared);
 ?>
 <?php if ($total === 0): ?>
-    <div class="sp-empty">
+    <div class="d-flex flex-column align-items-center sp-empty">
         <i class="fas fa-star" aria-hidden="true"></i>
         <strong><?= __('No bookmarks yet.') ?></strong>
         <p><?= __('Bookmark the pages you come back to, and they show up here.') ?></p>

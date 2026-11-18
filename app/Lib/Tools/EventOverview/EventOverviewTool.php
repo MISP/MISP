@@ -26,6 +26,9 @@ class EventOverviewTool
 
     const GROUPS = array('Network', 'File', 'Host', 'Email', 'Detection rules', 'Other');
 
+    /** Types whose rules the inventory names. */
+    const RULE_TYPES = array('snort', 'yara', 'sigma', 'suricata', 'zeek', 'bro', 'kusto-query');
+
     /** @var Model */
     private $Attribute;
 
@@ -273,6 +276,75 @@ class EventOverviewTool
             false
         );
 
+        return self::tally(array_map([$this, 'flatRow'], $rows), $reference) + [
+            'objects' => $this->objectCounts($user, (int)$event['id']),
+            'detection_rules' => $this->detectionRules($user, (int)$event['id']),
+        ];
+    }
+
+    /**
+     * inventory() of an event held in memory only, such as a feed's, read
+     * from its MISP-format body.
+     *
+     * @param array $event Event row carrying Attribute and Object
+     * @return array
+     */
+    public static function inventoryOf(array $event)
+    {
+        $rows = [];
+        $byName = [];
+        $rules = [];
+        $add = function (array $attribute, $object) use (&$rows, &$rules) {
+            if (!empty($attribute['deleted'])) {
+                return;
+            }
+            $ad = (int)($attribute['distribution'] ?? 5);
+            $od = $object === null ? 5 : (int)($object['distribution'] ?? 5);
+            $row = [
+                'type' => (string)($attribute['type'] ?? ''),
+                'to_ids' => empty($attribute['to_ids']) ? 0 : 1,
+                'loose' => $object === null ? 1 : 0,
+                'ad' => $ad,
+                'asg' => $ad === 4 ? (int)($attribute['sharing_group_id'] ?? 0) : 0,
+                'od' => $od,
+                'osg' => $od === 4 ? (int)($object['sharing_group_id'] ?? 0) : 0,
+            ];
+            $key = implode('|', $row);
+            $rows[$key] = $rows[$key] ?? $row + ['n' => 0];
+            $rows[$key]['n']++;
+            if (count($rules) < 5 && in_array($row['type'], self::RULE_TYPES, true)) {
+                $rules[] = [
+                    'type' => $row['type'],
+                    'name' => self::ruleName($row['type'], (string)($attribute['value'] ?? ''), (string)($attribute['comment'] ?? '')),
+                    'object' => $object === null ? null : $object['name'],
+                ];
+            }
+        };
+        foreach ($event['Attribute'] ?? [] as $attribute) {
+            $add($attribute, null);
+        }
+        foreach ($event['Object'] ?? [] as $object) {
+            if (!empty($object['deleted'])) {
+                continue;
+            }
+            $byName[$object['name']] = ($byName[$object['name']] ?? 0) + 1;
+            foreach ($object['Attribute'] ?? [] as $attribute) {
+                $add($attribute, $object);
+            }
+        }
+        arsort($byName);
+        return self::tally(array_values($rows), $event) + [
+            'objects' => ['total' => array_sum($byName), 'by_name' => $byName],
+            'detection_rules' => $rules,
+        ];
+    }
+
+    /**
+     * Counts by group and type out of rows of type, to_ids, loose, the
+     * attribute's and its object's distribution and sharing group, and n.
+     */
+    private static function tally(array $rows, array $reference)
+    {
         $eventDist = (int)$reference['distribution'];
         $eventSg = (int)($reference['sharing_group_id'] ?? 0);
         $groups = [];
@@ -280,8 +352,7 @@ class EventOverviewTool
             $groups[$name] = ['group' => $name, 'total' => 0, 'ids' => 0, 'in_objects' => 0, 'types' => []];
         }
         $total = $ids = $narrower = $narrowerInObjects = 0;
-        foreach ($rows as $row) {
-            $r = $this->flatRow($row);
+        foreach ($rows as $r) {
             $loose = (int)$r['loose'] === 1;
             $n = (int)$r['n'];
             $isIds = !empty($r['to_ids']);
@@ -324,8 +395,6 @@ class EventOverviewTool
             'narrower' => $narrower,
             'narrower_in_objects' => $narrowerInObjects,
             'groups' => $groups,
-            'objects' => $this->objectCounts($user, (int)$event['id']),
-            'detection_rules' => $this->detectionRules($user, (int)$event['id']),
         ];
     }
 
@@ -395,7 +464,7 @@ class EventOverviewTool
             "SELECT $a.type, $a.value1_id, $a.comment,"
             . " CASE WHEN $a.object_id = 0 THEN 1 ELSE 0 END AS loose, $o.name AS object_name"
             . $this->attributesFrom($user)
-            . " AND $a.type IN ('snort', 'yara', 'sigma', 'suricata', 'zeek', 'bro', 'kusto-query')"
+            . " AND $a.type IN ('" . implode("', '", self::RULE_TYPES) . "')"
             . " ORDER BY $a.id LIMIT 5",
             [$eventId],
             false

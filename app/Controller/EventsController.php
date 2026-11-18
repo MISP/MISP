@@ -944,7 +944,19 @@ class EventsController extends AppController
 
     public function index()
     {
+        return $this->__eventIndex();
+    }
 
+    /**
+     * The events index, over all the events the user may see or over a part
+     * of them: $scope['conditions'] narrows the list, and $scope['proposals']
+     * attaches each event's proposals (the Overmind proposal index).
+     *
+     * @param array $scope
+     * @return CakeResponse|null
+     */
+    private function __eventIndex(array $scope = [])
+    {
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin()) {
             $conditions = $this->Event->createEventConditions($this->Auth->user());
@@ -952,6 +964,9 @@ class EventsController extends AppController
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
             }
             $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
+        }
+        if (!empty($scope['conditions'])) {
+            $this->paginate['conditions']['AND'][] = $scope['conditions'];
         }
         // list the events
         $urlparams = "";
@@ -1040,6 +1055,9 @@ class EventsController extends AppController
             ));
         }
         $events = $this->__attachInfoToEvents($attachColumns, $events);
+        if (!empty($scope['proposals'])) {
+            $events = $this->__attachProposalsToEvents($events);
+        }
 
         $this->__noKeyNotification();
         App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
@@ -1374,6 +1392,10 @@ class EventsController extends AppController
                 $events,
                 Event::INDEX_OBJECT_LIMIT
             );
+            // Overmind's attribute count links to the tab that lists them.
+            if ($this->theme === 'Overmind') {
+                $events = $this->Event->attachAttributesInObjectsOnlyToEvents($events);
+            }
         }
 
         if (in_array('correlations', $columns, true)) {
@@ -1404,6 +1426,60 @@ class EventsController extends AppController
     }
 
     /**
+     * Each event's open proposals: how many, the last one's time, and the
+     * organisations that made them, most proposals first. One query for the
+     * page, one for the organisations.
+     *
+     * @param array $events
+     * @return array with Event.Proposals: count, last, orgs (id, name, uuid, count)
+     */
+    private function __attachProposalsToEvents(array $events)
+    {
+        $eventIds = array_map('intval', Hash::extract($events, '{n}.Event.id'));
+        if (empty($eventIds)) {
+            return $events;
+        }
+        $this->loadModel('ShadowAttribute');
+        $rows = $this->ShadowAttribute->find('all', [
+            'fields' => [
+                'ShadowAttribute.event_id', 'ShadowAttribute.org_id',
+                'COUNT(*) AS n', 'MAX(ShadowAttribute.timestamp) AS last',
+            ],
+            'conditions' => ['ShadowAttribute.event_id' => $eventIds, 'ShadowAttribute.deleted' => 0],
+            'group' => ['ShadowAttribute.event_id', 'ShadowAttribute.org_id'],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        $orgs = $this->Event->Orgc->find('all', [
+            'conditions' => ['Orgc.id' => array_unique(Hash::extract($rows, '{n}.ShadowAttribute.org_id'))],
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+            'recursive' => -1,
+        ]);
+        $orgs = Hash::combine($orgs, '{n}.Orgc.id', '{n}.Orgc');
+        $byEvent = [];
+        foreach ($rows as $row) {
+            $eventId = (int)$row['ShadowAttribute']['event_id'];
+            $orgId = (int)$row['ShadowAttribute']['org_id'];
+            $n = (int)$row[0]['n'];
+            $entry = $byEvent[$eventId] ?? ['count' => 0, 'last' => 0, 'orgs' => []];
+            $entry['count'] += $n;
+            $entry['last'] = max($entry['last'], (int)$row[0]['last']);
+            $entry['orgs'][] = ($orgs[$orgId] ?? ['id' => $orgId, 'name' => (string)$orgId, 'uuid' => null]) + ['count' => $n];
+            $byEvent[$eventId] = $entry;
+        }
+        foreach ($events as &$event) {
+            $entry = $byEvent[(int)$event['Event']['id']] ?? ['count' => 0, 'last' => 0, 'orgs' => []];
+            usort($entry['orgs'], function ($a, $b) {
+                return $b['count'] <=> $a['count'];
+            });
+            $event['Event']['Proposals'] = $entry;
+            $event['Event']['proposals_count'] = $entry['count'];
+        }
+        unset($event);
+        return $events;
+    }
+
+    /**
      * What the Overmind index card draws, as EventCard on each event. A fixed
      * number of queries for the page, whatever its size.
      *
@@ -1418,11 +1494,9 @@ class EventsController extends AppController
         if (empty($events)) {
             return $events;
         }
-        App::uses('EventContextTool', 'Tools/EventOverview');
-        App::uses('EventCardTool', 'Tools/EventOverview');
+        App::uses('EventCardBatch', 'Tools/EventOverview');
         $user = $this->Auth->user();
-        $permitted = ClassRegistry::init('AnalystProfile')->pivotLabels($user, $plan)['permitted'];
-        $markingNamespaces = ValueLabelPriority::markings($profile);
+        $cards = EventCardBatch::cards($events, $user, $profile, $plan);
         $uuids = array_column(array_column($events, 'Event'), 'uuid');
 
         // Callbacks off: AnalystData::afterFind resolves orgs and child notes per row.
@@ -1460,41 +1534,8 @@ class EventsController extends AppController
             $extendedBy[$row['Event']['extends_uuid']] = (int)$row[0]['children'];
         }
 
-        App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
-        $grades = ValueTrustTool::planFor($profile)['grades'];
-        $pinned = EventCardTool::pinned($profile);
-        $pinnedExtras = array_diff($pinned, $markingNamespaces);
-
-        $contexts = [];
-        $pinnedTagNames = [];
-        foreach ($events as $k => $event) {
-            $contexts[$k] = EventContextTool::rows(
-                $event['EventTag'] ?? [],
-                $event['GalaxyCluster'] ?? [],
-                null,
-                [],
-                [],
-                $profile,
-                $permitted
-            );
-            foreach ($contexts[$k]['classification'] as $item) {
-                if ($item['kind'] === 'tag' && in_array($item['key'], $pinnedExtras, true)) {
-                    $pinnedTagNames[$item['name']] = true;
-                }
-            }
-        }
-        // Redis-cached, and bounded by the distinct pinned tags on the page.
-        $descriptions = [];
-        if ($pinnedTagNames) {
-            $Taxonomy = ClassRegistry::init('Taxonomy');
-            foreach (array_keys($pinnedTagNames) as $tagName) {
-                $descriptions[$tagName] = EventCardTool::tagDescription($Taxonomy->getTaxonomyForTag($tagName));
-            }
-        }
-
         foreach ($events as $k => $event) {
             $e = $event['Event'];
-            $context = $contexts[$k];
             $extends = null;
             if (!empty($e['extends_uuid'])) {
                 $parent = $extendedEvents[$e['extends_uuid']] ?? null;
@@ -1502,12 +1543,7 @@ class EventsController extends AppController
                     ? ['id' => (int)$parent['id'], 'info' => $parent['info'], 'uuid' => $e['extends_uuid']]
                     : ['id' => null, 'info' => null, 'uuid' => $e['extends_uuid']];
             }
-            $events[$k]['EventCard'] = [
-                'rows' => EventCardTool::rows($context, $profile),
-                'markings' => EventCardTool::markings($context, $markingNamespaces, $pinned, $descriptions),
-                'grade' => EventCardTool::grade($event['Orgc'] ?? [], $grades),
-                'state' => EventCardTool::state($e),
-                'distribution' => EventCardTool::distribution($e['distribution'], $event['SharingGroup'] ?? null),
+            $events[$k]['EventCard'] = $cards[$k] + [
                 'graphs' => $graphs[$e['uuid']] ?? [],
                 'extends' => $extends,
                 'extended_by' => $extendedBy[$e['uuid']] ?? 0,
@@ -3321,11 +3357,18 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
         $this->set('objects', $result['Object']);
+        $objectIds = array_map('intval', array_column($result['Object'], 'id'));
+        $this->set('referencesIn', empty($objectIds)
+            ? [] : $this->Event->Object->indexReferenceCounts($user, $objectIds)[1]);
         $focusId = null;
         if (!empty($options['focus'])) {
             foreach ($result['Object'] as $object) {
@@ -3499,7 +3542,11 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
@@ -4775,7 +4822,9 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id']]
+            ['fields' => [
+                'Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id',
+            ]]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -4838,6 +4887,103 @@ class EventsController extends AppController
         $this->set('attachments', $attachments);
         $this->set('event',       $event);
         $this->layout = false;
+    }
+
+    /**
+     * The event's pictures: image attachments the user can see, loose or in
+     * an object, in creation order.
+     *
+     * @param int|string $id Event ID or UUID
+     * @return CakeResponse
+     */
+    public function viewEventPictures($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent(
+            $user,
+            $id,
+            ['fields' => ['Event.id']]
+        );
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $eventId = (int)$event['Event']['id'];
+
+        $this->loadModel('MispAttribute');
+        $rows = $this->MispAttribute->fetchAttributes($user, [
+            'conditions' => [
+                'Attribute.event_id' => $eventId,
+                'Attribute.type' => 'attachment',
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => [
+                'Attribute.id', 'Attribute.uuid', 'Attribute.type',
+                'Attribute.category', 'Attribute.value', 'Attribute.comment',
+                'Attribute.timestamp', 'Attribute.distribution',
+                'Attribute.object_id',
+            ],
+            'flatten' => true,
+        ]);
+        $attributes = array_values(array_filter(
+            array_column($rows, 'Attribute'),
+            [$this->MispAttribute, 'isImage']
+        ));
+        usort($attributes, function ($a, $b) {
+            return (int)$a['id'] - (int)$b['id'];
+        });
+
+        $objectIds = array_values(array_unique(array_filter(array_map(
+            function ($attribute) {
+                return (int)$attribute['object_id'];
+            },
+            $attributes
+        ))));
+        $objects = [];
+        if (!empty($objectIds)) {
+            $objects = $this->MispAttribute->Object->find('all', [
+                'recursive' => -1,
+                'conditions' => ['Object.id' => $objectIds],
+                'fields' => ['Object.id', 'Object.name', 'Object.distribution'],
+            ]);
+            $objects = array_column(
+                array_column($objects, 'Object'),
+                null,
+                'id'
+            );
+        }
+
+        $baseurl = $this->baseurl;
+        $pictures = [];
+        foreach ($attributes as $attribute) {
+            $attributeId = (int)$attribute['id'];
+            $object = $objects[$attribute['object_id']] ?? null;
+            $pictures[] = [
+                'id' => $attributeId,
+                'filename' => $attribute['value'],
+                'comment' => $attribute['comment'],
+                'category' => $attribute['category'],
+                'distribution' => (int)($object === null
+                    ? $attribute['distribution']
+                    : $object['distribution']),
+                'timestamp' => (int)$attribute['timestamp'],
+                'object' => $object === null ? null : [
+                    'id' => (int)$object['id'],
+                    'name' => $object['name'],
+                ],
+                'src' => $baseurl . '/attributes/viewPicture/' . $attributeId,
+                'thumb' => $baseurl . '/attributes/viewPicture/'
+                    . $attributeId . '/webp',
+                'download' => $baseurl . '/attributes/download/' . $attributeId,
+                'attributeUrl' => sprintf(
+                    '%s/events/view/%d/focus:%s',
+                    $baseurl,
+                    $eventId,
+                    $attribute['uuid']
+                ),
+            ];
+        }
+
+        return $this->RestResponse->viewData($pictures, 'json');
     }
 
     /**
@@ -6951,6 +7097,16 @@ class EventsController extends AppController
 
     public function proposalEventIndex()
     {
+        if ($this->theme === 'Overmind' && !$this->_isRest()) {
+            // The events index, over the events with proposals: for a site
+            // admin all of them, for anyone else those of their organisation.
+            $proposals = 'exists (select id from shadow_attributes where shadow_attributes.event_id = Event.id'
+                . ' and shadow_attributes.deleted = FALSE'
+                . ($this->_isSiteAdmin() ? '' : ' and shadow_attributes.event_org_id = ' . (int)$this->Auth->user('org_id'))
+                . ')';
+            $this->set('indexAction', 'proposalEventIndex');
+            return $this->__eventIndex(['conditions' => $proposals, 'proposals' => true]);
+        }
         $this->loadModel('ShadowAttribute');
         $conditions = array('ShadowAttribute.deleted' => 0);
         if (!$this->_isSiteAdmin()) {
@@ -9469,6 +9625,28 @@ class EventsController extends AppController
             $this->set('workflows', $allowedWorkflows);
             $this->render('ajax/run_workflow');
         }
+    }
+
+    /**
+     * An event's peek, the popover the indexes open on an event's id
+     * (Elements/Events/peek_link): fetched on the first hover.
+     *
+     * @param int $id
+     */
+    public function peek($id)
+    {
+        $this->request->allowMethod(['get']);
+        if ($this->theme !== 'Overmind') {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        App::uses('EventPeekBatch', 'Tools/EventOverview');
+        $events = EventPeekBatch::forIds($this->_closeSession(), [(int)$id]);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->set('event', reset($events));
+        $this->layout = false;
+        $this->render('/Elements/Events/peek');
     }
 
     public function getEventInfoById($id)

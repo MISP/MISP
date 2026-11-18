@@ -20,15 +20,11 @@
                     credentials: 'same-origin'
                 })
                 .then(response => {
-                    if (response.ok) {
-                        location.reload();
-                        throw new ShowToast(<?= json_encode(__('Theme updated!'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
-                    } else {
-                        throw new Error('Server Error');
-                    }
+                    if (!response.ok) throw new Error('Server Error');
+                    location.reload();
                 })
-                .catch(error => {
-                    alert(<?= json_encode(__('Failed to toggle Beta UI. Please try again.'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
+                .catch(() => {
+                    showToast(<?= json_encode(__('Failed to change the theme. Please try again.')) ?>, 'danger');
                 });
             });
         });

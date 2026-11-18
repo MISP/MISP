@@ -59,13 +59,25 @@ $top = empty($reporters) ? 0 : $reporters[0]['count'];
                 'barsTop' => $top,
             )) ?>
 
-            <p class="vp-aside-note">
-                <?= h(__(
-                    'Every report the organisation filed, whatever it said.'
-                    . ' The bar is split by what they said; its length'
-                    . ' ranks them by who spoke.'
-                )) ?>
-            </p>
+            <?php // The bar's colours are the chart's; only the kinds present are named. ?>
+            <div class="vp-reporters-key">
+                <?php
+                $present = array(
+                    'sighting' => $sightings['total'] - ($sightings['fp'] ?? 0) - ($sightings['expiration'] ?? 0),
+                    'fp' => $sightings['fp'] ?? 0,
+                    'expiration' => $sightings['expiration'] ?? 0,
+                );
+                ?>
+                <?php foreach (array(
+                    'sighting' => __('sightings'),
+                    'fp' => __('false positives'),
+                    'expiration' => __('expirations'),
+                ) as $kind => $label): ?>
+                    <?php if ($present[$kind] > 0): ?>
+                        <span><i class="vp-sight-dot is-<?= h($kind) ?>" aria-hidden="true"></i><?= h($label) ?></span>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
         <?php endif; ?>
 
     </div>

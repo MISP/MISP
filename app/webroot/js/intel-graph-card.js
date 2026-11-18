@@ -36,8 +36,16 @@
     function card(root) {
         var config = JSON.parse(root.querySelector('[data-ig-card-config]').textContent);
         var body = root.querySelector('[data-ig-card-body]');
+        var head = root.querySelector('[data-ig-card-head]');
         var countEl = root.querySelector('[data-ig-card-count]');
         var target = config.target;
+
+        // Empty, the card is its header and its +; without the + it has nothing to offer.
+        function setEmpty(empty) {
+            head.classList.toggle('border-bottom', !empty);
+            body.classList.toggle('d-none', empty);
+            root.classList.toggle('d-none', empty && !config.canCreate);
+        }
 
         function getJson(path) {
             return fetch(config.baseurl + path, {
@@ -172,20 +180,13 @@
                         ? graphs.length + (graphs.length === 1 ? ' workspace' : ' workspaces') + ' on this ' + config.targetName
                         : 'No workspace on this ' + config.targetName;
                     body.textContent = '';
-                    if (!graphs.length) {
-                        var empty = el('div', 'd-flex flex-column align-items-center justify-content-center text-muted py-4 px-3 text-center');
-                        empty.appendChild(icon('misp-icon misp-icon-analyst-graph misp-simple fa-2x mb-2 opacity-50'));
-                        empty.appendChild(el('p', 'mb-0 small fw-semibold', config.canCreate
-                            ? 'Start one with +, then send records to it with “Add to workspace”.'
-                            : 'No workspace hangs off this ' + config.targetName + ' yet.'));
-                        body.appendChild(empty);
-                        return;
-                    }
+                    setEmpty(!graphs.length);
                     graphs.forEach(function (g) { body.appendChild(row(g, out.active === g.uuid)); });
                 })
                 .catch(function () {
                     countEl.textContent = '';
                     body.textContent = '';
+                    setEmpty(false);
                     var err = el('div', 'text-center text-muted py-4 small');
                     err.appendChild(icon('fas fa-exclamation-triangle me-2'));
                     err.appendChild(document.createTextNode('Could not load the workspaces.'));
@@ -201,40 +202,32 @@
             document.body.appendChild(modalEl);
             var form = modalEl.querySelector('[data-ig-card-form]');
             var error = form.querySelector('[data-ig-card-error]');
-            var dist = form.elements.distribution;
-            var sg = form.elements.sharing_group_id;
-            var uid = 'ig-card-' + Math.random().toString(36).slice(2, 8);
-            form.querySelectorAll('[data-ig-for]').forEach(function (label) {
-                var input = form.elements[label.getAttribute('data-ig-for')];
-                input.id = uid + '-' + input.name;
-                label.htmlFor = input.id;
-            });
-            config.create.levels.forEach(function (l) {
-                var o = el('option', null, l[1]);
-                o.value = String(l[0]);
-                o.selected = l[0] === config.create.default;
-                dist.appendChild(o);
-            });
-            config.create.sharingGroups.forEach(function (g) {
-                var o = el('option', null, g[1]);
-                o.value = String(g[0]);
-                sg.appendChild(o);
-            });
-            dist.addEventListener('change', function () { sg.hidden = dist.value !== '4'; });
+            var dist = form.elements['data[Workspace][distribution]'];
+            var sg = form.elements['data[Workspace][sharing_group_id]'];
+            function fail(text) {
+                error.lastElementChild.textContent = text;
+                error.hidden = !text;
+            }
             var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
             modalEl.addEventListener('shown.bs.modal', function () { form.elements.name.focus(); });
             button.addEventListener('click', function () {
                 form.reset();
+                // What the required guard flagged outlives a reset.
+                form.querySelectorAll('.is-invalid').forEach(function (f) { f.classList.remove('is-invalid'); });
+                form.querySelectorAll('.ov-field-error:not([data-ig-card-error])').forEach(function (m) { m.remove(); });
                 dist.value = String(config.create.default);
-                sg.hidden = dist.value !== '4';
-                error.textContent = '';
+                // The cards and the sharing-group reveal follow the select's change.
+                dist.dispatchEvent(new Event('change', { bubbles: true }));
+                if (sg && sg.tomselect) sg.tomselect.setValue(sg.value, true);
+                fail('');
                 modal.show();
             });
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
+                // An empty name: the required guard has flagged it already.
                 var name = form.elements.name.value.trim();
-                if (!name) { error.textContent = 'A workspace needs a name.'; return; }
-                if (dist.value === '4' && !sg.value) { error.textContent = 'Pick the sharing group to share it with.'; return; }
+                if (!name) return;
+                if (dist.value === '4' && !(sg && sg.value)) { fail('Pick the sharing group to share it with.'); return; }
                 var submit = form.querySelector('[type="submit"]');
                 submit.disabled = true;
                 window.IntelGraph.create({
@@ -251,7 +244,7 @@
                     return created;
                 }, function (err) {
                     submit.disabled = false;
-                    error.textContent = 'Not created: ' + message(err);
+                    fail('Not created: ' + message(err));
                 });
             });
         }

@@ -90,6 +90,24 @@ function capToasts(stack) {
     for (let i = TOAST_MAX; i < live.length; i++) dismissToast(live[i]);
 }
 
+/*
+ * A modal URL that refuses to open answers with its toasts only: they go to
+ * the stack and the modal stays closed.
+ */
+function showToastsOnly(html) {
+    const stack = toastStack();
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const toasts = Array.from(tpl.content.children);
+    if (!stack || !toasts.length || !toasts.every(el => el.matches('.ov-toast'))) {
+        return false;
+    }
+    stack.prepend(...toasts);
+    toasts.forEach(armToast);
+    capToasts(stack);
+    return true;
+}
+
 /*******************************
  * Size the shared #mainModal dialog.
  *
@@ -100,13 +118,14 @@ function capToasts(stack) {
  * the dialog for every later open.
  *
  *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *   'fullscreen' the whole viewport (the galaxy matrix)
  *******************************/
 function setModalSize(size, dialog) {
     dialog = dialog || document.querySelector('#mainModal .modal-dialog');
     if (!dialog) {
         return;
     }
-    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl', 'modal-fullscreen');
     if (size && size !== 'md') {
         dialog.classList.add('modal-' + size);
     }
@@ -191,6 +210,9 @@ function openModal(url, size = 'xl') {
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
         .then(html => {
+            if (showToastsOnly(html)) {
+                return;
+            }
             const container = document.getElementById('mainModalBody');
             container.innerHTML = html;
             container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {
@@ -3149,7 +3171,7 @@ function initSharingGroupForm(container) {
  * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter, .om-lazy-popover';
+    var LAZY_POPOVERS = '.role-perm-counter, .om-lazy-popover';
 
     function lazyPopover(e) {
         /*
@@ -3174,6 +3196,169 @@ function initSharingGroupForm(container) {
     // The triggering event predates the instance, hence the .show() above.
     document.addEventListener('mouseenter', lazyPopover, true);
     document.addEventListener('focusin', lazyPopover);
+})();
+
+/*******************************
+ * Event peeks (Events/peek_link.ctp)
+ * An event's peek, fetched from /events/peek/<id> on the first hover and
+ * kept for the page. It stays open while the pointer is on it, so its links
+ * and the UUID's copy button can be reached; moving to another event's id
+ * swaps it at once.
+ *******************************/
+(function () {
+    var REF = '.ev-ref[data-ev-peek]';
+    var POP = '.ev-peek-popover';
+    var OPEN_DELAY = 120;
+    var CLOSE_DELAY = 200;
+    var current = null;     // the ref whose peek is shown
+    var wanted = null;      // the ref whose peek is shown or on its way
+    var pending = null;     // the ref waiting out OPEN_DELAY
+    var openTimer = null;
+    var closeTimer = null;
+    var peeks = {};         // event id => promise of its <template>, or of null
+
+    function load(ref) {
+        var id = ref.dataset.evPeek;
+        if (!peeks[id]) {
+            peeks[id] = fetch(ref.dataset.evPeekUrl, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            }).then(function (response) {
+                return response.ok ? response.text() : '';
+            }).then(function (html) {
+                var tpl = document.createElement('template');
+                tpl.innerHTML = html.trim();
+                // Anything else (a login page after a timeout, say) is not a peek.
+                var root = tpl.content.firstElementChild;
+                return root && root.classList.contains('ev-pop') ? tpl : null;
+            }, function () {
+                delete peeks[id];
+                return null;
+            });
+        }
+        return peeks[id];
+    }
+
+    function open(ref) {
+        clearTimeout(openTimer);
+        clearTimeout(closeTimer);
+        pending = null;
+        if (wanted === ref) return;
+        wanted = ref;
+        ref.classList.add('is-loading');
+        load(ref).then(function (tpl) {
+            ref.classList.remove('is-loading');
+            if (tpl && wanted === ref && ref.isConnected) show(ref, tpl);
+        });
+    }
+
+    function show(ref, tpl) {
+        hide();
+        var popover = bootstrap.Popover.getOrCreateInstance(ref, {
+            trigger: 'manual',
+            html: true,
+            // Shown and hidden at once: a fading peek racing the next one is what this avoids.
+            animation: false,
+            placement: 'right',
+            fallbackPlacements: ['top', 'bottom', 'left'],
+            container: 'body',
+            customClass: 'ev-peek-popover',
+            // An element is placed as is, past the sanitizer: it is the server's markup.
+            content: function () { return tpl.content.firstElementChild.cloneNode(true); },
+        });
+        current = ref;
+        ref.classList.add('is-open');
+        popover.show();
+    }
+
+    function hide() {
+        if (!current) return;
+        var ref = current;
+        current = null;
+        ref.classList.remove('is-open');
+        var popover = bootstrap.Popover.getInstance(ref);
+        if (popover) popover.hide();
+    }
+
+    function close() {
+        clearTimeout(closeTimer);
+        wanted = null;
+        hide();
+    }
+
+    function closeSoon() {
+        clearTimeout(openTimer);
+        clearTimeout(closeTimer);
+        pending = null;
+        if (wanted) closeTimer = setTimeout(close, CLOSE_DELAY);
+    }
+
+    document.addEventListener('mouseover', function (e) {
+        var target = e.target && e.target.closest ? e.target : null;
+        if (!target) return;
+        var ref = target.closest(REF);
+        if (ref) {
+            clearTimeout(closeTimer);
+            if (ref === wanted || ref === pending) return;
+            clearTimeout(openTimer);
+            if (current) {
+                open(ref);
+            } else {
+                pending = ref;
+                openTimer = setTimeout(function () { open(ref); }, OPEN_DELAY);
+            }
+            return;
+        }
+        if (current && target.closest(POP)) clearTimeout(closeTimer);
+    });
+
+    document.addEventListener('mouseout', function (e) {
+        var from = e.target && e.target.closest ? e.target.closest(REF + ', ' + POP) : null;
+        if (!from) return;
+        var to = e.relatedTarget;
+        if (to && from.contains(to)) return;
+        closeSoon();
+    });
+
+    document.addEventListener('focusin', function (e) {
+        var target = e.target && e.target.closest ? e.target : null;
+        if (!target) return;
+        var ref = target.closest(REF);
+        if (ref) {
+            open(ref);
+        } else if (current && target.closest(POP)) {
+            clearTimeout(closeTimer);
+        }
+    });
+
+    document.addEventListener('focusout', function (e) {
+        if (!wanted) return;
+        var to = e.relatedTarget;
+        if (to && to.closest && (to === wanted || to.closest(POP))) return;
+        if (e.target.closest && e.target.closest(REF + ', ' + POP)) closeSoon();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !wanted) return;
+        var ref = wanted;
+        var inside = document.activeElement && document.activeElement.closest
+            && document.activeElement.closest(POP);
+        close();
+        if (inside) ref.focus();
+    });
+
+    document.addEventListener('click', function (e) {
+        var button = e.target.closest ? e.target.closest('.ev-pop-copy') : null;
+        if (!button) return;
+        copyValueToClipboard(button.dataset.copyValue, button.dataset.copyMsg);
+        var icon = button.querySelector('i');
+        button.classList.add('is-done');
+        if (icon) icon.className = 'fas fa-check';
+        setTimeout(function () {
+            button.classList.remove('is-done');
+            if (icon) icon.className = 'fas fa-copy';
+        }, 1500);
+    });
 })();
 
 /*******************************
@@ -3333,29 +3518,10 @@ function openSelectedSightings() {
 (function installSightingActions() {
     document.addEventListener('click', function (e) {
         if (!e.target.closest) return;
-        var more = e.target.closest('.sighting-more');
-        if (more) {
-            e.preventDefault();
-            bootstrap.Dropdown.getOrCreateInstance(more, {
-                popperConfig: { strategy: 'fixed' }
-            }).toggle();
-            return;
-        }
-
         var details = e.target.closest('[data-sighting-details]');
         if (details) {
             e.preventDefault();
-            var pop = bootstrap.Popover.getInstance(details);
-            if (pop) pop.hide();
             openSightingDetails(details.dataset.sightingDetails);
-            return;
-        }
-
-        var onValue = e.target.closest('[data-sighting-value]');
-        if (onValue) {
-            e.preventDefault();
-            openModal(baseurl + '/sightings/quickAdd/' + onValue.dataset.sightingValue
-                + '/' + onValue.dataset.type + '/1', 'md');
             return;
         }
 
@@ -3372,9 +3538,13 @@ function openSelectedSightings() {
                     showToast(data.errors || data.message || 'Could not add the sighting.', 'danger');
                     return;
                 }
-                var countEl = document.querySelector('#sightings_' + attrId
-                    + ' .sighting-' + (type === '0' ? 's' : 'f'));
-                if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                // The attribute may be on the page twice, as a table row and as a card.
+                document.querySelectorAll('.sighting-add[data-attribute-id="' + attrId + '"][data-type="' + type + '"]')
+                    .forEach(function (add) {
+                        var countEl = add.querySelector('.sighting-' + (type === '0' ? 's' : 'f'));
+                        if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                        add.classList.remove('is-zero');
+                    });
                 showToast(data.success || 'Sighting added.', 'success');
                 notifySightingChange({ attributeId: attrId, type: type });
             })
@@ -3384,14 +3554,6 @@ function openSelectedSightings() {
             .finally(function () {
                 btn.disabled = false;
             });
-    });
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        var details = e.target.closest && e.target.closest('.sighting-counts[data-sighting-details]');
-        if (!details) return;
-        e.preventDefault();
-        details.click();
     });
 })();
 
@@ -4498,6 +4660,8 @@ function initJsonFields(container) {
             var count = state.raw.length ? state.raw.split('\n').length : 1;
             if (count !== lineCount) {
                 lineCount = count;
+                // The gutter is as wide as its longest number: line 100 must not wrap.
+                wrap.style.setProperty('--ov-json-digits', String(count).length);
                 var rows = '';
                 for (var i = 1; i <= count; i++) {
                     rows += '<div>' + i + '</div>';
@@ -5473,8 +5637,22 @@ function formTypeChanged(idPrefix) {
     if (!typeEl) { return; }
     var isNonCorr = (typeof non_correlating_types !== 'undefined')
         && non_correlating_types.indexOf(typeEl.value) !== -1;
-    var corrEl = document.getElementById(idPrefix + 'DisableCorrelation');
-    if (corrEl) { corrEl.disabled = isNonCorr; }
+    var corrEl = document.getElementById(idPrefix + 'Correlate');
+    if (!corrEl || corrEl.disabled === isNonCorr) { return; }
+    // Show such a type unticked, and give the user's choice back afterwards.
+    if (isNonCorr) {
+        corrEl.dataset.wasChecked = corrEl.checked ? '1' : '';
+        corrEl.checked = false;
+    } else {
+        corrEl.checked = corrEl.dataset.wasChecked === '1';
+    }
+    corrEl.disabled = isNonCorr;
+    // The unticked fallback would disable correlation: post 0 as before.
+    var fallback = document.getElementById(idPrefix + 'Correlate_');
+    if (fallback) { fallback.value = isNonCorr ? '0' : '1'; }
+    var card = corrEl.closest('label');
+    if (card) { card.title = isNonCorr ? corrEl.dataset.lockedTitle : ''; }
+    corrEl.dispatchEvent(new Event('change'));
 }
 
 function checkNoticeList(type) {
@@ -5671,11 +5849,11 @@ function initAttributeForm(currentDist, isEdit) {
             on:  { border: ON_YELLOW, color: ON_YELLOW, iconClass: null },
             off: { border: OFF_LINE, color: OFF_ICON, iconClass: null }
         },
-        AttributeDisableCorrelation: {
+        AttributeCorrelate: {
             card: 'card-correl', icon: 'icon-correl',
-            on:  { border: OFF_LINE, color: OFF_ICON,
-                   iconClass: 'fas fa-link-slash' },
-            off: { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' }
+            on:  { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' },
+            off: { border: OFF_LINE, color: OFF_ICON,
+                   iconClass: 'fas fa-link-slash' }
         }
     };
 
@@ -5731,12 +5909,17 @@ function initAttributeForm(currentDist, isEdit) {
         var nextVal = (preserveValue && allowed.indexOf(previousType) !== -1)
             ? previousType : '';
 
+        /* The empty choice reads as a prompt, which depends on the category */
+        var prompt = (selectedCategory
+            ? typeEl.dataset.placeholderPick
+            : typeEl.dataset.placeholderFirst) || '';
+
         while (typeEl.options.length) { typeEl.remove(0); }
-        typeEl.add(new Option('', ''));
+        typeEl.add(new Option(prompt, ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
         typeEl.value = nextVal;
-        /* An attribute inside an object has its type fixed by the template, so
-         * refilling the list must not hand it back. */
+        /* A type the server locked (object template, attachment) must stay
+         * disabled: the Security token leaves disabled fields out. */
         var locked = typeEl.dataset.locked === '1';
         typeEl.disabled = locked;
 
@@ -5744,14 +5927,17 @@ function initAttributeForm(currentDist, isEdit) {
             var ts = typeEl.tomselect;
             ts.clear(true);
             ts.clearOptions();
-            ts.addOption({ value: '', text: '' });
             ts.addOptions(allowed.map(function (t) { return { value: t, text: t }; }));
             ts.setValue(nextVal, true);
+            ts.settings.placeholder = prompt;
+            ts.control_input.placeholder = prompt;
             ts.refreshItems();
             if (locked) { ts.disable(); }
         }
 
         formTypeChanged('Attribute');
+        /* The type changed silently: no change event reaches the value strip */
+        if (refreshValueFoot) { refreshValueFoot(); }
     }
 
     /* TomSelect: Category */
@@ -5760,6 +5946,11 @@ function initAttributeForm(currentDist, isEdit) {
         if (!el || el.tomselect) { return; }
         new TomSelect(el, {
             create: false,
+            render: {
+                item: function (data, escape) {
+                    return '<div><span class="om-category">' + escape(data.text) + '</span></div>';
+                }
+            },
             onChange: function (val) {
                 applyTypeFilter(val);
                 if (val === 'Internal reference') {
@@ -5781,6 +5972,11 @@ function initAttributeForm(currentDist, isEdit) {
         if (!el || el.tomselect) { return; }
         new TomSelect(el, {
             create: false,
+            render: {
+                item: function (data, escape) {
+                    return '<div><span class="om-type">' + escape(data.text) + '</span></div>';
+                }
+            },
             onChange: function () {
                 formTypeChanged('Attribute');
                 checkNoticeList('attribute');
@@ -5803,28 +5999,29 @@ function initAttributeForm(currentDist, isEdit) {
         var lastValid = true;   // best-effort submit guard
         var seq = 0;            // ignore out-of-order responses
 
+        /* The box around the value, as Forms/input_field draws it */
+        var box = valueEl.closest('.ov-form-field') || valueEl;
+
         function showError(message) {
             lastValid = false;
-            valueEl.style.borderColor = 'var(--misp-tone-red-solid, #dc3545)';
+            box.classList.add('is-invalid-field');
             var msg = document.getElementById(errorId);
             if (!msg) {
                 msg = document.createElement('div');
-                msg.id        = errorId;
-                msg.className  = 'text-danger d-flex align-items-start gap-1 mt-1';
-                msg.style.fontSize = '.75rem';
+                msg.id = errorId;
+                msg.className = 'ov-field-error';
                 var icon = document.createElement('i');
                 icon.className = 'fas fa-circle-exclamation';
-                icon.style.marginTop = '.15rem';
                 msg.appendChild(icon);
                 msg.appendChild(document.createElement('span'));
-                valueEl.parentNode.appendChild(msg);
+                box.insertAdjacentElement('afterend', msg);
             }
             msg.querySelector('span').textContent = message;
         }
 
         function clearError() {
             lastValid = true;
-            valueEl.style.borderColor = 'var(--misp-field-line, #d8dde3)';
+            box.classList.remove('is-invalid-field');
             var msg = document.getElementById(errorId);
             if (msg) { msg.remove(); }
         }
@@ -5883,11 +6080,55 @@ function initAttributeForm(currentDist, isEdit) {
         }
     }
 
+    /* The strip under the value: the type it is checked against, and how
+     * much it holds — characters, or values when Batch import splits it. */
+    var refreshValueFoot = null;
+    function setupValueFoot() {
+        var valueEl = document.getElementById('AttributeValue');
+        var box = valueEl && valueEl.closest('.ov-form-field');
+        var labelsEl = box && box.querySelector('[data-value-labels]');
+        if (!labelsEl) { return; }
+        var labels = readJsonPayload(labelsEl) || {};
+        var checkEl = box.querySelector('[data-value-check]');
+        var countEl = box.querySelector('[data-value-count]');
+        var typeEl = document.getElementById('AttributeType');
+        var batchEl = document.getElementById('AttributeBatchImport');
+
+        function update() {
+            var type = typeEl ? typeEl.value : '';
+            checkEl.textContent = '';
+            if (type) {
+                var chip = document.createElement('span');
+                chip.className = 'om-type ms-1';
+                chip.textContent = type;
+                checkEl.append(labels.checked || '', chip);
+            } else {
+                checkEl.textContent = labels.pick || '';
+            }
+            var raw = valueEl.value;
+            if (batchEl && batchEl.checked) {
+                var n = raw.split(/\r?\n/).filter(function (l) { return l.trim() !== ''; }).length;
+                countEl.textContent = n === 0 ? (labels.batch || '')
+                    : n === 1 ? labels.value : (labels.values || '').replace('%s', n);
+            } else {
+                var c = raw.trim().length;
+                countEl.textContent = c === 0 ? (batchEl ? (labels.batch || '') : '')
+                    : c === 1 ? labels.char : (labels.chars || '').replace('%s', c);
+            }
+        }
+        valueEl.addEventListener('input', update);
+        if (typeEl) { typeEl.addEventListener('change', update); }
+        if (batchEl) { batchEl.addEventListener('change', update); }
+        refreshValueFoot = update;
+        update();
+    }
+
     initCategorySelect();
     initTypeSelect();
     initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
     setupCardListeners();
     setupValueValidation();
+    setupValueFoot();
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
 
     toggleSg(currentDist);
@@ -7021,13 +7262,11 @@ function formatIndexUrl(base, parts) {
  * The code snippets provided here create a *draft* using pills: \
  * his will be executed via a single button using Ajax, refreshing the container 
  *
- * Two bars share this engine — Elements/Logs/filter_card.ctp (the log
- * indexes) and genericElementsBS5/IndexTable/filter_bar.ctp (a scaffolded
- * index that declares a `more_filters` control). They agree on the
- * interaction and disagree on everything around it: where a filter lives in
- * the URL, what counts as a scope worth keeping, whether an ajax tab wraps
- * the whole thing. So every URL decision is the caller's, handed in as
- * `buildUrl` / `clearAll` / `reload`.
+ * Its one caller is genericElementsBS5/IndexTable/filter_bar.ctp, for a bar
+ * that opts out of pickers and declares a `more_filters` control; a picker
+ * bar defers its filters through index-filters.js instead (`apply` set to
+ * `deferred`, the log indexes). Every URL decision stays the caller's, handed
+ * in as `buildUrl` / `clearAll` / `reload`.
  */
 
 /**
@@ -7420,103 +7659,6 @@ function initIndexFilterDraft(root, opts) {
 window.initIndexFilterDraft = initIndexFilterDraft;
 
 /* --------------------------------------------------------------------------
- * Adapter: the log indexes' filter card
- * --------------------------------------------------------------------------
- * Its configuration (base URL, applied filters, field labels) is rendered
- * next to it as a JSON <script>; see Elements/Logs/filter_card.ctp.
- */
-function initLogFilterCard(root) {
-    if (!root) { return; }
-    const configEl = root.querySelector('.log-filter-config');
-    if (!configEl) { return; }
-    const cfg = JSON.parse(configEl.textContent);
-    const quickEl = root.querySelector('.log-quick-filter');
-
-    // TomSelect copies the select's classes onto its wrapper, so
-    // `.filter-draft-input` alone matches two nodes per control.
-    function inputs() {
-        return Array.prototype.slice.call(
-            root.querySelectorAll('select.filter-draft-input, input.filter-draft-input'));
-    }
-
-    /*
-     * Filters go in the query string, paginator parameters stay named URL
-     * segments. A named segment cannot carry a '/' — `url:%2Fevents` reaches
-     * the access log controller with the value dropped — and the free-text
-     * search of a URL column is exactly where slashes turn up.
-     */
-    function buildUrl() {
-        const query = new URLSearchParams();
-        const quick = quickEl ? (quickEl.value || '').trim() : '';
-        if (quick !== '') { query.set(cfg.quickName, quick); }
-        inputs().forEach(function (el) {
-            const value = (el.value || '').trim();
-            if (value !== '') { query.set(el.getAttribute('name'), value); }
-        });
-        return formatIndexUrl(cfg.base, { named: cfg.preserved, query: query });
-    }
-
-    /**
-     * Read a URL back into the card. Applying round-trips to itself, but the
-     * back button and the pagination/sort links do not: they hand over a URL
-     * this card did not build, and its inputs, its chips and the paginator
-     * parameters it carries across all have to follow.
-     */
-    function syncFromUrl(url) {
-        const parts = parseIndexUrl(url, cfg.base);
-        // `page` is deliberately not carried across: a new filter starts over.
-        cfg.preserved = {};
-        ['sort', 'direction', 'limit'].forEach(function (key) {
-            if (parts.named[key] !== undefined) { cfg.preserved[key] = parts.named[key]; }
-        });
-
-        // A filter may still arrive as a named segment, from an older link.
-        inputs().forEach(function (el) {
-            const name = el.getAttribute('name');
-            const value = parts.query.get(name) || parts.named[name] || '';
-            if (el.tomselect) { el.tomselect.setValue(value, true); } else { el.value = value; }
-        });
-        if (quickEl) {
-            quickEl.value = parts.query.get(cfg.quickName) || parts.named[cfg.quickName] || '';
-        }
-    }
-
-    if (typeof initTomSelect === 'function') { initTomSelect(root); }
-
-    const draft = initIndexFilterDraft(root, {
-        base: cfg.base,
-        inputs: inputs,
-        nameOf: function (el) { return el.getAttribute('name'); },
-        labelOf: function (name) {
-            return (cfg.fields[name] && cfg.fields[name].label) || name;
-        },
-        displayOf: function (name, value) {
-            const options = cfg.fields[name] && cfg.fields[name].options;
-            return (options && options[value]) || value;
-        },
-        quickEl: quickEl,
-        quickLabel: cfg.strings.searchLabel,
-        applied: cfg.applied,
-        appliedQuick: cfg.appliedQuick,
-        countEl: root.querySelector('.filter-draft-count'),
-        summaryEl: root.querySelector('.filter-draft-summary'),
-        results: cfg.results,
-        swap: ['#headerCountBadge', '.log-filter-pager'],
-        rootLinks: ['.log-filter-pager a[href]'],
-        resultLinks: ['.pagination a[href]', 'thead a[href]'],
-        buildUrl: buildUrl,
-        syncFromUrl: syncFromUrl,
-        strings: cfg.strings,
-    });
-
-    // The magnifier next to the search box applies too — it is the only
-    // control left in reach when the advanced panel is folded away.
-    const quickBtn = root.querySelector('.log-quick-btn');
-    if (quickBtn && draft) { quickBtn.addEventListener('click', draft.apply); }
-}
-window.initLogFilterCard = initLogFilterCard;
-
-/* --------------------------------------------------------------------------
  * Adapter: the scaffold's index filter bar
  * --------------------------------------------------------------------------
  * genericElementsBS5/IndexTable/filter_bar.ctp calls this whenever it renders
@@ -7740,10 +7882,6 @@ function initScaffoldFilterDraft(bar, cfg) {
     });
 }
 window.initScaffoldFilterDraft = initScaffoldFilterDraft;
-
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);
-});
 
 /*******************************
  *  Collapsed report preview   *
@@ -8779,8 +8917,16 @@ function initObjectAddForm(container, payloadEl) {
 
     /* ---- review --------------------------------------------------------- */
 
-    /* Deliberately a compact digest, not a copy of the object index's markup -
-     * the two used to be kept in step by hand and drifted. */
+    /* A piece of the review as the object index draws it: Objects/add.ctp
+     * renders the shared elements into #objReviewPieces, so the markup is
+     * theirs rather than a copy kept in step by hand. */
+    function reviewPiece(name, value) {
+        var pieces = container.querySelector('#objReviewPieces');
+        var el = pieces && pieces.content.querySelector('[data-piece="' + name + '"]');
+        if (!el) { return ''; }
+        return el.innerHTML.split('__V__').join(escapeHtml(value == null ? '' : String(value)));
+    }
+
     function buildReview() {
         var rows = savedRows().map(describeRow);
         var distEl = container.querySelector('#ObjectDistribution');
@@ -8808,40 +8954,35 @@ function initObjectAddForm(container, payloadEl) {
             + '<i class="' + distCfg.icon + '"></i></span>'
             + '<span class="ov-obj-title">'
             + '<span class="ov-obj-name">'
+            + reviewPiece('family')
             + '<span class="text-truncate">' + escapeHtml(data.template.name) + '</span>'
-            + '<span class="ov-obj-meta">' + escapeHtml(data.template.meta)
-            + '<span class="ov-obj-meta-version">v' + escapeHtml(data.template.version)
-            + '</span></span>'
-            + '</span></span>'
-            + '<span class="ov-obj-aside">'
             + '<span class="ov-obj-count">'
             + '<span class="misp-icon misp-icon-attribute misp-simple"></span> '
             + rows.length + '</span>'
-            + '</span>'
+            + '</span></span>'
             + '</div>';
 
-        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-3">'
-            + '<thead class="table-light"><tr>'
-            + '<th>Value</th><th>Type</th><th>Category</th>'
-            + '<th class="text-center">IDS</th><th class="text-center">Correlate</th>'
+        /* The columns of the object index's attribute table (Objects/object_attribute_table). */
+        html += '<div class="table-responsive"><table class="table table-hover align-middle mb-3 ix-table">'
+            + '<thead><tr>'
+            + '<th>Value</th><th>Category</th><th>Type</th><th>IDS</th><th>Correlate</th>'
             + '</tr></thead><tbody>';
 
         rows.forEach(function (a) {
-            var value = distBadgeHtml(a.distribution, false)
-                + ' ' + escapeHtml(a.value || '—')
-                + (a.comment
-                    ? '<div class="text-muted fst-italic small"><i class="fa fa-comment me-1"></i>'
-                        + escapeHtml(a.comment) + '</div>'
-                    : '');
-
             html += '<tr>'
-                + '<td class="text-break">' + value + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
-                + '<td class="text-nowrap">' + escapeHtml(a.category) + '</td>'
-                + '<td class="text-center"><i class="fas fa-shield-halved '
-                + (a.to_ids ? 'text-warning' : 'text-secondary opacity-50') + '"></i></td>'
-                + '<td class="text-center"><i class="fas '
-                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary opacity-50')
+                + '<td class="text-break"><div class="attr-value"><div class="attr-value-line">'
+                + reviewPiece('dist-' + a.distribution)
+                + '<p class="fw-semibold mb-0">' + escapeHtml(a.value || '—') + '</p>'
+                + '</div>' + (a.comment ? reviewPiece('comment', a.comment) : '') + '</div></td>'
+                + '<td><div class="d-flex align-items-center gap-1">'
+                + reviewPiece('category', a.category)
+                + (a.relation ? reviewPiece('relation', a.relation) : '')
+                + '</div></td>'
+                + '<td>' + reviewPiece('type', a.type) + '</td>'
+                + '<td><i class="fas fa-shield-halved om-flag '
+                + (a.to_ids ? 'text-warning' : 'text-secondary') + '"></i></td>'
+                + '<td><i class="fas om-flag '
+                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary')
                 + '"></i></td>'
                 + '</tr>';
         });

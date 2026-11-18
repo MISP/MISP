@@ -187,7 +187,7 @@ class RemoteEventPreviewEscapingTest extends TestCase
         $this->assertStringNotContainsString('<i>', $html);
         $url = '/misp/analystData/viewForObject/Attribute/' . rawurlencode(self::REMOTE);
         $this->assertSame(
-            ['event.stopPropagation(); openModal(' . json_encode($url) . ');'],
+            ['event.preventDefault(); event.stopPropagation(); openModal(' . json_encode($url) . ');'],
             $this->handlers($html)
         );
     }

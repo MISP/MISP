@@ -56,6 +56,11 @@ foreach ($data['data'] as $k => $data_row) {
     if (!empty($data['row_marker_callable']) && is_callable($data['row_marker_callable'])) {
         $rowMarker = (string)call_user_func($data['row_marker_callable'], $data_row);
     }
+    // HTML placed after the row: a <tr> of its own, such as a detail row it opens
+    $rowAfter = '';
+    if (!empty($data['row_after_callable']) && is_callable($data['row_after_callable'])) {
+        $rowAfter = (string)call_user_func($data['row_after_callable'], $data_row);
+    }
 
     $row = '<tr data-row-id="' . h($k) . '"';
     if (!empty($primary)) {
@@ -90,7 +95,7 @@ foreach ($data['data'] as $k => $data_row) {
         ]
     );
 
-    $row .= '</tr>';
+    $row .= '</tr>' . $rowAfter;
 
     $rows .= $row;
 }

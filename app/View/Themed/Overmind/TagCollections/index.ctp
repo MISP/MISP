@@ -7,6 +7,22 @@ $headerDescription = __('');
 
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
+$headerActions[] = [
+    'type' => 'navigate',
+    'label' => __('Export Tag Collections'),
+    'icon' => 'file-export',
+    'url' => $baseurl . '/tag_collections/index.json',
+    'download' => 'tag_collections_all.json',
+];
+if ($this->Acl->canAccess('tagCollections', 'import')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('Import Tag Collections'),
+        'icon' => 'file-import',
+        'url' => $baseurl . '/tag_collections/import',
+        'primary' => true,
+    ];
+}
 if ($this->Acl->canAccess('tagCollections', 'add')) {
     $headerActions[] = [
         'type' => 'modal',

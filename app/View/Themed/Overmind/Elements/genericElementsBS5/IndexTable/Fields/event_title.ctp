@@ -1,10 +1,14 @@
 <?php
 // Overmind events index: the event's title, with a marker when it extends or is extended.
+// `url` (%id%, %uuid%) points it elsewhere than the local event, for a remote one.
 $event = $row['Event'] ?? [];
 $card = $row['EventCard'] ?? null;
-if (empty($event['id'])) {
+if (empty($event['id']) && empty($field['url'])) {
     return;
 }
+$titleUrl = empty($field['url'])
+    ? $baseurl . '/events/view/' . (int)$event['id']
+    : str_replace(['%id%', '%uuid%'], [(string)($event['id'] ?? ''), (string)($event['uuid'] ?? '')], $field['url']);
 $marker = '';
 if ($card !== null && (!empty($card['extends']) || !empty($card['extended_by']))) {
     $says = [];
@@ -26,7 +30,7 @@ if ($card !== null && (!empty($card['extends']) || !empty($card['extended_by']))
 printf(
     '<span class="te-titlewrap">%s<a class="te-title" href="%s" title="%s">%s</a></span>',
     $marker,
-    h($baseurl . '/events/view/' . (int)$event['id']),
+    h($titleUrl),
     h($event['info']),
     h($event['info'])
 );

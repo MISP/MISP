@@ -61,7 +61,8 @@ App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
  *   $field['event_data_path']  event tags (EventTag), optional — with
  *                              it absent this renders the attribute
  *                              scope alone
- *   $field['max_visible']      chips drawn before the `+N` fold; 4
+ *   $field['max_visible']      units drawn before the `+N` toggle (a
+ *                              namespace's block is one unit); 4
  *   $field['plan']             the reader's label priority, optional —
  *                              absent, or declaring no taxonomy, and
  *                              the chips are drawn in the order they
@@ -153,24 +154,15 @@ if (ValueLabelPriority::declares($plan, ValueLabelPriority::TAXONOMIES)) {
     );
 }
 
-$hiddenCount = max(0, count($chips) - $maxVisible);
-?>
-<?php
 $rows = array_map(function ($chip) {
     return ['Tag' => $chip['tag'], 'local' => $chip['local']];
 }, array_values($chips));
 ?>
 <div class="tag-container d-inline-flex flex-wrap align-items-center gap-1">
-    <?= $this->TagChip->collection(array_slice($rows, 0, $maxVisible), ['searchUrl' => '']) ?>
-    <?= $this->TagChip->collection(array_slice($rows, $maxVisible), [
+    <?php // Folded and limited by TagChip itself, as Fields/tag_list does. ?>
+    <?= $this->TagChip->collection($rows, [
         'searchUrl' => '',
-        'class' => 'd-none extra-tag',
+        'fold' => 5,
+        'limit' => $maxVisible,
     ]) ?>
-
-    <?php if ($hiddenCount > 0): ?>
-        <span class="badge bg-secondary text-white me-1 mb-1 tag-expand"
-              style="cursor:pointer;"
-              data-hidden="<?= (int)$hiddenCount ?>"
-              onclick="toggleTags(this)">+<?= h($hiddenCount) ?></span>
-    <?php endif; ?>
 </div>

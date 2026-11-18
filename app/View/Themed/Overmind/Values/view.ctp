@@ -17,7 +17,15 @@ App::uses('ValueLean', 'Tools/ValueIntelligence');
 echo $this->element('genericElements/assetLoader', array(
     'css' => array(
         'value-palette', 'value-widgets', 'misp-brush', 'misp-matrix',
-        'org-tile', 'tile-drawer', 'value-intelligence', 'value-new-event',
+        'tile-drawer', 'value-intelligence', 'value-new-event',
+        // The Collaboration tab's reports are the reports index's card tiles.
+        'event-reports-index',
+        // Enrichment answers draw their objects as the objects index rows.
+        'objects-index',
+        // The Overview's occurrence card is the global attribute table.
+        'attributes-index',
+        // Its tags card is the event overview's Context card.
+        'event-overview',
     ),
     'js' => array(
         'Chart.min', 'misp-brush', 'misp-matrix', 'tile-drawer',
@@ -113,7 +121,6 @@ $headerActions = array(
             'type' => 'modal',
             'label' => __('Add to collection'),
             'icon' => 'folder-plus',
-            'class' => 'btn btn-outline-dark',
             'url' => $baseurl . '/collectionElements/addElementToCollection/AttributeValue/' . hash('sha256', $profile['value']),
             'size' => 'xl',
         )
@@ -121,27 +128,26 @@ $headerActions = array(
             'type' => 'navigate',
             'label' => __('Add to collection'),
             'icon' => 'folder-plus',
-            'class' => 'btn btn-outline-dark disabled',
             'title' => __('Your role does not allow adding to collections.'),
         ),
+
+    $this->Acl->canAccess('values', 'newEvent')
+        ? array(
+            'type' => 'modal',
+            'label' => __('New event'),
+            'icon' => 'calendar-plus',
+            'attributes' => array('data-vp-ne-open' => '1'),
+        )
+        : null,
+
     $this->Acl->canAccess('workspaces', 'addNodes')
         ? array(
             'type' => 'navigate',
             'label' => __('Add to workspace'),
             'icon' => 'circle-nodes',
-            'class' => 'btn btn-outline-dark',
             'attributes' => array('data-intel-graph-add' => json_encode(array(array(
                 'type' => 'Value', 'value' => $profile['value'], 'label' => $profile['value'],
             )))),
-        )
-        : null,
-    $this->Acl->canAccess('values', 'newEvent')
-        ? array(
-            'type' => 'navigate',
-            'label' => __('New event'),
-            'icon' => 'calendar-plus',
-            'class' => 'btn btn-outline-dark',
-            'attributes' => array('data-vp-ne-open' => '1'),
         )
         : null,
 );
@@ -290,12 +296,6 @@ $panelChrome = array(
         $await(null, null, 'var(--primary)', 4, $aside),
         $await(null, null, 'var(--primary)', 3, $aside),
     ),
-    'viewOccurrenceTable' => array(
-        $await(__('Filters'), 'fas fa-filter', 'var(--attribute)', 5,
-            array('col' => 3)),
-        $await(__('Occurrences'), $icoAttr, 'var(--attribute)', 8,
-            array('col' => 9)),
-    ),
     'viewSightingChart' => array(
         $await(__('Sightings over time'), $icoSight, 'var(--sighting)',
             6),
@@ -378,10 +378,10 @@ $panelChrome = array(
     ),
     'viewAnalystStanding' => array(
         $await(__('Where the organisations stand'),
-            'fas fa-arrows-left-right-to-line', 'var(--analystData)', 6),
+            'fas fa-arrows-left-right-to-line', 'var(--analystData)', 2),
     ),
     'viewAnalystThread' => array(
-        $await(__('Notes, opinions and proposals'), $icoNote,
+        $await(__('Notes and opinions'), $icoNote,
             'var(--analystData)', 6),
     ),
     /*
@@ -391,8 +391,8 @@ $panelChrome = array(
      * still loading.
      */
     'viewAnalystReports' => array(
-        $await(__('Event reports'), 'fas fa-file-lines',
-            'var(--analystData)', 4),
+        $await(__('Event reports'), 'misp-icon misp-icon-report misp-simple',
+            'var(--report)', 4),
     ),
     'viewAnalystComments' => array(
         $await(__('Attribute comments'), 'fas fa-comment-dots',
@@ -400,12 +400,6 @@ $panelChrome = array(
     ),
     'viewTimeline' => array(
         $await(__('Timeline'), 'fas fa-clock', 'var(--bs-info)', 8),
-    ),
-    'viewHistory' => array(
-        $await(__('Filters'), 'fas fa-filter',
-            'var(--bs-secondary-color)', 5, array('col' => 3)),
-        $await(__('History'), 'fas fa-history',
-            'var(--bs-secondary-color)', 8, array('col' => 9)),
     ),
 );
 
@@ -647,13 +641,8 @@ $tabRegistry = array(
          * `ValueIntelligence::forTabCounts`.
          */
         'badge' => $occurrenceBadge,
-        /*
-         * One full-width slot, and the panel lays out its own internal
-         * row: the rail on the left at col-lg-3, the table at col-lg-9,
-         * the reverse of this page's usual split. Both come out of one
-         * fetch, which is why they are one panel — a facet count and
-         * the rows it counts must not be able to disagree.
-         */
+        // One full-width panel: the shared filter bar over the table, as the
+        // event view's Attributes tab.
         'left' => array(
             $panel('viewOccurrenceTable'),
         ),
@@ -732,30 +721,25 @@ $tabRegistry = array(
          * references a handful — and one slow scan must not hold up the
          * two sections a person wrote by hand.
          */
-        'left' => array(
-            /*
-             * A contents strip over the six endpoints, and the only
-             * thing on this tab that renders before them: seven cards
-             * — the co-occurrence endpoint draws two sections — each
-             * holding one section's headline number and jumping to it.
-             * It is markup only. The numbers arrive from the panels
-             * themselves as they land, because computing any of them
-             * here would mean running the scan the tab is lazily
-             * loaded to avoid.
-             */
+        /*
+         * The contents strip: one card per section, each with its
+         * headline number, jumping to it. Markup only; the numbers arrive
+         * from the panels as they land. Full width, so the cards share
+         * one row.
+         */
+        'top' => array(
             array('element' => 'Values/View/value_relation_summary'),
+        ),
+        'left' => array(
             $panel('viewRelationCooccurrence', 'vp-rel-sec-cooccurrence'),
-            $panel('viewRelationDated', 'vp-rel-sec-dated'),
-            $panel('viewRelationNearMatch', 'vp-rel-sec-near'),
-            $panel('viewRelationExternal', 'vp-rel-sec-external'),
             $panel('viewRelationReferences', 'vp-rel-sec-references'),
             $panel('viewRelationAsserted', 'vp-rel-sec-asserted'),
         ),
         /*
          * Shape, then names, then bookkeeping. The graph says how many
          * blobs the neighbourhood has and how big they are; the card
-         * under it says who is in them; the settings card is the
-         * bookkeeping and stays last.
+         * under it says who is in them; the settings card under that
+         * says what was counted to get there.
          *
          * The named-threat card is the only thing on this tab that
          * answers *what does this mean* rather than *what is related*,
@@ -765,10 +749,19 @@ $tabRegistry = array(
          * those carries one section's headline number and jumps to it,
          * and this has no left-column section to jump to.
          */
+        /*
+         * The three answers that are a yes or a no on most values (is it
+         * in a feed, is something close to it, is it paired in a dated
+         * record) sit in the rail under what is counted, compact, and keep
+         * their card on the contents strip.
+         */
         'right' => array(
             $panel('viewRelationGraph'),
             $panel('viewRelationThreats'),
             $panel('viewRelationSettings'),
+            $panel('viewRelationExternal', 'vp-rel-sec-external'),
+            $panel('viewRelationNearMatch', 'vp-rel-sec-near'),
+            $panel('viewRelationDated', 'vp-rel-sec-dated'),
         ),
     ),
     array(
@@ -840,69 +833,22 @@ $tabRegistry = array(
             'color' => 'var(--analystData)',
         ),
         /*
-         * One full-width slot, and the standing panel lays out its own
-         * internal row: the histogram at col-lg-4 beside the
-         * per-organisation table at col-lg-8. Not this page's 9/3,
-         * because the position strip spans the whole panel above both
-         * of them — it is the tab's opening claim and a rail would cut
-         * a hundred-point scale down to a quarter of the page.
+         * Where the organisations stand across the top, as a one-line
+         * summary; the proposals and the thread in the main column; what
+         * was written around the value (comments, event reports) in the
+         * rail.
          */
-        'left' => array(
+        'top' => array(
             $panel('viewAnalystStanding'),
-            $panel('viewAnalystThread'),
-            /*
-             * **The tab's third row is two panels wide on a large
-             * screen**, and the pair is the tab's second half: what was
-             * written *around* this value, where the two above are the
-             * argument *about* it.
-             *
-             * Side by side because they are the two shortest things on
-             * the tab and they are short in opposite directions — a
-             * value with eleven comments has no report, and one with
-             * eight reports has three comments. Stacked, a reader paid
-             * for both; in a row the tab is as tall as the taller of
-             * them rather than as tall as the sum, which is a saving on
-             * every value and never a cost.
-             *
-             * **`col-xl-6` rather than the group's `col-lg-6` default,
-             * and the breakpoint is measured rather than picked.** A
-             * report row is a title, an extract and a meta line, and
-             * halving its width wraps all three: the reports panel is
-             * 660px at full width and **887px** in a 472px column. So
-             * at `lg`'s 992px the row costs 887 against the 834 the two
-             * stacked, and the arrangement is worse than what it
-             * replaces. The crossover sits near 1,100px — at 1,200 the
-             * row is 689 against 834 — so the split starts at `xl`,
-             * where it is a saving on every value.
-             *
-             * Below it they stack exactly as they did. Two panels
-             * beside each other is a claim about horizontal room and a
-             * narrow window has none.
-             */
-            array('row' => array(
-                /*
-                 * Left of the pair. The three panels before it are
-                 * anchored to uuids and spend a chip per row saying
-                 * which container they are really about; this one is
-                 * the `comment` column of the value's own occurrences,
-                 * so it is the only thing on the tab written *about the
-                 * value* with nothing to qualify. It leads the row for
-                 * that reason.
-                 */
-                $panel('viewAnalystComments') + array('col' => 'col-xl-6'),
-                /*
-                 * The narrative list, added by phase 26 —
-                 * `value-intelligence-coverage.md` §4.5 places event reports
-                 * on this tab, and a report is a document rather than a
-                 * turn in the thread above it. Its own endpoint,
-                 * because it is one `fetchReports` over the value's
-                 * events and should not wait on the thread's
-                 * five-anchor union.
-                 */
-                $panel('viewAnalystReports') + array('col' => 'col-xl-6'),
-            )),
         ),
-        'right' => null,
+        'left' => array(
+            $panel('viewAnalystProposals'),
+            $panel('viewAnalystThread'),
+        ),
+        'right' => array(
+            $panel('viewAnalystComments'),
+            $panel('viewAnalystReports'),
+        ),
     ),
     array(
         'id' => 'timeline',
@@ -936,13 +882,10 @@ $tabRegistry = array(
          * off, so it is 0 for a reason that has nothing to do with the
          * value. A number meaning three things and usually zero is
          * worse than no number.
-         *
-         * One full-width slot, and the panel owns its rail: the facet
-         * control binds checkboxes to rows through the nearest
-         * `data-vp-list` ancestor, so the two cannot be separate cards.
          */
+        // The value's audit trail, drawn as an event's History tab.
         'left' => array(
-            $panel('viewHistory'),
+            array('ajax' => $baseurl . '/audit_logs/valueHistory/' . h($valueB64)),
         ),
         'right' => null,
     ),
@@ -959,6 +902,7 @@ foreach ($tabRegistry as $tab) {
         'icon' => $tab['icon'],
         'count' => $tab['count'] ?? null,
         'badge' => $tab['badge'] ?? null,
+        'top' => $tab['top'] ?? null,
         'right' => $tab['right'] ?? null,
         'left' => $tab['left'],
     );

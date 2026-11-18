@@ -3,6 +3,7 @@ App::uses('ValueFieldKind', 'Tools/ValueIntelligence');
 App::uses('ValueRelationTool', 'Tools/ValueIntelligence');
 App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
+App::uses('TagChipTool', 'Tools');
 /**
  * Section one of the Relationships tab: what the correlation engine
  * stored about this value.
@@ -214,48 +215,19 @@ $specificRead = function ($shared, $spread, $unit = 'event',
 };
 
 /**
- * The column's sort token, and it is the pill's key exactly.
+ * The specificity column's sort token, the rank's key exactly: shared
+ * count, then the ratio, both zero-padded for the lexicographic compare.
+ * An unread spread gives the empty token, which sorts last.
  *
- * Two padded numbers concatenated — shared count, then the ratio —
- * because the rank leads with frequency and settles ties on the
- * fraction, and because the script compares these lexicographically. A
- * single number could not express a two-level order, and clicking the
- * heading has to reproduce the pill's order rather than approximate
- * it: on a page whose whole claim is that the reader can see why a row
- * won, a heading that sorts *nearly* like the pill is worse than one
- * that sorts differently on purpose.
- *
- * An unread spread returns the empty token, which the comparator sorts
- * last whichever way the heading is pointing — the same treatment it
- * gives a missing date, and for the same reason: the row has no value
- * for this column, and a zero would claim it had the lowest one.
- *
- * **The two tables sort this column by different keys**, because they
- * rank by different keys, and the reason is in
- * `ValueRelationTool::compareSpecificity` and beside the sibling sort.
- * The ranked table leads with frequency; the sibling table divides
- * outright, so `$squared` selects which of the two a heading click
- * reproduces. A heading that sorted *nearly* like its own table would
- * be worse than one that sorted differently on purpose.
- *
- * @param int $shared Events or objects shared with this value
- * @param int|null $spread The neighbour's own count, same unit
- * @param bool $squared The sibling table's key rather than the
- *                      ranked table's
+ * @param int $shared Events shared with this value
+ * @param int|null $spread The neighbour's own event count
  * @return string
  */
-$specificSort = function ($shared, $spread, $squared = false)
-    use ($sortNum)
-{
+$specificSort = function ($shared, $spread) use ($sortNum) {
     if ($spread === null || (int)$spread < 1) {
         return '';
     }
     $shared = (int)$shared;
-    if ($squared) {
-        return $sortNum(
-            intdiv($shared * $shared * 1000000, (int)$spread)
-        );
-    }
     return $sortNum($shared) . ' '
         . $sortNum(intdiv($shared * 1000000, (int)$spread));
 };
@@ -272,94 +244,6 @@ $specificSort = function ($shared, $spread, $squared = false)
 $sortOrgs = function (array $names, $total) use ($sortNum) {
     $first = empty($names) ? '' : mb_strtolower($names[0]);
     return $sortNum($total) . ' ' . $first;
-};
-
-/**
- * MISP's own distribution badge, once per audience the row has.
- *
- * A value roll-up row folds many occurrences, and they state between
- * them as many audiences as they state — so the cell is a set and not
- * a badge. Two occurrences at `Your organisation only` are one pill;
- * two different sharing groups are two, told apart by the name beside
- * each, because `Sharing group` alone does not say which one. An event
- * row has a single audience and renders through the same cell.
- *
- * @param array $row
- * @return string
- */
-$distributionBadge = function ($row) use ($view, $baseurl) {
-    $audiences = empty($row['distributions'])
-        ? array(array(
-            'level' => (int)$row['distribution'],
-            'sharing_group' => array('id' => null, 'name' => null),
-        ))
-        : $row['distributions'];
-    $shown = array_slice($audiences, 0, 3);
-    $out = '<span class="vp-dist-set">';
-    foreach ($shown as $audience) {
-        $out .= $view->element(
-            'genericElementsBS5/Badges/distribution',
-            array(
-                'distribution' => (int)$audience['level'],
-                'full' => false,
-            )
-        );
-        $group = $audience['sharing_group'];
-        /*
-         * Safe to link, for the reason the Occurrences tab gives: a
-         * name is only ever set from `fetchAllAuthorised`, so a name
-         * that resolved is a group this viewer may open. Where it did
-         * not, the badge stands alone and there is nothing to link.
-         */
-        if ((int)$audience['level'] === 4 && !empty($group['name'])) {
-            $out .= '<a class="vp-dist-sg" href="' . h($baseurl)
-                . '/sharing_groups/view/' . h($group['id'])
-                . '" title="' . h(sprintf(
-                    __('%s — who this is shared with'),
-                    $group['name']
-                )) . '">' . h($group['name']) . '</a>';
-        }
-    }
-    $rest = array_slice($audiences, 3);
-    if (!empty($rest)) {
-        $names = array();
-        foreach ($rest as $audience) {
-            $label = $view->DistributionLevel
-                ->get((int)$audience['level']);
-            $names[] = empty($audience['sharing_group']['name'])
-                ? $label['label']
-                : $label['label'] . ' — '
-                    . $audience['sharing_group']['name'];
-        }
-        $out .= '<span class="text-muted small" title="'
-            . h(implode(', ', $names)) . '">'
-            . h(sprintf(__('+%d more'), count($rest)))
-            . '</span>';
-    }
-    return $out . '</span>';
-};
-
-/**
- * @param array $tags
- * @return string
- */
-$tagChips = function ($tags) use ($view) {
-    if (empty($tags)) {
-        return '<span class="text-muted">&mdash;</span>';
-    }
-    $out = '';
-    foreach ($tags as $tag) {
-        $out .= $view->element(
-            'genericElementsBS5/Badges/tag',
-            array(
-                'tag' => $tag,
-                'local' => false,
-                'hiddenClass' => '',
-                'showFavourite' => false,
-            )
-        );
-    }
-    return $out;
 };
 
 /**
@@ -401,44 +285,6 @@ $hoverCard = function ($value) use ($hoverCardOn) {
         : '';
 };
 $hoverClass = $hoverCardOn ? ' vp-hc-trigger' : '';
-
-/**
- * The type, through MISP's own badge, re-flowed for a dense row by
- * `.vp-rel-type` rather than by a second rendering of the same fact.
- *
- * @param string $type
- * @return string
- */
-$typeBadge = function ($type) use ($view) {
-    return '<span class="vp-rel-type">'
-        . $view->element(
-            'genericElementsBS5/Badges/type',
-            array('type' => $type, 'full' => true)
-        )
-        . '</span>';
-};
-
-/**
- * A weight, on the page's own bar. Strengths are only ever compared
- * inside one roll-up, never across the three notions.
- *
- * `$prefix` is markup rather than text, because the one caller that
- * passes it passes the floor marker the section already prints.
- *
- * @param int $weight
- * @param int $max
- * @param string $prefix
- * @return string
- */
-$weightBar = function ($weight, $max, $prefix = '') {
-    $share = $max > 0 ? round(($weight / $max) * 100) : 0;
-    return '<span class="vp-rel-bar"'
-        . ' style="--vp-seg-color: var(--vp-rel-co);">'
-        . '<span class="vp-weight-track"><span class="vp-weight-fill"'
-        . ' style="width: ' . h($share) . '%;"></span></span>'
-        . '<span class="vp-rel-bar-read">' . $prefix
-        . h(number_format($weight)) . '</span></span>';
-};
 
 /*
  * The seven groups, in the order the bar prints them. A key with no
@@ -483,122 +329,6 @@ if (!empty($facets['warninglist'])) {
 }
 
 /*
- * The sibling table's own bar. Five keys and not seven: a sibling row
- * has no tag column and no single distribution to name, and Relation
- * is the dimension that only exists here — it is what separates the
- * `domain` in a `domain-ip` object from the timestamps beside it.
- *
- * Field kind leads, because it is the cut this table is worst without.
- * It is also the only group here whose two entries are a vocabulary
- * rather than a census, so it is the only one that can show a zero.
- */
-$sibFacets = isset($siblings['facets']) ? $siblings['facets'] : array();
-/*
- * Descriptive siblings the fold counted and the table could not carry.
- * Worth its own sentence rather than only the greyed facet entry it
- * also produces: linking rows now sort first, so on a value whose
- * siblings run past the hundred the table holds, the cut lands on the
- * descriptive ones by construction. That is the intended trade and it
- * is still a cut, so the panel states it in the same breath as the
- * order that caused it.
- */
-$sibUnreached = 0;
-foreach ($sibFacets['siblink'] ?? array() as $sibKind) {
-    if ($sibKind['value'] === ValueFieldKind::DESCRIPTIVE
-        && isset($sibKind['listed'])
-    ) {
-        $sibUnreached = (int)$sibKind['count'] - (int)$sibKind['listed'];
-    }
-}
-/**
- * A field list as the caption prints it.
- *
- * @param array $fields Relation names
- * @return string
- */
-$sibFieldList = function ($fields) {
-    $out = array();
-    foreach ($fields as $field) {
-        $out[] = '<code>' . h($field) . '</code>';
-    }
-    return implode(__(' and '), $out);
-};
-$sibExamples = isset($siblings['examples'])
-    ? $siblings['examples']
-    : array(
-        ValueFieldKind::LINKING => array(),
-        ValueFieldKind::DESCRIPTIVE => array(),
-    );
-$sibLinkEg = $sibExamples[ValueFieldKind::LINKING];
-$sibDescEg = $sibExamples[ValueFieldKind::DESCRIPTIVE];
-
-$sibFacetGroups = array(
-    array('key' => 'siblink', 'title' => __('Field kind'),
-        'icon' => 'fas fa-share-nodes'),
-    array('key' => 'sibobject', 'title' => __('Object'),
-        'icon' => 'misp-icon misp-icon-object misp-simple'),
-    array('key' => 'sibrelation', 'title' => __('Relation'),
-        'icon' => 'fas fa-diagram-project'),
-    array('key' => 'sibtype', 'title' => __('Type'),
-        'icon' => 'misp-icon misp-icon-attribute misp-simple'),
-    array('key' => 'siborg', 'title' => __('Reported by'),
-        'icon' => 'fas fa-building'),
-);
-
-/*
- * Sixth, appended rather than declared, for the reason the ranked
- * bar's own eighth group is: the render loop prints its indentation on
- * every pass, including the ones that `continue` past an empty group,
- * and a value whose siblings no enabled list names must come out
- * byte-identical to what it did before.
- */
-if (!empty($sibFacets['sibwarninglist'])) {
-    $sibFacetGroups[] = array('key' => 'sibwarninglist',
-        'title' => __('Warninglist'),
-        'icon' => 'fas fa-list-check');
-}
-$sibListsHit = isset($siblings['warninglists_listed'])
-    ? (int)$siblings['warninglists_listed']
-    : 0;
-
-/*
- * The sibling table's own sentence.
- *
- * This bar has no narrowing endpoint behind it, so its Warninglist
- * group filters the hundred rows the panel holds rather than fetching a
- * fresh hundred — unlike the ranked table's, which re-ranks the fold.
- * The note says which, because a cut that silently reaches only part of
- * what it counted is the one thing this section's bar already promises
- * not to be.
- *
- * Buffered and echoed against a closing tag: an `if` in the markup
- * would leave its indentation behind on every value that has nothing
- * listed, and those must render byte-identically to what they did
- * before.
- */
-$sibWarninglistNote = '';
-if ($sibListsHit > 0) {
-    ob_start();
-    ?>
- <?= sprintf(
-        __n(
-            '<strong>One sibling value</strong> is on a warninglist and'
-            . ' dimmed here. <strong>Warninglist</strong> below keeps or'
-            . ' drops it, and narrows the rows this table carries rather'
-            . ' than the fold behind them.',
-            '<strong>%d sibling values</strong> are on a warninglist and'
-            . ' dimmed here. <strong>Warninglist</strong> below keeps or'
-            . ' drops them, and narrows the rows this table carries'
-            . ' rather than the fold behind them.',
-            $sibListsHit
-        ),
-        $sibListsHit
-    ) ?>
-    <?php
-    $sibWarninglistNote = ob_get_clean();
-}
-
-/*
  * A distribution row carries MISP's own badge and a tag row its own
  * chip, because `value_facet_group` renders `html` where a caller
  * supplies one and the bare `label` otherwise — and neither of those
@@ -622,6 +352,7 @@ foreach ($facets['tag'] as &$facet) {
             'local' => !empty($facet['local']),
             'hiddenClass' => '',
             'showFavourite' => false,
+            'inline' => true,
         )
     );
 }
@@ -632,14 +363,6 @@ $eventRows = $co['rollups']['event']['rows'];
 $objectRows = $co['rollups']['object']['rows'];
 $hasRows = !empty($valueRows);
 
-$maxShared = 0;
-foreach ($valueRows as $row) {
-    $maxShared = max($maxShared, (int)$row['shared_events']);
-}
-$maxEventShared = 0;
-foreach ($eventRows as $row) {
-    $maxEventShared = max($maxEventShared, (int)$row['shared_values']);
-}
 
 $labels = $co['labels'];
 /*
@@ -689,346 +412,206 @@ $labelRows = empty($labels['cap'])
     ? $labelOrdered
     : array_slice($labelOrdered, 0, (int)$labels['cap']);
 $labelCapped = count($labelRows) < (int)$labels['total'];
-$labelFacets = $labels['facets'];
 $labelByKind = $labels['by_kind'];
 
 /*
- * The scope sentence's two numbers. Labels are read over every event
- * the value is in; the value table over the events its attribute budget
- * afforded. Equal on most values, and the section only draws the
- * distinction where it arose.
+ * Labels are read over every event the value is in, the value neighbours
+ * over the events the attribute budget afforded; the header names the
+ * wider scope.
  */
 $labelScope = (int)$scan['events_seen'];
-$labelScopeDiffers = $scan['events_read'] !== $scan['events_seen'];
 
 /*
- * The header sub-line: what the section counts, in its own two units.
- * Both named even where one is zero would read as a claim about a kind
- * the value has none of, so each is printed only where it is there.
+ * Three tiers by how close a label sits to this value, then one line per
+ * family (a galaxy, a taxonomy namespace, the free-text tags) in the
+ * order the labels came: the profile's priorities, then shared events.
  */
-$labelTally = array();
-if (!empty($labelByKind['cluster'])) {
-    $labelTally[] = sprintf(
-        __n('%s cluster', '%s clusters', $labelByKind['cluster']),
-        number_format($labelByKind['cluster'])
-    );
-}
-if (!empty($labelByKind['tag'])) {
-    $labelTally[] = sprintf(
-        __n('%s tag', '%s tags', $labelByKind['tag']),
-        number_format($labelByKind['tag'])
-    );
-}
-ob_start();
-?>
-    <span class="vp-rel-tag me-1">
-        <i class="misp-icon misp-icon-galaxy misp-simple"></i><?=
-            h(__('Labels')) ?>
-    </span>
-    <?php /*
-     * Escaped per part and joined with the raw entity: `h()` over the
-     * joined string turns the separator into the five characters that
-     * spell it.
-     */ ?>
-    <?= implode(' &middot; ', array_map('h', $labelTally)) ?>
-    &nbsp;·&nbsp;<?= h(__('shared events')) ?>&nbsp;·&nbsp;
-    <?php /*
-     * `Tagged`, not `Applied by hand`. A cluster reaches an event
-     * through whoever wrote it — and that is as often a feed or a sync
-     * from another instance as it is a person at a keyboard, which the
-     * join tables record nothing about either way. The chip beside the
-     * co-occurrence table says `Machine-derived` because an event join
-     * is; this one says what happened and not who did it.
-     */ ?>
-    <span class="vp-rel-prov"><i class="fas fa-tag"></i><?=
-        h(__('Tagged')) ?></span>
-<?php
-$labelHeaderSub = ob_get_clean();
-
-/**
- * The six groups on the labels bar, in the order it prints them.
- *
- * The first three are the ones the value bar cannot have and the reason
- * this section exists; the last three are the dimensions both sections
- * genuinely share. There is no Type, no Object and no Warninglist,
- * because a cluster has none of them and a control that can only empty
- * the table under it is not a control.
- */
-$labelFacetGroups = array(
-    array('key' => 'kind', 'title' => __('Kind'),
-        'icon' => 'fas fa-shapes'),
-    array('key' => 'family', 'title' => __('Family'),
-        'icon' => 'misp-icon misp-icon-galaxy misp-simple'),
-    array('key' => 'attachment', 'title' => __('Attached to'),
-        'icon' => 'fas fa-paperclip'),
-    array('key' => 'event', 'title' => __('Event'),
-        'icon' => 'misp-icon misp-icon-event misp-simple'),
-    array('key' => 'organisation', 'title' => __('Organisation'),
-        'icon' => 'fas fa-building'),
-    array('key' => 'distribution', 'title' => __('Distribution'),
-        'icon' => 'fas fa-globe'),
+$labelTiers = array(
+    'value' => array(
+        'title' => __('On this value'),
+        'hint' => __('tagged on its own attributes'),
+        'families' => array(),
+        'count' => 0,
+    ),
+    'neighbour' => array(
+        'title' => __('On values beside it'),
+        'hint' => __('tagged on other attributes of the same events'),
+        'families' => array(),
+        'count' => 0,
+    ),
+    'event' => array(
+        'title' => __('On the events'),
+        'hint' => __('tagged on the events it sits in'),
+        'families' => array(),
+        'count' => 0,
+    ),
 );
-/*
- * A distribution row carries MISP's own badge, for the reason the value
- * bar's does: `value_facet_group` renders `html` where a caller supplies
- * one and the bare `label` otherwise, and this facet has no label to
- * fall back on.
- */
-foreach ($labelFacets['distribution'] ?? array() as &$labelFacet) {
-    $labelFacet['html'] = $this->element(
-        'genericElementsBS5/Badges/distribution',
-        array(
-            'distribution' => (int)$labelFacet['level'],
-            'full' => true,
-        )
-    );
-}
-unset($labelFacet);
-
-/*
- * One scale for this table, and it is this table's own. The bar beside
- * a label counts events over every event the value is in, and the one
- * above counts the events the budget read — scaling both against the
- * larger drew every value neighbour on `443` as a stub, which is a
- * picture of the scope difference rather than of which neighbours are
- * strong. Strengths are only ever compared inside one roll-up here
- * already; two tables are two roll-ups.
- */
-$maxLabelShared = 0;
 foreach ($labelRows as $row) {
-    $maxLabelShared = max($maxLabelShared, (int)$row['shared_events']);
-}
-
-/*
- * The words for how a label reached this value, and the digit that
- * sorts them. Tightest first, so the column sorted ascending reads as
- * the scale the words are.
- */
-$attachWords = array(
-    'value' => __('on this value'),
-    'neighbour' => __('on a neighbour'),
-    'event' => __('on the event'),
-);
-$attachOrder = array('value' => '0', 'neighbour' => '1', 'event' => '2');
-
-/**
- * @param array $row
- * @return string
- */
-$attachSort = function (array $row) use ($attachOrder) {
-    $at = isset($row['attachment']) ? $row['attachment'] : null;
-    return isset($attachOrder[$at]) ? $attachOrder[$at] : '9';
-};
-
-/**
- * How a label reached this value, as its own cell.
- *
- * @param array $row
- * @return string
- */
-$attachCell = function (array $row) use ($attachWords) {
-    $at = isset($row['attachment']) ? $row['attachment'] : null;
-    if (!isset($attachWords[$at])) {
-        return '<span class="text-muted">&mdash;</span>';
+    $tier = isset($labelTiers[$row['attachment']])
+        ? $row['attachment']
+        : 'event';
+    $family = $row['kind'] . '|' . $row['family'];
+    if (!isset($labelTiers[$tier]['families'][$family])) {
+        $labelTiers[$tier]['families'][$family] = array(
+            'name' => $row['family'] === ''
+                ? __('Free-text tags')
+                : $row['family'],
+            'rows' => array(),
+        );
     }
-    return '<span class="vp-rel-attach">'
-        . h($attachWords[$at]) . '</span>';
-};
+    $labelTiers[$tier]['families'][$family]['rows'][] = $row;
+    $labelTiers[$tier]['count']++;
+}
+$labelFold = 6;
 
 /**
- * The first cell: what this label is called.
- *
- * A cluster is MISP's cluster chip, linked to its page and in its
- * galaxy's colour; a tag is MISP's own tag chip, because a taxonomy
- * tag's colour *is* its identity to a reader who has seen it on an
- * event.
+ * One label as MISP's own chip, the family's name left out where the
+ * line already prints it, and how many of the value's events carry it,
+ * on a bar against all of them.
  *
  * @param array $row
  * @return string
  */
-$labelCell = function (array $row) use ($view) {
+$labelChip = function (array $row) use ($view, $labelScope) {
+    $events = array_values($row['events']);
+    $note = sprintf(
+        __n('In event %s', 'In events %s', count($events)),
+        '#' . implode(', #', $events)
+    ) . "\n" . implode(', ', $row['orgs'])
+        . ($row['last_together'] === ''
+            ? ''
+            : ' · ' . sprintf(__('last together %s'), $row['last_together']));
+    $noteFn = function () use ($note) {
+        return $note;
+    };
     if ($row['kind'] === ValueRelationTool::KIND_CLUSTER) {
         $cluster = isset($row['cluster']['GalaxyCluster'])
             ? $row['cluster']['GalaxyCluster']
             : array();
-        return $view->TagChip->cluster([
+        $chip = $view->TagChip->cluster(array(
             'id' => $cluster['id'] ?? null,
             'value' => $row['label'],
             'galaxy' => $row['family'],
-        ], ['inline' => true]);
+        ), array('display' => 'leaf', 'note' => $noteFn));
+    } elseif (empty($row['tag'])) {
+        $chip = '<span class="vp-rel-cell">' . h($row['label']) . '</span>';
+    } else {
+        // A namespace's value alone; a predicate stays, the line does not
+        // print it.
+        $parsed = TagChipTool::parse((string)$row['tag']['name']);
+        $chip = $view->TagChip->chip(array(
+            'Tag' => $row['tag'],
+            'local' => !empty($row['tag']['local']),
+        ), array(
+            'display' => $parsed['namespace'] !== null && empty($parsed['above'])
+                ? 'leaf'
+                : 'full',
+            'inline' => true,
+            'note' => $noteFn,
+        ));
     }
-    return empty($row['tag'])
-        ? '<span class="vp-rel-cell">' . h($row['label']) . '</span>'
-        : $view->element(
-            'genericElementsBS5/Badges/tag',
-            array(
-                'tag' => $row['tag'],
-                'local' => !empty($row['tag']['local']),
-                'hiddenClass' => '',
-                'showFavourite' => false,
-                'inline' => true,
-            )
-        );
+    if ($labelScope < 2) {
+        return $chip;
+    }
+    $count = (int)$row['shared_events'];
+    return $chip . '<span class="vp-lab-cov" title="' . h(sprintf(
+            __('In %1$s of its %2$s events'),
+            number_format($count),
+            number_format($labelScope)
+        )) . '"><span class="vp-lab-cov-bar"><i style="width: '
+        . min(100, round(100 * $count / $labelScope, 1)) . '%;"></i></span>'
+        . '<span><strong>' . h(number_format($count)) . '</strong>/'
+        . h(number_format($labelScope)) . '</span></span>';
+};
+// Neighbours on a warninglist, counted over the whole fold.
+$listsHit = isset($co['warninglists_listed'])
+    ? (int)$co['warninglists_listed']
+    : 0;
+/*
+ * The three groupings as tabs, each with its own count, and the rank as
+ * a switch beside the search. **Most specific** is offered only where the
+ * spread was read: a rank by a number nobody fetched would look like a
+ * bug.
+ */
+$groupTabs = array(
+    'value' => array(__('Values'), (int)$co['distinct_values']),
+    'event' => array(__('Events'), (int)$co['rollups']['event']['total']),
+    'object' => array(__('Objects'), (int)$co['rollups']['object']['total']),
+);
+$rankPills = array(
+    'shared' => __('Most shared'),
+    'recent' => __('Most recent'),
+);
+if ($spreadRead) {
+    $rankPills['specific'] = __('Most specific');
+}
+$rankPhrase = __('ranked by shared events');
+if ($co['rank'] === 'recent') {
+    $rankPhrase = __('ranked by when they last appeared together');
+} elseif ($co['rank'] === 'specific') {
+    $rankPhrase = __('ranked by how specific each is to this value');
+}
+
+$eventPeeks = isset($co['event_peeks']) ? $co['event_peeks'] : array();
+
+/**
+ * An event as the indexes name it: its id, and its preview.
+ *
+ * @param int $eventId
+ * @return string
+ */
+$eventRef = function ($eventId) use ($view, $eventPeeks) {
+    $event = isset($eventPeeks[(int)$eventId])
+        ? $eventPeeks[(int)$eventId]
+        : array('id' => (int)$eventId);
+    return $view->element('Attributes/event_ref', array('event' => $event));
 };
 
 /**
- * The second cell: the galaxy a cluster belongs to, or the taxonomy a
- * tag was written under. Plain text rather than a badge, because the
- * chip beside it already carries that colour and two coloured things on
- * one row compete for the same glance.
+ * Who reported a value: one organisation by tile and name, several by
+ * their tiles, three at most and the rest counted.
+ *
+ * @param array $list [['id' =>, 'name' =>], …]
+ * @return string
+ */
+$orgCell = function (array $list) use ($view) {
+    if (count($list) === 1) {
+        return $view->element('Values/View/value_org_link',
+            array('org' => $list[0], 'small' => true));
+    }
+    $out = '<span class="vp-co-orgs">';
+    foreach (array_slice($list, 0, 3) as $org) {
+        $out .= $view->element('Values/View/value_org_link',
+            array('org' => $org, 'bare' => true));
+    }
+    $rest = array_slice($list, 3);
+    if (!empty($rest)) {
+        $out .= '<span class="vp-co-more" title="' . h(implode(', ',
+            array_column($rest, 'name'))) . '">+' . count($rest) . '</span>';
+    }
+    return $out . '</span>';
+};
+
+/**
+ * How specific a value is to this one: a meter and its sentence.
  *
  * @param array $row
  * @return string
  */
-$labelFamilyCell = function (array $row) {
-    if ($row['family'] === '') {
-        return '<span class="vp-rel-family text-muted">'
-            . h(__('freetext')) . '</span>';
+$withCell = function (array $row) use ($specificRead) {
+    $spread = $row['spread'] ?? null;
+    $read = $specificRead($row['shared_events'], $spread, 'event',
+        !empty($row['spread_least']));
+    if ($read === '') {
+        return '';
     }
-    return '<span class="vp-rel-family">' . h($row['family'])
-        . '</span>';
+    $share = $spread > 0
+        ? min(100, max(3, round(100 * $row['shared_events'] / $spread)))
+        : 0;
+    return '<span class="vp-sib-with"><span class="vp-sib-meter"><i style="'
+        . 'width: ' . h($share) . '%;"></i></span><span>' . h($read)
+        . '</span></span>';
 };
-$maxObjectValues = 0;
-foreach ($objectRows as $row) {
-    $maxObjectValues = max($maxObjectValues, (int)$row['values']);
-}
-/*
- * The sibling table's own spread flag. Separate from the ranked
- * table's because the two lookups are separate reads over separate row
- * sets — a value can sit in an object that survived an event the
- * co-occurrence scan skipped for being oversized, which is the same
- * reason the sibling warninglist probe cannot reuse the other one.
- */
-$sibSpreadRead = !empty($siblings['spread_read']);
-
-$maxSibObjects = 0;
-foreach ($siblings['rows'] as $sibling) {
-    $maxSibObjects = max($maxSibObjects, (int)$sibling['objects']);
-}
-
-/**
- * A pill group: every option on screen, the current one filled.
- *
- * A select hides its alternatives behind a click, which is how the
- * roll-up came to be the least-used control on the tab — nothing about
- * `Group by value` says that grouping by event is a thing the panel can
- * do. Three pills say it without being opened.
- *
- * The container carries the same `data-vp-sort` / `data-vp-group` hook
- * the select did and keeps its choice in `data-vp-value`, so the script
- * reads one or the other through `controlValue()` and every panel still
- * using a select is untouched.
- *
- * @param string $key `sort` or `group`
- * @param string $label
- * @param string $current
- * @param array $options value => label
- * @return string
- */
-$pillGroup = function ($key, $label, $current, array $options) {
-    $out = '<div class="vp-pillgroup" data-vp-' . h($key) . ' '
-        . 'data-vp-value="' . h($current) . '" role="group" '
-        . 'aria-label="' . h($label) . '">';
-    $out .= '<span class="vp-pillgroup-label">' . h($label) . '</span>';
-    foreach ($options as $value => $text) {
-        $on = (string)$value === (string)$current;
-        $out .= '<button type="button" class="vp-pill'
-            . ($on ? ' active' : '') . '" data-vp-pill="' . h($value)
-            . '" aria-pressed="' . ($on ? 'true' : 'false') . '">'
-            . h($text) . '</button>';
-    }
-    return $out . '</div>';
-};
-
-/*
- * The warninglist read, in words — and only where it found something.
- * A neighbourhood no enabled list reaches produces no dimmed rows, no
- * facet, no switch and no sentence, which is §7's requirement that this
- * task be inert where it has nothing to say rather than print a
- * reassuring zero.
- *
- * Buffered into a string rather than written as an `if` block in the
- * markup below, and that is the whole reason: an `if` leaves its own
- * indentation behind on the values it skips, and the requirement is
- * *byte*-identical. Echoed against the closing tag of the caption above
- * it, so an empty string adds nothing at all.
- *
- * Three things have to be in the sentence. **What was read**: the whole
- * fold, not the carried page, so the count agrees with the facet's and
- * with every other count in that bar. **Against what**: a hit means
- * nothing without how many lists were consulted, which is why the fact
- * strip has printed *"84 lists checked"* since phase 7. **What it did
- * not do**: a reader who sees dimmed rows at the top of a ranked table
- * will otherwise assume the rank has already accounted for them. It has
- * not — that is B6.
- */
-$listsHit = isset($co['warninglists_listed'])
-    ? (int)$co['warninglists_listed']
-    : 0;
-$warninglistCap = '';
-if ($listsHit > 0) {
-    ob_start();
-    ?>
-        <div class="vp-rel-cap" data-vp-group-only="value">
-            <i class="fas fa-list-check"
-               title="<?= h(__(
-                   'The Warninglist facet names the lists, and its first'
-                   . ' two entries keep or drop the lot. The ranking'
-                   . ' does not account for them.'
-               )) ?>"></i>
-            <span>
-                <?= sprintf(
-                    __('%1$s, checked against %2$s, and dimmed here.'),
-                    '<strong>' . h(sprintf(
-                        __('%1$s of %2$s are on a warninglist'),
-                        number_format($listsHit),
-                        number_format($co['distinct_values'])
-                    )) . '</strong>',
-                    h(sprintf(
-                        __n(
-                            '%d enabled list',
-                            '%d enabled lists',
-                            (int)($co['warninglists_checked'] ?? 0),
-                            (int)($co['warninglists_checked'] ?? 0)
-                        ),
-                        (int)($co['warninglists_checked'] ?? 0)
-                    ))
-                ) ?>
-            </span>
-        </div>
-    <?php
-    $warninglistCap = ob_get_clean();
-}
-
-ob_start();
-?>
-    <?= $pillGroup('group', __('Group by'), 'value', array(
-        'value' => __('Value'),
-        'event' => __('Event'),
-        'object' => __('Object'),
-    )) ?>
-    <?php
-    /*
-     * **Most specific** joins the group only where the spread was read.
-     * A pill that sorts by a number nobody fetched would reorder the
-     * table into the fold's fallback and look like a bug.
-     */
-    $rankPills = array(
-        'shared' => __('Most shared'),
-        'recent' => __('Most recent'),
-    );
-    if ($spreadRead) {
-        $rankPills['specific'] = __('Most specific');
-    }
-    ?>
-    <?= $pillGroup('sort', __('Rank by'), $co['rank'], $rankPills) ?>
-<?php
-$headerExtra = ob_get_clean();
-if (!$hasRows) {
-    // Ranking and rolling up nothing is a control that cannot do
-    // anything, which is worse than one that is absent.
-    $headerExtra = null;
-}
 
 ob_start();
 ?>
@@ -1043,653 +626,54 @@ ob_start();
             $scan['events_seen']
         )) ?>
     <?php elseif ($hasRows): ?>
-        <span data-vp-list-shown><?= h(count($valueRows)) ?></span>
         <?= h(sprintf(
-            __n(
-                'of %1$s distinct values in %2$d event',
-                'of %1$s distinct values across %2$d events',
-                $co['events'],
-                number_format($co['distinct_values']),
-                $co['events']
-            )
+            __('%1$s in %2$s'),
+            __n('%s other value', '%s other values',
+                (int)$co['distinct_values'],
+                number_format($co['distinct_values'])),
+            __n('%s event', '%s events', (int)$co['events'],
+                number_format($co['events']))
         )) ?>
     <?php else: ?>
-        <?= h(__('Nothing else in the events this value is in')) ?>
+        <?= h(__('No other value')) ?>
     <?php endif; ?>
-    &nbsp;·&nbsp;<?= h(__('shared events')) ?>&nbsp;·&nbsp;
-    <span class="vp-rel-prov"><i class="fas fa-gauge"></i><?=
+    &nbsp;·&nbsp;<span class="vp-rel-prov"><i class="fas fa-gauge"></i><?=
         h(__('Machine-derived')) ?></span>
 <?php
 $headerSub = ob_get_clean();
 ?>
-    <?php if (!empty($siblings['rows'])): ?>
-
-        <?php
-        /*
-         * Listed above the ranked table because it is the only
-         * co-occurrence here that is structural rather than
-         * statistical, and because it survives everything: the object
-         * join reads attributes rather than correlations, so it is
-         * unaffected by the correlation limit that suppressed the
-         * section above it.
-         *
-         * Its own `data-vp-list` rather than a second control inside
-         * the panel's: it pages on a different set of rows than the
-         * ranked table, and one pager over the union of the two would
-         * print a range belonging to neither.
-         *
-         * The section scales on how many objects the value sits in,
-         * which is a function of the occurrence count and not of the
-         * correlation count — so it can be the longest thing on the
-         * tab on exactly the value whose correlations were suppressed.
-         * Everything below states its own bound for that reason.
-         */
-        $sibCapped = !empty($siblings['cap']['applied']);
-        // A count taken over a capped join is a floor, and says so.
-        $sibFloor = $sibCapped ? '≥&nbsp;' : '';
-        ?>
-        <?php
-        /*
-         * Its own panel, because the tab said `Co-occurrence` over both
-         * tables and two tables under one heading read as one answer in
-         * two halves. These are two answers: this one is what somebody
-         * put in a box with this value, the one below is what happened
-         * to be written up near it. They are also bounded differently
-         * and can disagree about how much they saw, which a single
-         * header cannot state twice.
-         */
-        ob_start();
-        ?>
-            <span class="vp-rel-tag me-1">
-                <i class="fas fa-link"></i><?= h(__('Co-occurrence')) ?>
-            </span>
-            <?= $sibFloor ?><?= h(sprintf(
-                __n('%s sibling', '%s siblings', $siblings['total'],
-                    number_format($siblings['total']))
-            )) ?>
-            <?= h(sprintf(
-                __n('in %s object', 'in %s objects',
-                    $siblings['objects'],
-                    number_format($siblings['objects']))
-            )) ?>
-            &nbsp;·&nbsp;<?= h(__('same object')) ?>&nbsp;·&nbsp;
-            <span class="vp-rel-prov"><i class="fas fa-gauge"></i><?=
-                h(__('Machine-derived')) ?></span>
-        <?php
-        $sibHeaderSub = ob_get_clean();
-        ?>
-        <div class="card shadow-sm mb-3 vp-panel vp-rel-k-co"
-             style="--vp-panel-color: var(--vp-rel-co);"
-             data-vp-rel-summary="siblings"
-             data-vp-rel-count="<?= h(($sibCapped ? "\u{2265}\u{00A0}" : '')
-                 . number_format($siblings['total'])) ?>"
-             <?php if ($sibCapped): ?>
-                 data-vp-rel-note="<?= h(__('a floor — the join was capped')) ?>"
-             <?php endif; ?>>
-
-        <?= $this->element('Values/View/value_panel_header', array(
-            'panelTitle' => __('In the same object'),
-            'panelIcon' => 'misp-icon misp-icon-object misp-simple',
-            'panelColor' => 'var(--vp-rel-co)',
-            'panelSub' => $sibHeaderSub,
-        )) ?>
-
-        <div data-vp-list>
-
-            <div class="px-3 pt-3">
-                <?php
-                /*
-                 * No sub-heading of its own any more. It used to name
-                 * the section inside a panel called `Co-occurrence` and
-                 * carry the sibling count as a badge; the panel is now
-                 * called `In the same object` and its header states the
-                 * count in words, so a heading here would say the same
-                 * thing twice in eight words less.
-                 */
-                ?>
-                <?php
-                /*
-                 * One sentence, and it spends its length on what the
-                 * reader is looking at rather than on how it was built.
-                 * The two examples do the work a definition of a MISP
-                 * object used to do here and do it faster, because a
-                 * reader recognises the pair before they can parse the
-                 * category it belongs to.
-                 */
-                ?>
-                <div class="small mb-2">
-                    <?= __('What else was recorded alongside this value'
-                        . ' in the same object — a file\'s other hashes,'
-                        . ' an IP\'s resolved domains.') ?>
-                </div>
-                <?php
-                /*
-                 * The order, stated. Ranked on count alone this table
-                 * opens on whichever template captured the value most
-                 * often, and for an address that is a screen of capture
-                 * bookkeeping. Saying which fields come first, and how
-                 * a row is put in one bucket or the other, is the same
-                 * bargain the dated panel strikes over its pair rule:
-                 * a rule the reader can check beats an order they have
-                 * to infer.
-                 */
-                ?>
-                <div class="small text-muted mb-2">
-                    <?= __('Linking fields first, then the descriptive'
-                        . ' ones — dimmed in the Relation column, not'
-                        . ' hidden.') ?>
-                    <?php
-                    /*
-                     * The example names two fields off this table
-                     * rather than two the author had in mind. Written
-                     * by hand it said *a file's other hashes and its
-                     * filename*, and `filename` is a field MISP does
-                     * not correlate on — so the sentence promised a
-                     * pivot the rows beneath it were dimming, on the
-                     * file objects where the flag happens to be set.
-                     * Pointing at the table cannot go stale.
-                     */
-                    ?>
-                    <?php if ($sibLinkEg && $sibDescEg): ?>
-                        <?= sprintf(
-                            __('Here %1$s link, %2$s describe.'),
-                            $sibFieldList($sibLinkEg),
-                            $sibFieldList($sibDescEg)
-                        ) ?>
-                    <?php elseif ($sibLinkEg): ?>
-                        <?= __('Every field this table carries is a'
-                            . ' linking one.') ?>
-                    <?php elseif ($sibDescEg): ?>
-                        <?= __('No field this table carries is one the'
-                            . ' engine links on.') ?>
-                    <?php endif; ?>
-                    <?php if ($sibUnreached > 0): ?>
-                        <?= sprintf(
-                            __n(
-                                'One descriptive sibling is counted'
-                                . ' below but not listed — linking ones'
-                                . ' fill the table\'s %2$s rows.',
-                                '%1$s descriptive siblings are counted'
-                                . ' below but not listed — linking ones'
-                                . ' fill the table\'s %2$s rows.',
-                                $sibUnreached
-                            ),
-                            '<strong>' . h(number_format($sibUnreached))
-                                . '</strong>',
-                            '<strong>' . h(number_format(
-                                count($siblings['rows'])
-                            )) . '</strong>'
-                        ) ?>
-                    <?php endif; ?><?= $sibWarninglistNote ?>
-                </div>
-            </div>
-
-            <?php if ($sibCapped): ?>
-                <?php
-                /*
-                 * §9.6's resolution, stated rather than inferred. The
-                 * aggregate is over the viewer's whole occurrence set
-                 * and not over the Occurrences tab's current page, so
-                 * it needs a ceiling — and an aggregate over a
-                 * truncated set that does not say so is the one thing
-                 * this section must not produce.
-                 */
-                ?>
-                <div class="vp-rel-cap">
-                    <i class="fas fa-circle-info"
-                       title="<?= h(__(
-                           'Every count in this section is a floor'
-                           . ' rather than a total, and is written ≥'
-                           . ' to say so.'
-                       )) ?>"></i>
-                    <span>
-                        <?= sprintf(
-                            __(
-                                'Aggregated over %1$s of the %2$s objects'
-                                . ' this value sits in, most recent'
-                                . ' first.'
-                            ),
-                            '<strong>' . h(number_format(
-                                $siblings['objects']
-                            )) . '</strong>',
-                            '<strong>' . h(number_format(
-                                $siblings['in_objects']
-                            )) . '</strong>'
-                        ) ?>
-                    </span>
-                </div>
-            <?php endif; ?>
-
-            <?php
-            /*
-             * The section's own narrowing bar, inside its own
-             * `[data-vp-list]`. Phase 18 left this out and said what it
-             * would cost: the facet lookups had to be scoped the way
-             * paging already was, which `ownNodes` in `value-intelligence.js`
-             * now does for every control a list reads.
-             *
-             * It is a separate bar and not a seventh dropdown on the one
-             * above because the two fold different row sets — that one
-             * from the events the scan read, this one from the objects
-             * the value sits in — and a single bar would print counts
-             * that are exact for neither.
-             */
-            ?>
-            <?php $sibHasFacets = false; ?>
-            <?php foreach ($sibFacetGroups as $group) {
-                if (!empty($sibFacets[$group['key']])) {
-                    $sibHasFacets = true;
-                }
-            } ?>
-            <?php if ($sibHasFacets): ?>
-                <div class="px-3 pb-2 d-flex flex-wrap gap-2
-                            align-items-center">
-                    <span class="vp-subhead mb-0 me-1"><?=
-                        __('Narrow by') ?></span>
-
-                    <?php foreach ($sibFacetGroups as $group): ?>
-                        <?php if (empty($sibFacets[$group['key']])) {
-                            continue;
-                        } ?>
-                        <div class="dropdown">
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-secondary
-                                           dropdown-toggle vp-rel-facet"
-                                    data-bs-toggle="dropdown"
-                                    data-bs-auto-close="outside"
-                                    aria-expanded="false">
-                                <?= h($group['title']) ?>
-                                <span class="badge text-bg-secondary ms-1">
-                                    <?= h(count($sibFacets[$group['key']])) ?>
-                                </span>
-                            </button>
-                            <div class="dropdown-menu vp-rel-facetmenu p-2">
-                                <?php
-                                /*
-                                 * `local`, because this list has no
-                                 * narrowing endpoint behind it. The bar
-                                 * above can hand an unanswerable tick
-                                 * back to the server; here the hundred
-                                 * carried rows are the whole of what a
-                                 * tick can ever reach, so an entry none
-                                 * of them carries is greyed instead of
-                                 * offered.
-                                 */
-                                ?>
-                                <?= $this->element(
-                                    'Values/View/value_facet_group',
-                                    array(
-                                        'key' => $group['key'],
-                                        'title' => $group['title'],
-                                        'icon' => $group['icon'],
-                                        'values' => $sibFacets[$group['key']],
-                                        'local' => true,
-                                    )
-                                ) ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-
-                    <span class="small text-muted ms-2 vp-min-w-0">
-                        <?= sprintf(
-                            __('Counts are folded from all %1$s siblings,'
-                                . ' not from the page.'),
-                            '<span class="font-monospace">'
-                                . h(number_format($siblings['total']))
-                                . '</span>'
-                        ) ?>
-                        <i class="fas fa-circle-info vp-cap-more"
-                           title="<?= h(sprintf(
-                               __('A count larger than the table can show'
-                                   . ' names a value outside the %s'
-                                   . ' carried. An entry none of them'
-                                   . ' reaches is greyed — narrowing on'
-                                   . ' it could only empty the table.'),
-                               number_format(count($siblings['rows']))
-                           )) ?>"></i>
-                    </span>
-
-                    <span class="small text-muted ms-auto"
-                          data-vp-facet-summary>
-                        <span class="vp-facet-summary-none">
-                            <?= __('No filter applied') ?>
-                        </span>
-                        <span class="vp-facet-summary-some">
-                            <span data-vp-facet-count-active>0</span>
-                            <span data-vp-plural="filters"
-                                  data-vp-one="<?= h(__('filter')) ?>"
-                                  data-vp-many="<?= h(__('filters')) ?>"><?=
-                                h(__('filters')) ?></span>
-                            &middot;
-                            <span data-vp-facet-rows><?=
-                                h(count($siblings['rows'])) ?></span>
-                            <span data-vp-plural="rows"
-                                  data-vp-one="<?= h(__('row')) ?>"
-                                  data-vp-many="<?= h(__('rows')) ?>"><?=
-                                h(__('rows')) ?></span>
-                        </span>
-                    </span>
-
-                    <button type="button" class="btn btn-sm btn-link"
-                            data-vp-facet-clear disabled>
-                        <?= __('Reset') ?>
-                    </button>
-                </div>
-            <?php endif; ?>
-
-            <div class="table-responsive" data-vp-list-rows>
-                <table class="table table-sm table-hover vp-table
-                              align-middle mb-0">
-                    <?php
-                    /*
-                     * Every column sorts, clicking the heading:
-                     * ascending, descending, then back to the order the
-                     * model sent. Three states and not two because that
-                     * order — linking fields first, then the objects a
-                     * sibling is in, most first — is itself an answer,
-                     * and no column would bring it back. Least of all
-                     * Relation: the kind is a property of the field,
-                     * not of its name, and two relations spelled alike
-                     * across two templates can be flagged differently.
-                     */
-                    $sibCols = array(
-                        array('key' => 'object', 'label' => __('Object')),
-                        array('key' => 'relation',
-                            'label' => __('Relation')),
-                        array('key' => 'value',
-                            'label' => __('Sibling value')),
-                        array('key' => 'type', 'label' => __('Type')),
-                        array('key' => 'objects', 'label' => __('Objects'),
-                            'class' => 'vp-rel-num'),
-                        array('key' => 'specific',
-                            'label' => __('Specific to this value'),
-                            'only' => $sibSpreadRead),
-                        /*
-                         * A right-aligned number immediately left of a
-                         * left-aligned name reads as one field, so the
-                         * count keeps its own gutter.
-                         */
-                        array('key' => 'events', 'label' => __('Events'),
-                            'class' => 'text-end pe-4'),
-                        array('key' => 'org',
-                            'label' => __('Reported by')),
-                    );
-                    $sibCols = array_values(array_filter(
-                        $sibCols,
-                        function ($col) {
-                            return !array_key_exists('only', $col)
-                                || $col['only'];
-                        }
-                    ));
-                    ?>
-                    <thead>
-                        <tr>
-                            <?php foreach ($sibCols as $col): ?>
-                                <th class="<?= h($col['class'] ?? '') ?>">
-                                    <button type="button" class="vp-th-sort"
-                                            data-vp-sort-col="<?=
-                                                h($col['key']) ?>">
-                                        <span class="sortable-header"><?=
-                                            h($col['label'])
-                                        ?><i class="sort-icon"></i></span>
-                                    </button>
-                                </th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($siblings['rows']
-                            as $sibIndex => $sibling): ?>
-                            <tr class="vp-rel-stripe vp-rel-k-co"
-                                data-vp-facet="<?=
-                                    h(implode(' ', $sibling['tokens'])) ?>"<?=
-                                $sortAttrs(array(
-                                    'vp-sort-object' => mb_strtolower(
-                                        $sibling['object']
-                                    ),
-                                    'vp-sort-relation' => mb_strtolower(
-                                        $sibling['relation']
-                                    ),
-                                    'vp-sort-value' => mb_strtolower(
-                                        $sibling['value']
-                                    ),
-                                    'vp-sort-type' => mb_strtolower(
-                                        $sibling['type']
-                                    ),
-                                    'vp-sort-objects' => $sortNum(
-                                        $sibling['objects']
-                                    ),
-                                    'vp-sort-specific' => $specificSort(
-                                        $sibling['objects'],
-                                        $sibling['spread'] ?? null,
-                                        true
-                                    ),
-                                    'vp-sort-events' => $sortNum(
-                                        $sibling['events']
-                                    ),
-                                    'vp-sort-org' => $sortOrgs(
-                                        $sibling['orgs'],
-                                        $sibling['org_total']
-                                    ),
-                                ), $sibIndex) ?>>
-                                <td class="text-nowrap">
-                                    <span class="misp-icon misp-icon-object
-                                                 misp-simple me-1"></span>
-                                    <span class="font-monospace small">
-                                        <?= h($sibling['object']) ?>
-                                    </span>
-                                    <?php
-                                    /*
-                                     * To the event's objects tab, as the
-                                     * other panels link an object: this
-                                     * theme's event view takes no
-                                     * `focus:`, so the title names it.
-                                     */
-                                    $sibIds = $sibling['object_ids'] ?? array();
-                                    ?>
-                                    <?php foreach ($sibIds as $sibObject): ?>
-                                        <a href="<?= h($baseurl)
-                                            ?>/events/view/<?=
-                                            h($sibObject['event'])
-                                            ?>#tab-objects"
-                                           class="font-monospace small ms-1"
-                                           title="<?= h(sprintf(
-                                               __('Object #%1$s in event #%2$s'),
-                                               $sibObject['id'],
-                                               $sibObject['event']
-                                           )) ?>">#<?=
-                                            h($sibObject['id']) ?></a>
-                                    <?php endforeach; ?>
-                                    <?php $sibIdsMore = (int)$sibling['objects']
-                                        - count($sibIds); ?>
-                                    <?php if ($sibIds && $sibIdsMore > 0): ?>
-                                        <span class="text-muted small">
-                                            <?= h(sprintf(
-                                                __('+%d more'),
-                                                $sibIdsMore
-                                            )) ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                                <?php $sibDesc = $sibling['kind']
-                                    === ValueFieldKind::DESCRIPTIVE; ?>
-                                <td>
-                                    <span class="vp-relation<?=
-                                        $sibDesc
-                                            ? ' vp-relation-desc'
-                                            : '' ?>"<?= $sibDesc
-                                        ? ' title="' . h(__('Descriptive'
-                                            . ' — the engine does not'
-                                            . ' correlate on this field,'
-                                            . ' so it names the capture'
-                                            . ' rather than a pivot'))
-                                            . '"'
-                                        : '' ?>>
-                                        <?= h($sibling['relation']) ?>
-                                    </span>
-                                </td>
-                                <td class="font-monospace">
-                                    <span class="vp-rel-cell<?=
-                                        empty($sibling['warninglists'])
-                                            ? ''
-                                            : ' vp-rel-listed'
-                                    ?><?= $hoverClass ?>"<?=
-                                        $hoverCard($sibling['value'])
-                                    ?>><?=
-                                        h($sibling['value']) ?></span><?=
-                                        $listedMark(
-                                            $sibling['warninglists']
-                                                ?? array()
-                                        ) ?>
-
-                                </td>
-                                <td><?= $typeBadge($sibling['type']) ?></td>
-                                <?php
-                                /*
-                                 * How many objects this one row stands
-                                 * for, on the same bar the roll-ups
-                                 * use. The bar carries its own reading,
-                                 * so the collapse is still there to be
-                                 * read exactly.
-                                 */
-                                ?>
-                                <td><?= $weightBar(
-                                    $sibling['objects'],
-                                    $maxSibObjects,
-                                    $sibling['objects'] > 1
-                                        ? $sibFloor
-                                        : ''
-                                ) ?></td>
-                                <?php if ($sibSpreadRead): ?>
-                                    <td class="small text-nowrap">
-                                        <?= h($specificRead(
-                                            $sibling['objects'],
-                                            $sibling['spread'] ?? null,
-                                            'object',
-                                            !empty($sibling['spread_least'])
-                                        )) ?>
-                                    </td>
-                                <?php endif; ?>
-                                <td class="text-end pe-4 text-nowrap">
-                                    <?php
-                                    /*
-                                     * The event, wherever the fold left
-                                     * one to name — a row standing for
-                                     * five objects that all sit in the
-                                     * same event knows which event that
-                                     * is. Where it stands for several
-                                     * events it can only give the
-                                     * count, because aggregating to a
-                                     * triple loses the ids.
-                                     */
-                                    ?>
-                                    <?php if ($sibling['event'] !== null): ?>
-                                        <a href="<?= $baseurl
-                                            ?>/events/view/<?=
-                                            h($sibling['event']) ?>"
-                                           class="font-monospace small">
-                                            #<?= h($sibling['event']) ?>
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="font-monospace small">
-                                            <?= $sibFloor ?><?=
-                                                h(number_format(
-                                                    $sibling['events']
-                                                )) ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-nowrap">
-                                    <?= h(implode(', ', array_slice(
-                                        $sibling['orgs'],
-                                        0,
-                                        2
-                                    ))) ?>
-                                    <?php
-                                    $sibMore = $sibling['org_total']
-                                        - min(2, count($sibling['orgs']));
-                                    ?>
-                                    <?php if ($sibMore > 0): ?>
-                                        <span class="text-muted small">
-                                            <?= h(sprintf(
-                                                __('+%d more'),
-                                                $sibMore
-                                            )) ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="p-3 d-none" data-vp-list-empty>
-                <div class="vp-empty vp-empty-inline">
-                    <i class="fas fa-filter"></i>
-                    <span>
-                        <?= __('No sibling matches the filter you set.') ?>
-                    </span>
-                </div>
-            </div>
-
-            <div class="px-3 py-2 border-top">
-                <?= $this->element('Values/View/value_pager', array(
-                    'size' => $siblings['page_size'],
-                    'shown' => count($siblings['rows']),
-                    'total' => $siblings['total'],
-                    'noun' => array(
-                        'one' => __('sibling'),
-                        'many' => __('siblings'),
-                    ),
-                )) ?>
-            </div>
-
-            <?php
-            /*
-             * §14.6, applied here by phase 24. This carried a
-             * `.vp-acl-note` counting the sibling attributes held at a
-             * distribution the reader is outside of. A count of what is
-             * hidden is a membership oracle over any value the reader
-             * cares to type, and the bare fact that something *was*
-             * hidden is the same disclosure at one bit — so the band is
-             * gone and the aggregate above simply describes what the
-             * reader can see. The cap notice stays: a cap is not a
-             * permission.
-             */
-            ?>
-
-        </div>
-
-        </div>
-
-    <?php endif; ?>
+    <?= $this->element('Values/View/value_relation_siblings', array(
+        'siblings' => $siblings,
+        'specificRead' => $specificRead,
+    )) ?>
 
 <?php
 /*
- * `vp-narrow-url` is what makes narrowing honest on a value whose
- * neighbourhood is larger than the table. The rows here are the top
- * `row_cap` by shared events, so a filter the browser applies can only
- * reach the ones that survived that cut — and `abuse.ch`, 9,791 values
- * ranking below it, emptied a table it had just been counted in.
+ * The "In the same events" card. Three tabs over one list — the values
+ * these events share with this one, the events, the objects in them —
+ * each drawn as its index draws it.
  *
- * The browser still filters whatever it provably can: a facet whose
- * whole count is present in these rows is answerable here, and so is
- * everything when nothing was cut. `vp-narrow-cut` says which case
- * this is.
- *
- * **It is measured against the neighbourhood, not against the filter
- * that produced this page.** The question the script asks it is *could
- * some other narrowing want a row this markup does not have*, and the
- * answer to that never depends on which rows the current one kept.
- * Read from `matched` it did: narrowing `8.8.8.8` to the 37 values on a
- * warninglist made `matched` equal the rows carried, cleared the flag,
- * and told the script the page was complete — so the next tick,
- * *No hit*, was answered from 37 rows none of which is one, and a table
- * with 10,003 matches behind it reported that nothing matched. Any two
- * ticks could do it where the first landed inside `row_cap`; the
- * warninglist pair only made it certain, being complements.
+ * `vp-narrow-url`: the value rows are the top `row_cap` of the fold, so
+ * a narrowing the browser cannot prove complete goes back to the fold
+ * rather than emptying a table that only lost its cut. `vp-narrow-cut`
+ * is measured against the neighbourhood, never against the narrowing
+ * that produced this page.
  */
+$scanScope = $scan['events_read'] === $scan['events_seen']
+    ? __n(
+        'the one event this value is in',
+        'all %d events this value is in',
+        $scan['events_seen'],
+        $scan['events_seen']
+    )
+    : sprintf(
+        __('%1$d of this value\'s %2$d events'),
+        $scan['events_read'],
+        $scan['events_seen']
+    );
+$objectHead = '<thead><tr><th>' . h(__('Value')) . '</th><th>'
+    . h(__('Category')) . '</th><th>' . h(__('Type')) . '</th>'
+    . '<th class="text-center">' . h(__('IDS')) . '</th></tr></thead>';
 ?>
 <div class="card shadow-sm mb-3 vp-panel vp-rel-k-co"
      style="--vp-panel-color: var(--vp-rel-co);"
@@ -1700,29 +684,14 @@ $headerSub = ob_get_clean();
          ? '1' : '' ?>"
      data-vp-narrow-active="<?= empty($active) ? '' : '1' ?>"
      data-vp-group-active="value"
-     <?php
-     /*
-      * What the contents strip prints for this section. A suppressed
-      * value has no count to give — the neighbourhood was never read,
-      * which is not the same as being empty — so the card says so in
-      * words rather than printing a zero the strip would have invented.
-      */
-     ?>
      data-vp-rel-summary="cooccurrence"
      data-vp-rel-count="<?= $co['suppressed']
          ? "\u{2014}"
          : h(number_format($co['distinct_values'])) ?>"
-     <?php if ($co['suppressed']): ?>
-         data-vp-rel-note="<?= h(__('not read')) ?>"
-     <?php endif; ?>>
+     <?= $co['suppressed']
+         ? 'data-vp-rel-note="' . h(__('not read')) . '"'
+         : '' ?>>
 
-    <?php
-    /*
-     * Named for the half of the tab it is, now that the object join has
-     * a panel of its own. The two controls that used to sit on the right
-     * of this header are down beside the narrowing they belong with.
-     */
-    ?>
     <?= $this->element('Values/View/value_panel_header', array(
         'panelTitle' => __('In the same events'),
         'panelIcon' => 'fas fa-link',
@@ -1731,678 +700,232 @@ $headerSub = ob_get_clean();
     )) ?>
 
     <?php if ($co['suppressed']): ?>
-
-        <?php
-        /*
-         * Not an empty state — the opposite claim, and one a reader who
-         * saw an empty table would get exactly backwards. There is a
-         * neighbourhood; it is in events so large that reading one
-         * would say nothing about this value in particular.
-         */
-        ?>
+        <?php // Not an empty state: there is a neighbourhood, in events too large to say anything about this value. ?>
         <div class="vp-suppressed">
             <i class="fas fa-circle-exclamation"></i>
             <div>
-                <span class="vp-suppressed-badge">
-                    <?= __('Too large to read') ?>
-                </span>
+                <span class="vp-suppressed-badge"><?= __('Too large to read') ?></span>
                 <div class="mt-2">
                     <?= sprintf(
-                        __(
-                            '%1$s holds more than %2$s attributes. In'
-                            . ' an event that size every value'
-                            . ' co-occurs with every other, so a'
-                            . ' neighbour list drawn from one would'
-                            . ' describe the event rather than this'
-                            . ' value — and this panel does not draw'
-                            . ' one.'
-                        ),
+                        __('%1$s holds more than %2$s attributes. In an event that size every value co-occurs with'
+                            . ' every other, so a neighbour list drawn from one would describe the event rather than'
+                            . ' this value — and this panel does not draw one.'),
                         '<strong>' . h(__n(
                             'The one event this value appears in',
-                            'Every one of the %d events this value'
-                                . ' appears in',
+                            'Every one of the %d events this value appears in',
                             $scan['events_seen'],
                             $scan['events_seen']
                         )) . '</strong>',
-                        '<strong>' . h(number_format(
-                            $scan['size_cap']
-                        )) . '</strong>'
+                        '<strong>' . h(number_format($scan['size_cap'])) . '</strong>'
                     ) ?>
                 </div>
                 <div class="mt-2">
-                    <?= h(__(
-                        'Nothing is hidden and nothing is missing.'
-                        . ' The object siblings below sit in those'
-                        . ' same events and are listed in full — an'
-                        . ' object does not get larger because the'
-                        . ' event around it did.'
-                    )) ?>
+                    <?= h(__('Nothing is hidden and nothing is missing. The objects in the card above sit in those'
+                        . ' same events and are listed in full — an object does not get larger because the event'
+                        . ' around it did.')) ?>
                 </div>
             </div>
         </div>
-
     <?php elseif (!$hasRows): ?>
-
         <div class="p-3">
             <div class="vp-empty">
                 <i class="fas fa-link"></i>
-                <span>
-                    <?= __('No correlation the engine has stored for'
-                        . ' this value.') ?>
-                </span>
+                <span><?= __('Nothing else in the events this value is in.') ?></span>
             </div>
         </div>
-
     <?php endif; ?>
-
 
     <?php if ($hasRows): ?>
 
-        <?php
-        /*
-         * The ranked table's heading, hoisted out of its roll-up pane so
-         * that everything governing this table — the two cap notices,
-         * the filter row and the counted bar — sits between this line
-         * and the rows, and nothing governing it sits above the sibling
-         * section. All four used to open the panel, which put them
-         * above a table they say nothing about; a reader could only
-         * learn which of the three narrowing controls reached which of
-         * the two tables by trying them.
-         *
-         * Outside `[data-vp-list-rows]`, and that is load-bearing: the
-         * row host is hidden when a filter empties the table, and a
-         * control inside it would take the reader's only way back out
-         * with it.
-         */
-        ?>
-        <div data-vp-group-only="value">
-            <div class="px-3 pt-3 mt-2 border-top">
-                <div class="vp-subhead d-flex align-items-center gap-2">
-                    <i class="fas fa-link"></i>
-                    <?= __('Values that appear in the same events') ?>
-                    <span class="badge text-bg-secondary">
-                        <?= h(number_format($co['distinct_values'])) ?>
-                    </span>
-                </div>
+        <ul class="nav ov-view-tabs is-inline vp-co-tabs" role="tablist"
+            data-vp-group data-vp-value="value" aria-label="<?= h(__('Group by')) ?>"
+            style="--ov-view-tab-accent: var(--vp-rel-co); --ov-view-tab-accent-bg: color-mix(in srgb, var(--vp-rel-co) 14%, transparent);">
+            <?php foreach ($groupTabs as $key => $tab): ?>
+                <?php if ($key !== 'value' && $tab[1] === 0) {
+                    continue;
+                } ?>
+                <li class="nav-item" role="presentation">
+                    <button type="button" role="tab" class="nav-view nav-link<?= $key === 'value' ? ' active' : '' ?>"
+                            data-vp-pill="<?= h($key) ?>" aria-pressed="<?= $key === 'value' ? 'true' : 'false' ?>">
+                        <?= h($tab[0]) ?>
+                        <span class="ov-tab-count"><?= h(number_format($tab[1])) ?></span>
+                    </button>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <?php // Outside the row host: a filter that empties the table must not take its controls with it. ?>
+        <div class="vp-co-bar" data-vp-group-only="value">
+            <div class="input-group input-group-sm vp-card-search">
+                <span class="input-group-text"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></span>
+                <input type="search" class="form-control" data-vp-filter-text autocomplete="off"
+                       value="<?= h(isset($active['text']) ? $active['text'] : '') ?>"
+                       aria-label="<?= h(__('Search the values')) ?>"
+                       placeholder="<?= h(sprintf(__('Search the %s values…'), number_format($co['distinct_values']))) ?>">
             </div>
-        </div>
 
-        <?php if (!$co['suppressed']): ?>
-
-        <?php
-        /*
-         * Counts distinct *values* and promises the facet counts below
-         * are exact, so it goes away with the roll-up those two belong
-         * to. It always showed, which was survivable while it sat at
-         * the top of the panel and only wrong once it moved down to
-         * where the event table can be the thing underneath it.
-         *
-         * The scan line below is not gated: what the scan read is the
-         * same however the rows are rolled up.
-         */
-        ?>
-        <?php
-        /*
-         * **The caption names the rank it is describing.** It said
-         * `ranked by shared events` unconditionally until a third rank
-         * existed, which was true while both of the others agreed about
-         * what reaches the cut. `Most specific` does not: it is the
-         * first rank whose key is not a column the reader can add up,
-         * so the sentence that explains the cut has to say which key
-         * made it.
-         */
-        $rankPhrase = __('ranked by shared events');
-        if ($co['rank'] === 'recent') {
-            $rankPhrase = __('ranked by when they last appeared together');
-        } elseif ($co['rank'] === 'specific') {
-            $rankPhrase = __(
-                'ranked by how specific each is to this value'
-            );
-        }
-        /*
-         * And where the numerator came from, because the rank divides
-         * by every event a neighbour is in while counting only the
-         * events this scan could afford to read. A neighbour in all 34
-         * of a value's events reads `31 of its 34` where three were
-         * skipped — understating it, never the reverse. Only the
-         * specific rank needs the clause; the other two never divide.
-         */
-        $rankScope = '';
-        if ($co['rank'] === 'specific') {
-            $rankScope = ' ' . sprintf(
-                __n(
-                    'Specificity is counted over the one event read.',
-                    'Specificity is counted over the %d events read.',
-                    $scan['events_read'],
-                    $scan['events_read']
-                )
-            );
-        }
-        ?>
-        <div class="vp-rel-cap" data-vp-group-only="value">
-            <i class="fas fa-filter"
-               title="<?= h($co['distinct_values'] > count($valueRows)
-                   ? sprintf(
-                       __('Facet counts below stay exact at %s: they are'
-                           . ' folded from every row read, not tallied'
-                           . ' from the page.'),
-                       number_format($co['distinct_values'])
-                   )
-                   : __('Nothing here is ranked away — the cut below is'
-                       . ' on which events were read, not on which'
-                       . ' values survived.')) ?>"></i>
-            <span>
-                <?= sprintf(
-                    __('%1$s, %2$s.'),
-                    '<strong>' . h(
-                        $co['distinct_values'] > count($valueRows)
-                            ? sprintf(
-                                __('%1$s of %2$s distinct values are'
-                                    . ' carried'),
-                                number_format(count($valueRows)),
-                                number_format($co['distinct_values'])
-                            )
-                            : sprintf(
-                                __('All %d distinct values are listed'),
-                                $co['distinct_values']
-                            )
-                    ) . '</strong>',
-                    h($rankPhrase)
-                ) ?><?= h($rankScope) ?>
-            </span>
-        </div><?= $warninglistCap ?>
-
-
-        <?php
-        /*
-         * The cut this section is made of, in words. Every count
-         * above is exact over the events named here and over no
-         * others, and a reader who is not told which events were
-         * read has no way to judge a neighbour list at all.
-         *
-         * §14.6 keeps cap notices: a cap is not a permission. None
-         * of these numbers says anything about rows the reader may
-         * not see — an oversized event is oversized for everybody.
-         */
-        ?>
-        <?php
-        /*
-         * The budget is named only where it did something. It bounds
-         * the scan on every instance, but on a value whose events
-         * all fitted inside it, it describes a cut that did not
-         * happen — and this sentence's whole job is to say what was
-         * read. `events_unread` counts the events it turned away, so
-         * it is the one field that knows.
-         *
-         * The scope reads `all 3 events` and not `3 of this value's
-         * 3 events`, which is a fraction a reader has to divide
-         * before learning it means everything.
-         */
-        /*
-         * The read's age, because the rows under this panel are
-         * held for `RELATION_SCAN_TTL` and a cache that does not
-         * say how old it is is the reason a long one is a trap. The
-         * phrase is relative because that is what a reader can act
-         * on; the exact stamp is in the `title`, and it is what
-         * stays true if the tab is left open — the fragment is
-         * server-rendered, so the words freeze where they were.
-         */
-        // the phrase itself lives in Values/View/value_read_age
-        $readAt = isset($scan['read_at']) ? (int)$scan['read_at'] : 0;
-        $budgetBit = !empty($scan['events_unread']);
-        $scanScope = $scan['events_read'] === $scan['events_seen']
-            ? __n(
-                'the one event this value is in',
-                'all %d events this value is in',
-                $scan['events_seen'],
-                $scan['events_seen']
-            )
-            : sprintf(
-                __('%1$d of this value\'s %2$d events'),
-                $scan['events_read'],
-                $scan['events_seen']
-            );
-        ?>
-        <div class="vp-rel-cap">
-            <i class="fas fa-circle-info"></i>
-            <span>
-                <?= sprintf(
-                    $budgetBit
-                        ? __(
-                            'Read from %1$s, newest first, within a'
-                            . ' budget of %2$s attribute rows —'
-                            . ' %3$s read.'
-                        )
-                        : __(
-                            'Read from %1$s, newest first — %3$s'
-                            . ' read.'
-                        ),
-                    '<strong>' . h($scanScope) . '</strong>',
-                    h(number_format($scan['budget'])),
-                    h(__n(
-                        '%s row',
-                        '%s rows',
-                        $scan['rows_read'],
-                        number_format($scan['rows_read'])
-                    ))
-                ) ?>
-                <?php if (!empty($scan['events_oversized'])): ?>
-                    <?= h(sprintf(
-                        __n(
-                            '%1$d event was left out for holding'
-                                . ' more than %2$s attributes.',
-                            '%1$d events were left out for holding'
-                                . ' more than %2$s attributes each.',
-                            $scan['events_oversized'],
-                            $scan['events_oversized'],
-                            number_format($scan['size_cap'])
-                        )
-                    )) ?>
-                <?php endif; ?>
-                <?php if (!empty($scan['events_unread'])): ?>
-                    <?= h(sprintf(
-                        __n(
-                            '%d further event fell outside the'
-                                . ' budget.',
-                            '%d further events fell outside the'
-                                . ' budget.',
-                            $scan['events_unread'],
-                            $scan['events_unread']
-                        )
-                    )) ?>
-                <?php endif; ?>
-                <?= $this->element('Values/View/value_read_age',
-                    array('readAt' => $readAt)) ?>
-                <button type="button"
-                        class="btn btn-sm btn-link p-0 align-baseline
-                               vp-rel-again"
-                        data-vp-narrow-fresh>
-                    <i class="fas fa-rotate me-1"></i><?=
-                        __('Scan again') ?>
-                </button>
-            </span>
-        </div>
-
-        <?php
-        /*
-         * The roll-up and the ranking, down here with the narrowing they
-         * belong beside rather than up in the panel header. They govern
-         * this table and nothing else, and the header is where a reader
-         * looks for what the panel *is*, not for what to do to it.
-         *
-         * Outside the block below, and that is the point of it being its
-         * own row: `Group by` is what puts that block away, so a reader
-         * who had grouped by event would have no control left to get
-         * back with. Both apply to all three roll-ups — every row
-         * carries the `data-vp-num` the ranking reads.
-         */
-        ?>
-        <?php if ($headerExtra !== null): ?>
-            <div class="px-3 pt-3 d-flex flex-wrap gap-3
-                        align-items-center">
-                <?= $headerExtra ?>
-            </div>
-        <?php endif; ?>
-
-        <?php
-        /*
-         * The narrowing block belongs to the value roll-up and says so
-         * when it is not showing. A facet on `type` is a property of a
-         * correlated value; an event row is not a value, and narrowing
-         * it by the type of one would be a filter that means nothing.
-         */
-        ?>
-        <div data-vp-group-only="value">
-
-            <div class="p-3 border-bottom d-flex flex-wrap gap-2
-                        align-items-center">
-                <div class="input-group input-group-sm" style="width: 15rem">
-                    <span class="input-group-text">
-                        <i class="fas fa-magnifying-glass"></i>
-                    </span>
-                    <input type="text" class="form-control"
-                           data-vp-filter-text
-                           value="<?= h(isset($active['text'])
-                               ? $active['text'] : '') ?>"
-                           aria-label="<?= __('Search the listed values') ?>"
-                           placeholder="<?= h(__('Search value')) ?>">
-                </div>
-
-                <?php
-                $selects = array(
-                    array('key' => 'type', 'any' => __('Any type'),
-                        'rows' => $facets['type']),
-                    array('key' => 'organisation',
-                        'any' => __('Any organisation'),
-                        'rows' => $facets['organisation']),
-                    array('key' => 'event', 'any' => __('Any event'),
-                        'rows' => $facets['event']),
-                );
-                ?>
-                <select class="form-select form-select-sm w-auto"
-                        data-vp-filter-key="category"
-                        aria-label="<?= __('Category') ?>">
-                    <option value=""><?= __('Any category') ?></option>
-                    <?php foreach ($co['categories'] as $category): ?>
-                        <option value="<?= h($slug($category)) ?>"<?=
-                            isset($activeSelects['category'])
-                                && $activeSelects['category']
-                                    === $slug($category)
-                                ? ' selected' : '' ?>>
-                            <?= h($category) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <?php foreach ($selects as $select): ?>
-                    <select class="form-select form-select-sm w-auto"
-                            data-vp-filter-key="<?= h($select['key']) ?>"
-                            aria-label="<?= h($select['any']) ?>">
-                        <option value=""><?= h($select['any']) ?></option>
-                        <?php foreach ($select['rows'] as $facet): ?>
-                            <option value="<?= h($facet['value']) ?>"<?=
-                                isset($activeSelects[$select['key']])
-                                    && $activeSelects[$select['key']]
-                                        === (string)$facet['value']
-                                    ? ' selected' : '' ?><?=
-                                isset($facet['listed'])
-                                    && $facet['listed'] === $facet['count']
-                                    ? ' data-vp-complete="1"' : '' ?>>
-                                <?= h($facet['label']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+            <div class="btn-group btn-group-sm vp-co-rank" role="group" aria-label="<?= h(__('Rank by')) ?>"
+                 data-vp-sort data-vp-value="<?= h($co['rank']) ?>">
+                <?php foreach ($rankPills as $key => $label): ?>
+                    <button type="button" class="btn btn-outline-secondary<?= $key === $co['rank'] ? ' active' : '' ?>"
+                            data-vp-pill="<?= h($key) ?>" aria-pressed="<?= $key === $co['rank'] ? 'true' : 'false' ?>">
+                        <?= h($label) ?>
+                    </button>
                 <?php endforeach; ?>
-
-                <div class="input-group input-group-sm" style="width: 12rem">
-                    <span class="input-group-text">
-                        <?= __('Shared events') ?> &ge;
-                    </span>
-                    <input type="number" class="form-control" min="1"
-                           value="<?= h(isset($active['min_shared'])
-                               ? (int)$active['min_shared'] : 1) ?>"
-                           data-vp-filter-min="shared"
-                           aria-label="<?= __('Minimum shared events') ?>">
-                </div>
-
-                <div class="form-check form-switch mb-0 ms-1">
-                    <input class="form-check-input" type="checkbox"
-                           role="switch" id="vp-rel-siblings-only"
-                           data-vp-facet-key="sibling" value="yes"<?=
-                        in_array('yes', $activeFacet('sibling'), true)
-                            ? ' checked' : '' ?>>
-                    <label class="form-check-label small text-muted"
-                           for="vp-rel-siblings-only">
-                        <?= __('Object siblings only') ?>
-                    </label>
-                </div>
-
-                <?php
-                /*
-                 * "No filter applied" and "3 filters" are one line in
-                 * two states rather than two lines, so the reader's eye
-                 * does not have to move when the first control is set.
-                 * It counts every narrowing control — a select and a
-                 * threshold narrow the table exactly as a ticked facet
-                 * does, and a count that ignored them would let the
-                 * panel claim nothing was applied while three were.
-                 */
-                ?>
-                <span class="small text-muted ms-auto"
-                      data-vp-facet-summary>
-                    <span class="vp-facet-summary-none">
-                        <?= __('No filter applied') ?>
-                    </span>
-                    <span class="vp-facet-summary-some">
-                        <span data-vp-facet-count-active>0</span>
-                        <span data-vp-plural="filters"
-                              data-vp-one="<?= h(__('filter')) ?>"
-                              data-vp-many="<?= h(__('filters')) ?>"><?=
-                            h(__('filters')) ?></span>
-                        &middot;
-                        <span data-vp-facet-rows><?=
-                            h(count($valueRows)) ?></span>
-                        <span data-vp-plural="rows"
-                              data-vp-one="<?= h(__('row')) ?>"
-                              data-vp-many="<?= h(__('rows')) ?>"><?=
-                            h(__('rows')) ?></span>
-                    </span>
-                </span>
-
-                <button type="button" class="btn btn-sm btn-link"
-                        data-vp-facet-clear disabled>
-                    <?= __('Reset') ?>
-                </button>
             </div>
 
-            <div class="p-3 border-bottom d-flex flex-wrap gap-2
-                        align-items-center">
-                <span class="vp-subhead mb-0 me-1"><?= __('Narrow by') ?></span>
-
-                <?php foreach ($facetGroups as $group): ?>
-                    <?php if (empty($facets[$group['key']])) {
-                        continue;
-                    } ?>
-                    <div class="dropdown">
-                        <button type="button"
-                                class="btn btn-sm btn-outline-secondary
-                                       dropdown-toggle vp-rel-facet"
-                                data-bs-toggle="dropdown"
-                                data-bs-auto-close="outside"
-                                aria-expanded="false">
-                            <?= h($group['title']) ?>
-                            <span class="badge text-bg-secondary ms-1">
-                                <?= h(count($facets[$group['key']])) ?>
-                            </span>
-                        </button>
-                        <div class="dropdown-menu vp-rel-facetmenu p-2">
-                            <?= $this->element(
-                                'Values/View/value_facet_group',
-                                array(
+            <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-outline-secondary vp-co-filters-btn"
+                        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                        data-vp-facet-summary>
+                    <i class="fas fa-filter" aria-hidden="true"></i>
+                    <?= __('Filters') ?>
+                    <span class="vp-facet-summary-some vp-co-filters-n" data-vp-facet-count-active>0</span>
+                </button>
+                <div class="dropdown-menu vp-co-filters">
+                    <div class="vp-co-filters-grid">
+                        <?php foreach ($facetGroups as $group): ?>
+                            <?php if (empty($facets[$group['key']])) {
+                                continue;
+                            } ?>
+                            <div class="vp-co-filters-group">
+                                <?= $this->element('Values/View/value_facet_group', array(
                                     'key' => $group['key'],
                                     'title' => $group['title'],
                                     'icon' => $group['icon'],
                                     'values' => $facets[$group['key']],
-                                    'active' => $activeFacet(
-                                        $group['key']
-                                    ),
-                                )
-                            ) ?>
-                        </div>
+                                    'active' => $activeFacet($group['key']),
+                                    'limit' => 6,
+                                )) ?>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
-                <?php endforeach; ?>
-
-                <span class="small text-muted ms-2 vp-min-w-0">
-                    <?= sprintf(
-                        __('Facet counts are folded from %s, not from'
-                            . ' the page.'),
-                        '<span class="font-monospace">'
-                            . h(sprintf(
-                                __('all %s rows read'),
-                                number_format($scan['rows_read'])
-                            )) . '</span>'
-                    ) ?>
-                        <i class="fas fa-circle-info vp-cap-more"
-                           title="<?= h(sprintf(
-                               __('Narrowing on a count larger than the'
-                                   . ' %s carried below fetches its rows'
-                                   . ' rather than emptying the table.'),
-                               number_format(count($valueRows))
-                           )) ?>"></i>
-                </span>
+                    <div class="vp-co-filters-foot">
+                        <select class="form-select form-select-sm w-auto" data-vp-filter-key="category"
+                                aria-label="<?= __('Category') ?>">
+                            <option value=""><?= __('Any category') ?></option>
+                            <?php foreach ($co['categories'] as $category): ?>
+                                <option value="<?= h($slug($category)) ?>"<?=
+                                    isset($activeSelects['category']) && $activeSelects['category'] === $slug($category)
+                                        ? ' selected' : '' ?>><?= h($category) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="input-group input-group-sm vp-co-min">
+                            <span class="input-group-text"><?= __('Shared events') ?> &ge;</span>
+                            <input type="number" class="form-control" min="1"
+                                   value="<?= h(isset($active['min_shared']) ? (int)$active['min_shared'] : 1) ?>"
+                                   data-vp-filter-min="shared" aria-label="<?= __('Minimum shared events') ?>">
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="vp-rel-siblings-only"
+                                   data-vp-facet-key="sibling" value="yes"<?=
+                                in_array('yes', $activeFacet('sibling'), true) ? ' checked' : '' ?>>
+                            <label class="form-check-label small" for="vp-rel-siblings-only"
+                                   title="<?= h(__('Values recorded in an object of a template this value also sits in')) ?>">
+                                <?= __('Same object template only') ?>
+                            </label>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link ms-auto" data-vp-facet-clear disabled>
+                            <?= __('Reset') ?>
+                        </button>
+                    </div>
+                    <div class="vp-co-filters-note">
+                        <?= h(sprintf(
+                            __('Counts are folded from all %s rows read, not from the page.'),
+                            number_format($scan['rows_read'])
+                        )) ?>
+                    </div>
+                </div>
             </div>
 
-        </div>
-
-        <div class="vp-rel-cap d-none" data-vp-group-not="value">
-            <i class="fas fa-circle-info"></i>
-            <span>
-                <?= __('Narrowing applies to the value roll-up,'
-                    . ' not to these event rows.') ?>
+            <span class="vp-co-count">
+                <strong data-vp-list-shown><?= h(number_format(count($valueRows))) ?></strong>
+                <?= h(sprintf(__('of %s values'), number_format($co['distinct_values']))) ?>
+                · <?= h($rankPhrase) ?>
+                <?php if ($listsHit > 0): ?>
+                    · <span title="<?= h(sprintf(
+                        __('Checked against %d enabled lists. The Warninglist filter keeps or drops them; the ranking'
+                            . ' does not account for them.'),
+                        (int)($co['warninglists_checked'] ?? 0)
+                    )) ?>"><?= h(sprintf(__('%s on a warninglist, dimmed'), number_format($listsHit))) ?></span>
+                <?php endif; ?>
             </span>
         </div>
-
-
-        <?php endif; ?>
 
         <div data-vp-list-rows>
 
             <div data-vp-group-pane="value">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover vp-table
-                                  align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 ix-table vp-co-table">
                         <thead>
                             <tr>
                                 <?php
-                                /*
-                                 * Tags is the one column with no
-                                 * heading to click. A row carries a set
-                                 * of them and a set has no place in an
-                                 * order — sorting by the first chip
-                                 * would look like sorting by tag and be
-                                 * sorting by whichever one MISP happened
-                                 * to return first. The Tag facet above
-                                 * is how a reader gets at them.
-                                 */
                                 $valCols = array(
-                                    array('key' => 'value',
-                                        'label' => __('Value')),
-                                    array('key' => 'type',
-                                        'label' => __('Type')),
-                                    array('key' => 'shared',
-                                        'label' => __('Shared events'),
-                                        'class' => 'vp-rel-num'),
-                                    /*
-                                     * Beside the count it qualifies,
-                                     * not further along: `8 shared` and
-                                     * `in 8 of its 204 events` are one
-                                     * reading, and a column between
-                                     * them makes the reader carry the
-                                     * first across the second.
-                                     */
-                                    array('key' => 'specific',
-                                        'label' => __(
-                                            'Specific to this value'
-                                        ),
-                                        'only' => $spreadRead),
-                                    array('key' => 'orgs',
-                                        'label' => __('Organisations')),
-                                    array('key' => 'last',
-                                        'label' => __('Last together')),
-                                    array('key' => 'distribution',
-                                        'label' => __('Distribution')),
+                                    array('key' => 'value', 'label' => __('Value')),
+                                    array('key' => 'shared', 'label' => __('Together in')),
+                                    array('key' => 'specific', 'label' => __('With this value'), 'only' => $spreadRead),
+                                    array('key' => 'orgs', 'label' => __('Reported by')),
+                                    array('key' => 'last', 'label' => __('Last together')),
                                 );
                                 ?>
-                                <?php
-                                $valCols = array_values(array_filter(
-                                    $valCols,
-                                    function ($col) {
-                                        return !array_key_exists(
-                                            'only',
-                                            $col
-                                        ) || $col['only'];
-                                    }
-                                ));
-                                ?>
                                 <?php foreach ($valCols as $col): ?>
-                                    <th class="<?= h($col['class'] ?? '') ?>">
-                                        <button type="button"
-                                                class="vp-th-sort"
-                                                data-vp-sort-col="<?=
-                                                    h($col['key']) ?>">
-                                            <span class="sortable-header"><?=
-                                                h($col['label'])
-                                            ?><i class="sort-icon"></i></span>
+                                    <?php if (array_key_exists('only', $col) && !$col['only']) {
+                                        continue;
+                                    } ?>
+                                    <th>
+                                        <button type="button" class="vp-th-sort" data-vp-sort-col="<?= h($col['key']) ?>">
+                                            <span class="sortable-header"><?= h($col['label']) ?><i class="sort-icon"></i></span>
                                         </button>
                                     </th>
                                 <?php endforeach; ?>
-                                <th><?= __('Tags') ?></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($valueRows
-                                as $valIndex => $row): ?>
-                                <tr class="vp-rel-stripe vp-rel-k-co"
-                                    data-vp-group="value"
-                                    data-vp-facet="<?= h(implode(
-                                        ' ',
-                                        $row['tokens']
-                                    )) ?>"
-                                    data-vp-num="<?= h($numbers(
-                                        $row['shared_events'],
-                                        $row['last_together']
-                                    )) ?>"
-                                    data-vp-text="<?= h(strtolower(
-                                        $row['value']
-                                    )) ?>"<?= $sortAttrs(array(
-                                        'vp-sort-value' => mb_strtolower(
-                                            $row['value']
-                                        ),
-                                        'vp-sort-type' => mb_strtolower(
-                                            $row['type']
-                                        ),
-                                        'vp-sort-shared' => $sortNum(
-                                            $row['shared_events']
-                                        ),
-                                        'vp-sort-specific' =>
-                                            $specificSort(
-                                                $row['shared_events'],
-                                                $row['spread'] ?? null
-                                            ),
-                                        'vp-sort-orgs' => $sortOrgs(
-                                            $row['orgs'],
-                                            count($row['orgs'])
-                                        ),
-                                        // Digits of the printed date, so
-                                        // the order is the one the cell
-                                        // shows.
-                                        'vp-sort-last' => preg_replace(
-                                            '/\D/',
-                                            '',
-                                            (string)$row['last_together']
-                                        ),
-                                        'vp-sort-distribution' => $sortNum(
-                                            $row['distribution']
-                                        ),
+                            <?php foreach ($valueRows as $valIndex => $row): ?>
+                                <?php
+                                $rowEvents = array_values($row['events']);
+                                $moreEvents = array_slice($rowEvents, 3);
+                                ?>
+                                <tr data-vp-list-row data-vp-group="value"
+                                    class="<?= $row['shared_events'] > 1 ? 'vp-co-recur' : '' ?>"
+                                    data-vp-facet="<?= h(implode(' ', $row['tokens'])) ?>"
+                                    data-vp-num="<?= h($numbers($row['shared_events'], $row['last_together'])) ?>"
+                                    data-vp-text="<?= h(mb_strtolower($row['value'])) ?>"<?= $sortAttrs(array(
+                                        'vp-sort-value' => mb_strtolower($row['value']),
+                                        'vp-sort-shared' => $sortNum($row['shared_events']),
+                                        'vp-sort-specific' => $specificSort($row['shared_events'], $row['spread'] ?? null),
+                                        'vp-sort-orgs' => $sortOrgs($row['orgs'], count($row['orgs'])),
+                                        'vp-sort-last' => preg_replace('/\D/', '', (string)$row['last_together']),
                                     ), $valIndex) ?>>
-                                    <td class="font-monospace">
-                                        <span class="vp-rel-cell<?=
-                                            empty($row['warninglists'])
-                                                ? ''
-                                                : ' vp-rel-listed'
-                                        ?><?= $hoverClass ?>"<?=
-                                            $hoverCard($row['value'])
-                                        ?>><?=
-                                            h($row['value']) ?></span><?=
-                                            $listedMark(
-                                                $row['warninglists']
-                                                    ?? array()
-                                            ) ?>
-
+                                    <td class="vp-co-valcell">
+                                        <div class="vp-co-val">
+                                            <span class="vp-rel-cell font-monospace<?= empty($row['warninglists']) ? '' : ' vp-rel-listed'
+                                                ?><?= $hoverClass ?>"<?= $hoverCard($row['value']) ?> title="<?= h($row['value']) ?>"><?= h($row['value']) ?></span><?=
+                                                $listedMark($row['warninglists'] ?? array()) ?>
+                                            <?= $this->element('genericElementsBS5/Badges/type', array('type' => $row['type'])) ?>
+                                            <?php if (!empty($row['ids'])): ?>
+                                                <?= $this->element('genericElementsBS5/IndexTable/Fields/ids', array(
+                                                    'row' => array('to_ids' => true),
+                                                    'field' => array('data_path' => 'to_ids', 'readonly' => true),
+                                                )) ?>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
-                                    <td><?= $typeBadge($row['type']) ?></td>
-                                    <td><?= $weightBar(
-                                        $row['shared_events'],
-                                        $maxShared
-                                    ) ?></td>
+                                    <td>
+                                        <span class="vp-co-events">
+                                            <?php foreach (array_slice($rowEvents, 0, 3) as $eventId): ?>
+                                                <?= $eventRef($eventId) ?>
+                                            <?php endforeach; ?>
+                                            <?php if (!empty($moreEvents)): ?>
+                                                <span class="vp-co-more" title="<?= h('#' . implode(', #', $moreEvents)) ?>">+<?= count($moreEvents) ?></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </td>
                                     <?php if ($spreadRead): ?>
-                                        <td class="small text-nowrap">
-                                            <?= h($specificRead(
-                                                $row['shared_events'],
-                                                $row['spread'] ?? null,
-                                                'event',
-                                                !empty($row['spread_least'])
-                                            )) ?>
-                                        </td>
+                                        <td class="text-nowrap"><?= $withCell($row) ?></td>
                                     <?php endif; ?>
-                                    <td class="small">
-                                        <?= h(implode(', ', $row['orgs'])) ?>
-                                    </td>
-                                    <td class="font-monospace text-nowrap
-                                               small">
-                                        <?= h($row['last_together']) ?>
-                                    </td>
-                                    <td><?= $distributionBadge($row) ?></td>
-                                    <td><?= $tagChips($row['tags']) ?></td>
+                                    <td><?= $orgCell($row['org_list'] ?? array()) ?></td>
+                                    <td class="vp-co-date"><?= h($row['last_together']) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -2411,67 +934,40 @@ $headerSub = ob_get_clean();
             </div>
 
             <div data-vp-group-pane="event" class="d-none">
-                <div class="px-3 pt-3 mt-2 border-top">
-                    <div class="vp-subhead d-flex align-items-center gap-2">
-                        <span class="misp-icon misp-icon-event
-                                     misp-simple"></span>
-                        <?= __('Events this value shares with something'
-                            . ' else') ?>
-                        <span class="badge text-bg-secondary">
-                            <?= h(number_format(
-                                $co['rollups']['event']['total']
-                            )) ?>
-                        </span>
-                    </div>
-                </div>
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover vp-table
-                                  align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 ix-table vp-co-table">
                         <thead>
                             <tr>
                                 <th><?= __('Event') ?></th>
+                                <th><?= __('Creator org') ?></th>
                                 <th><?= __('Date') ?></th>
-                                <th><?= __('Reported by') ?></th>
-                                <th class="vp-rel-num">
-                                    <?= __('Shared values') ?>
-                                </th>
-                                <th><?= __('Distribution') ?></th>
-                                <th><?= __('Tags') ?></th>
+                                <th class="text-end"><?= __('Other values') ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($eventRows as $row): ?>
-                                <tr class="vp-rel-stripe vp-rel-k-co"
-                                    data-vp-group="event"
-                                    data-vp-num="<?= h($numbers(
-                                        $row['shared_values'],
-                                        $row['event']['date']
-                                    )) ?>">
-                                    <td class="vp-min-w-0">
-                                        <a href="<?= $baseurl
-                                            ?>/events/view/<?=
-                                            h($row['event']['id']) ?>"
-                                           class="font-monospace small">
-                                            #<?= h($row['event']['id']) ?>
-                                        </a>
-                                        <div class="small text-muted
-                                                    vp-rel-cell">
-                                            <?= h($row['event']['info']) ?>
+                                <?php $event = $eventPeeks[(int)$row['event']['id']] ?? $row['event']; ?>
+                                <tr data-vp-list-row data-vp-group="event"
+                                    data-vp-num="<?= h($numbers($row['shared_values'], $row['event']['date'])) ?>">
+                                    <td class="vp-co-eventcell">
+                                        <div class="vp-co-event">
+                                            <?= $this->element('Attributes/event_ref', array('event' => $event)) ?>
+                                            <?= $this->element('genericElementsBS5/Badges/distribution', array(
+                                                'distribution' => (int)$row['distribution'],
+                                                'full' => false,
+                                            )) ?>
+                                            <a class="vp-co-event-info" href="<?= h($baseurl . '/events/view/' . (int)$row['event']['id']) ?>"
+                                               title="<?= h($row['event']['info']) ?>"><?= h($row['event']['info']) ?></a>
                                         </div>
                                     </td>
-                                    <td class="font-monospace text-nowrap
-                                               small">
-                                        <?= h($row['event']['date']) ?>
+                                    <td>
+                                        <?= $this->element('Values/View/value_org_link', array(
+                                            'org' => array('id' => $row['org_id'] ?? 0, 'name' => $row['org']),
+                                            'small' => true,
+                                        )) ?>
                                     </td>
-                                    <td class="text-nowrap">
-                                        <?= h($row['org']) ?>
-                                    </td>
-                                    <td><?= $weightBar(
-                                        $row['shared_values'],
-                                        $maxEventShared
-                                    ) ?></td>
-                                    <td><?= $distributionBadge($row) ?></td>
-                                    <td><?= $tagChips($row['tags']) ?></td>
+                                    <td class="vp-co-date"><?= h($row['event']['date']) ?></td>
+                                    <td class="text-end vp-co-n"><?= h(number_format($row['shared_values'])) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -2480,504 +976,271 @@ $headerSub = ob_get_clean();
             </div>
 
             <div data-vp-group-pane="object" class="d-none">
-                <div class="px-3 pt-3 mt-2 border-top">
-                    <div class="vp-subhead d-flex align-items-center gap-2">
-                        <span class="misp-icon misp-icon-object
-                                     misp-simple"></span>
-                        <?= __('Objects the correlated attributes sit in') ?>
-                        <span class="badge text-bg-secondary">
-                            <?= h(number_format(
-                                $co['rollups']['object']['total']
-                            )) ?>
-                        </span>
-                    </div>
-                    <div class="small text-muted mb-2">
-                        <?= __('Shorter than the other two roll-ups because'
-                            . ' most correlated attributes are not in an'
-                            . ' object at all.') ?>
-                    </div>
-                </div>
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover vp-table
-                                  align-middle mb-0">
+                    <table class="table align-middle mb-0 ix-table oi-table vp-co-table">
                         <thead>
                             <tr>
                                 <th><?= __('Object') ?></th>
                                 <th><?= __('Event') ?></th>
-                                <th><?= __('Reported by') ?></th>
-                                <th class="vp-rel-num">
-                                    <?= __('Related values') ?>
-                                </th>
-                                <th><?= __('Relations') ?></th>
+                                <th><?= __('Creator org') ?></th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php foreach ($objectRows as $row): ?>
-                                <tr class="vp-rel-stripe vp-rel-k-co"
-                                    data-vp-group="object"
-                                    data-vp-num="shared:<?=
-                                        h((int)$row['values']) ?> recent:0">
-                                    <td class="text-nowrap">
-                                        <span class="misp-icon
-                                                     misp-icon-object
-                                                     misp-simple me-1"></span>
-                                        <span class="font-monospace small">
-                                            <?= h($row['object']['name']) ?>
-                                        </span>
-                                        <span class="text-muted small">
-                                            #<?= h($row['object']['id']) ?>
-                                        </span>
+                        <?php foreach ($objectRows as $row): ?>
+                            <?php
+                            $object = $row['object'];
+                            $attributes = $row['attributes'] ?? array();
+                            $first = empty($attributes) ? null : $attributes[0];
+                            ?>
+                            <tbody data-vp-list-row data-vp-group="object" data-vp-obj
+                                   data-vp-num="shared:<?= (int)$row['values'] ?> recent:0">
+                                <tr>
+                                    <td class="oi-col-object">
+                                        <div class="oi-object">
+                                            <button type="button" class="oi-expand" data-vp-obj-disc aria-expanded="false"
+                                                    title="<?= h(__('Show its attributes')) ?>">
+                                                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                                            </button>
+                                            <?= $this->element('Objects/object_header', array(
+                                                'object' => $object,
+                                                'ctx' => array(
+                                                    'count' => count($attributes),
+                                                    'deleted' => false,
+                                                    'firstValue' => $first === null ? '' : (string)$first['value'],
+                                                    'firstRelation' => $first === null ? '' : (string)$first['relation'],
+                                                ),
+                                            )) ?>
+                                        </div>
+                                        <?= $this->element('genericElementsBS5/Badges/comment', array(
+                                            'comment' => $object['comment'] ?? '',
+                                            'class' => 'oi-comment',
+                                        )) ?>
                                     </td>
-                                    <td class="text-nowrap">
-                                        <a href="<?= $baseurl
-                                            ?>/events/view/<?=
-                                            h($row['event']) ?>"
-                                           class="font-monospace small">
-                                            #<?= h($row['event']) ?>
-                                        </a>
-                                    </td>
-                                    <td class="text-nowrap">
-                                        <?= h($row['org']) ?>
-                                    </td>
-                                    <td><?= $weightBar(
-                                        $row['values'],
-                                        $maxObjectValues
-                                    ) ?></td>
-                                    <td>
-                                        <?php foreach (
-                                            $row['relations'] as $relation
-                                        ): ?>
-                                            <span class="vp-relation me-1">
-                                                <?= h($relation) ?>
-                                            </span>
-                                        <?php endforeach; ?>
+                                    <td class="oi-col-event"><?= $eventRef($row['event']) ?></td>
+                                    <td class="oi-col-org">
+                                        <?= $this->element('Values/View/value_org_link', array(
+                                            'org' => array('id' => $row['org_id'] ?? 0, 'name' => $row['org']),
+                                            'small' => true,
+                                        )) ?>
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
+                                <tr class="oi-detail d-none" data-vp-obj-fold>
+                                    <td colspan="3">
+                                        <div class="oi-card">
+                                            <table class="table table-hover align-middle mb-0 ix-table">
+                                                <?= $objectHead ?>
+                                                <tbody>
+                                                    <?php foreach ($attributes as $attribute): ?>
+                                                        <tr>
+                                                            <td class="text-break">
+                                                                <?= $this->element('genericElementsBS5/IndexTable/Fields/attribute_value', array(
+                                                                    'row' => array('Attribute' => $attribute + array(
+                                                                        'object_relation' => $attribute['relation'],
+                                                                    )),
+                                                                    'field' => array('data_path' => 'Attribute'),
+                                                                )) ?>
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <?= $this->element('genericElementsBS5/Badges/category', array(
+                                                                        'category' => $attribute['category'],
+                                                                        'full' => $attribute['relation'] !== '',
+                                                                    )) ?>
+                                                                    <?= $this->element('genericElementsBS5/Badges/object_relation', array(
+                                                                        'relation' => $attribute['relation'],
+                                                                    )) ?>
+                                                                </div>
+                                                            </td>
+                                                            <td><?= $this->element('genericElementsBS5/Badges/type', array('type' => $attribute['type'])) ?></td>
+                                                            <td class="text-center">
+                                                                <?= $this->element('genericElementsBS5/IndexTable/Fields/ids', array(
+                                                                    'row' => $attribute,
+                                                                    'field' => array('data_path' => 'to_ids', 'readonly' => true),
+                                                                )) ?>
+                                                            </td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        <?php endforeach; ?>
                     </table>
                 </div>
             </div>
 
         </div>
 
-        <?php
-        /*
-         * Only a filter can produce this. The value with no correlation
-         * at all has its own empty state above, and "no row matches
-         * your filter" over it would be a different and false claim.
-         */
-        ?>
         <div class="p-3 d-none" data-vp-list-empty>
             <div class="vp-empty vp-empty-inline">
                 <i class="fas fa-filter"></i>
-                <span>
-                    <?= __('No correlation matches the filter you set.') ?>
-                </span>
+                <span><?= __('No value matches the filter you set.') ?></span>
             </div>
         </div>
 
-        <div class="px-3 py-2 border-top">
-            <?php
-            /*
-             * The one pager on this page whose total is not the
-             * section's own count. `matched` is what the *filter* left
-             * before the cut, so with a narrowing active the line has
-             * to say `(10,003 match)` — *"in total"* over the same
-             * number claims the value has 10,003 neighbours when it
-             * has 10,040, and the two disagree by exactly the rows the
-             * filter dropped. Unfiltered the two are the same number,
-             * and *"in total"* is then the true sentence.
-             *
-             * Either way it counts *values*, while the range beside it
-             * counts the roll-up on screen — so it is named to the
-             * value roll-up and goes away with it. On the event pane it
-             * was reading `1–8 of 18 rows (10,040 in total)`, which is
-             * two units on one line; each pane's heading carries its
-             * own total, so nothing is lost by its absence.
-             */
-            ?>
+        <div class="vp-co-foot">
+            <?php // `matched` is what the filter left before the cut, so a narrowed page says "match", not "in total". ?>
             <?= $this->element('Values/View/value_pager', array(
                 'size' => $co['page_size'],
                 'shown' => count($valueRows),
                 'total' => $co['matched'],
-                'totalNote' => empty($active)
-                    ? null
-                    : sprintf(__('(%d match)'), $co['matched']),
+                'totalNote' => empty($active) ? null : sprintf(__('(%d match)'), $co['matched']),
                 'totalGroup' => 'value',
-                'noun' => array(
-                    'one' => __('row'),
-                    'many' => __('rows'),
-                ),
+                'noun' => array('one' => __('row'), 'many' => __('rows')),
             )) ?>
+            <div class="vp-co-scan">
+                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                <span>
+                    <?= h(sprintf(
+                        __('Read from %1$s, newest first · %2$s'),
+                        $scanScope,
+                        __n('%s row', '%s rows', $scan['rows_read'], number_format($scan['rows_read']))
+                    )) ?>
+                    <?php if (!empty($scan['events_unread'])): ?>
+                        · <?= h(sprintf(
+                            __n('%1$d more event past the budget of %2$s rows', '%1$d more events past the budget of %2$s rows',
+                                $scan['events_unread']),
+                            $scan['events_unread'],
+                            number_format($scan['budget'])
+                        )) ?>
+                    <?php endif; ?>
+                    <?php if (!empty($scan['events_oversized'])): ?>
+                        · <?= h(sprintf(
+                            __n('%1$d event left out for holding more than %2$s attributes',
+                                '%1$d events left out for holding more than %2$s attributes each',
+                                $scan['events_oversized']),
+                            $scan['events_oversized'],
+                            number_format($scan['size_cap'])
+                        )) ?>
+                    <?php endif; ?>
+                    · <?= $this->element('Values/View/value_read_age', array(
+                        'readAt' => isset($scan['read_at']) ? (int)$scan['read_at'] : 0,
+                    )) ?>
+                </span>
+                <button type="button" class="btn btn-sm btn-link p-0 align-baseline vp-rel-again" data-vp-narrow-fresh>
+                    <i class="fas fa-rotate me-1"></i><?= __('Scan again') ?>
+                </button>
+            </div>
         </div>
 
     <?php endif; ?>
+</div>
 
+<?php
+/*
+ * The labels on this value, on the values beside it and on its events:
+ * galaxy clusters and taxonomy tags, read over every event the value is
+ * in. Its own card and its own filtering (value-intelligence.js
+ * `refreshLabels`): the facets of the values above do not apply to a
+ * label.
+ */
+?>
+<?php if (!empty($labelRows)): ?>
     <?php
-    /*
-     * §14.6, applied here by phase 24. This carried a `.vp-acl-note`
-     * reading *"4 further correlations point into events you cannot
-     * see. They are counted in the 31 and are not listed."* — a count
-     * of the invisible, stated on a page whose URL takes any value the
-     * reader types. Removed, along with the *"N of the M stored rows
-     * are visible to you"* sentence above, which named the same number
-     * by subtraction.
-     */
+    $labelTally = array();
+    if (!empty($labelByKind['cluster'])) {
+        $labelTally[] = __n('%s cluster', '%s clusters', $labelByKind['cluster'],
+            number_format($labelByKind['cluster']));
+    }
+    if (!empty($labelByKind['tag'])) {
+        $labelTally[] = __n('%s tag', '%s tags', $labelByKind['tag'],
+            number_format($labelByKind['tag']));
+    }
+    $labelSub = '<span class="vp-rel-tag me-1"><i class="misp-icon misp-icon-galaxy misp-simple"></i>'
+        . h(__('Labels')) . '</span>'
+        . h(sprintf(
+            __('%1$s across %2$s'),
+            implode(' · ', $labelTally),
+            __n('its only event', 'its %s events', $labelScope, number_format($labelScope))
+        ));
+    if ($labelTiers['value']['count'] > 0) {
+        $labelSub .= ' · <strong class="vp-lab-own">' . h(sprintf(
+            __('%s on this value'),
+            number_format($labelTiers['value']['count'])
+        )) . '</strong>';
+    }
+    if ($labelCapped) {
+        $labelSub .= ' · ' . h(sprintf(
+            __('the first %1$s of %2$s'),
+            number_format(count($labelRows)),
+            number_format($labels['total'])
+        ));
+    }
+    $labelSub .= ' · <span class="vp-rel-prov"><i class="fas fa-tag"></i>' . h(__('Tagged')) . '</span>';
+
+    $labelTools = '<div class="vp-lab-tools">'
+        . '<div class="input-group input-group-sm vp-card-search">'
+        . '<span class="input-group-text"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></span>'
+        . '<input type="search" class="form-control" data-vp-lab-filter autocomplete="off"'
+        . ' placeholder="' . h(__('Find a label…')) . '" aria-label="' . h(__('Find a label')) . '"></div>';
+    if (!empty($labelByKind['cluster']) && !empty($labelByKind['tag'])) {
+        $labelTools .= '<div class="vp-seg" role="group" aria-label="' . h(__('Kind')) . '">';
+        foreach (array('all' => __('All'), 'cluster' => __('Clusters'), 'tag' => __('Tags')) as $key => $text) {
+            $labelTools .= '<button type="button" class="vp-seg-btn' . ($key === 'all' ? ' active' : '') . '"'
+                . ' data-vp-lab-kind-btn="' . h($key) . '" aria-pressed="' . ($key === 'all' ? 'true' : 'false') . '">'
+                . h($text) . '</button>';
+        }
+        $labelTools .= '</div>';
+    }
+    $labelTools .= '</div>';
     ?>
-
-
-    <?php
-    /*
-     * ------------------------------------------------------------------
-     * §10.2 — the labels on those events
-     * ------------------------------------------------------------------
-     * A third section in this element, beside the object siblings and
-     * the co-occurrence table, and a section rather than more rows in
-     * the table above it.
-     *
-     * §10.2 asked for one table over both — *"the same facets, ranks and
-     * pager over all of it"* — and building it is what established that
-     * only the pager is shareable, and that sharing it was the worst
-     * part: merged, the first galaxy cluster on `Malicious` was on page
-     * fourteen.
-     *
-     *   the **rank** counts different scopes. A value neighbour is
-     *   counted over the events the attribute budget could read; a label
-     *   over every event the value is in, because an event's tags cost
-     *   one indexed read whatever its size. On `443` that is 38 against
-     *   196, and one order over both put a hundred tags and no values on
-     *   the page.
-     *
-     *   the **facets** do not apply. Five of the eight above describe a
-     *   correlated attribute: a cluster has no MISP type, sits in no
-     *   object and carries no warninglist verdict. Ticking one emptied
-     *   the table of every cluster it had just counted — which is the
-     *   control the note under the roll-up switch already calls *"a
-     *   control that means nothing"*.
-     *
-     *   the **columns** do not apply. `Specific to this value` divides
-     *   by a spread a label has none of.
-     *
-     * So this gets what the siblings above get: its own rows, its own
-     * bar, its own pager, its own empty state. What it shares with the
-     * table above is the fold and the scan behind it, which is where
-     * sharing was actually worth having.
-     *
-     * **The bar is local**, like the sibling bar and unlike the value
-     * table's: there is no narrowing endpoint behind these rows, so a
-     * tick reaches the rows carried and `value_facet_group` greys an
-     * entry none of them holds rather than offering a cut that could
-     * only empty the table.
-     * ------------------------------------------------------------------
-     */
-    ?>
-    <?php if (!empty($labelRows)): ?>
-
-        <div class="card shadow-sm mb-3 vp-panel vp-rel-k-co"
-             style="--vp-panel-color: var(--vp-rel-co);"
-             data-vp-rel-summary="labels"
-             data-vp-rel-count="<?= h(number_format($labels['total'])) ?>"
-             <?php if ($labelCapped): ?>
-                 data-vp-rel-note="<?= h(sprintf(
-                     __('%s listed'),
-                     number_format(count($labelRows))
-                 )) ?>"
-             <?php endif; ?>>
+    <div class="card shadow-sm mb-3 vp-panel vp-rel-k-co"
+         style="--vp-panel-color: var(--vp-rel-co);"
+         data-vp-lab-card
+         data-vp-rel-summary="labels"
+         data-vp-rel-count="<?= h(number_format($labels['total'])) ?>"
+         <?= $labelCapped
+             ? 'data-vp-rel-note="' . h(sprintf(__('%s listed'), number_format(count($labelRows)))) . '"'
+             : '' ?>>
 
         <?= $this->element('Values/View/value_panel_header', array(
             'panelTitle' => __('Labels in this neighbourhood'),
             'panelIcon' => 'misp-icon misp-icon-galaxy misp-simple',
             'panelColor' => 'var(--vp-rel-co)',
-            'panelSub' => $labelHeaderSub,
+            'panelSub' => $labelSub,
+            'panelExtra' => $labelTools,
         )) ?>
 
-        <div data-vp-list>
-
-            <?php
-            /*
-             * The wider scope belongs on the glyph, not in the line:
-             * it matters only to a reader comparing this panel with the
-             * one above, and that panel already states its own cut. The
-             * section is named rather than called *the table above*,
-             * which on a tab of seven tables names nothing.
-             */
-            $labelTip = __('A label sits on this value, on a neighbour'
-                . ' or on the event itself — Attached to says which.');
-            if ($labelScopeDiffers) {
-                $labelSkipped = $labelScope - (int)$scan['events_read'];
-                $labelTip .= ' ' . sprintf(
-                    __n(
-                        'All %1$d events are read here, including the'
-                            . ' one In the same events could not afford'
-                            . ' to open.',
-                        'All %1$d events are read here, including the'
-                            . ' %2$d In the same events could not afford'
-                            . ' to open.',
-                        $labelSkipped
-                    ),
-                    $labelScope,
-                    $labelSkipped
-                );
-            }
-            ?>
-            <div class="vp-rel-cap">
-                <i class="fas fa-circle-info"
-                   title="<?= h($labelTip) ?>"></i>
-                <span>
-                    <?= sprintf(
-                        __('Galaxy clusters and taxonomy tags across'
-                            . ' %s.'),
-                        '<strong>' . h(sprintf(
-                            __n(
-                                'the one event this value is in',
-                                'all %d events this value is in',
-                                $labelScope,
-                                $labelScope
-                            )
-                        )) . '</strong>'
-                    ) ?>
-                </span>
-            </div>
-
-            <?php if ($labelCapped): ?>
-                <div class="vp-rel-cap">
-                    <i class="fas fa-filter"
-                       title="<?= h(__(
-                           'The bar below narrows the rows this table'
-                           . ' holds, not the fold behind them.'
-                       )) ?>"></i>
-                    <span>
-                        <?= sprintf(
-                            __('%s, ranked by shared events.'),
-                            '<strong>' . h(sprintf(
-                                __('%1$s of %2$s are listed'),
-                                number_format(count($labelRows)),
-                                number_format($labels['total'])
-                            )) . '</strong>'
-                        ) ?>
-                    </span>
+        <?php foreach ($labelTiers as $tierKey => $tier): ?>
+            <?php if (empty($tier['families'])) {
+                continue;
+            } ?>
+            <section class="vp-lab-tier is-<?= h($tierKey) ?>" data-vp-lab-tier>
+                <div class="vp-lab-tier-h">
+                    <strong><?= h($tier['title']) ?></strong>
+                    <span><?= h(number_format($tier['count'])) ?> · <?= h($tier['hint']) ?></span>
                 </div>
-            <?php endif; ?>
-
-            <div class="p-3 border-bottom d-flex flex-wrap gap-2
-                        align-items-center">
-                <span class="vp-subhead mb-0 me-1"><?= __('Narrow by') ?></span>
-
-                <?php foreach ($labelFacetGroups as $group): ?>
-                    <?php if (empty($labelFacets[$group['key']])) {
-                        continue;
-                    } ?>
-                    <div class="dropdown">
-                        <button type="button"
-                                class="btn btn-sm btn-outline-secondary
-                                       dropdown-toggle vp-rel-facet"
-                                data-bs-toggle="dropdown"
-                                data-bs-auto-close="outside"
-                                aria-expanded="false">
-                            <?= h($group['title']) ?>
-                            <span class="badge text-bg-secondary ms-1">
-                                <?= h(count($labelFacets[$group['key']])) ?>
-                            </span>
-                        </button>
-                        <div class="dropdown-menu vp-rel-facetmenu p-2">
-                            <?= $this->element(
-                                'Values/View/value_facet_group',
-                                array(
-                                    'key' => $group['key'],
-                                    'title' => $group['title'],
-                                    'icon' => $group['icon'],
-                                    'values' => $labelFacets[$group['key']],
-                                    'local' => true,
-                                )
-                            ) ?>
+                <?php foreach ($tier['families'] as $family): ?>
+                    <?php $folded = count($family['rows']) - $labelFold; ?>
+                    <div class="vp-lab-fam" data-vp-lab-fam>
+                        <div class="vp-lab-fam-name" title="<?= h($family['name']) ?>">
+                            <?= h($family['name']) ?>
+                            <span><?= h(count($family['rows'])) ?></span>
+                        </div>
+                        <div class="vp-lab-chips">
+                            <?php foreach ($family['rows'] as $at => $row): ?>
+                                <span class="vp-lab<?= $at >= $labelFold ? ' is-folded d-none' : '' ?>" data-vp-lab
+                                      data-vp-lab-kind="<?= h($row['kind']) ?>"
+                                      data-vp-lab-text="<?= h(mb_strtolower($family['name'] . ' ' . $row['label']
+                                          . ($row['label'] === $row['value'] ? '' : ' ' . $row['value']))) ?>"><?=
+                                    $labelChip($row) ?></span>
+                            <?php endforeach; ?>
+                            <?php if ($folded > 0): ?>
+                                <button type="button" class="vp-lab-more" data-vp-lab-more
+                                        data-vp-lab-more-label="<?= h(__('+%d more')) ?>"><?= h(sprintf(__('+%d more'), $folded)) ?></button>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
+            </section>
+        <?php endforeach; ?>
 
-                <span class="small text-muted ms-auto"
-                      data-vp-facet-summary>
-                    <span class="vp-facet-summary-none">
-                        <?= __('No filter applied') ?>
-                    </span>
-                    <span class="vp-facet-summary-some">
-                        <span data-vp-facet-count-active>0</span>
-                        <span data-vp-plural="filters"
-                              data-vp-one="<?= h(__('filter')) ?>"
-                              data-vp-many="<?= h(__('filters')) ?>"><?=
-                            h(__('filters')) ?></span>
-                        &middot;
-                        <span data-vp-facet-rows><?=
-                            h(count($labelRows)) ?></span>
-                        <span data-vp-plural="rows"
-                              data-vp-one="<?= h(__('row')) ?>"
-                              data-vp-many="<?= h(__('rows')) ?>"><?=
-                            h(__('rows')) ?></span>
-                    </span>
-                </span>
-
-                <button type="button" class="btn btn-sm btn-link"
-                        data-vp-facet-clear disabled>
-                    <?= __('Reset') ?>
-                </button>
+        <div class="p-3 d-none" data-vp-lab-empty>
+            <div class="vp-empty vp-empty-inline">
+                <i class="fas fa-filter" aria-hidden="true"></i>
+                <span><?= __('No label matches.') ?></span>
             </div>
-
-            <div class="table-responsive" data-vp-list-rows>
-                <table class="table table-sm table-hover vp-table
-                              align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <?php
-                            /*
-                             * `Attached to` is a column and not only a
-                             * mark on the name, because it is the one
-                             * dimension here a reader sorts by: *show
-                             * me what was said about this value* is a
-                             * different question from *what was said
-                             * about the reports it turned up in*.
-                             */
-                            $labelCols = array(
-                                array('key' => 'label',
-                                    'label' => __('Label')),
-                                array('key' => 'family',
-                                    'label' => __('Family')),
-                                array('key' => 'attach',
-                                    'label' => __('Attached to')),
-                                array('key' => 'shared',
-                                    'label' => __('Shared events'),
-                                    'class' => 'vp-rel-num'),
-                                array('key' => 'orgs',
-                                    'label' => __('Organisations')),
-                                array('key' => 'last',
-                                    'label' => __('Last together')),
-                                array('key' => 'distribution',
-                                    'label' => __('Distribution')),
-                            );
-                            ?>
-                            <?php foreach ($labelCols as $col): ?>
-                                <th class="<?= h($col['class'] ?? '') ?>">
-                                    <button type="button"
-                                            class="vp-th-sort"
-                                            data-vp-sort-col="<?=
-                                                h($col['key']) ?>">
-                                        <span class="sortable-header"><?=
-                                            h($col['label'])
-                                        ?><i class="sort-icon"></i></span>
-                                    </button>
-                                </th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($labelRows
-                            as $labIndex => $row): ?>
-                            <tr class="vp-rel-stripe vp-rel-k-co"
-                                data-vp-facet="<?= h(implode(
-                                    ' ',
-                                    $row['tokens']
-                                )) ?>"
-                                data-vp-num="<?= h($numbers(
-                                    $row['shared_events'],
-                                    $row['last_together']
-                                )) ?>"<?php /*
-                                 * Both names, so the text filter finds
-                                 * a cluster by what the row prints and
-                                 * by the tag string a reader pasted out
-                                 * of an event.
-                                 */ ?>
-                                data-vp-text="<?= h(mb_strtolower(
-                                    $row['label'] === $row['value']
-                                        ? $row['value']
-                                        : $row['label'] . ' '
-                                            . $row['value']
-                                )) ?>"<?= $sortAttrs(array(
-                                    'vp-sort-label' => mb_strtolower(
-                                        $row['label']
-                                    ),
-                                    'vp-sort-family' => mb_strtolower(
-                                        $row['family']
-                                    ),
-                                    /*
-                                     * Tightest first when the column is
-                                     * sorted ascending, which is the
-                                     * order the word is a scale in —
-                                     * the digit is what makes a string
-                                     * compare agree with it.
-                                     */
-                                    'vp-sort-attach' => $attachSort($row),
-                                    'vp-sort-shared' => $sortNum(
-                                        $row['shared_events']
-                                    ),
-                                    'vp-sort-orgs' => $sortOrgs(
-                                        $row['orgs'],
-                                        count($row['orgs'])
-                                    ),
-                                    'vp-sort-last' => preg_replace(
-                                        '/\D/',
-                                        '',
-                                        (string)$row['last_together']
-                                    ),
-                                    /*
-                                     * The empty token on a row with no
-                                     * audience to state, which the
-                                     * comparator sorts last whichever
-                                     * way the heading points — `0`
-                                     * would claim the row was org-only.
-                                     */
-                                    'vp-sort-distribution' =>
-                                        $row['distribution'] === null
-                                            ? ''
-                                            : $sortNum(
-                                                $row['distribution']
-                                            ),
-                                ), $labIndex) ?>>
-                                <td><?= $labelCell($row) ?></td>
-                                <td><?= $labelFamilyCell($row) ?></td>
-                                <td><?= $attachCell($row) ?></td>
-                                <td><?= $weightBar(
-                                    $row['shared_events'],
-                                    $maxLabelShared
-                                ) ?></td>
-                                <td class="small">
-                                    <?= h(implode(', ', $row['orgs'])) ?>
-                                </td>
-                                <td class="font-monospace text-nowrap
-                                           small">
-                                    <?= h($row['last_together']) ?>
-                                </td>
-                                <td><?= $distributionBadge($row) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="p-3 d-none" data-vp-list-empty>
-                <div class="vp-empty vp-empty-inline">
-                    <i class="fas fa-filter"></i>
-                    <span>
-                        <?= __('No label matches the filter you set.') ?>
-                    </span>
-                </div>
-            </div>
-
-            <div class="px-3 py-2 border-top">
-                <?= $this->element('Values/View/value_pager', array(
-                    'size' => $labels['page_size'],
-                    'shown' => count($labelRows),
-                    'total' => $labels['total'],
-                    'noun' => array(
-                        'one' => __('label'),
-                        'many' => __('labels'),
-                    ),
-                )) ?>
-            </div>
-
         </div>
-
-        </div>
-
-    <?php endif; ?>
-
-
-</div>
+    </div>
+<?php endif; ?>

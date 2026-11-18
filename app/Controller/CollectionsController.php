@@ -103,7 +103,9 @@ class CollectionsController extends AppController
         $this->set('embedded', $this->request->is('get') && (bool)$this->request->query('embedded'));
         $attachElementDescription = $attachTarget['description'] ?? '';
         $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids', 'attachElementLabels', 'attachElementDescription'));
-        if($this->theme === "Overmind"){
+        // The modal fetches the form bare; a refused save comes back as a page,
+        // where the layout shows its error.
+        if ($this->theme === "Overmind" && $this->request->is('get')) {
             $this->layout = false;
         }
         $this->render('add');
@@ -336,7 +338,9 @@ class CollectionsController extends AppController
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
         $this->set(compact('dropdownData'));
-        if($this->theme === "Overmind"){
+        // The modal fetches the form bare; a refused save comes back as a page,
+        // where the layout shows its error.
+        if ($this->theme === "Overmind" && $this->request->is('get')) {
             $this->layout = false;
         }
         $this->render('add');

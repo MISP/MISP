@@ -1,18 +1,23 @@
 <?php
 /*
- * The organisation's identity card: an aside holding the logo (or a glyph when
- * there is none), tinted by whether the organisation is local or remote, beside
- * what describes it. Its id, UUID and dates are in the page header.
+ * The organisation's identity card: an aside holding its logo, or its
+ * monogram as the indexes draw it, with the reader's grade in the corner,
+ * tinted by whether the organisation is local or remote, beside what
+ * describes it. Its id, UUID and dates are in the page header.
  */
+App::uses('OrgGradeTool', 'Tools/AnalystProfile');
+
 $org = $data['Organisation'] ?? [];
 $local = !empty($org['local']);
+
+$grading = $this->OrgGrade->reading();
+$gradable = $this->OrgGrade->enabled($grading) && !empty($org['uuid']);
 
 $labelClass = 'text-body-secondary text-uppercase fw-bold';
 $labelStyle = 'font-size:.7rem;';
 $tileStyle = 'width:1.75rem;height:1.75rem;';
 
 $tone = $local ? 'success' : 'secondary';
-$logo = $this->OrgImg->getOrgLogoV2($org, 72, false);
 
 $scopePill = $local
     ? '<span class="badge rounded-pill text-bg-success d-inline-flex align-items-center gap-1">'
@@ -48,8 +53,24 @@ $facts = [
         'label' => $countryCode !== '' ? __('Nationality') . ' · ' . strtoupper($countryCode) : __('Nationality'),
     ],
 ];
+if ($gradable) {
+    $grade = OrgGradeTool::gradeOf($grading['grades'], $org['uuid']);
+    $facts[] = [
+        'tile' => $this->OrgGrade->badge($org, $grading, 'square'),
+        'bare' => true,
+        'value_html' => sprintf(
+            '<span class="og-words%s" data-grade-words-for="%s" data-grade-empty="%s">%s</span>',
+            $grade === null ? ' is-empty' : '',
+            h(strtolower($org['uuid'])),
+            h(__('Not graded')),
+            h($grade === null ? __('Not graded') : $grading['labels'][$grade])
+        ),
+        'label' => __('Reliability'),
+    ];
+}
 $description = trim($org['description'] ?? '');
 $contacts = trim($org['contacts'] ?? '');
+echo $gradable ? $this->OrgGrade->config($grading) : '';
 ?>
 <div class="card shadow-sm mb-3 overflow-hidden">
     <div class="row g-0">
@@ -57,14 +78,9 @@ $contacts = trim($org['contacts'] ?? '');
         <div class="col-12 col-md-4 col-xl-3 ov-identity-aside p-3 d-flex flex-column gap-3 bg-<?= $tone ?>-subtle">
             <div class="align-self-start"><?= $scopePill ?></div>
             <div class="d-flex justify-content-center align-items-center flex-grow-1 pb-2">
-                <div class="rounded-circle d-flex align-items-center justify-content-center overflow-hidden bg-body border border-2 border-<?= $tone ?> text-<?= $tone ?>"
-                     style="width:110px; height:110px;"
-                     title="<?= h($org['name'] ?? '') ?>">
-                    <?php if ($logo !== ''): ?>
-                        <?= $logo ?>
-                    <?php else: ?>
-                        <i class="fas fa-building fa-3x"></i>
-                    <?php endif; ?>
+                <div class="org-hero" title="<?= h($org['name'] ?? '') ?>">
+                    <span class="org-hero-tile border border-2 border-<?= $tone ?>"><?= $this->EventIndex->orgTile($org, 72) ?></span>
+                    <?= $gradable ? $this->OrgGrade->badge($org, $grading, 'hero') : '' ?>
                 </div>
             </div>
         </div>
@@ -85,15 +101,25 @@ $contacts = trim($org['contacts'] ?? '');
                     <?php endif; ?>
                 </div>
 
-                <div class="row row-cols-1 row-cols-sm-3 g-2">
+                <div class="row row-cols-1 row-cols-sm-<?= count($facts) > 3 ? '2 row-cols-xl-4' : '3' ?> g-2">
                     <?php foreach ($facts as $fact): ?>
+                        <?php $value = $fact['value'] ?? ''; ?>
                         <div class="col">
-                            <div class="d-flex align-items-center gap-2 min-w-0<?= $fact['value'] === '' ? ' opacity-75' : '' ?>">
-                                <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 border bg-body-tertiary text-body-secondary overflow-hidden"
-                                      style="<?= $tileStyle ?>"><?= $fact['tile'] ?></span>
+                            <div class="d-flex align-items-center gap-2 min-w-0<?= !isset($fact['value_html']) && $value === '' ? ' opacity-75' : '' ?>">
+                                <?php if (!empty($fact['bare'])): ?>
+                                    <span class="og-slot d-inline-flex flex-shrink-0"
+                                          style="<?= $tileStyle ?>"><?= $fact['tile'] ?></span>
+                                <?php else: ?>
+                                    <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 border bg-body-tertiary text-body-secondary overflow-hidden"
+                                          style="<?= $tileStyle ?>"><?= $fact['tile'] ?></span>
+                                <?php endif; ?>
                                 <div class="min-w-0">
-                                    <div class="fw-semibold lh-sm text-truncate<?= $fact['value'] === '' ? ' text-body-secondary fst-italic fw-normal' : '' ?>"
-                                         title="<?= h($fact['value']) ?>"><?= $fact['value'] !== '' ? h($fact['value']) : __('Not set') ?></div>
+                                    <?php if (isset($fact['value_html'])): ?>
+                                        <div class="fw-semibold lh-sm text-truncate"><?= $fact['value_html'] ?></div>
+                                    <?php else: ?>
+                                        <div class="fw-semibold lh-sm text-truncate<?= $value === '' ? ' text-body-secondary fst-italic fw-normal' : '' ?>"
+                                             title="<?= h($value) ?>"><?= $value !== '' ? h($value) : __('Not set') ?></div>
+                                    <?php endif; ?>
                                     <div class="small text-body-secondary"><?= h($fact['label']) ?></div>
                                 </div>
                             </div>

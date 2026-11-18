@@ -29,9 +29,8 @@
  * value, visible to nobody else, and a store that comes back empty
  * simply gives the default (§7.6).
  *
- * It sits in the conditions strip as its last occupant, so the
- * sentences that say under what rules the session is worked keep the
- * first line and the note takes a line of its own when it is opened.
+ * It closes the bar's analyst profile menu, beside the thresholds link,
+ * and takes a line of its own when it is opened.
  */
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 App::uses('ValueRelevanceTool', 'Tools/ValueIntelligence');

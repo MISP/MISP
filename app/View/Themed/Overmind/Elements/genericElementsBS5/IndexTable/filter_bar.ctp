@@ -45,6 +45,25 @@ if ($pickerBarOn) {
             'group' => $child['group'] ?? null,
         ];
     };
+    /*
+     * A dropdown with `display => 'list'` is drawn in the panel as its
+     * values, each with how many rows it keeps (`counts`, value => n) and a
+     * bar for its share of `total` (the counts' sum when absent); `html`
+     * (value => markup) draws a value richer than its label, `fold` is how
+     * many show before "+N more". One value at a time.
+     */
+    $toList = function (array $child) use ($toPicker) {
+        $list = $toPicker($child);
+        $list['type'] = 'list';
+        foreach ($list['options'] as &$option) {
+            $option['count'] = (int)($child['counts'][$option['value']] ?? 0);
+            $option['html'] = $child['html'][$option['value']] ?? null;
+        }
+        unset($option);
+        $list['total'] = $child['total'] ?? null;
+        $list['fold'] = $child['fold'] ?? 6;
+        return $list;
+    };
     $children = [];
     foreach ($filter_bar['children'] as $child) {
         $type = $child['type'] ?? '';
@@ -57,7 +76,8 @@ if ($pickerBarOn) {
             continue;
         }
         foreach ($selects as $select) {
-            $picker = empty($select['name']) ? null : $toPicker($select);
+            $picker = empty($select['name']) ? null
+                : (($select['display'] ?? null) === 'list' ? $toList($select) : $toPicker($select));
             if (!empty($picker['options'])) {
                 $children[] = $picker;
             }
@@ -130,8 +150,13 @@ $filterId = 'filter-bar-' . uniqid();
  */
 $pickers = [];
 $browserStrings = null;
+$strip = null;
 foreach ($filter_bar['children'] as $child) {
-    if (($child['type'] ?? '') === 'picker') {
+    if (($child['type'] ?? '') === 'time' && !empty($child['histograms'])) {
+        $strip = $child;
+    }
+    // A list names its values for the chips the way a picker does.
+    if (in_array($child['type'] ?? '', ['picker', 'list'], true)) {
         $pickers[$child['name']] = $child;
         if (!empty($child['browser'])) {
             $browserStrings = [];
@@ -172,8 +197,8 @@ if ($pickerMode) {
         ($filter_bar['transport'] ?? 'path') === 'query' ? ($this->request->query ?? []) : null
     );
     echo $this->element('genericElements/assetLoader', [
-        'css' => ['org-tile', 'index-filters'],
-        'js' => ['index-filters'],
+        'css' => array_merge(['index-filters'], $strip ? ['misp-brush'] : []),
+        'js' => array_merge($strip ? ['misp-brush'] : [], ['index-filters']),
     ]);
     if ($browserStrings !== null) {
         echo $this->element('genericElements/assetLoader', [
@@ -208,6 +233,12 @@ foreach (($filter_bar['children'] ?? []) as $c) {
     $ctype = $c['type'] ?? '';
     if (!empty($c['name']) && !empty($c['chip_label'])) {
         $controlLabels[$c['name']] = $c['chip_label'];
+    } elseif ($ctype === 'value' && !empty($c['name'])) {
+        $controlLabels[$c['name']] = $c['label'] ?? $c['name'];
+    } elseif ($ctype === 'time') {
+        foreach ($c['fields'] as $field) {
+            $controlLabels[$field['name']] = $controlLabels[$field['name']] ?? $field['label'];
+        }
     }
     if ($ctype === 'value_match' && !empty($c['name'])) {
         $controlKeys[] = $c['name'];
@@ -281,7 +312,7 @@ if ($pickerMode) {
     $buttonGroups = [];
     foreach ($filter_bar['children'] as $child) {
         $ctype = $child['type'] ?? '';
-        if (in_array($ctype, ['picker', 'time', 'value_match'], true)) {
+        if (in_array($ctype, ['picker', 'list', 'time', 'value', 'value_match'], true)) {
             $windowItems[] = $child;
         } elseif ($ctype === 'button') {
             $toggles[] = $child;
@@ -341,8 +372,12 @@ if ($pickerMode) {
             'allOf' => __('This link asks for events with all of these. Changing the selection here switches to any of them.'),
             'unresolved' => __('Not found on this instance'),
             'loadError' => __('The filtered list could not be loaded.'),
+            'valueOnClose' => __('Applies when you close the picker, or on Enter.'),
+            'keptForApply' => __('Kept until you apply the filters.'),
         ],
         'browser' => $browserStrings,
+        'draft' => ($filter_bar['apply'] ?? 'close') === 'deferred' ? IndexFilterDraft::strings() : null,
+        'clearUrl' => $filterState->clearUrl($filter_bar['chips']['scope'] ?? []),
     ], JSON_UNESCAPED_UNICODE)) ?>"<?php endif; ?>>
 
 <?php if ($pickerMode): ?>
@@ -402,6 +437,7 @@ if ($pickerMode) {
             'chipsData' => $chipsData,
             'currentFilters' => $currentFilters,
             'filterId' => $filterId,
+            'deferred' => ($filter_bar['apply'] ?? 'close') === 'deferred',
         ]) ?>
     <?php endif; ?>
 
@@ -474,6 +510,7 @@ if ($pickerMode) {
             </div>
         <?php endforeach; ?>
 
+        <?php if (($filter_bar['view_switch'] ?? null) !== false): ?>
         <div class="ifp-segv" role="group" aria-label="<?= h(__('View')) ?>">
             <?php if (!empty($filter_bar['view_switch'])): ?>
                 <?php foreach ($filter_bar['view_switch'] as $vs): ?>
@@ -495,8 +532,15 @@ if ($pickerMode) {
                 </button>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
 
+    <?php if ($strip): ?>
+        <?= $this->element('genericElementsBS5/IndexTable/filter_strip', [
+            'child' => $strip,
+            'state' => $filterState,
+        ]) ?>
+    <?php endif; ?>
 
 <?php else: ?>
 
@@ -772,7 +816,7 @@ if ($explicitActive !== null) {
             <?php
             if (empty($filter_bar['skip_pagination'])) {
                 echo $this->element(
-                    'genericElementsBS5/IndexTable/pagination_nav',
+                    $filter_bar['pager'] ?? 'genericElementsBS5/IndexTable/pagination_nav',
                     ['maxPages' => 5, 'size' => 'sm']
                 );
             }
