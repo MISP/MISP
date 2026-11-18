@@ -342,8 +342,11 @@ class AdminShell extends AppShell
 
     public function updateMISP()
     {
-        $status = array('branch' => '2.4');
-        echo $this->Server->update($status) . PHP_EOL;
+        $branch = $this->Server->getCurrentBranch();
+        if (empty($branch)) {
+            $this->error(__('Update failed, you are not on a branch.'));
+        }
+        echo $this->Server->update(array('branch' => $branch)) . PHP_EOL;
     }
 
     public function updateAfterPull()
