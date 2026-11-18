@@ -13,6 +13,7 @@ class Module extends AppModel
         'Import' => array('import'),
         'Export' => array('export'),
         'Action' => array('action'),
+        'Gathering' => array('gathering'),
         'Cortex' => array('cortex'),
         'AI' => array('ai')
     );
@@ -22,6 +23,7 @@ class Module extends AppModel
         'Import' => 'Import',
         'Export' => 'Export',
         'Action' => 'Action',
+        'Gathering' => 'Gathering',
         'hover' => 'Enrichment',
         'expansion' => 'Enrichment',
         'Cortex' => 'Cortex',
@@ -85,6 +87,8 @@ class Module extends AppModel
 
     private $httpSocket = [];
 
+    private $moduleTimeoutDefaults = [];
+
     public function validateIPField($value)
     {
         if (!filter_var($value, FILTER_VALIDATE_IP) === false) {
@@ -132,8 +136,18 @@ class Module extends AppModel
     {
         try {
             // Wait just one second to not block loading pages when modules are not reachable
-            return $this->sendRequest('/modules', 1, null, $moduleFamily);
+            $modules = $this->sendRequest('/modules', 1, null, $moduleFamily);
+            $this->moduleTimeoutDefaults[$moduleFamily] = [];
+            if (is_array($modules)) {
+                foreach ($modules as $module) {
+                    if (isset($module['name']) && is_string($module['name'])) {
+                        $this->moduleTimeoutDefaults[$moduleFamily][$module['name']] = $module['meta'] ?? [];
+                    }
+                }
+            }
+            return $modules;
         } catch (Exception $e) {
+            $this->moduleTimeoutDefaults[$moduleFamily] = [];
             if ($throwException) {
                 throw $e;
             }
@@ -185,6 +199,8 @@ class Module extends AppModel
                 $output['Export'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('action', $temp['meta']['module-type'])) {
                 $output['Action'] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('gathering', $temp['meta']['module-type'])) {
+                $output['Gathering'][] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('ai', $temp['meta']['module-type'])) {
                 $output['AI'] = $temp['name'];
             } else {
@@ -235,6 +251,72 @@ class Module extends AppModel
             return $modules;
         }
         return 'The modules system reports that it found no suitable modules.';
+    }
+
+    /** Execute any enabled gathering module; source conversion stays in misp-modules. */
+    public function queryGathering($name, array $parameters, array $user)
+    {
+        $module = $this->getEnabledModule($name, 'Gathering', $user);
+        if (!is_array($module) || ($module['mispattributes']['gathering_version'] ?? null) !== 2) {
+            throw new InvalidArgumentException('Gathering module is unavailable, restricted, or uses an unsupported contract.');
+        }
+        $config = [];
+        foreach ($module['meta']['config'] ?? [] as $key => $value) {
+            $field = is_string($key) ? $key : (is_array($value) ? $value['name'] : $value);
+            $setting = Configure::read('Plugin.Gathering_' . $name . '_' . $field);
+            if ($setting instanceof EncryptedValue) {
+                $setting = $setting->decrypt();
+            }
+            if ($setting !== null) {
+                $config[$field] = $setting;
+            }
+        }
+        return $this->queryModuleServer([
+            'module' => $name,
+            'operation' => 'prepare',
+            'parameters' => (object)$parameters,
+            'config' => (object)$config,
+        ], false, 'Gathering', true);
+    }
+
+    private function gatheringJobPath($identifier)
+    {
+        if (!is_string($identifier) || !preg_match('/\A[0-9a-f]{64}\z/D', $identifier)) {
+            throw new InvalidArgumentException('Invalid gathering job identifier.');
+        }
+        return '/gathering/jobs/' . $identifier;
+    }
+
+    public function gatheringJobStatus($identifier)
+    {
+        return $this->sendRequest($this->gatheringJobPath($identifier), 10, null, 'Gathering');
+    }
+
+    public function downloadGatheringArchive($identifier, $destination, $size)
+    {
+        $path = $this->gatheringJobPath($identifier) . '/feed.zip';
+        $server = $this->__getModuleServer('Gathering');
+        if (!$server) { throw new RuntimeException('Gathering service is disabled.'); }
+        $client = $this->initHttpSocket('Gathering', 3600);
+        if (!method_exists($client, 'download')) { throw new RuntimeException('Gathering ZIP downloads require the PHP curl extension.'); }
+        $client->setFollowRedirects(false);
+        $client->setMaxSize($size);
+        try {
+            $response = $client->download($server . $path, $destination);
+            if ((int)$response->code !== 200) { throw new RuntimeException('Gathering archive download failed.'); }
+        } finally {
+            $client->setMaxSize(null);
+            $client->setFollowRedirects(true);
+        }
+    }
+
+    public function releaseGatheringJob($identifier)
+    {
+        $path = $this->gatheringJobPath($identifier);
+        $server = $this->__getModuleServer('Gathering');
+        if (!$server) { return; }
+        $response = $this->initHttpSocket('Gathering', 10)->delete($server . $path);
+        if (!in_array((int)$response->code, [204, 404], true)) { throw new RuntimeException('Could not release gathering job.'); }
     }
 
     private function __getModuleServer($moduleFamily = 'Enrichment')
@@ -335,14 +417,8 @@ class Module extends AppModel
                 return __('Trigger `%s` blocked enrichment', $trigger_id);
             }
         }
-        if ($hover) {
-            $timeout = Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5;
-        } else {
-            $timeout = Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10;
-        }
-        if (!isset($postData['timeout'])) {
-            $postData['timeout'] = (int) $timeout;
-        }
+        $timeout = $this->queryTimeout($postData, $hover, $moduleFamily);
+        $postData['timeout'] = $timeout;
         try {
             return $this->sendRequest('/query', $timeout, $postData, $moduleFamily);
         } catch (Exception $e) {
@@ -352,6 +428,52 @@ class Module extends AppModel
             $this->logException('Failed to query module ' . $moduleFamily, $e);
             return false;
         }
+    }
+
+    /** Read settings separately so timeout resolution can be tested without CakePHP. */
+    protected function moduleTimeoutSetting($name)
+    {
+        return Configure::read($name);
+    }
+
+    private static function positiveTimeout($value)
+    {
+        if (!is_int($value) && !is_string($value)) {
+            return null;
+        }
+        $timeout = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        return $timeout === false ? null : $timeout;
+    }
+
+    /** Use the same execution budget for the HTTP client and the module server. */
+    private function queryTimeout(array $postData, $hover, $moduleFamily)
+    {
+        if (isset($postData['timeout'])) {
+            $timeout = self::positiveTimeout($postData['timeout']);
+            if ($timeout === null) {
+                throw new InvalidArgumentException('Module timeout must be a positive integer in seconds.');
+            }
+            return $timeout;
+        }
+
+        $name = $postData['module'];
+        $setting = $hover ? 'hover_execution_timeout' : 'execution_timeout';
+        $timeout = self::positiveTimeout($this->moduleTimeoutSetting('Plugin.' . $moduleFamily . '_' . $name . '_' . $setting));
+        if ($timeout !== null) {
+            return $timeout;
+        }
+
+        if (!isset($this->moduleTimeoutDefaults[$moduleFamily])) {
+            $this->getModules($moduleFamily);
+        }
+        $metadataKey = $hover ? 'hover_timeout' : 'timeout';
+        $timeout = self::positiveTimeout($this->moduleTimeoutDefaults[$moduleFamily][$name][$metadataKey] ?? null);
+        if ($timeout !== null) {
+            return $timeout;
+        }
+
+        $familySetting = 'Plugin.' . $moduleFamily . ($hover ? '_hover_timeout' : '_timeout');
+        return self::positiveTimeout($this->moduleTimeoutSetting($familySetting)) ?? ($hover ? 5 : 10);
     }
 
     /**
@@ -416,6 +538,21 @@ class Module extends AppModel
                             'description' => empty($module['meta']['description']) ? '' : $module['meta']['description']
                         ]
                     ];
+                    $timeoutSettings = ['execution_timeout' => 'timeout'];
+                    if (in_array('hover', $module['meta']['module-type'], true)) {
+                        $timeoutSettings['hover_execution_timeout'] = 'hover_timeout';
+                    }
+                    foreach ($timeoutSettings as $name => $metadataKey) {
+                        $moduleSettings[] = [
+                            'name' => $name,
+                            'type' => 'numeric',
+                            'value' => self::positiveTimeout($module['meta'][$metadataKey] ?? null) ?? 0,
+                            'test' => 'testForPositiveInteger',
+                            'description' => $metadataKey === 'hover_timeout'
+                                ? __('Hover execution timeout in seconds. Set to 0 to use the module default or the family hover timeout.')
+                                : __('Module execution timeout in seconds. Set to 0 to use the module default or the family timeout.')
+                        ];
+                    }
                     if ($moduleFamily !== 'Action') {
                         $moduleSettings[] = [
                             'name' => 'restrict',
@@ -425,6 +562,9 @@ class Module extends AppModel
                         if (isset($module['meta']['config'])) {
                             foreach ($module['meta']['config'] as $key => $value) {
                                 $name = self::configName($key, $value);
+                                if (isset($timeoutSettings[$name])) {
+                                    continue;
+                                }
                                 if (is_array($value)) {
                                     $moduleSettings[] = [
                                         'name' => $name,
