@@ -118,13 +118,14 @@ function showToastsOnly(html) {
  * the dialog for every later open.
  *
  *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *   'fullscreen' the whole viewport (the galaxy matrix)
  *******************************/
 function setModalSize(size, dialog) {
     dialog = dialog || document.querySelector('#mainModal .modal-dialog');
     if (!dialog) {
         return;
     }
-    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl', 'modal-fullscreen');
     if (size && size !== 'md') {
         dialog.classList.add('modal-' + size);
     }
@@ -3198,6 +3199,169 @@ function initSharingGroupForm(container) {
 })();
 
 /*******************************
+ * Event peeks (Events/peek_link.ctp)
+ * An event's peek, fetched from /events/peek/<id> on the first hover and
+ * kept for the page. It stays open while the pointer is on it, so its links
+ * and the UUID's copy button can be reached; moving to another event's id
+ * swaps it at once.
+ *******************************/
+(function () {
+    var REF = '.ev-ref[data-ev-peek]';
+    var POP = '.ev-peek-popover';
+    var OPEN_DELAY = 120;
+    var CLOSE_DELAY = 200;
+    var current = null;     // the ref whose peek is shown
+    var wanted = null;      // the ref whose peek is shown or on its way
+    var pending = null;     // the ref waiting out OPEN_DELAY
+    var openTimer = null;
+    var closeTimer = null;
+    var peeks = {};         // event id => promise of its <template>, or of null
+
+    function load(ref) {
+        var id = ref.dataset.evPeek;
+        if (!peeks[id]) {
+            peeks[id] = fetch(ref.dataset.evPeekUrl, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            }).then(function (response) {
+                return response.ok ? response.text() : '';
+            }).then(function (html) {
+                var tpl = document.createElement('template');
+                tpl.innerHTML = html.trim();
+                // Anything else (a login page after a timeout, say) is not a peek.
+                var root = tpl.content.firstElementChild;
+                return root && root.classList.contains('ev-pop') ? tpl : null;
+            }, function () {
+                delete peeks[id];
+                return null;
+            });
+        }
+        return peeks[id];
+    }
+
+    function open(ref) {
+        clearTimeout(openTimer);
+        clearTimeout(closeTimer);
+        pending = null;
+        if (wanted === ref) return;
+        wanted = ref;
+        ref.classList.add('is-loading');
+        load(ref).then(function (tpl) {
+            ref.classList.remove('is-loading');
+            if (tpl && wanted === ref && ref.isConnected) show(ref, tpl);
+        });
+    }
+
+    function show(ref, tpl) {
+        hide();
+        var popover = bootstrap.Popover.getOrCreateInstance(ref, {
+            trigger: 'manual',
+            html: true,
+            // Shown and hidden at once: a fading peek racing the next one is what this avoids.
+            animation: false,
+            placement: 'right',
+            fallbackPlacements: ['top', 'bottom', 'left'],
+            container: 'body',
+            customClass: 'ev-peek-popover',
+            // An element is placed as is, past the sanitizer: it is the server's markup.
+            content: function () { return tpl.content.firstElementChild.cloneNode(true); },
+        });
+        current = ref;
+        ref.classList.add('is-open');
+        popover.show();
+    }
+
+    function hide() {
+        if (!current) return;
+        var ref = current;
+        current = null;
+        ref.classList.remove('is-open');
+        var popover = bootstrap.Popover.getInstance(ref);
+        if (popover) popover.hide();
+    }
+
+    function close() {
+        clearTimeout(closeTimer);
+        wanted = null;
+        hide();
+    }
+
+    function closeSoon() {
+        clearTimeout(openTimer);
+        clearTimeout(closeTimer);
+        pending = null;
+        if (wanted) closeTimer = setTimeout(close, CLOSE_DELAY);
+    }
+
+    document.addEventListener('mouseover', function (e) {
+        var target = e.target && e.target.closest ? e.target : null;
+        if (!target) return;
+        var ref = target.closest(REF);
+        if (ref) {
+            clearTimeout(closeTimer);
+            if (ref === wanted || ref === pending) return;
+            clearTimeout(openTimer);
+            if (current) {
+                open(ref);
+            } else {
+                pending = ref;
+                openTimer = setTimeout(function () { open(ref); }, OPEN_DELAY);
+            }
+            return;
+        }
+        if (current && target.closest(POP)) clearTimeout(closeTimer);
+    });
+
+    document.addEventListener('mouseout', function (e) {
+        var from = e.target && e.target.closest ? e.target.closest(REF + ', ' + POP) : null;
+        if (!from) return;
+        var to = e.relatedTarget;
+        if (to && from.contains(to)) return;
+        closeSoon();
+    });
+
+    document.addEventListener('focusin', function (e) {
+        var target = e.target && e.target.closest ? e.target : null;
+        if (!target) return;
+        var ref = target.closest(REF);
+        if (ref) {
+            open(ref);
+        } else if (current && target.closest(POP)) {
+            clearTimeout(closeTimer);
+        }
+    });
+
+    document.addEventListener('focusout', function (e) {
+        if (!wanted) return;
+        var to = e.relatedTarget;
+        if (to && to.closest && (to === wanted || to.closest(POP))) return;
+        if (e.target.closest && e.target.closest(REF + ', ' + POP)) closeSoon();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !wanted) return;
+        var ref = wanted;
+        var inside = document.activeElement && document.activeElement.closest
+            && document.activeElement.closest(POP);
+        close();
+        if (inside) ref.focus();
+    });
+
+    document.addEventListener('click', function (e) {
+        var button = e.target.closest ? e.target.closest('.ev-pop-copy') : null;
+        if (!button) return;
+        copyValueToClipboard(button.dataset.copyValue, button.dataset.copyMsg);
+        var icon = button.querySelector('i');
+        button.classList.add('is-done');
+        if (icon) icon.className = 'fas fa-check';
+        setTimeout(function () {
+            button.classList.remove('is-done');
+            if (icon) icon.className = 'fas fa-copy';
+        }, 1500);
+    });
+})();
+
+/*******************************
  * Attribute values (Attributes/value_display.ctp)
  *******************************/
 (function () {
@@ -5745,8 +5909,13 @@ function initAttributeForm(currentDist, isEdit) {
         var nextVal = (preserveValue && allowed.indexOf(previousType) !== -1)
             ? previousType : '';
 
+        /* The empty choice reads as a prompt, which depends on the category */
+        var prompt = (selectedCategory
+            ? typeEl.dataset.placeholderPick
+            : typeEl.dataset.placeholderFirst) || '';
+
         while (typeEl.options.length) { typeEl.remove(0); }
-        typeEl.add(new Option('', ''));
+        typeEl.add(new Option(prompt, ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
         typeEl.value = nextVal;
         /* A type the server locked (object template, attachment) must stay
@@ -5758,14 +5927,17 @@ function initAttributeForm(currentDist, isEdit) {
             var ts = typeEl.tomselect;
             ts.clear(true);
             ts.clearOptions();
-            ts.addOption({ value: '', text: '' });
             ts.addOptions(allowed.map(function (t) { return { value: t, text: t }; }));
             ts.setValue(nextVal, true);
+            ts.settings.placeholder = prompt;
+            ts.control_input.placeholder = prompt;
             ts.refreshItems();
             if (locked) { ts.disable(); }
         }
 
         formTypeChanged('Attribute');
+        /* The type changed silently: no change event reaches the value strip */
+        if (refreshValueFoot) { refreshValueFoot(); }
     }
 
     /* TomSelect: Category */
@@ -5774,6 +5946,11 @@ function initAttributeForm(currentDist, isEdit) {
         if (!el || el.tomselect) { return; }
         new TomSelect(el, {
             create: false,
+            render: {
+                item: function (data, escape) {
+                    return '<div><span class="om-category">' + escape(data.text) + '</span></div>';
+                }
+            },
             onChange: function (val) {
                 applyTypeFilter(val);
                 if (val === 'Internal reference') {
@@ -5795,6 +5972,11 @@ function initAttributeForm(currentDist, isEdit) {
         if (!el || el.tomselect) { return; }
         new TomSelect(el, {
             create: false,
+            render: {
+                item: function (data, escape) {
+                    return '<div><span class="om-type">' + escape(data.text) + '</span></div>';
+                }
+            },
             onChange: function () {
                 formTypeChanged('Attribute');
                 checkNoticeList('attribute');
@@ -5817,28 +5999,29 @@ function initAttributeForm(currentDist, isEdit) {
         var lastValid = true;   // best-effort submit guard
         var seq = 0;            // ignore out-of-order responses
 
+        /* The box around the value, as Forms/input_field draws it */
+        var box = valueEl.closest('.ov-form-field') || valueEl;
+
         function showError(message) {
             lastValid = false;
-            valueEl.style.borderColor = 'var(--misp-tone-red-solid, #dc3545)';
+            box.classList.add('is-invalid-field');
             var msg = document.getElementById(errorId);
             if (!msg) {
                 msg = document.createElement('div');
-                msg.id        = errorId;
-                msg.className  = 'text-danger d-flex align-items-start gap-1 mt-1';
-                msg.style.fontSize = '.75rem';
+                msg.id = errorId;
+                msg.className = 'ov-field-error';
                 var icon = document.createElement('i');
                 icon.className = 'fas fa-circle-exclamation';
-                icon.style.marginTop = '.15rem';
                 msg.appendChild(icon);
                 msg.appendChild(document.createElement('span'));
-                valueEl.parentNode.appendChild(msg);
+                box.insertAdjacentElement('afterend', msg);
             }
             msg.querySelector('span').textContent = message;
         }
 
         function clearError() {
             lastValid = true;
-            valueEl.style.borderColor = 'var(--misp-field-line, #d8dde3)';
+            box.classList.remove('is-invalid-field');
             var msg = document.getElementById(errorId);
             if (msg) { msg.remove(); }
         }
@@ -5897,11 +6080,55 @@ function initAttributeForm(currentDist, isEdit) {
         }
     }
 
+    /* The strip under the value: the type it is checked against, and how
+     * much it holds — characters, or values when Batch import splits it. */
+    var refreshValueFoot = null;
+    function setupValueFoot() {
+        var valueEl = document.getElementById('AttributeValue');
+        var box = valueEl && valueEl.closest('.ov-form-field');
+        var labelsEl = box && box.querySelector('[data-value-labels]');
+        if (!labelsEl) { return; }
+        var labels = readJsonPayload(labelsEl) || {};
+        var checkEl = box.querySelector('[data-value-check]');
+        var countEl = box.querySelector('[data-value-count]');
+        var typeEl = document.getElementById('AttributeType');
+        var batchEl = document.getElementById('AttributeBatchImport');
+
+        function update() {
+            var type = typeEl ? typeEl.value : '';
+            checkEl.textContent = '';
+            if (type) {
+                var chip = document.createElement('span');
+                chip.className = 'om-type ms-1';
+                chip.textContent = type;
+                checkEl.append(labels.checked || '', chip);
+            } else {
+                checkEl.textContent = labels.pick || '';
+            }
+            var raw = valueEl.value;
+            if (batchEl && batchEl.checked) {
+                var n = raw.split(/\r?\n/).filter(function (l) { return l.trim() !== ''; }).length;
+                countEl.textContent = n === 0 ? (labels.batch || '')
+                    : n === 1 ? labels.value : (labels.values || '').replace('%s', n);
+            } else {
+                var c = raw.trim().length;
+                countEl.textContent = c === 0 ? (batchEl ? (labels.batch || '') : '')
+                    : c === 1 ? labels.char : (labels.chars || '').replace('%s', c);
+            }
+        }
+        valueEl.addEventListener('input', update);
+        if (typeEl) { typeEl.addEventListener('change', update); }
+        if (batchEl) { batchEl.addEventListener('change', update); }
+        refreshValueFoot = update;
+        update();
+    }
+
     initCategorySelect();
     initTypeSelect();
     initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
     setupCardListeners();
     setupValueValidation();
+    setupValueFoot();
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
 
     toggleSg(currentDist);
@@ -6191,6 +6418,8 @@ function initFlashToasts() {
  * then inserts it, the DOM copy is dropped rather than listed twice.
  */
 const DEBUG_BLOCK_SELECTOR = '.cake-error, .cake-debug-output';
+const DEBUG_BLOCK_TAGS = new Set(['A', 'B', 'BR', 'CODE', 'DIV', 'EM', 'I', 'LI', 'OL', 'P', 'PRE', 'SMALL', 'SPAN', 'STRONG', 'UL']);
+const DEBUG_BLOCK_TOGGLE = /(?:getElementById\(|traceToggle\(event,\s*)'([^']+)'/;
 
 const debugStrip = {
     root: null,
@@ -6207,7 +6436,44 @@ const debugStrip = {
         this.entries = document.getElementById('debugEntries');
         const clear = document.getElementById('debugClear');
         if (clear) clear.addEventListener('click', () => this.clear());
+        this.entries.addEventListener('click', e => this.toggle(e));
         return true;
+    },
+
+    /**
+     * A copy of a block that came from a response or a string, rebuilt from its
+     * tags and text: a stored value shaped like debug output must not become
+     * live markup. Cake's Trace/Code/Context links work through toggle().
+     */
+    inert(node) {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.data);
+        if (node.nodeType !== Node.ELEMENT_NODE) return document.createTextNode('');
+        if (!DEBUG_BLOCK_TAGS.has(node.tagName)) return document.createTextNode(node.textContent);
+        const el = document.createElement(node.tagName.toLowerCase());
+        node.classList.forEach(name => {
+            if (/^(cake-[\w-]+|code-highlight)$/.test(name)) el.classList.add(name);
+        });
+        ['display', 'color'].forEach(prop => {
+            if (node.style[prop]) el.style[prop] = node.style[prop];
+        });
+        if (node.id) el.dataset.ovDebugId = node.id;
+        const target = DEBUG_BLOCK_TOGGLE.exec(node.getAttribute('onclick') || '');
+        if (node.tagName === 'A' && target) {
+            el.href = '#';
+            el.dataset.ovDebugToggle = target[1];
+        }
+        node.childNodes.forEach(child => el.appendChild(this.inert(child)));
+        return el;
+    },
+
+    toggle(e) {
+        const link = e.target.closest('[data-ov-debug-toggle]');
+        if (!link) return;
+        e.preventDefault();
+        const entry = link.closest('.ov-debug-entry');
+        const target = entry && Array.from(entry.querySelectorAll('[data-ov-debug-id]'))
+            .find(el => el.dataset.ovDebugId === link.dataset.ovDebugToggle);
+        if (target) target.style.display = target.style.display === 'none' ? '' : 'none';
     },
 
     clear() {
@@ -6258,7 +6524,7 @@ const debugStrip = {
     adoptParsed(block, origin) {
         const sig = this.signature(block);
         this.pending.set(sig, (this.pending.get(sig) || 0) + 1);
-        this.add(document.importNode(block, true), origin);
+        this.add(this.inert(block), origin);
     },
 
     originOf(node) {
@@ -6356,9 +6622,9 @@ const debugStrip = {
             const blocks = this.blocksIn(tpl.content);
             const salvaged = node.nodeType === Node.ATTRIBUTE_NODE ? this.salvageAfter(owner) : null;
             if (salvaged) {
-                this.add(salvaged, origin, null, 'leaked inside ' + where);
+                this.add(this.inert(salvaged), origin, null, 'leaked inside ' + where);
             } else if (blocks.length) {
-                blocks.forEach(b => this.add(b, origin, null, 'leaked inside ' + where));
+                blocks.forEach(b => this.add(this.inert(b), origin, null, 'leaked inside ' + where));
             } else {
                 const pre = document.createElement('pre');
                 pre.className = 'mb-0';
@@ -6437,7 +6703,7 @@ const debugStrip = {
                 const details = document.createElement('details');
                 const summary = document.createElement('summary');
                 summary.textContent = 'Stack trace';
-                details.append(summary, document.importNode(trace, true));
+                details.append(summary, this.inert(trace));
                 box.appendChild(details);
             }
         } else {
@@ -8688,16 +8954,12 @@ function initObjectAddForm(container, payloadEl) {
             + '<i class="' + distCfg.icon + '"></i></span>'
             + '<span class="ov-obj-title">'
             + '<span class="ov-obj-name">'
+            + reviewPiece('family')
             + '<span class="text-truncate">' + escapeHtml(data.template.name) + '</span>'
-            + '<span class="ov-obj-meta">' + escapeHtml(data.template.meta)
-            + '<span class="ov-obj-meta-version">v' + escapeHtml(data.template.version)
-            + '</span></span>'
-            + '</span></span>'
-            + '<span class="ov-obj-aside">'
             + '<span class="ov-obj-count">'
             + '<span class="misp-icon misp-icon-attribute misp-simple"></span> '
             + rows.length + '</span>'
-            + '</span>'
+            + '</span></span>'
             + '</div>';
 
         /* The columns of the object index's attribute table (Objects/object_attribute_table). */

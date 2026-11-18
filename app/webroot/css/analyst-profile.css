@@ -3924,15 +3924,6 @@ details.wb-guide[open] > .wb-guide-h { margin-bottom: .25rem; }
     --bs-btn-font-size: .75rem;
     white-space: nowrap;
 }
-/* A link to the settings page is a quieter action than a switch, not a
- * disabled one. */
-.btn.ap-fix.btn-outline-secondary {
-    --bs-btn-color: var(--bs-body-color);
-    --bs-btn-border-color: var(--bs-border-color);
-    --bs-btn-hover-color: var(--bs-body-color);
-    --bs-btn-hover-bg: var(--bs-tertiary-bg);
-    --bs-btn-hover-border-color: var(--bs-secondary-color);
-}
 .ap-card-of b { font-weight: 600; color: var(--bs-body-color); }
 
 /* ---- the reader's card: a reason per line ---- */

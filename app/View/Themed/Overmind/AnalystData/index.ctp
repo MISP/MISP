@@ -7,88 +7,78 @@ $canEdit = function ($row) use ($m) {
 };
 
 // ---- Fields --------------------------------------------------------------
-$fields = [];
+$col = [];
 
-
-$fields[] = [
+$col['checkbox'] = [
     'element' => 'checkbox',
     'data_path' => $m . '.id',
     'card_section' => 'selector',
 ];
-
-$fields[] = [
+$col['id'] = [
     'name' => __('ID'),
     'sort' => $m . '.id',
     'data_path' => $m . '.id',
     'element' => 'id',
     'url' => $viewUrl,
-    'card_section' => 'top',
-    'display_in' => ['table', 'card'],
+    'display_in' => ['table'],
 ];
-
-$fields[] = [
-    'name' => __('UUID'),
-    'data_path' => $m . '.uuid',
-    'element' => 'uuid',
-    'url' => $viewUrl,
-    'card_section' => 'top',
-    'display_in' => ['card'],
-];
-
-
-$fields[] = [
+$col['distribution'] = [
     'name' => __('Distribution'),
     'sort' => $m . '.distribution',
     'data_path' => $m . '.distribution',
     'element' => 'distribution',
-    'card_section' => 'top',
-    'display_in' => ['table', 'card'],
+    'display_in' => ['table'],
 ];
-
-
-$fields[] = [
+$col['target'] = [
     'name' => __('Target'),
     'element' => 'analyst_object_ref',
     'type_path' => $m . '.object_type',
     'uuid_path' => $m . '.object_uuid',
     'sha256_path' => $m . '.object_sha256',
-    'card_section' => 'title',
-    'display_in' => ['table', 'card'],
+    'display_in' => ['table'],
+];
+$col['orgc'] = [
+    'name' => __('Creator org'),
+    'sort' => $m . '.orgc_uuid',
+    'data_path' => $m . '.Orgc',
+    'element' => 'organisation',
+    'org_title' => __('Created by %s'),
+    'fit' => true,
+    'display_in' => ['table'],
 ];
 
-// 4+. Type-specific columns
 if ($m === 'Note') {
-    $fields[] = [
+    $col['note'] = [
         'name' => __('Note'),
         'sort' => $m . '.note',
         'data_path' => $m . '.note',
-        'class' => 'idx-col-wrap',
-        'card_section' => 'attribute',
-        'display_in' => ['table', 'card'],
+        'element' => 'analyst_text',
+        'display_in' => ['table'],
     ];
-    $fields[] = [
+    $col['language'] = [
         'name' => __('Language'),
         'sort' => $m . '.language',
         'data_path' => $m . '.language',
         'element' => 'analyst_language',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card'],
+        'display_in' => ['table'],
     ];
+    $order = ['checkbox', 'id', 'note', 'target', 'language', 'orgc', 'distribution'];
 } else if ($m === 'Opinion') {
-    $fields[] = [
+    $col['opinion'] = [
         'name' => __('Opinion'),
         'sort' => $m . '.opinion',
-        'element' => 'analyst_opinion',
-        'model' => $m,
-        'card_section' => 'attribute',
-        'display_in' => ['table', 'card'],
+        'data_path' => $m . '.comment',
+        'opinion_path' => $m . '.opinion',
+        'element' => 'analyst_text',
+        'display_in' => ['table'],
     ];
+    $order = ['checkbox', 'id', 'opinion', 'target', 'orgc', 'distribution'];
 } else if ($m === 'Workspace') {
     echo $this->element('genericElements/assetLoader', [
         'js' => ['intel-graph-thumb', 'intel-graph-thumbs'],
         'css' => ['intel-graph-thumbs'],
     ]);
-    $fields[] = [
+    $col['name'] = [
         'name' => __('Name'),
         'sort' => $m . '.name',
         'element' => 'custom',
@@ -103,10 +93,15 @@ if ($m === 'Note') {
             );
         },
         'class' => 'idx-col-wrap',
-        'card_section' => 'attribute',
-        'display_in' => ['table', 'card'],
+        'display_in' => ['table'],
     ];
-    $fields[] = [
+    $col['nodes'] = [
+        'name' => __('Nodes'),
+        'data_path' => $m . '.node_count',
+        'element' => 'count',
+        'display_in' => ['table'],
+    ];
+    $col['forked'] = [
         'name' => __('Forked from'),
         'element' => 'custom',
         'function' => function ($row) use ($baseurl) {
@@ -124,63 +119,33 @@ if ($m === 'Note') {
                 h($parent['name'])
             );
         },
-        'card_section' => 'attribute',
-        'display_in' => ['table', 'card'],
+        'display_in' => ['table'],
     ];
-    $fields[] = [
-        'name' => __('Nodes'),
-        'data_path' => $m . '.node_count',
-        'element' => 'count',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card'],
-    ];
-} else if ($m === 'Relationship') {
-    $fields[] = [
+    $order = ['checkbox', 'id', 'name', 'target', 'nodes', 'orgc', 'distribution', 'forked'];
+} else {
+    $col['relationship_type'] = [
         'name' => __('Relationship type'),
         'sort' => $m . '.relationship_type',
         'data_path' => $m . '.relationship_type',
-        'card_section' => 'links',
-        'display_in' => ['table', 'card'],
+        'display_in' => ['table'],
     ];
-    $fields[] = [
+    $col['related'] = [
         'name' => __('Related object'),
         'element' => 'analyst_object_ref',
         'type_path' => $m . '.related_object_type',
         'uuid_path' => $m . '.related_object_uuid',
         'sha256_path' => $m . '.related_object_sha256',
-        'card_section' => 'attribute',
-        'display_in' => ['table', 'card'],
+        'display_in' => ['table'],
     ];
+    $order = ['checkbox', 'id', 'target', 'relationship_type', 'related', 'orgc', 'distribution'];
 }
 
-
-$fields[] = [
-    'name' => __('Created'),
-    'sort' => $m . '.created',
-    'data_path' => $m . '.created',
-    'element' => 'datetime',
-    'card_section' => 'meta',
-    'display_in' => ['card'],
-];
-$fields[] = [
-    'name' => __('Modified'),
-    'sort' => $m . '.modified',
-    'data_path' => $m . '.modified',
-    'element' => 'datetime',
-    'card_section' => 'meta',
-    'display_in' => ['card'],
-];
-
-
-$fields[] = [
-    'name' => __('Creator org'),
-    'sort' => $m . '.orgc_uuid',
-    'data_path' => $m . '.Orgc',
-    'element' => 'organisation',
-    'card_section' => 'meta',
-    'display_in' => ['table', 'card'],
-];
-
+// The table's columns in $order. The cards (AnalystData/index_card) draw
+// the record themselves and take only the selection box and the menu.
+$fields = [];
+foreach ($order as $key) {
+    $fields[] = $col[$key];
+}
 
 $fields[] = [
     'name' => __('Actions'),
@@ -223,11 +188,20 @@ $fields[] = [
 ?>
 
 <?php
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['events-index-cards', 'analyst-data-index'],
+    'js' => ['events-index-cards'],
+]);
+echo $this->OrgGrade->config($orgGrading ?? null);
+// The events index's cards and grid (events-index-cards.css) hang off .dk-index
+echo '<div class="dk-index adk-index">';
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
             'primary_id_path' => $m . '.id',
+            'cards_per_row' => 1,
+            'card_element' => 'AnalystData/index_card',
             'row_dblclick_url' => $viewUrl,
             'filter_bar' => [
                 'children' => [
@@ -256,4 +230,5 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     ],
     'item_url' => '/analystData',
 ]);
+echo '</div>';
 ?>

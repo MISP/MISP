@@ -62,7 +62,14 @@ $kinds = array(
         ?>
         <div class="vp-reporter">
             <span class="vp-reporter-name" title="<?= h($bar['org']) ?>">
-                <?= h($bar['org']) ?>
+                <?php if (array_key_exists('org_id', $bar)): ?>
+                    <?= $this->element('Values/View/value_org_link', array(
+                        'org' => array('id' => $bar['org_id'], 'name' => $bar['org']),
+                        'small' => true,
+                    )) ?>
+                <?php else: ?>
+                    <?= h($bar['org']) ?>
+                <?php endif; ?>
             </span>
             <span class="vp-reporter-track">
                 <span class="vp-reporter-fill"

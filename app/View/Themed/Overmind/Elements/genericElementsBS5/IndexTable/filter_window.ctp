@@ -4,9 +4,11 @@
  * (index-filters.js): the bar's toggles, then its pickers in sections.
  *
  * A child's `group` names its section; children without one share a section.
+ * A section draws its `list` children first, packed in columns, then the
+ * rest as a grid of buttons.
  *
  * @var string $id
- * @var array $items picker, time, value and value_match children, in bar order
+ * @var array $items picker, list, time, value and value_match children, in bar order
  * @var array $toggles button children
  * @var IndexFilterState $state
  * @var callable $keysOf child => the unprefixed URL keys it sets
@@ -44,10 +46,23 @@ $section = 0;
             if ($group === '') {
                 $group = count($sections) === 1 ? __('Filters') : __('Other filters');
             }
+            $lists = array_filter($children, function ($child) { return $child['type'] === 'list'; });
+            $children = array_filter($children, function ($child) { return $child['type'] !== 'list'; });
             ?>
             <section class="ifp-sec">
                 <div class="ifp-sec-label" data-ifp-swap="sec-<?= $section++ ?>"><?= h($group) ?><?php
                     if ($set): ?><span class="badge rounded-pill bg-primary"><?= $set ?></span><?php endif; ?></div>
+                <?php if ($lists): ?>
+                    <div class="ifp-lists">
+                        <?php foreach ($lists as $child): ?>
+                            <?= $this->element('genericElementsBS5/IndexTable/filter_list', [
+                                'child' => $child,
+                                'state' => $state,
+                            ]) ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($children): ?>
                 <div class="ifp-grid">
                     <?php foreach ($children as $child): ?>
                         <?php if ($child['type'] === 'picker'): ?>
@@ -76,6 +91,7 @@ $section = 0;
                         <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
             </section>
         <?php endforeach; ?>
     </div>

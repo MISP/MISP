@@ -27,6 +27,7 @@ class TagChipHelper extends AppHelper
      *   prefix             callable(tag row): string, HTML ahead of the chip
      *   suffix             callable(tag row): string, HTML after the chip
      *   unitClass          callable(tag row): string, extra class on the chip's unit
+     *   note               callable(tag row): string, a line added to the chip's title
      *   canModifyAll       may remove any tag
      *   canModifyLocal     may remove local tags
      *   display            'full' (default), 'leaf' or 'swatch'
@@ -509,6 +510,12 @@ class TagChipHelper extends AppHelper
         }
 
         $title = $this->titleOf($row);
+        if (isset($options['note']) && is_callable($options['note'])) {
+            $note = trim((string)$options['note']($row['source'] ?? $tag));
+            if ($note !== '') {
+                $title .= "\n\n" . $note;
+            }
+        }
         $attrs = sprintf(
             'class="%s" style="--hg-h:%d;--hg-s:%s%s" title="%s"',
             implode(' ', $classes),

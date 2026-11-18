@@ -2,6 +2,11 @@ from yaratemplate import YaraRuleTemplate, YaraTemplateException
 import uuid
 
 
+def _comment_safe(text):
+    # '* /' keeps the text readable while it can no longer close the comment
+    return text.replace('*/', '* /')
+
+
 # =========================== CORE EXPORTERS ===================================
 def mispevent2yara(event, options={}):
     default_opts = {
@@ -46,11 +51,10 @@ def mispattrs2yara(attrs_array, options={}):
                 yara_rules = MISPRuleTemplate.from_yara_attr(attr)
                 asis_valid_rules += yara_rules
             except YaraTemplateException as e:
-                comment = '/*            MISP EXPORT COMMENT\n'
-                comment += '    MISP_UUID: {}\n'.format(attr['uuid'])
-                comment += '    {}\n'.format(str(e))
-                comment += '*/\n'
-                commented_attr = '{}{}'.format(comment, attr['value'])
+                body = 'MISP_UUID: {}\n{}\n{}'.format(
+                    attr['uuid'], str(e), attr['value'])
+                commented_attr = '/*            MISP EXPORT COMMENT\n' \
+                    + _comment_safe(body) + '\n*/\n'
                 asis_broken_rules.append(commented_attr)
         else:
             current_rule.add_attribute(attr, opts)

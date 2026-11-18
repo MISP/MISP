@@ -1658,8 +1658,17 @@ function openPopover(clicked, data, hover, placement, callback) {
             container: 'body',
             template: '<div class="popover" role="tooltip" data-dismissId="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
         };
-        $clicked.popover(popoverOptions)
-        .on('shown.bs.popover', function() {
+        $clicked.popover(popoverOptions);
+        // html: true is for the content; Bootstrap would render the title as HTML too
+        var bootstrapPopover = $clicked.data('popover');
+        if (bootstrapPopover) {
+            var bootstrapTitle = bootstrapPopover.getTitle;
+            bootstrapPopover.getTitle = function () {
+                var title = bootstrapTitle.call(this);
+                return typeof title === 'string' ? escapeHtml(title) : title;
+            };
+        }
+        $clicked.on('shown.bs.popover', function() {
             var $this = $(this); // should be the same as $clicked
             var $popover = $this.data("popover").tip(); // should be the content of popover
             var title = $this.attr('title');
@@ -1674,6 +1683,8 @@ function openPopover(clicked, data, hover, placement, callback) {
                 // adjust popover position (title was empty)
                 var top = $popover.offset().top;
                 $popover.css('top', (top-17) + 'px');
+            } else if (typeof title === 'string') {
+                title = escapeHtml(title);
             }
             var popoverTitle = $popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
@@ -4223,6 +4234,16 @@ function malwareCheckboxSetter(context) {
 
 function feedFormUpdate() {
     $('.optionalField').hide();
+    var gathering = $('#FeedInputSource').val() === 'misp-modules';
+    if (gathering) {
+        $('#FeedSourceFormat').val('misp');
+        $('#FeedCachingEnabled').prop('checked', false);
+    }
+    $('#FeedSourceFormat, #FeedCachingEnabled').prop('disabled', gathering);
+    $('#FeedUrl').prop('required', !gathering).closest('.input').toggle(!gathering);
+    if (gathering) {
+        $('#GatheringModuleDiv, #GatheringParametersDiv').show();
+    }
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
@@ -4249,7 +4270,9 @@ function feedFormUpdate() {
             $('#settingsCommonExcluderegexDiv').show();
             break;
     }
-    if ($('#FeedInputSource').val() == 'local') {
+    if (gathering) {
+        $('#DeleteLocalFileDiv, #HeadersDiv').hide();
+    } else if ($('#FeedInputSource').val() == 'local') {
         $('#DeleteLocalFileDiv').show();
         $('#HeadersDiv').hide();
     } else {
@@ -5061,8 +5084,10 @@ function insertRawRestResponse() {
 }
 
 function insertHTMLRestResponse() {
-    $('#rest-response-container').append('<div id="html-response-container" style="border: 1px solid blue; padding:5px;" />');
-    $('#html-response-container').html($('#rest-response-hidden-container').text());
+    // The response can be any server's: the empty sandbox keeps its scripts off this page
+    var $frame = $('<iframe id="html-response-container" sandbox="" style="border: 1px solid blue; padding:5px; width:100%; height:60vh; resize:vertical;" />');
+    $frame.attr('srcdoc', $('#rest-response-hidden-container').text());
+    $('#rest-response-container').append($frame);
 }
 
 function insertJSONRestResponse() {
@@ -5831,7 +5856,7 @@ function parseGpxToLayers(xmlString, map) {
         var nameEl = wpts[i].querySelector('name');
         var marker = L.marker(ll).addTo(map);
         if (nameEl && nameEl.textContent) {
-            marker.bindPopup(nameEl.textContent);
+            marker.bindPopup(escapeHtml(nameEl.textContent));
         }
         bounds.extend(ll);
         hasData = true;
@@ -6015,9 +6040,9 @@ $(document).on("click", ".geojson-map-icon", function() {
                             for (var key in feature.properties) {
                                 if (feature.properties[key] !== null) {
                                     props.push(
-                                        '<strong>' + key +
+                                        '<strong>' + escapeHtml(key) +
                                         '</strong>: ' +
-                                        feature.properties[key]
+                                        escapeHtml(String(feature.properties[key]))
                                     );
                                 }
                             }

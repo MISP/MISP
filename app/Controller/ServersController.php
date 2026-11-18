@@ -22,10 +22,10 @@ class ServersController extends AppController
                 'fields' => array('User.id', 'User.org_id', 'User.email'),
             ),
             'Organisation' => array(
-                'fields' => array('Organisation.name', 'Organisation.id'),
+                'fields' => array('Organisation.name', 'Organisation.id', 'Organisation.uuid'),
             ),
             'RemoteOrg' => array(
-                'fields' => array('RemoteOrg.name', 'RemoteOrg.id'),
+                'fields' => array('RemoteOrg.name', 'RemoteOrg.id', 'RemoteOrg.uuid'),
             ),
         ),
         'maxLimit' => 9999,
@@ -213,7 +213,7 @@ class ServersController extends AppController
         $this->set('shortDist', $shortDist);
         $this->set('id', $id);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
         $this->set('server', $server);
     }
@@ -1608,7 +1608,7 @@ class ServersController extends AppController
 
             $redisInfo = $this->Server->redisInfo();
 
-            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
+            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Gathering', 'Cortex', 'AI');
             foreach ($moduleTypes as $type) {
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
@@ -1954,7 +1954,7 @@ class ServersController extends AppController
                     'advanced_attachments' => $advancedAttachments,
                 ));
             case 'modules':
-                $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
+                $moduleTypes = array('Enrichment', 'Import', 'Export', 'Gathering', 'Cortex', 'AI');
                 $moduleStatus = array();
                 foreach ($moduleTypes as $type) {
                     $moduleStatus[$type] = $this->Server->moduleDiagnostics($errors, $type);

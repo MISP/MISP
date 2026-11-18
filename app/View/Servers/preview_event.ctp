@@ -9,7 +9,7 @@ $tableData = [
 if (Configure::read('MISP.tagging')) {
     ob_start();
     if (!empty($event['Tag'])): foreach ($event['Tag'] as $tag):
-        $colour = preg_match('/^#[0-9a-f]{6}$/i', $tag['colour'] ?? '') ? $tag['colour'] : '#ffffff'; ?>
+        $colour = $this->TextColour->validColour($tag['colour'] ?? ''); ?>
     <span style="padding-right:0;">
         <span role="button" tabindex="0" aria-label="<?= __('Filter the remote instance by tag: %s', h($tag['name']));?>" title="<?= __('Filter the remote instance on the tag: %s', h($tag['name'])); ?>" onclick="document.location.href='<?= $baseurl . "/servers/previewIndex/" . h($server['Server']['id']); ?>/searchtag:<?= (int)$tag['id']; ?>';" class="tagFirstHalf" style="background-color:<?= $colour ?>;color:<?= $this->TextColour->getTextColour($colour);?>"><?= h($tag['name']); ?></span>
     </span>

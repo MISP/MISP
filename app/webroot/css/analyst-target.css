@@ -1,0 +1,137 @@
+/* What a note, an opinion or a relationship points at (AnalystData/target_ref):
+   the kind's tile, or the event's id and peek, before the target drawn by its
+   kind, over a line of context. --adt-c is the kind's colour. */
+.adt {
+    display: flex;
+    align-items: flex-start;
+    gap: .55rem;
+    min-width: 0;
+    max-width: 30rem;
+}
+.adt-kind {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 20px;
+    margin-top: 1px;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--adt-c) 13%, transparent);
+    color: var(--adt-c);
+}
+.adt-kind .misp-icon { width: 12px; height: 12px; }
+.adt-kind .fas { font-size: .66rem; }
+.adt-kind.is-missing {
+    border: 1px dashed var(--bs-border-color);
+    background: transparent;
+    color: var(--bs-tertiary-color);
+}
+.adt > .ev-ref,
+.adt-logo {
+    flex: none;
+    margin-top: 1px;
+}
+.adt-logo { display: inline-flex; }
+
+.adt-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+}
+.adt-main {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    min-width: 0;
+    line-height: 22px;
+}
+.adt-label {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+    text-decoration: none;
+}
+.adt-label:hover,
+.adt-label:focus-visible {
+    color: var(--adt-c);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--adt-c) 45%, transparent);
+    text-underline-offset: 2px;
+}
+.adt-mono {
+    font-family: var(--bs-font-monospace);
+    font-size: .82rem;
+    font-weight: 500;
+}
+.adt-clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    line-height: 1.35;
+    font-weight: 500;
+}
+/* An object: the objects index's "Network / url" and count, at the row's size. */
+.adt-main > .ov-obj-name { font-size: inherit; }
+
+.adt-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .1rem .75rem;
+    min-width: 0;
+    font-size: .75rem;
+    line-height: 20px;
+    color: var(--bs-secondary-color);
+}
+.adt-piece { white-space: nowrap; }
+.adt-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.adt-sub > .ov-obj-first { max-width: 100%; }
+/* The event an attribute, object or report sits in: its title gives way
+   first, then the whole goes to a line of its own. */
+.adt-in {
+    flex: 1 1 12rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    min-width: 0;
+    max-width: 100%;
+}
+.adt-in > .adt-in-word,
+.adt-in > .ev-ref {
+    flex: none;
+}
+.adt-in-info {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.adt-main > .adr-stance { flex: none; }
+
+/* Not on this instance, or not visible: its kind and address, no link. */
+.adt-missing-kind {
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+}
+.adt-missing-note {
+    font-size: .75rem;
+    font-style: italic;
+    color: var(--bs-tertiary-color);
+}
+.adt-address {
+    font-family: var(--bs-font-monospace);
+    font-size: .72rem;
+    word-break: break-all;
+    color: var(--bs-tertiary-color);
+}

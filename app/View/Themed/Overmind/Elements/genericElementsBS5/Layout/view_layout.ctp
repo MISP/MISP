@@ -165,6 +165,8 @@ $renderColumn = function ($cards, $containerClass) use (
  *                          ['ajax' => url] for a lazy fragment, or
  *                          ['row' => [path, path]] for cards side by side
  *                          (stacked below xl, stretched to one height)
+ *     top          array   cards in `left`'s shape, across both columns,
+ *                          above them
  *   $ownership  array  for a record with a creator org and a distribution:
  *                      Cards/ownership_card's parameters; the card opens the
  *                      first tab's left column
@@ -291,6 +293,9 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
                         $this->set('headerTitle', $tab['heading']);
                     }
                 ?>
+                <?php if (!empty($tab['top'])): ?>
+                    <?php $renderColumn($tab['top'], 'ajax-tab-content'); ?>
+                <?php endif; ?>
                 <div class="row">
                     <!-- LEFT COLUMN -->
                     <div class="<?= !empty($tab['right']) ? 'col-lg-9' : 'col-12' ?>">

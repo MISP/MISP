@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('DecompressTool', 'Tools');
 
 /**
  * @property Organisation $Organisation
@@ -9,6 +10,7 @@ class AccessLog extends AppModel
 {
     const BROTLI_HEADER = "\xce\xb2\xcf\x81";
     const COMPRESS_MIN_LENGTH = 256;
+    const DISPLAY_DECOMPRESS_LIMIT = 10485760;
 
     const REQUEST_TYPES = [
         0 => 'Unknown',
@@ -195,7 +197,6 @@ class AccessLog extends AppModel
     private function requestBody(CakeRequest $request)
     {
         $requestContentType = $_SERVER['CONTENT_TYPE'] ?? null;
-        $requestEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
 
         if (str_starts_with($requestContentType, 'multipart/form-data')) {
            $input = http_build_query($request->data, '', '&');
@@ -203,7 +204,8 @@ class AccessLog extends AppModel
             $input = $request->input();
         }
 
-        return "$requestContentType\n$requestEncoding\n$input";
+        // The body is already decoded, so the encoding part stays empty.
+        return "$requestContentType\n\n$input";
     }
 
     /**
@@ -293,13 +295,13 @@ class AccessLog extends AppModel
 
         list($contentType, $encoding, $data) = explode("\n", $request, 3);
 
-        if ($encoding === 'gzip') {
-            $data = gzdecode($data);
-        } elseif ($encoding === 'br') {
-            if (function_exists('brotli_uncompress')) {
-                $data = brotli_uncompress($data);
-            } else {
-                $data = false;
+        // Rows written earlier may carry a gzip or br label over a body that
+        // was stored already decoded: only real gzip data is decoded, bounded.
+        if ($encoding === 'gzip' && str_starts_with($data, "\x1f\x8b")) {
+            try {
+                $data = DecompressTool::decode('gzip', $data, self::DISPLAY_DECOMPRESS_LIMIT);
+            } catch (Exception $e) {
+                $data = '[compressed request body not displayed]';
             }
         }
 

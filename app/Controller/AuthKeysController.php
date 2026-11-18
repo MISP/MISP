@@ -166,7 +166,14 @@ class AuthKeysController extends AppController
         if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
+        // Back to the page the edit modal was opened from; a full-page edit
+        // posts from itself, so that one still lands on the index.
+        $returnUrl = $this->referer(['action' => 'index'], true);
+        if (preg_match('#^/auth_?keys/(edit|add)(/|$)#i', $returnUrl)) {
+            $returnUrl = ['action' => 'index'];
+        }
         $this->CRUD->edit($id, [
+            'redirect' => $returnUrl,
             'conditions' => $this->__prepareConditions(),
             'afterFind' => function (array $authKey) {
                 unset($authKey['AuthKey']['authkey']);
@@ -231,6 +238,13 @@ class AuthKeysController extends AppController
         if ($user_id === 'me' || $user_id === false) {
             $user_id = $this->Auth->user('id');
         }
+        // A JSON float passes an (int) check, yet Cake saves it rounded up.
+        if (!is_int($user_id) &&
+            !(is_string($user_id) && ctype_digit($user_id))
+        ) {
+            throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
+        }
+        $user_id = (int)$user_id;
         // For modal display in Overmind (the add form on GET, the
         // generated-key display on POST success, or the form+errors on failure).
         // Must be set BEFORE CRUD->add, which renders displayOnSuccess internally.

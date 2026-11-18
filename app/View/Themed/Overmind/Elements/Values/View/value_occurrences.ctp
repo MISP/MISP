@@ -17,7 +17,7 @@
  * scrolled past, in a card that scrolled internally to hold it. What
  * those rows were being read for — *who reports this, and when* — is
  * answered in one strip by `value_reporting` beneath, and the rest is
- * one *Open full table* away.
+ * one *View the full table* away, a link in the card's subtitle.
  *
  * Lazily loaded into `.ajax-tab-content` from
  * ValuesController::viewOccurrences.
@@ -57,117 +57,26 @@ $rowClass = function ($row) use ($typeSlug) {
     return implode(' ', $classes);
 };
 
-/*
- * Seven columns, not the full table's ten, and the three that went are
- * each a different kind of cut. `category` is the least discriminating
- * of them — MISP's category mostly follows from the type — and ten
- * columns overflow a col-lg-9 far enough to push the tags off the edge.
- * The **checkbox** went with the mass-action toolbar below it: a
- * selection column on a card with nothing to select *for* is a control
- * that does not act. And **last seen** is the one this phase took, for
- * a reason rather than for the 104px: the fact strip above the tabs
- * already prints this value's first and last seen, and *when* is now
- * the Reporting card's whole left half. A preview of eight rows is
- * answering *where*.
- *
- * The Occurrences tab carries the complete field set, sortable, with
- * every row present.
- */
-$fields = array(
-    array(
-        'name' => __('Event'),
-        /*
-         * `value_event_ref`, not `event`: one line rather than the
-         * badge's bordered two, which is most of what made eight rows
-         * fit where twenty-five used to sprawl. The element says why.
-         */
-        'element' => 'value_event_ref',
-        'data_path' => 'Event.id, Event.info',
-        'url' => $baseurl . '/events/view/%id%',
-    ),
-    array(
-        'name' => __('Reported by'),
-        'element' => 'organisation',
-        'data_path' => 'Event.Orgc',
-    ),
-    array(
-        'name' => __('Type'),
-        'element' => 'type',
-        'data_path' => 'Attribute.type',
-    ),
-    array(
-        'name' => __('IDS'),
-        'element' => 'ids',
-        'data_path' => 'Attribute.to_ids',
-        // This page reports the flag; the event that owns it sets it.
-        'readonly' => true,
-    ),
-    array(
-        'name' => __('Distribution'),
-        /*
-         * `value_distribution`, not `distribution`: the shared renderer
-         * draws the column it is pointed at, and `Attribute.distribution`
-         * is `Inherited` on almost every row — the card said that beside
-         * an Occurrences tab reading the level the attribute actually
-         * lands on. The element resolves the same conjunction the tab
-         * does, off the same stamp on the same row.
-         */
-        'element' => 'value_distribution',
-        // One line per row on this card: a level-4 row names its
-        // sharing group in the title rather than under the badge.
-        'sharing_group_line' => false,
-    ),
-    array(
-        'name' => __('Context'),
-        'element' => 'value_object_context',
-        'object_name_path' => 'Object.name',
-        'object_id_path' => 'Object.id',
-        'relation_path' => 'Attribute.object_relation',
-        'comment_path' => 'Attribute.comment',
-        'spelled_path' => 'spelled',
-    ),
-    array(
-        'name' => __('Tags'),
-        /*
-         * `value_tag_list`, not `tag_list`: the column showed the
-         * attribute's tags and nothing else, which on this instance is
-         * 7 of `8.8.8.8`'s 55 labels — an analyst tags the report far
-         * more often than the indicator. The element marks which scope
-         * each chip came from and says why the two are not one list.
-         */
-        'element' => 'value_tag_list',
-        'data_path' => 'AttributeTag',
-        'event_data_path' => 'EventTag',
-        // One, not the tab's four — the element says what the tab's
-        // number cost this card.
-        'max_visible' => 1,
-        'plan' => $labelPlan,
-    ),
-);
+// The columns the Occurrences tab draws too.
+$fields = $this->ValueOccurrence->fields(array('plan' => $labelPlan));
 
-/*
- * Formatted, and pluralised, because this card is read beside the fact
- * strip: the strip says *48,255* where this said *48255*, and *1844
- * events* against the strip's *1,844*. The two numbers were already the
- * same number — `forOccurrences` takes both from the aggregate the
- * strip reads — and printing one of them differently is the kind of
- * difference a reader has to stop and rule out.
- */
-$subtitle = implode(' &nbsp;·&nbsp; ', array(
-    h(sprintf(
-        __('Showing %1$s of %2$s occurrences'),
-        number_format($stats['shown']),
-        number_format($stats['total'])
-    )),
-    h(sprintf(
-        __n('%s event', '%s events', $stats['events']),
-        number_format($stats['events'])
-    )),
-    h(sprintf(
-        __n('%s organisation', '%s organisations', $stats['orgs']),
-        number_format($stats['orgs'])
-    )),
-));
+// What the card shows; the total and the way to the rest only when it is cut short.
+$truncated = $stats['shown'] < $stats['total'];
+$subtitle = null;
+if (!empty($rows)) {
+    $subtitle = h($truncated
+        ? sprintf(__n('Showing the latest occurrence', 'Showing the latest %s occurrences',
+            $stats['shown']), number_format($stats['shown']))
+        : sprintf(__n('Showing the only occurrence', 'Showing all %s occurrences',
+            $stats['shown']), number_format($stats['shown'])));
+    if ($truncated) {
+        $subtitle .= ' &nbsp;·&nbsp; ' . h(sprintf(__('%s in total'), number_format($stats['total'])))
+            . ' &nbsp;·&nbsp; <a href="#tab-occurrences" class="vp-head-link"'
+            . ' title="' . h(__('The full, filterable occurrence table')) . '">'
+            . h(__('View the full table')) . ' <i class="fas fa-arrow-right"'
+            . ' aria-hidden="true"></i></a>';
+    }
+}
 
 ob_start();
 ?>
@@ -184,15 +93,6 @@ ob_start();
             </label>
         </div>
     <?php endif; ?>
-    <?php if (!empty($rows)): ?>
-        <a href="#tab-occurrences"
-           class="btn btn-sm btn-outline-secondary d-flex gap-1
-                  align-items-center"
-           title="<?= __('The full, filterable occurrence table') ?>">
-            <?= __('Open full table') ?>
-            <i class="fas fa-arrow-right"></i>
-        </a>
-    <?php endif; ?>
 <?php
 $headerExtra = ob_get_clean();
 ?>
@@ -204,7 +104,7 @@ $headerExtra = ob_get_clean();
         'panelIcon' => 'misp-icon misp-icon-attribute misp-simple',
         'panelColor' => 'var(--attribute)',
         'panelSub' => $subtitle,
-        'panelExtra' => $headerExtra,
+        'panelExtra' => trim($headerExtra) === '' ? null : $headerExtra,
     )) ?>
 
     <?php if (empty($rows)): ?>
@@ -284,6 +184,7 @@ $headerExtra = ob_get_clean();
                             'data' => $rows,
                             'fields' => $fields,
                             'primary_id_path' => 'Attribute.id',
+                            'table_class' => 'ai-table vp-occ-table',
                             'row_class_callable' => $rowClass,
                         ),
                     ),

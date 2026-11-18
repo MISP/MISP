@@ -1,6 +1,8 @@
 <?php
 App::uses('HttpSocketResponse', 'Network/Http');
 App::uses('HttpSocket', 'Network/Http');
+App::uses('DecompressTool', 'Tools');
+App::uses('DecompressLimitException', 'Tools');
 
 class HttpSocketHttpException extends Exception
 {
@@ -91,20 +93,14 @@ class HttpSocketResponseExtended extends HttpSocketResponse
         }
 
         $contentEncoding = $this->getHeader('Content-Encoding');
-        if ($contentEncoding === 'gzip' && function_exists('gzdecode')) {
-            $this->body = gzdecode($this->body);
-            if ($this->body === false) {
+        if ($contentEncoding === 'gzip' && in_array('gzip', DecompressTool::supportedEncodings(), true)) {
+            $limit = DecompressTool::limit();
+            try {
+                $this->body = DecompressTool::decode('gzip', $this->body, $limit);
+            } catch (DecompressLimitException $e) {
+                throw new SocketException("Response exceeds the maximum allowed size of $limit bytes once decompressed.");
+            } catch (InvalidArgumentException $e) {
                 throw new SocketException("Response should be gzip encoded, but gzip decoding failed.");
-            }
-        } else if ($contentEncoding === 'br' && function_exists('brotli_uncompress')) {
-            $this->body = brotli_uncompress($this->body);
-            if ($this->body === false) {
-                throw new SocketException("Response should be brotli encoded, but brotli decoding failed.");
-            }
-        } else if ($contentEncoding === 'zstd' && function_exists('zstd_uncompress')) {
-            $this->body = zstd_uncompress($this->body);
-            if ($this->body === false) {
-                throw new SocketException("Response should be zstd encoded, but zstd decoding failed.");
             }
         } else if ($contentEncoding) {
             throw new SocketException("Remote server returns unsupported content encoding '$contentEncoding'.");
@@ -214,19 +210,7 @@ class HttpSocketExtended extends HttpSocket
      */
     private function acceptedEncodings()
     {
-        $supportedEncoding = [];
-        // Enable brotli compressed responses if PHP has 'brotli_uncompress' method
-        if (function_exists('brotli_uncompress')) {
-            $supportedEncoding[] = 'br';
-        }
-        // Enable gzipped responses if PHP has 'gzdecode' method
-        if (function_exists('gzdecode')) {
-            $supportedEncoding[] = 'gzip';
-        }
-        // Enable zstd compressed responses if PHP has 'zstd_uncompress' method
-        if (function_exists('zstd_uncompress')) {
-            $supportedEncoding[] = 'zstd';
-        }
-        return $supportedEncoding;
+        // Only gzip: its decoding can be bounded, brotli and zstd's cannot
+        return DecompressTool::supportedEncodings();
     }
 }

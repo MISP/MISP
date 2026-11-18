@@ -715,6 +715,10 @@ class ServerSyncTool
     private function post($url, $data, $logMessage = null, $etag = null)
     {
         $protectedMode = !empty($data['Event']['protected']);
+        if ($protectedMode) {
+            // Signed along: a 3.0 receiver then refuses this body without its exact-byte signature
+            $data['Event']['signature_version'] = 2;
+        }
         $data = JsonTool::encode($data);
         if ($this->remoteBelow30()) {
             $data = SyncTool::withoutFourByteChars($data);
@@ -733,7 +737,7 @@ class ServerSyncTool
         $request = $this->request;
 
         if ($protectedMode) {
-            $request['header']['x-pgp-signature'] = $this->signEvent($data);
+            $request['header'] = array_merge($request['header'], $this->signEvent($data));
         }
 
         if ($etag) {
@@ -771,7 +775,7 @@ class ServerSyncTool
 
     /**
      * @param string $data Data to sign
-     * @return string base64 encoded signature
+     * @return array Signature headers for the remote's version, base64 encoded
      * @throws Exception
      */
     private function signEvent($data)
@@ -783,11 +787,11 @@ class ServerSyncTool
         if (!$this->cryptographicKey) {
             $this->cryptographicKey = ClassRegistry::init('CryptographicKey');
         }
-        $signature = $this->cryptographicKey->signWithInstanceKey($data);
-        if (empty($signature)) {
+        $headers = $this->cryptographicKey->signatureHeaders($data, $this->info()['version']);
+        if (empty($headers)) {
             throw new Exception(__("Invalid signing key. This should never happen."));
         }
-        return base64_encode($signature);
+        return $headers;
     }
 
     /**

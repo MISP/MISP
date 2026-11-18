@@ -131,7 +131,7 @@
 }
 
 .er-table > tbody > tr.er-deleted > td,
-.idx-card.er-deleted .er-tile {
+.er-deleted > .er-tile {
     opacity: .55;
 }
 
@@ -285,6 +285,22 @@
 }
 .er-tile-id {
     font-family: var(--bs-font-monospace);
+}
+
+/* Compact, in a list beside other content: tighter, two lines of text. */
+.er-tile.is-compact {
+    gap: .4rem;
+}
+.er-tile.is-compact .er-tile-head {
+    gap: .6rem;
+}
+.er-tile.is-compact .er-tile-head > .ov-obj-dist {
+    margin-top: 0;
+}
+.er-tile.is-compact .er-tile-excerpt {
+    -webkit-line-clamp: 2;
+    font-size: .8rem;
+    color: var(--bs-secondary-color);
 }
 
 /* The menu, at the attribute table's size and shown as its rows show it. */

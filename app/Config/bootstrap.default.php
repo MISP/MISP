@@ -104,6 +104,8 @@ if (!$relativePaths) {
 		} else {
 			Configure::write('MISP.baseurl', sprintf($protocol . '://%s:%d', $serverName, $_SERVER['SERVER_PORT']));
 		}
+		// Not in the persisted settings list: request-derived, so untrusted for links sent out by mail
+		Configure::write('BaseurlFromRequest', true);
 	}
 }
 

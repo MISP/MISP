@@ -21,11 +21,6 @@
     min-width: 0;
     overflow-wrap: anywhere;
 }
-/* Under the value's text, past the event icon. */
-.attr-value:has(> .attr-value-line > .ev-peek) > .om-comment {
-    padding-left: calc(22px + .5rem);
-}
-
 /* A comment (Badges/comment), every record's: muted, led by its glyph, one
    line that never widens what holds it, the title holding the rest. */
 .om-comment {
@@ -152,6 +147,66 @@
     outline-offset: 1px;
 }
 .sighting-cell > span.btn { cursor: default; }
+
+/* Feed and server hits (Fields/feedHits): the sightings' tinted pill, with
+   the feed's name and how many of its events carry the value. */
+.feed-hits {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+.feed-hit {
+    --fh-tone: var(--bs-info);
+    --fh-ink: color-mix(in srgb, var(--fh-tone) 60%, var(--bs-emphasis-color));
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 12rem;
+    height: 22px;
+    margin: 0;
+    padding: 0 9px 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--fh-tone) 12%, transparent);
+    font-family: inherit;
+    font-size: .74rem;
+    font-weight: 650;
+    line-height: 1;
+    color: var(--fh-ink);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color .12s, color .12s;
+}
+.feed-hit.is-server { --fh-tone: var(--bs-warning); }
+.feed-hit.feed-hit-more { --fh-tone: var(--bs-secondary-color); }
+.feed-hit > i {
+    flex: none;
+    font-size: .66rem;
+    color: var(--fh-tone);
+}
+.feed-hit-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.feed-hit > b {
+    flex: none;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    opacity: .7;
+}
+:is(a, button).feed-hit { cursor: pointer; }
+:is(a, button).feed-hit:hover,
+:is(a, button).feed-hit:focus-visible {
+    background: color-mix(in srgb, var(--fh-tone) 20%, transparent);
+    color: var(--fh-ink);
+}
+:is(a, button).feed-hit:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--fh-tone) 55%, transparent);
+    outline-offset: 1px;
+}
+span.feed-hit { cursor: default; }
 .sighting-cell > .sighting-details {
     justify-content: center;
     width: 22px;
@@ -170,6 +225,26 @@
     .om-analyst-none { opacity: .45; }
     :is(tr, .idx-card):hover .om-analyst-none,
     .om-analyst-none:focus-visible { opacity: 1; }
+}
+
+/* An event named by its id (Attributes/event_ref): the id as the indexes' ID
+   column, then the event peek. */
+.ev-ref {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    vertical-align: middle;
+}
+.ev-ref-id {
+    font-family: var(--bs-font-monospace);
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+}
+.ev-ref-id:hover {
+    color: var(--bs-body-color);
+    text-decoration: underline;
 }
 
 /* An attribute's event (Attributes/event_peek): an icon at the head of its value, and

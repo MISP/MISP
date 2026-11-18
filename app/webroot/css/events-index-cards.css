@@ -1,6 +1,8 @@
 /* Overmind events index — card view (Elements/Events/index_card.ctp). */
 
-.dk-index {
+/* The tokens also serve an event's peek (Events/peek). */
+.dk-index,
+.ev-peek-popover {
     --dk-card-h: 252px;
     --dk-gap: 12px;
     --dk-radius: 10px;
@@ -20,7 +22,7 @@
     --dk-gx-hair: #dacbfc;
     --dk-mk-clear: #c9ccd1;
 }
-[data-misp-mode="dark"] .dk-index {
+[data-misp-mode="dark"] :is(.dk-index, .ev-peek-popover) {
     --dk-amber-ink: #f0a02a;
     --dk-amber-bg: #3a2c10;
     --dk-amber-line: #a8741a;
@@ -114,11 +116,7 @@
 
 /* org + marking */
 .dk-org { display: flex; align-items: center; gap: 7px; margin-top: 7px; height: 24px; min-width: 0; }
-.dk-orgname {
-    position: relative; z-index: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-size: .84rem; font-weight: 600; color: var(--dk-ink); text-decoration: none;
-}
-.dk-orgname:hover { color: var(--dk-accent); text-decoration: underline; }
+.dk-org .org-id { position: relative; z-index: 2; font-size: .84rem; }
 .dk-marks { margin-left: auto; display: flex; gap: 4px; flex: none; }
 .dk-mk {
     --c: #888;

@@ -143,7 +143,7 @@ if ($field['data_path'] === 'Event.id') {
                         $classes = 'dropdown-item ' . ($action['class'] ?? '');
                         if (!empty($action['size'])) {
                             $onclick = "event.preventDefault(); openModal('$url', '" . $action['size'] . "');";
-                        } elseif ($action['label'] === __('Delete') || $action['label'] === __('Soft Delete') || $action['label'] === __('Restore')) {
+                        } elseif (in_array($action['label'], [__('Delete'), __('Soft Delete'), __('Delete permanently'), __('Restore')], true)) {
                             // A confirmation: the class-less 500px medium, see setModalSize().
                             $onclick = "event.preventDefault(); openModal('$url', 'md');";
                         } else {

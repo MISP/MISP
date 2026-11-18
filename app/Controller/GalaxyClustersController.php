@@ -78,7 +78,7 @@ class GalaxyClustersController extends AppController
             $contextConditions['GalaxyCluster.deleted'] = true;
         }
 
-        $this->set('passedArgs', json_encode(array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : '')));
+        $this->set('passedArgs', JsonTool::encodeForScript(array('context' => $filters['context'], 'searchall' => isset($filters['searchall']) ? $filters['searchall'] : '')));
         $this->set('context', $filters['context']);
         $searchConditions = array();
         if (empty($filters['searchall'])) {
@@ -1184,7 +1184,7 @@ class GalaxyClustersController extends AppController
                 $relations[] = $targetingCluster;
             }
         }
-        $this->set('passedArgs', json_encode([]));
+        $this->set('passedArgs', JsonTool::encodeForScript([]));
         $this->set('relations', $relations);
         $this->set('tree', $tree);
         $this->set('includeInbound', $includeInbound);

@@ -944,7 +944,19 @@ class EventsController extends AppController
 
     public function index()
     {
+        return $this->__eventIndex();
+    }
 
+    /**
+     * The events index, over all the events the user may see or over a part
+     * of them: $scope['conditions'] narrows the list, and $scope['proposals']
+     * attaches each event's proposals (the Overmind proposal index).
+     *
+     * @param array $scope
+     * @return CakeResponse|null
+     */
+    private function __eventIndex(array $scope = [])
+    {
         // if not admin or own org, check private as well..
         if (!$this->_isSiteAdmin()) {
             $conditions = $this->Event->createEventConditions($this->Auth->user());
@@ -952,6 +964,9 @@ class EventsController extends AppController
                 $conditions['AND'][] = $this->Event->filterRulesToConditions($this->Auth->user('Server')['push_rules']);
             }
             $this->paginate = Set::merge($this->paginate, array('conditions' => $conditions));
+        }
+        if (!empty($scope['conditions'])) {
+            $this->paginate['conditions']['AND'][] = $scope['conditions'];
         }
         // list the events
         $urlparams = "";
@@ -1040,6 +1055,9 @@ class EventsController extends AppController
             ));
         }
         $events = $this->__attachInfoToEvents($attachColumns, $events);
+        if (!empty($scope['proposals'])) {
+            $events = $this->__attachProposalsToEvents($events);
+        }
 
         $this->__noKeyNotification();
         App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
@@ -1056,7 +1074,7 @@ class EventsController extends AppController
         $this->set('distributionData', $this->__genDistributionGraph(-1));
         $this->set('urlparams', $urlparams);
         $this->set('passedArgsArray', $passedArgsArray);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
 
         $extendedUuids = array_filter(array_map(fn($event) => $event['Event']['extends_uuid'] ?? null, $events));
 
@@ -1408,6 +1426,60 @@ class EventsController extends AppController
     }
 
     /**
+     * Each event's open proposals: how many, the last one's time, and the
+     * organisations that made them, most proposals first. One query for the
+     * page, one for the organisations.
+     *
+     * @param array $events
+     * @return array with Event.Proposals: count, last, orgs (id, name, uuid, count)
+     */
+    private function __attachProposalsToEvents(array $events)
+    {
+        $eventIds = array_map('intval', Hash::extract($events, '{n}.Event.id'));
+        if (empty($eventIds)) {
+            return $events;
+        }
+        $this->loadModel('ShadowAttribute');
+        $rows = $this->ShadowAttribute->find('all', [
+            'fields' => [
+                'ShadowAttribute.event_id', 'ShadowAttribute.org_id',
+                'COUNT(*) AS n', 'MAX(ShadowAttribute.timestamp) AS last',
+            ],
+            'conditions' => ['ShadowAttribute.event_id' => $eventIds, 'ShadowAttribute.deleted' => 0],
+            'group' => ['ShadowAttribute.event_id', 'ShadowAttribute.org_id'],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        $orgs = $this->Event->Orgc->find('all', [
+            'conditions' => ['Orgc.id' => array_unique(Hash::extract($rows, '{n}.ShadowAttribute.org_id'))],
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+            'recursive' => -1,
+        ]);
+        $orgs = Hash::combine($orgs, '{n}.Orgc.id', '{n}.Orgc');
+        $byEvent = [];
+        foreach ($rows as $row) {
+            $eventId = (int)$row['ShadowAttribute']['event_id'];
+            $orgId = (int)$row['ShadowAttribute']['org_id'];
+            $n = (int)$row[0]['n'];
+            $entry = $byEvent[$eventId] ?? ['count' => 0, 'last' => 0, 'orgs' => []];
+            $entry['count'] += $n;
+            $entry['last'] = max($entry['last'], (int)$row[0]['last']);
+            $entry['orgs'][] = ($orgs[$orgId] ?? ['id' => $orgId, 'name' => (string)$orgId, 'uuid' => null]) + ['count' => $n];
+            $byEvent[$eventId] = $entry;
+        }
+        foreach ($events as &$event) {
+            $entry = $byEvent[(int)$event['Event']['id']] ?? ['count' => 0, 'last' => 0, 'orgs' => []];
+            usort($entry['orgs'], function ($a, $b) {
+                return $b['count'] <=> $a['count'];
+            });
+            $event['Event']['Proposals'] = $entry;
+            $event['Event']['proposals_count'] = $entry['count'];
+        }
+        unset($event);
+        return $events;
+    }
+
+    /**
      * What the Overmind index card draws, as EventCard on each event. A fixed
      * number of queries for the page, whatever its size.
      *
@@ -1623,7 +1695,7 @@ class EventsController extends AppController
         $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
         $this->set('sharingGroups', $sharingGroups);
         $this->set('tags', $tagNames);
-        $this->set('tagJSON', json_encode($tagJSON));
+        $this->set('tagJSON', JsonTool::encodeForScript($tagJSON));
         $this->set('rules', $rules);
         $this->layout = false;
     }
@@ -2013,7 +2085,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.delegation')) {
             $this->loadModel('EventDelegation');
             $delegationConditions = array('EventDelegation.event_id' => $event['Event']['id']);
-            if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) {
+            if (empty($user['Role']['perm_site_admin'])) {
                 $delegationConditions['OR'] = array('EventDelegation.org_id' => $user['org_id'],
                                                     'EventDelegation.requester_org_id' => $user['org_id']);
             }
@@ -2213,6 +2285,8 @@ class EventsController extends AppController
         $event = $this->__fetchViewEvent($user, $conditions);
         if ($event['Event']['protected']) {
             $this->RestResponse->signContents = true;
+            // Signed along: a 3.0 receiver then refuses this body without its exact-byte signature
+            $event['Event']['signature_version'] = 2;
         }
         return $this->__restResponse($event);
     }
@@ -2600,7 +2674,7 @@ class EventsController extends AppController
         if (Configure::read('MISP.delegation')) {
             $this->loadModel('EventDelegation');
             $delegationConditions = ['EventDelegation.event_id' => $event['Event']['id']];
-            if (!$this->_isSiteAdmin() && $this->userRole['perm_publish']) {
+            if (empty($user['Role']['perm_site_admin'])) {
                 $delegationConditions['OR'] = [
                     'EventDelegation.org_id' => $user['org_id'],
                     'EventDelegation.requester_org_id' => $user['org_id'],
@@ -3665,6 +3739,15 @@ class EventsController extends AppController
             $toAddLocal     = array_diff($desiredLocal,  array_keys($currentLocal));
             $toRemoveGlobal = array_diff(array_keys($currentGlobal), $desiredGlobal);
             $toRemoveLocal  = array_diff(array_keys($currentLocal),  $desiredLocal);
+
+            $attachable = $this->Event->EventTag->Tag->attachableTagIdsForUser(
+                $user, array_merge($toAddGlobal, $toAddLocal));
+            $toAddGlobal = array_filter($toAddGlobal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]) && !$attachable[$tagId];
+            });
+            $toAddLocal = array_filter($toAddLocal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]);
+            });
 
             foreach ($toAddGlobal as $tagId) {
                 $this->Event->EventTag->attachTagToEvent(
@@ -4904,11 +4987,9 @@ class EventsController extends AppController
     }
 
     /**
-     * Returns an event-level warninglist hit summary.
-     *
-     * Only checks whether the user can see the event —
-     * individual attribute ACL is intentionally skipped
-     * for performance (we only SELECT value/type fields).
+     * Returns an event-level warninglist hit summary over the
+     * attributes the user can see: a hit on a hidden attribute
+     * tells what kind of value it holds.
      *
      * Response format:
      * {
@@ -4924,7 +5005,7 @@ class EventsController extends AppController
         $event = $this->Event->fetchSimpleEvent(
             $user,
             $id,
-            ['fields' => ['Event.id']]
+            ['fields' => ['Event.id', 'Event.org_id']]
         );
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
@@ -4933,10 +5014,10 @@ class EventsController extends AppController
 
         $this->loadModel('Warninglist');
         $attributes = $this->Event->Attribute->find('all', [
-            'conditions' => [
+            'conditions' => array_merge([
                 'Attribute.event_id' => $eventId,
                 'Attribute.deleted' => 0,
-            ],
+            ], $this->Event->Attribute->buildConditionsInEvent($user, $event['Event']['org_id'])),
             'fields' => [
                 'Attribute.value',
                 'Attribute.type',
@@ -5453,6 +5534,8 @@ class EventsController extends AppController
                 // Distribution, reporter for the events pushed will be the owner of the authentication key
                 $this->request->data['Event']['user_id'] = $this->Auth->user('id');
             }
+            // Local users, site admins and internal sync need no signature, as on edit
+            $fingerprint = true;
             if (
                 !empty($this->request->data['Event']['protected']) &&
                 $this->Auth->user('Role')['perm_sync'] &&
@@ -5460,18 +5543,19 @@ class EventsController extends AppController
                 !$this->Auth->user('Role')['perm_sync_internal']
             ) {
                 $pgp_signature = $this->request->header('x-pgp-signature');
-                if (empty($pgp_signature)) {
+                $exact_signature = $this->request->header('x-pgp-signature-v2');
+                if (empty($pgp_signature) && empty($exact_signature)) {
                     throw new MethodNotAllowedException(__('Protected event failed signature validation as no key was provided.'));
                 }
                 $raw_data = $this->request->input();
-                if (
-                    !$this->Event->CryptographicKey->validateProtectedEvent(
-                        $raw_data,
-                        $this->Auth->user(),
-                        $pgp_signature,
-                        $this->request->data
-                    )
-                ) {
+                $fingerprint = $this->Event->CryptographicKey->validateProtectedEvent(
+                    $raw_data,
+                    $this->Auth->user(),
+                    $pgp_signature,
+                    $this->request->data,
+                    $exact_signature
+                );
+                if (!$fingerprint) {
                     throw new MethodNotAllowedException(__('Protected event failed signature validation.'));
                 }
             }
@@ -5511,7 +5595,7 @@ class EventsController extends AppController
                 }
                 $validationErrors = array();
                 $created_id = 0;
-                $add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
+                $add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors, $fingerprint);
                 if ($add === true) {
                     if ($this->_isRest()) {
                         // REST users want to see the newly created event
@@ -6105,6 +6189,7 @@ class EventsController extends AppController
                 $this->redirect(array('controller' => 'events', 'action' => 'index'));
             }
         }
+        $this->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $event);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (isset($this->request->data['Event'])) {
                 $regenerateUUIDs = $this->request->data['Event']['regenerate_uuids'] ?? false;
@@ -6239,7 +6324,8 @@ class EventsController extends AppController
             !$this->Auth->user('Role')['perm_sync_internal']
         ) {
             $pgp_signature = $this->request->header('x-pgp-signature');
-            if (empty($pgp_signature)) {
+            $exact_signature = $this->request->header('x-pgp-signature-v2');
+            if (empty($pgp_signature) && empty($exact_signature)) {
                 throw new MethodNotAllowedException(__('Protected event failed signature validation as no key was provided.'));
             }
             $raw_data = $this->request->input();
@@ -6248,7 +6334,8 @@ class EventsController extends AppController
                     $raw_data,
                     $this->Auth->user(),
                     $pgp_signature,
-                    $event
+                    $event,
+                    $exact_signature
                 )
             ) {
                 throw new MethodNotAllowedException(__('Protected event failed signature validation.'));
@@ -7023,6 +7110,16 @@ class EventsController extends AppController
 
     public function proposalEventIndex()
     {
+        if ($this->theme === 'Overmind' && !$this->_isRest()) {
+            // The events index, over the events with proposals: for a site
+            // admin all of them, for anyone else those of their organisation.
+            $proposals = 'exists (select id from shadow_attributes where shadow_attributes.event_id = Event.id'
+                . ' and shadow_attributes.deleted = FALSE'
+                . ($this->_isSiteAdmin() ? '' : ' and shadow_attributes.event_org_id = ' . (int)$this->Auth->user('org_id'))
+                . ')';
+            $this->set('indexAction', 'proposalEventIndex');
+            return $this->__eventIndex(['conditions' => $proposals, 'proposals' => true]);
+        }
         $this->loadModel('ShadowAttribute');
         $conditions = array('ShadowAttribute.deleted' => 0);
         if (!$this->_isSiteAdmin()) {
@@ -7110,17 +7207,7 @@ class EventsController extends AppController
         $isBulk = $id === 'selected';
         $event = false;
         if (!$isBulk) {
-            $conditions = ['Event.id' => $id];
-            if (Validation::uuid($id)) {
-                $conditions = ['Event.uuid' => $id];
-            }
-            $event = $this->Event->find(
-                'first',
-                [
-                    'recursive' => -1,
-                    'conditions' => $conditions
-                ]
-            );
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
             if (empty($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
             }
@@ -7239,10 +7326,7 @@ class EventsController extends AppController
                 if ($isBulk) {
                     $event = false;
                     if (is_numeric($eventId)) {
-                        $event = $this->Event->find('first', [
-                            'recursive' => -1,
-                            'conditions' => ['Event.id' => $eventId],
-                        ]);
+                        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId);
                     }
                     if (empty($event)) {
                         $failed += count($tag_id_list);
@@ -7454,8 +7538,10 @@ class EventsController extends AppController
             if (!is_numeric($id)) {
                 $id = $this->request->data['Event']['id'];
             }
-            $this->Event->recursive = -1;
-            $event = $this->Event->read(array(), $id);
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $id);
+            if (empty($event)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
+            }
             $eventTag = $this->Event->EventTag->find('first', array(
                 'conditions' => array(
                     'event_id' => $id,
@@ -7729,51 +7815,20 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $event = $this->Event->find('first', array(
-                    'conditions' => array('Event.uuid' => $uuid),
-                    'contains' => array('ShadowAttribute', 'Attribute' => array(
-                        'fields' => array('id', 'uuid', 'event_id'),
-                    )),
-                    'fields' => array('Event.uuid', 'Event.id'),
-            ));
+            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $uuid, [
+                'fields' => ['Event.id', 'Event.uuid', 'Event.org_id'],
+            ]);
             if (empty($event)) {
                 $message = "Event not found.";
                 $success = false;
             } else {
-                foreach ($this->request->data as $k => $sa) {
-                    if (isset($event['ShadowAttribute'])) {
-                        foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
-                            if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
-                                if ($oldsa['timestamp'] < $sa['timestamp']) {
-                                    $this->Event->ShadowAttribute->delete($oldsa['id']);
-                                } else {
-                                    continue 2;
-                                }
-                            }
-                        }
-                    }
-                    $sa['event_id'] = $event['Event']['id'];
-                    if ($sa['old_id'] != 0) {
-                        foreach ($event['Attribute'] as $attribute) {
-                            if ($sa['uuid'] == $attribute['uuid']) {
-                                $sa['old_id'] = $attribute['id'];
-                            }
-                        }
-                    }
-                    if (isset($sa['id'])) {
-                        unset($sa['id']);
-                    }
-                    $sa['org_id'] = $this->Event->Orgc->captureOrg($sa['Org'], $this->Auth->user());
-                    unset($sa['Org']);
-                    $this->Event->ShadowAttribute->create();
-                    if (!$this->Event->ShadowAttribute->save(array('ShadowAttribute' => $sa))) {
+                foreach ($this->request->data as $sa) {
+                    $result = $this->Event->ShadowAttribute->capture($sa, $this->Auth->user(), $event);
+                    if ($result) {
+                        $counter++;
+                    } else if ($result === false) {
                         $message = "Some of the proposals could not be saved.";
                         $success = false;
-                    } else {
-                        $counter++;
-                    }
-                    if (!$sa['deleted']) {
-                        $this->Event->ShadowAttribute->sendProposalAlertEmail($event['Event']['id']);
                     }
                 }
             }
@@ -8090,11 +8145,12 @@ class EventsController extends AppController
             $event = $this->Event->find('first', array(
                 'recursive' => -1,
                 'conditions' => $conditions,
-                'fields' => array('id'),
+                'fields' => array('id', 'protected'),
             ));
             if (empty($event)) {
                 throw new NotFoundException(__('Event not found.'));
             }
+            $this->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $event);
             $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
             $this->Event->id = $data['settings']['event_id'];
             $date = new DateTime();
@@ -9584,6 +9640,28 @@ class EventsController extends AppController
         }
     }
 
+    /**
+     * An event's peek, the popover the indexes open on an event's id
+     * (Elements/Events/peek_link): fetched on the first hover.
+     *
+     * @param int $id
+     */
+    public function peek($id)
+    {
+        $this->request->allowMethod(['get']);
+        if ($this->theme !== 'Overmind') {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        App::uses('EventPeekBatch', 'Tools/EventOverview');
+        $events = EventPeekBatch::forIds($this->_closeSession(), [(int)$id]);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $this->set('event', reset($events));
+        $this->layout = false;
+        $this->render('/Elements/Events/peek');
+    }
+
     public function getEventInfoById($id)
     {
         $user = $this->_closeSession();
@@ -10128,6 +10206,7 @@ class EventsController extends AppController
             if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
                 throw new NotFoundException(__('Invalid event.'));
             }
+            $this->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $event);
             $eventId = $event['Event']['id'];
 
             $fileName = $this->request['data']['SelectedData']['mactime_file_name'];

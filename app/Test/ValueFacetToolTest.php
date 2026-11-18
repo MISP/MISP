@@ -74,11 +74,15 @@ trait ValueFacetFakeDb
             }
             return new ValueFacetFakeStatement($out, 0);
         }
-        if (preg_match('/^SELECT .* FROM \W?value_ip_ranges\W? WHERE \W?ip_start\W? IN \((.*)\)$/', $sql, $m)) {
+        if (preg_match('/^SELECT .* FROM \W?value_ip_ranges\W? WHERE \W?ip_start\W? IN \((.*?)\)( AND .*)?$/', $sql, $m)) {
             preg_match_all("/(?:X'|decode\(')([0-9a-f]+)'/", $m[1], $literals);
             $starts = array_map('hex2bin', $literals[1]);
+            $floor = isset($m[2]) && preg_match('/>= (\d+) AND \(\W?prefix\W? >= (\d+) OR/', $m[2], $f) ? $f : null;
             $out = [];
             foreach ($this->facets as $id => $facet) {
+                if ($floor !== null && ($facet[2] < (int)$floor[1] || ($facet[2] < (int)$floor[2] && ValueFacetTool::isIpv4($facet[0])))) {
+                    continue;
+                }
                 if (in_array($facet[0], $starts, true)) {
                     $out[] = ['value_id' => (string)$id, 'ip_start' => $facet[0], 'ip_end' => $facet[1]];
                 }
@@ -422,6 +426,31 @@ class ValueFacetToolTest extends TestCase
                 'b' => [5 => true, 8 => true, 11 => false],
                 'c' => [6 => true],
             ], $found);
+        }
+    }
+
+    public function testBroadCidrsAreLeftOutOfACorrelationProbe()
+    {
+        foreach ([new ValueFacetFakeMysql(), new ValueFacetFakePostgres()] as $db) {
+            $values = [
+                1 => '10.0.0.0/7', 2 => '10.0.0.0/8', 3 => '10.1.0.0/16', 4 => '10.1.2.3', 5 => '0.0.0.0/0',
+                6 => '2000::/15', 7 => '2000::/16', 8 => '2000::1', 9 => '::/0', 10 => '2000::/112',
+            ];
+            foreach ($values as $id => $value) {
+                $db->facets[$id] = ValueFacetTool::ipRange($value);
+            }
+            $addresses = ['v4' => self::address('10.1.2.3'), 'v6' => self::address('2000::1')];
+
+            $all = $this->tool($db)->containing($addresses);
+            $floored = $this->tool($db)->containing($addresses, true);
+
+            ksort($floored['v4']);
+            ksort($floored['v6']);
+            $this->assertSame([2, 3, 4], array_keys($floored['v4']));
+            $this->assertSame([7, 8, 10], array_keys($floored['v6']));
+            // Without the flag nothing is left out
+            $this->assertArrayHasKey(1, $all['v4']);
+            $this->assertArrayHasKey(6, $all['v6']);
         }
     }
 

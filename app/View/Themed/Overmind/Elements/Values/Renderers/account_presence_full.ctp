@@ -47,7 +47,9 @@ $hidden = count($breaches) - count($shown);
                         <td><?= h($account['platform'] === null
                             ? '—' : $account['platform']) ?></td>
                         <td class="font-monospace"><?php
-                            if ($account['link'] !== null): ?>
+                            if ($account['link'] !== null && preg_match(
+                                '/^https?:\/\//i', $account['link']
+                            )): ?>
                             <a href="<?= h($account['link']) ?>"
                                rel="noreferrer noopener"
                                target="_blank"><?= h((string)
@@ -116,7 +118,9 @@ $hidden = count($breaches) - count($shown);
             <tbody>
                 <?php foreach ($shown as $breach): ?>
                     <tr>
-                        <td><?php if ($breach['link'] !== null): ?>
+                        <td><?php if ($breach['link'] !== null && preg_match(
+                            '/^https?:\/\//i', $breach['link']
+                        )): ?>
                             <a href="<?= h($breach['link']) ?>"
                                rel="noreferrer noopener"
                                target="_blank"><?= h($breach['title']

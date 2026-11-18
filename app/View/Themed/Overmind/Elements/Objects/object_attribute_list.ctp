@@ -21,14 +21,17 @@
  *                             sightings, enrichment hover or picture
  *   enrichmentEnabled  bool   Plugin.Enrichment_services_enable
  *   cortexEnabled      bool   Plugin.Cortex_services_enable
+ *   locked             bool   a deleted object's attributes: no actions,
+ *                             readonly, and no tagging or analyst data either
  *
  * Read from the view: $baseurl, $me.
  */
-$objCanEdit = !empty($canEdit);
-$objCanTag = !empty($canTag);
-$mayGraph = !empty($mayGraph);
-$showActions = $showActions ?? true;
-$readonly = !empty($readonly);
+$locked = !empty($locked);
+$objCanEdit = !empty($canEdit) && !$locked;
+$objCanTag = !empty($canTag) && !$locked;
+$mayGraph = !empty($mayGraph) && !$locked;
+$showActions = ($showActions ?? true) && !$locked;
+$readonly = !empty($readonly) || $locked;
 $remote = !empty($remote);
 $menuOptions = [
     'canEdit' => $objCanEdit,
@@ -36,7 +39,7 @@ $menuOptions = [
     'cortexEnabled' => !empty($cortexEnabled),
 ];
 
-$sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $menuOptions, $baseurl, $remote) {
+$sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $menuOptions, $baseurl, $remote, $locked) {
     $row = ['Attribute' => $attr];
     $field = function ($element, array $field, $fieldRow = null) use ($row) {
         return $this->element('genericElementsBS5/IndexTable/Fields/' . $element, [
@@ -76,6 +79,7 @@ $sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $
             'relationship_path' => 'Relationship',
             'uuid_path' => 'uuid',
             'object_type' => 'Attribute',
+            'readonly' => $locked,
         ], $attr),
     ];
     if (!empty($attr['object_relation'])) {

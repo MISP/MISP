@@ -1,84 +1,78 @@
 <?php
-$attrId   = (int)($id ?? 0);
-$postUrl  = $baseurl . '/attributes/restore/' . $attrId;
+/*
+ * Restore confirmation for a soft-deleted attribute, from the Deleted filter of
+ * an attribute index or an object's attribute menu. Posts through fetch(), like
+ * the delete confirmation, then moves the Attributes tab count and reloads the
+ * index behind it, which recounts the Deleted filter.
+ *
+ * Expected: $id (int); $counted (bool, the Attributes tab counts the attribute
+ * once it is live again)
+ */
+$attrId = (int)$id;
+
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
+    'model' => 'Attribute',
+    'url' => $baseurl . '/attributes/restore/' . $attrId,
+    'hiddenField' => false,
+    'eyebrow' => __('Attributes'),
+    'accent' => 'success',
+    'title' => __('Restore attribute'),
+    'message' => __('Restore this attribute?'),
+    'bodyHtml' => $this->element('genericElementsBS5/Forms/field_hint', [
+        'text' => __('It is listed with the event\'s attributes again, and the event goes back to unpublished.'),
+    ]),
+    'submitLabel' => __('Restore'),
+    'submitIcon' => 'rotate-left',
+    'meta' => [['label' => __('Attribute'), 'id' => $attrId]],
+]);
 ?>
-
-<div class="p-4">
-
-    <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-        <i class="fas fa-rotate-left text-success"></i>
-        <?= __('Restore Attribute #%s', $attrId) ?>
-    </h6>
-
-    <p class="text-muted small mb-3">
-        <?= __('This attribute will be restored and will become visible again.') ?>
-    </p>
-
-    <div class="d-flex justify-content-end gap-2 mt-3">
-        <button type="button"
-                class="btn btn-outline-secondary btn-sm"
-                onclick="bootstrap.Modal.getInstance(document.getElementById('mainModal')).hide()">
-            <?= __('Cancel') ?>
-        </button>
-        <button type="button"
-                id="attr-restore-confirm-btn"
-                class="btn btn-success btn-sm"
-                data-post-url="<?= h($postUrl) ?>"
-                data-attr-id="<?= $attrId ?>">
-            <i class="fas fa-rotate-left me-1"></i>
-            <?= __('Restore') ?>
-        </button>
-    </div>
-
-</div>
-
 <script>
 (function () {
-    var btn     = document.getElementById('attr-restore-confirm-btn');
-    var postUrl = btn.dataset.postUrl;
-    var attrId  = btn.dataset.attrId;
-    var _msgOk   = <?= json_encode(__('Attribute restored.')) ?>;
-    var _msgFail = <?= json_encode(__('Failed to restore attribute.')) ?>;
-    var _msgErr  = <?= json_encode(__('Request failed — please try again.')) ?>;
+    var form = document.querySelector('#mainModalBody #PromptForm');
+    if (!form) return;
+    var attrId = <?= json_encode((string)$attrId) ?>;
+    var counted = <?= !empty($counted) ? 'true' : 'false' ?>;
+    var msgDone = <?= json_encode(__('Attribute restored.')) ?>;
+    var msgFail = <?= json_encode(__('Attribute could not be restored.')) ?>;
 
-    btn.addEventListener('click', async function () {
-        btn.disabled = true;
-
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var submit = form.querySelector('[type="submit"]');
+        if (submit) { submit.disabled = true; }
+        var data = {};
+        var ok = false;
         try {
-            var r = await fetch(postUrl, {
+            var r = await fetch(form.action, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'Accept':           'application/json',
-                    'X-CSRF-Token':     getCsrfToken(),
-                }
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': getCsrfToken(),
+                },
             });
-            var data = await r.json();
-
-            if (data.saved) {
-                var row = document.querySelector('tr[data-primary-id="' + attrId + '"]');
-                // An object keeps its deleted attributes listed: show this one live again.
-                var objectsTab = document.querySelector('.ajax-tab-content[data-url*="viewObjects"]');
-                if (objectsTab && objectsTab.offsetParent !== null) {
-                    reloadEventViewIndexTab();
-                } else if (row) {
-                    row.remove();
-                }
-
-                var modalEl = document.getElementById('mainModal');
-                if (modalEl) {
-                    var bsModal = bootstrap.Modal.getInstance(modalEl);
-                    if (bsModal) bsModal.hide();
-                }
-                showToast(_msgOk, 'success');
-            } else {
-                showToast(data.errors || _msgFail, 'danger');
-                btn.disabled = false;
-            }
+            data = await r.json().catch(function () { return {}; });
+            ok = r.ok;
         } catch (_e) {
-            showToast(_msgErr, 'danger');
-            btn.disabled = false;
+            data = {};
         }
+        if (!ok || data.saved !== true) {
+            showToast(data.errors || data.message || msgFail, 'danger');
+            if (submit) { submit.disabled = false; }
+            return;
+        }
+
+        if (counted) {
+            var n = getTabCount('attributes');
+            if (n !== null) { setTabCount('attributes', n + 1); }
+        }
+        if (typeof selectedItems !== 'undefined') {
+            selectedItems.delete(attrId);
+            updateMultiSelectToolbar();
+        }
+        var modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
+        if (modal) { modal.hide(); }
+        showToast(msgDone, 'success');
+        refreshAfterRowChange({}, [attrId], false);
     });
 })();
 </script>

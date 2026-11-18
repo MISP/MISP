@@ -246,8 +246,6 @@ class AttributesController extends AppController
         } else {
             $params['page'] = !empty($filters['page']) ? $filters['page'] : 1;
             $params['limit'] = !empty($filters['limit']) ? $filters['limit'] : 60;
-            // On top of fetchAttributes()' own, for the event popover (Attributes/event_peek).
-            $params['fields'] = ['Event.published', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.attribute_count'];
             $this->paginate['conditions'] = $conditions;
             $hasNextPage = null;
             if ($excludeWarninglistHits) {
@@ -283,25 +281,12 @@ class AttributesController extends AppController
         $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
         $sgids = $this->MispAttribute->SharingGroup->authorizedIds($user);
         $related = $this->MispAttribute->relatedAttributesOf($user, $sgids, $attributes, []);
-        // The page's events shared with a group the reader belongs to name it.
-        $eventSgIds = array_intersect(
-            array_unique(array_filter(Hash::extract($attributes, '{n}.Event.sharing_group_id'))),
-            $sgids
-        );
-        $eventSgNames = empty($eventSgIds) ? [] : $this->MispAttribute->SharingGroup->find('list', [
-            'conditions' => ['SharingGroup.id' => $eventSgIds],
-            'fields' => ['SharingGroup.id', 'SharingGroup.name'],
-        ]);
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                 $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
             }
             if (isset($orgTable[$attribute['Event']['org_id']])) {
                 $attribute['Event']['Org'] = $orgTable[$attribute['Event']['org_id']];
-            }
-            $eventSgId = (int)($attribute['Event']['sharing_group_id'] ?? 0);
-            if (isset($eventSgNames[$eventSgId])) {
-                $attribute['Event']['SharingGroup'] = ['id' => $eventSgId, 'name' => $eventSgNames[$eventSgId]];
             }
             $temp = $related[$attribute['Attribute']['id']];
             foreach ($temp as &$t) {
@@ -311,6 +296,7 @@ class AttributesController extends AppController
             }
             $attribute['Event']['RelatedAttribute'][$attribute['Attribute']['id']] = $temp;
         }
+        unset($attribute);
 
         list($attributes, $sightingsData) = $this->__searchUI($attributes, $user);
         if (!empty($attributes)) {
@@ -1406,7 +1392,7 @@ class AttributesController extends AppController
         $attribute = $this->MispAttribute->find('first', array(
                 'conditions' => array('Attribute.id' => $id),
                 'recursive' => -1,
-                'fields' => array('Attribute.id', 'Attribute.event_id'),
+                'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.object_id', 'Attribute.deleted'),
                 'contain' => array(
                     'Event' => array(
                         'fields' => array('Event.orgc_id', 'Event.user_id')
@@ -1435,6 +1421,9 @@ class AttributesController extends AppController
                 $this->layout = false;
                 $this->set('id', $id);
                 $this->set('event_id', $attribute['Attribute']['event_id']);
+                // The event view's Attributes tab counts live standalone rows.
+                $this->set('counted', !empty($attribute['Attribute']['deleted'])
+                    && empty($attribute['Attribute']['object_id']));
                 $this->render('ajax/attributeRestorationForm');
             }
         } else {
@@ -2924,6 +2913,14 @@ class AttributesController extends AppController
             $toRemoveLocal  = array_diff(array_keys($currentLocal),  $desiredLocal);
 
             $AttributeTag = $this->MispAttribute->AttributeTag;
+            $attachable = $AttributeTag->Tag->attachableTagIdsForUser(
+                $user, array_merge($toAddGlobal, $toAddLocal));
+            $toAddGlobal = array_filter($toAddGlobal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]) && !$attachable[$tagId];
+            });
+            $toAddLocal = array_filter($toAddLocal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]);
+            });
             foreach ($toAddGlobal as $tagId) {
                 $AttributeTag->attachTagToAttribute($attributeId, $eventId, $tagId, false);
             }
@@ -3906,11 +3903,9 @@ class AttributesController extends AppController
                 }
                 $tag_id = $this->request->data['tag'];
             }
-            $attribute = $this->MispAttribute->find('first', [
-                'recursive' => -1,
+            $attribute = $this->MispAttribute->fetchAttributeSimple($this->Auth->user(), [
                 'conditions' => ['Attribute.id' => $id],
                 'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id', 'Attribute.type', 'Attribute.disable_correlation', 'Attribute.value', 'Event.orgc_id', 'Event.user_id'],
-                'contain' => ['Event'],
             ]);
             if (empty($attribute) || $attribute['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));

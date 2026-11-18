@@ -20,14 +20,16 @@
     <?php foreach ($data['captures'] as $capture): ?>
         <div class="vp-rf-block">
             <div class="vp-rf-head">
-                <?php if ($capture['url'] !== null): ?>
+                <?php if ($capture['url'] !== null
+                    && preg_match('/^https?:\/\//i', $capture['url'])): ?>
                     <a class="vp-rf-key font-monospace"
                        href="<?= h($capture['url']) ?>"
                        rel="noreferrer noopener"
                        target="_blank"><?= h($capture['url']) ?></a>
-                <?php elseif ($capture['domain'] !== null): ?>
+                <?php elseif ($capture['url'] !== null
+                    || $capture['domain'] !== null): ?>
                     <span class="vp-rf-key font-monospace"><?=
-                        h($capture['domain']) ?></span>
+                        h($capture['url'] ?? $capture['domain']) ?></span>
                 <?php endif; ?>
                 <?php if ($capture['captured'] !== null): ?>
                     <span class="vp-rf-dim"><?= h(date('Y-m-d',

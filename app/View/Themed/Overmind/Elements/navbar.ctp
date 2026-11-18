@@ -1,7 +1,11 @@
 <nav class="rc-nav<?= empty($builtinPalette) ? '' : ' rc-daylight' ?>" aria-label="<?= h(__('Main')) ?>">
     <div class="rc-bar">
         <a class="rc-brand" href="<?= empty($homepage['path']) ? $baseurl .'/' : $baseurl . h($homepage['path']) ?>"<?= empty($mispVersionFull) ? '' : ' title="' . h(__('MISP %s', $mispVersionFull)) . '"' ?>>
-            <?= $this->Html->image('misp-logo-main-cmyk-icon coul.png', ['alt' => __('MISP Logo')]) ?>
+            <?php
+            $logo = date('n') === '12'
+                ? 'misp-logo-main-cmyk-icon coul-xmas.png'
+                : 'misp-logo-main-cmyk-icon coul.png';
+            echo $this->Html->image($logo, ['alt' => __('MISP Logo')]); ?>
             <?php if (!empty($mispVersionFull)): ?>
                 <span class="rc-version"><?= h($mispVersionFull) ?></span>
             <?php endif; ?>

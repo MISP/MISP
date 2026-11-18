@@ -7,15 +7,15 @@
  * Filters panel on its left, what the rows are placed by on its right. The
  * bar wears the index filter bars' classes (index-filters.css) but filters
  * here, so it has no data-ifp-bar; the script fills the panel and the basis
- * switch.
+ * switch. data-ifp-keys gives it the bars' `/` and `f` (index-filters.js).
  */
 $eventId = (int)($data['Event']['id'] ?? 0);
 $suffix = $extensionSuffix ?? '';
 
-echo $this->element('genericElements/assetLoader', ['css' => ['index-filters']]);
+echo $this->element('genericElements/assetLoader', ['css' => ['index-filters'], 'js' => ['index-filters']]);
 ?>
 <div class="etl-index" data-timeline-index>
-    <div class="ifp-bar d-flex flex-wrap align-items-center etl-bar">
+    <div class="ifp-bar d-flex flex-wrap align-items-center etl-bar" data-ifp-keys>
         <label class="ifp-query" data-etl-query>
             <i class="fas fa-search ifp-q-icon" aria-hidden="true"></i>
             <input type="search" autocomplete="off" spellcheck="false" data-timeline-search

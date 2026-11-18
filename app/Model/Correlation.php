@@ -525,7 +525,7 @@ class Correlation extends AppModel
                 }
             }
         }
-        return $this->attributeValue()->facets()->containing($addresses);
+        return $this->attributeValue()->facets()->containing($addresses, true);
     }
 
     /**
@@ -938,7 +938,7 @@ class Correlation extends AppModel
         }
         $facets = $this->attributeValue()->facets();
         if ($range[2] < 128) {
-            if (!in_array($attribute['Attribute']['type'], self::CIDR_TYPES, true)) {
+            if (!in_array($attribute['Attribute']['type'], self::CIDR_TYPES, true) || ValueFacetTool::isTooBroadToCorrelate($range)) {
                 return null;
             }
             return [
@@ -946,7 +946,7 @@ class Correlation extends AppModel
                 sprintf('%s IN (%s)', $this->getDataSource()->name('Attribute.value1_id'), $facets->membersQuery($range)),
             ];
         }
-        $hits = isset($this->cidrHits[$value]) ? $this->cidrHits[$value] : $facets->containing([$value => $range[0]])[$value];
+        $hits = isset($this->cidrHits[$value]) ? $this->cidrHits[$value] : $facets->containing([$value => $range[0]], true)[$value];
         $own = array_flip($ownIds);
         $cidrs = $addresses = [];
         foreach ($hits as $id => $isCidr) {

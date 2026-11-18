@@ -208,7 +208,7 @@ class TagsController extends AppController
         if (!empty($passedArgsArray['exclude_statistics'])) {
             $this->set('exclude_statistics', true);
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('list', $this->viewVars['data']);
         $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
@@ -725,6 +725,8 @@ class TagsController extends AppController
             }
             throw new ForbiddenException($message);
         }
+        // Every caller attaches or removes a tag, local ones included.
+        $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $object);
         return $object;
     }
 

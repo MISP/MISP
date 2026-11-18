@@ -253,7 +253,9 @@ class AttributeValueCidrCorrelationDbTest extends TestCase
             }
         }
         $this->exec(sprintf('UPDATE attributes SET disable_correlation = 0 WHERE id IN (%s)', implode(', ', $enabled)));
-        $this->exec(sprintf('UPDATE attributes SET deleted = 1 WHERE id IN (%s)', implode(', ', $deleted)));
+        if (!empty($deleted)) {
+            $this->exec(sprintf('UPDATE attributes SET deleted = 1 WHERE id IN (%s)', implode(', ', $deleted)));
+        }
         AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = 'column-x', value2 = IF(value2 = '', '', 'column-x') WHERE id IN (%s)",
             implode(', ', $added)
@@ -405,7 +407,7 @@ class AttributeValueCidrCorrelationDbTest extends TestCase
     private function expectedForTheAddress()
     {
         // The exact match once, keyed by the address; the others by their own value
-        return $this->byValue1('t_cidr', 't_cidr_hostbits', 't_exact', 't_mapped', 't_slash32', 't_v4all');
+        return $this->byValue1('t_cidr', 't_cidr_hostbits', 't_exact', 't_mapped', 't_slash32');
     }
 
     public function testAnAddressCorrelatesWithTheCidrsHoldingItAndItsOtherSpellings()
@@ -430,6 +432,39 @@ class AttributeValueCidrCorrelationDbTest extends TestCase
         );
     }
 
+    public function testBroadCidrsNeitherCollectNorMatch()
+    {
+        $first = (int)$this->b;
+        $this->add([
+            't_v4short' => [$this->events[1], 'ip-dst', (intdiv($first, 2) * 2) . '.0.0.0/7'],
+            't_v4floor' => [$this->events[1], 'ip-dst', $first . '.0.0.0/8'],
+            't_v6short' => [$this->events[1], 'ip-dst', '2000::/15'],
+            't_v6floor' => [$this->events[1], 'ip-dst', '2001::/16'],
+        ]);
+        $correlation = $this->engine('Default');
+        foreach (['t_v4short', 't_v4all', 't_v6short', 't_wide6'] as $name) {
+            $this->correlate($correlation, $name);
+            $this->assertSame([], $this->correlationsOf('default_correlations', $name), $name);
+        }
+        $ids = function ($name) {
+            return (int)$this->exec(sprintf('SELECT value1_id AS id FROM attributes WHERE id = %d', $this->ids[$name]))[0]['id'];
+        };
+        // The CIDRs holding an address, as a save and a recorrelation probe for them
+        $facets = ClassRegistry::init('AttributeValue')->facets();
+        foreach (['t_v4short', 't_v4floor', 't_v6short', 't_v6floor'] as $name) {
+            // A value interned before the facet existed has no row yet
+            $facets->add([$this->values[$name][1] => $ids($name)]);
+        }
+        $held = $facets->containing([
+            'v4' => ValueFacetTool::ipRange($this->b . '.10')[0],
+            'v6' => ValueFacetTool::ipRange($this->p . '::7')[0],
+        ], true);
+        $this->assertArrayHasKey($ids('t_v4floor'), $held['v4']);
+        $this->assertArrayNotHasKey($ids('t_v4short'), $held['v4']);
+        $this->assertArrayHasKey($ids('t_v6floor'), $held['v6']);
+        $this->assertArrayNotHasKey($ids('t_v6short'), $held['v6']);
+    }
+
     public function testACidrOfAPortTypeOnlyCorrelatesExactly()
     {
         $correlation = $this->engine('Default');
@@ -441,7 +476,7 @@ class AttributeValueCidrCorrelationDbTest extends TestCase
     {
         $correlation = $this->engine('Default');
         $this->correlate($correlation, 's_ip6');
-        $this->assertSame($this->byValue1('t_cidr6', 't_member6', 't_wide6'), $this->correlationsOf('default_correlations', 's_ip6'));
+        $this->assertSame($this->byValue1('t_cidr6', 't_member6'), $this->correlationsOf('default_correlations', 's_ip6'));
 
         $this->correlate($correlation, 't_cidr6');
         $this->assertSame($this->byValue1('s_ip6', 's_ip6_long'), $this->correlationsOf('default_correlations', 't_cidr6'));
@@ -469,7 +504,7 @@ class AttributeValueCidrCorrelationDbTest extends TestCase
         $this->assertNo2xCidrRead();
         $this->assertCount(1, $this->statements(self::PROBE));
         $this->assertSame($this->expectedForTheAddress(), $this->correlationsOf('default_correlations', 's_ip'));
-        $this->assertSame($this->byValue1('t_cidr6', 't_member6', 't_wide6'), $this->correlationsOf('default_correlations', 's_ip6'));
+        $this->assertSame($this->byValue1('t_cidr6', 't_member6'), $this->correlationsOf('default_correlations', 's_ip6'));
 
         // The chunk's lookups are gone with it
         $this->correlate($correlation, 's_ip');
@@ -506,7 +541,7 @@ class AttributeValueCidrCorrelationDbTest extends TestCase
         $this->assertTrue($correlation->correlateValue($this->values['s_ip'][1]));
         $this->assertNo2xCidrRead();
         $this->assertSame(
-            ['t_cidr', 't_cidr_hostbits', 't_exact', 't_mapped', 't_slash32', 't_v4all'],
+            ['t_cidr', 't_cidr_hostbits', 't_exact', 't_mapped', 't_slash32'],
             array_keys($this->correlationsOf('default_correlations', 's_ip'))
         );
     }

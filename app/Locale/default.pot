@@ -13541,7 +13541,7 @@ msgid "A checksum in MD5 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4571
-msgid "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"
+msgid "A checksum in MD5 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4572
@@ -13549,7 +13549,7 @@ msgid "A checksum in SHA1 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4572
-msgid "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"
+msgid "A checksum in SHA1 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4573
@@ -13557,7 +13557,7 @@ msgid "A checksum in SHA256 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4573
-msgid "You are encouraged to use filename|sha256 instead. A checksum in sha256 format, only use this if you don't know the correct filename"
+msgid "A checksum in SHA256 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4574
@@ -13963,7 +13963,7 @@ msgid "Authenticode executable signature hash"
 msgstr ""
 
 #: Model/MispAttribute.php:4660
-msgid "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"
+msgid "Authenticode executable signature hash. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4661
@@ -13971,7 +13971,7 @@ msgid "A VirusTotal checksum"
 msgstr ""
 
 #: Model/MispAttribute.php:4661
-msgid "You are encouraged to use filename|vhash instead. A checksum from VirusTotal, only use this if you don't know the correct filename"
+msgid "A checksum from VirusTotal. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4662;4680
@@ -13979,7 +13979,7 @@ msgid "A checksum in ssdeep format"
 msgstr ""
 
 #: Model/MispAttribute.php:4662
-msgid "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"
+msgid "A checksum in the SSDeep format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4663;4681
@@ -13987,7 +13987,7 @@ msgid "Import hash - a hash created based on the imports in the sample."
 msgstr ""
 
 #: Model/MispAttribute.php:4663
-msgid "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"
+msgid "A hash created based on the imports in the sample. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4664
@@ -14007,7 +14007,7 @@ msgid "A fuzzy hash of import table of Portable Executable format"
 msgstr ""
 
 #: Model/MispAttribute.php:4666
-msgid "You are encouraged to use filename|impfuzzy instead. A fuzzy hash created based on the imports in the sample, only use this if you don't know the correct filename"
+msgid "A fuzzy hash created based on the imports in the sample. Use the pe object template to group this hash with other Portable Executable metadata."
 msgstr ""
 
 #: Model/MispAttribute.php:4667
@@ -14015,7 +14015,7 @@ msgid "A checksum in SHA-224 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4667
-msgid "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha224 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4668
@@ -14023,7 +14023,7 @@ msgid "A checksum in SHA-384 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4668
-msgid "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha384 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4669
@@ -14031,7 +14031,7 @@ msgid "A checksum in SHA-512 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4669
-msgid "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha512 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4670
@@ -14039,7 +14039,7 @@ msgid "A checksum in the SHA-512/224 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4670
-msgid "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha512/224 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4671
@@ -14047,7 +14047,7 @@ msgid "A checksum in the SHA-512/256 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4671
-msgid "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha512/256 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4672
@@ -14055,7 +14055,7 @@ msgid "A checksum in SHA3-224 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4672
-msgid "You are encouraged to use filename|sha3-224 instead. A checksum in sha3-224 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha3-224 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4673
@@ -14063,7 +14063,7 @@ msgid "A checksum in SHA3-256 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4673
-msgid "You are encouraged to use filename|sha3-256 instead. A checksum in sha3-256 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha3-256 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4674
@@ -14071,7 +14071,7 @@ msgid "A checksum in SHA3-384 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4674
-msgid "You are encouraged to use filename|sha3-384 instead. A checksum in sha3-384 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha3-384 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4675
@@ -14079,7 +14079,7 @@ msgid "A checksum in SHA3-512 format"
 msgstr ""
 
 #: Model/MispAttribute.php:4675
-msgid "You are encouraged to use filename|sha3-512 instead. A checksum in sha3-512 format, only use this if you don't know the correct filename"
+msgid "A checksum in sha3-512 format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4676
@@ -14087,7 +14087,7 @@ msgid "A checksum in the Trend Micro Locality Sensitive Hash format"
 msgstr ""
 
 #: Model/MispAttribute.php:4676
-msgid "You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"
+msgid "A checksum in the Trend Micro Locality Sensitive Hash format. Use the file object template to group this hash with a filename and other file metadata when available."
 msgstr ""
 
 #: Model/MispAttribute.php:4677

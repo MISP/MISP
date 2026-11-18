@@ -517,24 +517,6 @@ class Log extends AppModel
         return $list;
     }
 
-    public function changeParser($change)
-    {
-        $change = explode(',', $change);
-        $data = [];
-        foreach ($change as $entry) {
-            $entry = trim($entry);
-            $fieldName = explode(' ', $entry)[0];
-            $entry = substr($entry, strlen($fieldName));
-            $entry = trim($entry);
-            if (strpos($entry, ') => (')) {
-                list($before, $after) = explode(') => (', $entry);
-                $before = substr($before, 1);
-                $after = substr($after, 0, -1);
-                $data[$fieldName] = $after;
-            }
-        }
-        return $data;
-    }
 
     private function getElasticSearchTool()
     {

@@ -173,11 +173,13 @@
 .mx-full-grid { display: flex; gap: .5rem; align-items: flex-start; min-width: 100%; }
 .mx-col { flex: 1 0 170px; max-width: 240px; display: flex; flex-direction: column; gap: 3px;
     background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color-translucent); border-radius: .4rem; padding: .35rem; }
-.mx-col-h { display: flex; align-items: baseline; justify-content: space-between; gap: .4rem; padding: .15rem .25rem .35rem;
-    border-bottom: 1px solid var(--bs-border-color-translucent); margin-bottom: .15rem; font-size: .76rem; font-weight: 700;
-    color: var(--bs-emphasis-color); position: sticky; top: -.75rem; background: var(--bs-tertiary-bg); z-index: 1; }
+.mx-col-h { display: flex; align-items: baseline; justify-content: space-between; gap: .4rem; padding: .45rem .5rem .4rem;
+    margin-bottom: .2rem; border-radius: .3rem; font-size: .76rem; font-weight: 700;
+    color: var(--mx-col-fg, var(--bs-emphasis-color)); position: sticky; top: -.75rem; z-index: 1;
+    background: linear-gradient(var(--mx-col-bg, transparent), var(--mx-col-bg, transparent)), var(--bs-tertiary-bg);
+    box-shadow: inset 0 3px 0 var(--mx-col-edge, transparent); }
 .mx-col-h span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mx-col-n { font-weight: 400; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.mx-col-n { font-weight: 600; color: var(--mx-col-sub, var(--bs-secondary-color)); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
 .mx-col .mx-cell { font-size: .72rem; }
 .mx-col .mx-cell[data-state="idle"] { background: var(--bs-body-bg); }
 .mx-col .mx-subs { margin-left: 12px; }
@@ -188,6 +190,33 @@
 .mx-inline-head { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem; padding: .5rem 1rem;
     border-bottom: 1px solid var(--bs-border-color-translucent); }
 .mx-inline .mx-full-scroll { max-height: calc(100vh - 16rem); min-height: 16rem; }
+.mx-fit .mx-full-grid.is-fit .mx-col { flex: 1 1 0; min-width: 0; max-width: none; }
+
+/* ── galaxy page: kill chain strip ─────────────────────── */
+.gx-kc-set { container-type: inline-size; }
+.gx-kc-open { display: inline-flex; align-items: center; gap: .4rem; padding: .2rem .65rem; border-radius: 999px;
+    border: 1px solid var(--bs-border-color); background: var(--bs-body-bg); color: var(--bs-secondary-color);
+    font-size: .78rem; font-weight: 600; text-decoration: none; }
+.gx-kc-open:hover, .gx-kc-open:focus-visible { color: var(--bs-emphasis-color); background: var(--bs-tertiary-bg); }
+.gx-kc-open .fa-table-cells { color: var(--bs-galaxy); }
+.gx-kc-pick { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .6rem; }
+.gx-kc-pick-n { font-size: .72rem; font-weight: 400; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums; }
+.gx-kc { --kc-cols: var(--kc-c2); display: grid; grid-template-columns: repeat(var(--kc-cols), minmax(0, 1fr));
+    gap: .45rem .2rem; margin: 0; padding: 0; list-style: none; }
+@container (min-width: 29rem) { .gx-kc { --kc-cols: var(--kc-c3); } }
+@container (min-width: 38.6rem) { .gx-kc { --kc-cols: var(--kc-c4); } }
+@container (min-width: 48.3rem) { .gx-kc { --kc-cols: var(--kc-c5); } }
+@container (min-width: 58rem) { .gx-kc { --kc-cols: var(--kc-c6); } }
+@container (min-width: 67.7rem) { .gx-kc { --kc-cols: var(--kc-c7); } }
+@container (min-width: 77.4rem) { .gx-kc { --kc-cols: var(--kc-c8); } }
+@container (min-width: 96.8rem) { .gx-kc { --kc-cols: var(--kc-c10); } }
+.gx-kc-step { display: flex; flex-direction: column; justify-content: center; gap: .1rem; min-width: 0; min-height: 3.6rem;
+    padding: .45rem 1rem .45rem 1.2rem; background: var(--kc-bg); color: var(--kc-fg);
+    clip-path: polygon(0 0, calc(100% - .75rem) 0, 100% 50%, calc(100% - .75rem) 100%, 0 100%, .75rem 50%); }
+.gx-kc-i { font-size: .7rem; font-weight: 700; line-height: 1; color: var(--kc-n); font-variant-numeric: tabular-nums;
+    letter-spacing: .04em; }
+.gx-kc-l { font-size: .88rem; font-weight: 600; line-height: 1.2; overflow: hidden; display: -webkit-box;
+    -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: break-word; }
 
 /* ── cluster page: layers, scope, marks ────────────────── */
 .mx-cl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; padding: .55rem 1rem;

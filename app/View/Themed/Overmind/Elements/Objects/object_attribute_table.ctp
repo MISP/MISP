@@ -16,15 +16,18 @@
  *   remote             bool   a remote event's attributes (a feed or server
  *                             preview), whose ids name nothing here: no
  *                             sightings, enrichment hover or picture
+ *   locked             bool   a deleted object's attributes: readonly, and
+ *                             no tagging or analyst data either
  *
  * Read from the view: $baseurl, $me.
  */
-$canEdit = !empty($canEdit);
-$canTag = !empty($canTag);
-$mayGraph = !empty($mayGraph);
+$locked = !empty($locked);
+$canEdit = !empty($canEdit) && !$locked;
+$canTag = !empty($canTag) && !$locked;
+$mayGraph = !empty($mayGraph) && !$locked;
 $enrichmentEnabled = !empty($enrichmentEnabled);
 $cortexEnabled = !empty($cortexEnabled);
-$readonly = !empty($readonly);
+$readonly = !empty($readonly) || $locked;
 $remote = !empty($remote);
 ?>
 <?php if (!empty($attrs)): ?>
@@ -224,6 +227,7 @@ $remote = !empty($remote);
                                 'relationship_path' => 'Relationship',
                                 'uuid_path'         => 'uuid',
                                 'object_type'       => 'Attribute',
+                                'readonly'          => $locked,
                             ],
                         ]
                     ) ?>

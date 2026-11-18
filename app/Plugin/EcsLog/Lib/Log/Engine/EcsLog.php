@@ -1,5 +1,6 @@
 <?php
 App::uses('JsonTool', 'Tools');
+App::uses('ClientIpTool', 'Tools');
 
 /**
  * Logging class that sends logs in JSON format to UNIX socket in Elastic Common Schema (ECS) format
@@ -280,7 +281,11 @@ class EcsLog implements CakeLogInterface
             $clientIps[] = $_SERVER['REMOTE_ADDR'];
             return [
                 'address' => $clientIps,
-                'ip' => $clientIps[0], // consider first IP as real client IP address
+                'ip' => ClientIpTool::resolve(
+                    $_SERVER,
+                    Configure::read('MISP.log_client_ip_header'),
+                    Configure::read('MISP.trusted_proxies')
+                ),
                 'nat' => $client,
             ];
         }

@@ -5,9 +5,10 @@ $tableData = [
 ];
 if (Configure::read('MISP.tagging')) {
     ob_start();
-    if (!empty($event['Tag'])): foreach ($event['Tag'] as $tag): ?>
+    if (!empty($event['Tag'])): foreach ($event['Tag'] as $tag):
+        $colour = $this->TextColour->validColour($tag['colour'] ?? ''); ?>
     <span style="padding-right:0;">
-        <span class="tagFirstHalf" style="background-color:<?= h($tag['colour']);?>;color:<?= $this->TextColour->getTextColour($tag['colour']);?>"><?= h($tag['name']); ?></span>
+        <span class="tagFirstHalf" style="background-color:<?= $colour ?>;color:<?= $this->TextColour->getTextColour($colour);?>"><?= h($tag['name']); ?></span>
     </span>
     <?php endforeach; endif;
     $tags = ob_get_clean();

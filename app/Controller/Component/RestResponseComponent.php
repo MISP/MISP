@@ -768,7 +768,7 @@ class RestResponseComponent extends Component
             }
             if ($this->signContents) {
                 $data = $response->intoString();
-                $headers['x-pgp-signature'] = $this->sign($data);
+                $headers = array_merge($headers, $this->sign($data));
                 $cakeResponse = new CakeResponse(['body' => $data, 'status' => $code, 'type' => $type]);
             } else {
                 App::uses('CakeResponseFile', 'Tools');
@@ -788,7 +788,7 @@ class RestResponseComponent extends Component
             }
             $cakeResponse = new CakeResponse(['body' => $response, 'status' => $code, 'type' => $type]);
             if ($this->signContents) {
-                $headers['x-pgp-signature'] = $this->sign($response);
+                $headers = array_merge($headers, $this->sign($response));
             }
         }
 
@@ -834,7 +834,7 @@ class RestResponseComponent extends Component
 
     /**
      * @param string $response
-     * @return string Signature as base64 encoded string
+     * @return array Signature headers for the requester's MISP version, base64 encoded
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws Crypt_GPG_KeyNotFoundException
@@ -844,11 +844,11 @@ class RestResponseComponent extends Component
     {
         /** @var CryptographicKey $cryptographicKey */
         $cryptographicKey = ClassRegistry::init('CryptographicKey');
-        $signature = $cryptographicKey->signWithInstanceKey($response);
-        if (!$signature) {
+        $headers = $cryptographicKey->signatureHeaders($response, Configure::read('CurrentRequesterMispVersion'));
+        if (!$headers) {
             throw new Exception('Could not sign data.');
         }
-        return base64_encode($signature);
+        return $headers;
     }
 
     /**
@@ -2227,8 +2227,14 @@ class RestResponseComponent extends Component
     }
     private function __overwriteDecayingModel($scope, &$field) {
         $this->{$scope} = ClassRegistry::init("DecayingModel");
+        $user = $this->Controller->Auth->user();
+        $conditions = array();
+        if (empty($user['Role']['perm_site_admin'])) {
+            $conditions['OR'] = array('org_id' => $user['org_id'], 'all_orgs' => 1);
+        }
         $models = $this->{$scope}->find('list', array(
             'recursive' => -1,
+            'conditions' => $conditions,
             'fields' => array('name')
         ));
         $field['values'] = array();

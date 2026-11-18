@@ -45,6 +45,25 @@ if ($pickerBarOn) {
             'group' => $child['group'] ?? null,
         ];
     };
+    /*
+     * A dropdown with `display => 'list'` is drawn in the panel as its
+     * values, each with how many rows it keeps (`counts`, value => n) and a
+     * bar for its share of `total` (the counts' sum when absent); `html`
+     * (value => markup) draws a value richer than its label, `fold` is how
+     * many show before "+N more". One value at a time.
+     */
+    $toList = function (array $child) use ($toPicker) {
+        $list = $toPicker($child);
+        $list['type'] = 'list';
+        foreach ($list['options'] as &$option) {
+            $option['count'] = (int)($child['counts'][$option['value']] ?? 0);
+            $option['html'] = $child['html'][$option['value']] ?? null;
+        }
+        unset($option);
+        $list['total'] = $child['total'] ?? null;
+        $list['fold'] = $child['fold'] ?? 6;
+        return $list;
+    };
     $children = [];
     foreach ($filter_bar['children'] as $child) {
         $type = $child['type'] ?? '';
@@ -57,7 +76,8 @@ if ($pickerBarOn) {
             continue;
         }
         foreach ($selects as $select) {
-            $picker = empty($select['name']) ? null : $toPicker($select);
+            $picker = empty($select['name']) ? null
+                : (($select['display'] ?? null) === 'list' ? $toList($select) : $toPicker($select));
             if (!empty($picker['options'])) {
                 $children[] = $picker;
             }
@@ -130,8 +150,13 @@ $filterId = 'filter-bar-' . uniqid();
  */
 $pickers = [];
 $browserStrings = null;
+$strip = null;
 foreach ($filter_bar['children'] as $child) {
-    if (($child['type'] ?? '') === 'picker') {
+    if (($child['type'] ?? '') === 'time' && !empty($child['histograms'])) {
+        $strip = $child;
+    }
+    // A list names its values for the chips the way a picker does.
+    if (in_array($child['type'] ?? '', ['picker', 'list'], true)) {
         $pickers[$child['name']] = $child;
         if (!empty($child['browser'])) {
             $browserStrings = [];
@@ -172,8 +197,8 @@ if ($pickerMode) {
         ($filter_bar['transport'] ?? 'path') === 'query' ? ($this->request->query ?? []) : null
     );
     echo $this->element('genericElements/assetLoader', [
-        'css' => ['org-tile', 'index-filters'],
-        'js' => ['index-filters'],
+        'css' => array_merge(['index-filters'], $strip ? ['misp-brush'] : []),
+        'js' => array_merge($strip ? ['misp-brush'] : [], ['index-filters']),
     ]);
     if ($browserStrings !== null) {
         echo $this->element('genericElements/assetLoader', [
@@ -287,7 +312,7 @@ if ($pickerMode) {
     $buttonGroups = [];
     foreach ($filter_bar['children'] as $child) {
         $ctype = $child['type'] ?? '';
-        if (in_array($ctype, ['picker', 'time', 'value', 'value_match'], true)) {
+        if (in_array($ctype, ['picker', 'list', 'time', 'value', 'value_match'], true)) {
             $windowItems[] = $child;
         } elseif ($ctype === 'button') {
             $toggles[] = $child;
@@ -510,6 +535,12 @@ if ($pickerMode) {
         <?php endif; ?>
     </div>
 
+    <?php if ($strip): ?>
+        <?= $this->element('genericElementsBS5/IndexTable/filter_strip', [
+            'child' => $strip,
+            'state' => $filterState,
+        ]) ?>
+    <?php endif; ?>
 
 <?php else: ?>
 

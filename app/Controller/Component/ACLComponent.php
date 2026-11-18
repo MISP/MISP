@@ -435,6 +435,7 @@ class ACLComponent extends Component
             'importModule' => array('*'),
             'merge' => array('perm_modify'),
             'nids' => array('*'),
+            'peek' => array('*'),
             'populate' => array('perm_add'),
             'populateFrom' => array('AND' => ['perm_add', 'theming_enabled']),
             'proposalEventIndex' => array('*'),
@@ -587,7 +588,7 @@ class ACLComponent extends Component
             'relatedClusters' => array('*'),
             'restSearch' => array('*'),
             'search' => array('*'),
-            'unpublish' => array('perm_galaxy_editor'),
+            'unpublish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
             'updateCluster' => array('perm_galaxy_editor'),
             'view' => array('*'),
             'viewGalaxyMatrix' => array('*'),
@@ -628,6 +629,7 @@ class ACLComponent extends Component
             'eventIndex' => ['*'],
             'eventIndexV2' => ['theming_enabled'],
             'eventHistory' => ['theming_enabled'],
+            'valueHistory' => ['theming_enabled'],
             'returnDates' => ['*'],
         ],
         'accessLogs' => [
@@ -674,6 +676,7 @@ class ACLComponent extends Component
             'fetchViewValue' => array('*'),
             'quickAddAttributeForm' => array('perm_add'),
             'quickFetchTemplateWithValidObjectAttributes' => array('perm_add'),
+            'restore' => array('perm_add'),
             'restSearch' => array('*'),
             'surroundings' => ['*'],
             'proposeObjectsFromAttributes' => array('*'),
@@ -1160,10 +1163,10 @@ class ACLComponent extends Component
             ),
             'viewAnalystStanding' => array('theming_enabled'),
             'viewAnalystThread' => array('theming_enabled'),
+            'viewAnalystProposals' => array('theming_enabled'),
             'viewAnalystReports' => array('theming_enabled'),
             'viewAnalystComments' => array('theming_enabled'),
             'viewTimeline' => array('theming_enabled'),
-            'viewHistory' => array('theming_enabled'),
             'search' => array('*'),
             'delete' => array(),
         ),
@@ -1327,6 +1330,9 @@ class ACLComponent extends Component
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -1334,6 +1340,17 @@ class ACLComponent extends Component
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @return bool
+     * @see Event::isProtectedFromSyncUser()
+     */
+    private function isProtectedFromSyncUser(array $user, array $event)
+    {
+        return ClassRegistry::init('Event')->isProtectedFromSyncUser($user, $event);
     }
 
     /**
@@ -1351,6 +1368,9 @@ class ACLComponent extends Component
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -1359,6 +1379,8 @@ class ACLComponent extends Component
 
     /**
      * Returns true if user can add or remove tags for given event.
+     * The host org may set local tags on whatever is passed here: load the
+     * event or attribute with the user's visibility applied first.
      *
      * @param array $user
      * @param array $event
@@ -1381,7 +1403,11 @@ class ACLComponent extends Component
         if ($this->canModifyEvent($user, $event)) {
             return true; // full access
         }
-        if ($isTagLocal && $this->hostOrgId === (int)$user['org_id']) {
+        if (
+            $isTagLocal &&
+            $this->hostOrgId === (int)$user['org_id'] &&
+            !$this->isProtectedFromSyncUser($user, $event)
+        ) {
             return true;
         }
         return false;
