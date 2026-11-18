@@ -264,7 +264,14 @@ jobs:
       - name: Python setup
         run: |
           # Dirty install python stuff
-          python3 -m virtualenv -p python3 ./venv
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            # PyMISP 3 needs Python 3.11+, jammy ships 3.10
+            sudo add-apt-repository -y ppa:deadsnakes/ppa
+            sudo apt-get -y install python3.12 python3.12-venv python3.12-dev
+            python3.12 -m venv ./venv
+          else
+            python3 -m virtualenv -p python3 ./venv
+          fi
           app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"
           . ./venv/bin/activate
           export PYTHONPATH=$PYTHONPATH:./app/files/scripts
