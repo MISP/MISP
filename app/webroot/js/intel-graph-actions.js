@@ -403,7 +403,7 @@
             var say = function () {
                 var holds = describe(chosen.items);
                 var laid = canSaveGraph() && typeof chosen.graph === 'function'
-                    ? ', laid out as on the canvas' + (chosen.findings ? ', its ' + (chosen.findings === 1 ? 'finding' : chosen.findings + ' findings') + ' kept on its graph' : '')
+                    ? ', laid out as on the canvas' + (chosen.answers ? ', its ' + (chosen.answers === 1 ? 'answer' : chosen.answers + ' answers') + ' from modules kept on its graph' : '')
                     : '';
                 sub.textContent = copyOf
                     ? 'A copy of “' + copyOf.name + '” for your organisation, with ' + holds + laid + '.'

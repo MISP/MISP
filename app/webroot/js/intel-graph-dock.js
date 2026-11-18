@@ -141,7 +141,7 @@
         Object.keys(log).forEach(function (uuid) {
             out[uuid] = log[uuid].slice(0, LOG_MAX).map(function (e) {
                 return { id: e.id, kind: e.kind, keys: e.keys, present: e.present, labels: e.labels,
-                         count: e.count, refused: e.refused, message: e.message, at: e.at, why: e.why };
+                         count: e.count, refused: e.refused, narrower: e.narrower, message: e.message, at: e.at, why: e.why };
             });
         });
         write(LOG_KEY, out);
@@ -597,7 +597,8 @@
         Attribute:     { label: 'Attribute', icon: 'misp-icon misp-icon-attribute misp-simple', color: 'var(--bs-attribute)' },
         Object:        { label: 'Object', icon: 'misp-icon misp-icon-object misp-simple', color: 'var(--bs-object)' },
         GalaxyCluster: { label: 'Galaxy cluster', icon: 'misp-icon misp-icon-galaxy misp-simple', color: 'var(--bs-galaxy)' },
-        Value:         { label: 'Value', icon: 'misp-icon misp-icon-value-intelligence misp-simple', color: 'var(--bs-valueIntelligence)' }
+        Value:         { label: 'Value', icon: 'misp-icon misp-icon-value-intelligence misp-simple', color: 'var(--bs-valueIntelligence)' },
+        StandaloneObject: { label: 'Object', icon: 'misp-icon misp-icon-object misp-simple', color: 'var(--bs-object)' }
     };
     function typeOf(t) { return TYPE[t] || { label: t || 'Record', icon: 'fas fa-circle' }; }
     // A collection type as the collection form names it.
@@ -998,7 +999,21 @@
             (p.GalaxyCluster || []).forEach(function (r) { if (lower(r.uuid) === uuid) hit = r; });
             return hit && { type: type, title: hit.value, sub: hit.type ? hit.type + ' cluster' : 'galaxy cluster' };
         }
+        if (type === 'StandaloneObject') {
+            (p.StandaloneObject || []).forEach(function (r) { if (lower(r.uuid) === uuid) hit = r; });
+            return hit && { type: type, title: tellingValue(hit), sub: hit.name + ' object' };
+        }
         return null;
+    }
+    // A standalone object read by its most telling value
+    function tellingValue(rec) {
+        var attrs = rec.attributes || [];
+        var order = ['domain', 'hostname', 'url', 'ip', 'ip-dst', 'ip-src'];
+        for (var i = 0; i < order.length; i++) {
+            var hit = attrs.filter(function (a) { return a.relation === order[i]; })[0];
+            if (hit) return hit.value;
+        }
+        return attrs.length ? attrs[0].value : rec.name;
     }
     function describeItems(items) {
         var values = (items || []).filter(function (i) { return i.type === 'Value'; }).map(function (i) { return i.value; });
@@ -1047,14 +1062,15 @@
 
     IG().on('added', function (d) {
         var r = d.report || {};
-        // Every item turned down on its own, such as a value no attribute holds
+        // Every item turned down on its own, such as an object a template refuses
         if (!(r.added || []).length && !(r.present || []).length && (r.refused || []).length) {
-            refuse({ collection: d.collection, items: d.items, message: r.refused[0].error || 'Not added' });
+            if (!d.tellsRefusals) refuse({ collection: d.collection, items: d.items, message: r.refused[0].error || 'Not added' });
             return;
         }
         var entry = {
             id: String(++seq), keys: (r.added || []).slice(), present: (r.present || []).slice(),
-            count: (r.added || []).length, refused: (r.refused || []).length, labels: {}, at: Date.now(), fresh: true
+            count: (r.added || []).length, refused: (r.refused || []).length, labels: {}, at: Date.now(), fresh: true,
+            narrower: (r.narrower || []).length
         };
         entry.kind = entry.keys.length ? 'added' : 'present';
         var only = (d.items || []).length === 1 ? d.items[0] : null;
@@ -1108,7 +1124,7 @@
         renderTray();
     });
 
-    document.addEventListener('intel-graph:refused', function (e) { refuse(e.detail || {}); });
+    document.addEventListener('intel-graph:refused', function (e) { if (!(e.detail || {}).tellsRefusals) refuse(e.detail || {}); });
     function refuse(d) {
         if (!d.collection) return;
         var entry = { id: String(++seq), kind: 'refused', keys: [], present: [], labels: {}, at: Date.now(),
@@ -1506,6 +1522,13 @@
             var bodyEl = el('div', 'ig-so-arr-body');
             bodyEl.appendChild(link('ig-so-arr-title', titleOf(e), entryHref(e)));
             bodyEl.appendChild(subEl(e));
+            if (e.narrower && e.kind !== 'undone' && e.kind !== 'gone') {
+                var narrow = el('span', 'ig-so-arr-narrow');
+                narrow.setAttribute('data-ig-arrival-narrower', '');
+                narrow.appendChild(icon('fas fa-triangle-exclamation'));
+                narrow.appendChild(document.createTextNode(e.count === 1 && e.narrower === 1 ? t('narrowerOne') : tn('narrowerN', e.narrower)));
+                bodyEl.appendChild(narrow);
+            }
             if (e.why && !(trayWhy && trayWhy.id === e.id)) {
                 var said = el('span', 'ig-so-arr-why');
                 said.appendChild(el('strong', null, t('arrivalWhy') + ' '));

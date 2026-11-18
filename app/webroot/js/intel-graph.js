@@ -25,8 +25,8 @@
 //   intel-graph:active   { workspace }                         the workspace changed, here or in another tab
 //   intel-graph:count    { collection, element_count, state }  its member count moved; state
 //                        { withheld, changes } says what partners lack yet
-//   intel-graph:added    { collection, report, items, undo, origin }  addItems went through
-//   intel-graph:refused  { collection, items, status, message } addItems was refused
+//   intel-graph:added    { collection, report, items, undo, origin, tellsRefusals }  addItems went through
+//   intel-graph:refused  { collection, items, status, message, tellsRefusals } addItems was refused
 //   intel-graph:removed  { collection, report, items }         removeItems went through
 //   intel-graph:described { collection, key, description }     a member's why was said
 //   intel-graph:saved    { graph, report }                     a graph was saved from this page
@@ -414,7 +414,8 @@
     // undo }; a refusal rejects, after intel-graph:refused.
     // options.collection adds to that collection instead of the workspace.
     // options.origin, the element or { x, y } point the add was made from,
-    // is where the dock draws it leaving from.
+    // is where the dock draws it leaving from. options.tellsRefusals: the
+    // caller shows what is refused itself (intel-graph:added says so).
     function add(items, options) {
         var uuid = lower((options && options.collection) || (active && active.Collection.uuid));
         var origin = originOf(options && options.origin);
@@ -427,7 +428,7 @@
             var undo = added.length ? undoOnce(uuid, added) : null;
             countMoved(uuid, report);
             shareHeld(uuid, added.concat(report.present || []), []);
-            emit('added', { collection: uuid, report: report, items: items, undo: undo, origin: origin });
+            emit('added', { collection: uuid, report: report, items: items, undo: undo, origin: origin, tellsRefusals: !!(options && options.tellsRefusals) });
             return {
                 status: report.changed ? 'added' : 'unchanged',
                 collection: uuid,
@@ -435,7 +436,7 @@
                 undo: undo
             };
         }, function (err) {
-            emit('refused', { collection: uuid, items: items, status: err && err.status, message: err && err.message });
+            emit('refused', { collection: uuid, items: items, status: err && err.status, message: err && err.message, tellsRefusals: !!(options && options.tellsRefusals) });
             throw err;
         });
     }
@@ -549,6 +550,34 @@
             asked.catch(function () { if (_forTarget[key] === asked) delete _forTarget[key]; });
         }
         return _forTarget[key];
+    }
+
+    // Object templates, for a standalone object made by hand: the active ones
+    // [{ uuid, name, version, meta-category, description }] by name, and one
+    // whole ({ ObjectTemplate (requirements), ObjectTemplateElement }).
+    // Asked once per page.
+    var _templates = null, _template = {};
+    function templates() {
+        if (!_templates) {
+            var asked = request('GET', '/object_templates/index.json').then(function (rows) {
+                return (Array.isArray(rows) ? rows : []).map(function (x) { return x.ObjectTemplate || x; })
+                    .filter(function (x) { return x && x.active && x.active !== '0'; })
+                    .map(function (x) { return { uuid: x.uuid, name: x.name, version: x.version, 'meta-category': x['meta-category'], description: x.description }; })
+                    .sort(function (a, b) { return lower(a.name) < lower(b.name) ? -1 : lower(a.name) > lower(b.name) ? 1 : 0; });
+            });
+            _templates = asked;
+            asked.catch(function () { if (_templates === asked) _templates = null; });
+        }
+        return _templates;
+    }
+    function template(uuid) {
+        var key = lower(uuid);
+        if (!_template[key]) {
+            var asked = request('GET', '/object_templates/view/' + encodeURIComponent(key) + '.json');
+            _template[key] = asked;
+            asked.catch(function () { if (_template[key] === asked) delete _template[key]; });
+        }
+        return _template[key];
     }
 
     function graphsMoved(target) {
@@ -745,6 +774,8 @@
         create: create,
         fork: fork,
         forTarget: forTarget,
+        templates: templates,
+        template: template,
         holding: holding,
         data: data,
         thumbnail: thumbnail,

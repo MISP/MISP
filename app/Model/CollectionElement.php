@@ -317,10 +317,30 @@ class CollectionElement extends AppModel
                     ],
                     'contain' => ['Event' => ['fields' => ['id', 'info']]]
                 ]);
+                $ids = [];
                 foreach ($rows as $row) {
                     $byUuid[$row['Object']['uuid']] = $row['Object'] + [
                         'Event' => $row['Event'],
+                        'Attribute' => [],
                     ];
+                    $ids[(int)$row['Object']['id']] = $row['Object']['uuid'];
+                }
+                // What names the object: its attributes the user can read
+                if (!empty($ids)) {
+                    $attributes = ClassRegistry::init('MispAttribute')->fetchAttributesSimple($user, [
+                        'conditions' => ['Attribute.object_id' => array_keys($ids), 'Attribute.deleted' => 0],
+                        'fields' => ['Attribute.id', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.value'],
+                        'order' => ['Attribute.id' => 'ASC'],
+                    ]);
+                    foreach ($attributes as $row) {
+                        $uuid = $ids[(int)$row['Attribute']['object_id']] ?? null;
+                        if ($uuid !== null) {
+                            $byUuid[$uuid]['Attribute'][] = [
+                                'object_relation' => $row['Attribute']['object_relation'],
+                                'value' => $row['Attribute']['value'],
+                            ];
+                        }
+                    }
                 }
                 break;
         }

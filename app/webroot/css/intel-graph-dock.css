@@ -288,6 +288,8 @@ a.ig-so-arr-title:hover, a.ig-so-arr-title:focus-visible, .ig-so-arr-link:hover,
 .ig-so-arr-hint { padding: .1rem 1rem .6rem; color: var(--bs-secondary-color); font-size: .8rem; }
 .ig-so-arr-why { display: block; font-size: .78rem; color: var(--bs-body-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ig-so-arr-why strong { color: var(--bs-secondary-color); font-weight: 600; }
+.ig-so-arr-narrow { display: flex; align-items: baseline; gap: .35rem; margin-top: .15rem; font-size: .75rem; line-height: 1.3; color: var(--bs-warning-text-emphasis); }
+.ig-so-arr-narrow > i { flex: 0 0 auto; font-size: .65rem; }
 .ig-so-arr-whyform { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin-top: .3rem; }
 .ig-so-arr-whyform .form-control { flex: 1 1 9rem; min-width: 0; font-size: .8rem; }
 .ig-so-arr-whyform .btn { padding: .1rem .5rem; font-size: .75rem; }

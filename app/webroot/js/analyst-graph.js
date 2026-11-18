@@ -1242,18 +1242,7 @@
             return writeNodes('removeNodes', { items: keys });
         }
 
-        function keepNow(ids) {
-            var g = graph();
-            var items = ids.map(function (id) { return placedNode(g.getMutableNode(id)); }).filter(Boolean);
-            keep(ids);
-            if (!items.length) return Promise.resolve(null);
-            return writeNodes('addNodes', { items: items }).then(function (report) {
-                if (report) state.kept = state.kept.filter(function (id) { return ids.indexOf(id) === -1; });
-                return report;
-            });
-        }
-
-        // An answer MISP now holds gives its place to the member holding it
+        // An answer added to the collection gives its place to the member holding it
         function replaceNode(key, item) {
             var g = graph();
             var id = state.built.idOf[key];
@@ -1426,7 +1415,6 @@
             hideNow:    hideNow,
             showNow:    showNow,
             removeNow:  removeNow,
-            keepNow:    keepNow,
             replaceNode: replaceNode,
             keepPlaced: keepPlaced,
             hiddenNodes: hiddenNodes,

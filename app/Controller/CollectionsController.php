@@ -749,6 +749,14 @@ class CollectionsController extends AppController
         $elements = $this->Collection->CollectionElement->attachTargets($user, $elements);
         $data['Collection']['CollectionElement'] = $elements;
         $this->set('data', $data);
+        // Who added each member, where the user may see it (rearrangeCollection
+        // drops user_id otherwise)
+        $adderIds = array_values(array_unique(array_filter(array_column($elements, 'user_id'))));
+        $this->set('elementAdders', empty($adderIds) ? [] : ClassRegistry::init('User')->find('list', [
+            'recursive' => -1,
+            'fields' => ['User.id', 'User.email'],
+            'conditions' => ['User.id' => $adderIds],
+        ]));
 
         $totalElements = count($elements);
         $this->request->params['paging']['CollectionElement'] = [

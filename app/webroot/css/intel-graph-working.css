@@ -91,6 +91,9 @@
 .igw-views { margin-left: auto; }
 .igw-views[hidden] { display: none; }
 .igw-views .btn { padding: .05rem .55rem; font-size: .75rem; }
+.igw-bar-more { flex: 0 0 auto; margin-left: -.15rem; }
+.igw-views[hidden] + .igw-bar-more { margin-left: auto; }
+.igw-bar-more[hidden] { display: none; }
 .igw-tools { display: flex; flex-wrap: wrap; gap: .375rem; padding: 0 .75rem .5rem 1rem; flex: 0 0 auto; }
 .igw-search { position: relative; flex: 1 1 6rem; min-width: 6rem; }
 .igw-search > i { position: absolute; left: .6rem; top: 50%; transform: translateY(-50%); font-size: .7rem; color: var(--bs-secondary-color); pointer-events: none; }
@@ -131,7 +134,7 @@
 .igw-row {
     position: relative; display: grid; align-items: center; column-gap: .5rem; row-gap: .05rem;
     grid-template-columns: 1rem 1.25rem minmax(0, 1fr) 1.75rem;
-    grid-template-areas: "pick ico val act" ". . meta act" ". . why why" ". . edit edit";
+    grid-template-areas: "pick ico val act" ". . meta act" ". . org org" ". . why why" ". . edit edit";
     padding: .4rem .5rem .4rem 1rem; border-bottom: 1px solid var(--bs-border-color-translucent); cursor: pointer;
 }
 .igw-row:hover { background: var(--bs-tertiary-bg); }
@@ -170,8 +173,7 @@
     font-size: .6875rem; font-weight: 600; line-height: 1.35rem; white-space: nowrap; border: 1px solid transparent;
 }
 .igw-chip > i { font-size: .625rem; }
-.igw-chip.is-finding { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); border-color: var(--bs-warning-border-subtle); }
-.igw-chip.is-known { background: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis); border-color: var(--bs-success-border-subtle); }
+.igw-chip.is-missing { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); border-color: var(--bs-warning-border-subtle); }
 .igw-chip.is-hidden { background: var(--bs-secondary-bg); color: var(--bs-emphasis-color); border-color: var(--bs-border-color); }
 .igw-c-ev, .igw-c-add { display: none; }
 .igw-cell2 { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; color: var(--bs-secondary-color); }
@@ -195,18 +197,71 @@
 .igw-menu .dropdown-item.is-danger, .igw-menu .dropdown-item.is-danger > i { color: var(--bs-danger-text-emphasis); }
 .igw-menu .dropdown-header { font-size: .6875rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; padding: .25rem .85rem; color: var(--bs-secondary-color); }
 
+/* Where a member came from, as the row's own line */
+.igw-origin { grid-area: org; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; color: var(--bs-secondary-color); }
+.igw-origin > i { margin-right: .35rem; font-size: .65rem; }
+.igw-open { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; font-size: .65rem; }
+
+/* A standalone object, opened */
+.igw-pop {
+    position: fixed; z-index: 1086; width: min(26rem, calc(100vw - 16px)); padding: .75rem .9rem .8rem; font-size: .8125rem;
+    background: var(--bs-body-bg); color: var(--bs-body-color); border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg); box-shadow: var(--bs-box-shadow); overflow-wrap: anywhere;
+}
+.igw-pop:focus { outline: 0; }
+.igw-pop-head { display: flex; align-items: flex-start; gap: .6rem; margin-bottom: .55rem; }
+.igw-pop-title { flex: 1 1 auto; min-width: 0; line-height: 1.25; }
+.igw-pop-title strong { display: block; font-size: .9375rem; color: var(--bs-emphasis-color); }
+.igw-pop-sub { color: var(--bs-secondary-color); font-size: .78rem; }
+.igw-pop-x { flex: 0 0 auto; margin: -.2rem -.3rem 0 0; }
+.igw-pop-from { margin: 0 0 .5rem; }
+.igw-pop-from > i { color: var(--bs-secondary-color); margin-right: .35rem; }
+.igw-pop-attrs { width: 100%; border-collapse: collapse; margin-bottom: .55rem; color: var(--bs-body-color); }
+.igw-pop-attrs th, .igw-pop-attrs td { padding: .2rem .5rem .2rem 0; vertical-align: top; border-top: 1px solid var(--bs-border-color-translucent); }
+.igw-pop-attrs th { width: 6.5rem; font-weight: 600; color: var(--bs-secondary-color); }
+.igw-pop-attrs td.igw-pop-type { width: 4.5rem; color: var(--bs-secondary-color); }
+.igw-pop-attrs td:last-child { padding-right: 0; }
+.igw-pop-meta { display: grid; grid-template-columns: auto 1fr; gap: .1rem .6rem; margin: 0; }
+.igw-pop-meta dt { font-weight: 600; color: var(--bs-secondary-color); }
+.igw-pop-meta dd { margin: 0; }
+
+/* New object from a template…, unfolded above the rows */
+.igw-newobj { padding: .6rem .75rem .7rem 1rem; background: var(--bs-tertiary-bg); border-bottom: 1px solid var(--bs-border-color); cursor: auto; }
+.igw-newobj form { display: flex; flex-direction: column; gap: .45rem; }
+.igw-no-pick { display: flex; align-items: center; gap: .5rem; }
+.igw-no-pick label, .igw-no-f label { font-size: .75rem; font-weight: 600; color: var(--bs-secondary-color); }
+.igw-no-pick .form-select { flex: 0 1 14rem; min-width: 0; font-size: .8125rem; }
+.igw-no-req { display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--bs-secondary-color); }
+.igw-no-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: .35rem .6rem; }
+.igw-no-f { display: flex; flex-direction: column; min-width: 0; }
+.igw-no-f .form-control { font-size: .8125rem; }
+.igw-no-star { margin-left: .15rem; color: var(--bs-danger-text-emphasis); }
+.igw-no-err {
+    display: flex; align-items: flex-start; gap: .4rem; padding: .35rem .5rem; font-size: .75rem;
+    background: var(--bs-danger-bg-subtle); color: var(--bs-danger-text-emphasis); border: 1px solid var(--bs-danger-border-subtle); border-radius: var(--bs-border-radius);
+}
+.igw-no-err > i { margin-top: .15rem; }
+/* Within reach while the form is taller than the list */
+.igw-no-acts {
+    position: sticky; bottom: 0; z-index: 1; display: flex; align-items: center; gap: .4rem;
+    margin: 0 -.75rem -.7rem -1rem; padding: .45rem .75rem .55rem 1rem;
+    background: var(--bs-tertiary-bg); border-top: 1px solid var(--bs-border-color-translucent);
+}
+.igw-no-acts .btn { padding: .1rem .6rem; font-size: .75rem; }
+.igw-no-acts .btn-link { text-decoration: none; }
+
 @container igw (min-width: 660px) {
     .igw-row, .igw-cols {
         grid-template-columns: 1rem 1.25rem minmax(0, 1.7fr) minmax(0, .95fr) minmax(0, 1.2fr) minmax(0, 1.35fr) 1.75rem;
-        grid-template-areas: "pick ico val ev add why act" ". . meta ev add why act" ". . edit edit edit edit edit";
+        grid-template-areas: "pick ico val ev add why act" ". . meta ev add why act" ". . org ev add why act" ". . edit edit edit edit edit";
     }
     .igw-edit .igw-why-form { max-width: 40rem; }
     .igw-row { padding-top: .45rem; padding-bottom: .45rem; }
     .igw-meta > .igw-n, .igw-val > .igw-chip { display: none; }
     .igw-meta { display: flex; align-items: center; }
     .igw-meta > span { flex: 0 0 auto; }
+    .igw-meta > span:first-child { flex: 0 1 auto; min-width: 2rem; overflow: hidden; text-overflow: ellipsis; }
     .igw-meta > .igw-w { display: inline-flex; margin-left: .4rem; order: 2; }
-    .igw-meta > .igw-from { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; order: 3; }
     .igw-tools .form-select, .igw-tools [data-igw-kind] { flex: 0 0 10rem; }
     .igw-c-ev { grid-area: ev; display: block; min-width: 0; }
     .igw-c-add { grid-area: add; display: block; min-width: 0; }

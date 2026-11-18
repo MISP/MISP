@@ -1,7 +1,8 @@
 // The working view: a collection drawn by the graph laying it out, with a
-// list beside the canvas holding every member, finding and extra it draws,
-// and what a pivot brought. One selection is shared by the list and the
-// canvas; the menus of both offer what fits each node.
+// list beside the canvas holding every member and extra it draws, and what a
+// pivot brought. One selection is shared by the list and the canvas; the
+// menus of both offer what fits each node. A standalone object opens in a
+// popover; New object from a template… unfolds its form above the rows.
 //
 // Two frames: the dock (intel-graph-dock.js builds it around its stage) and
 // the collection page's Pivot Explorer tab (started here, from
@@ -15,9 +16,11 @@
 //   frame.attach(handle)    once it is ready; frame.detach(), frame.none(on)
 //   IntelGraphWorking.t(key, …), .tn(key, n, …)  the words, from
 //                           Elements/intel_graph_working_text.ctp
+//   IntelGraphWorking.openObject(view, anchor, point)  a standalone object's
+//                           popover, for the collection page's members card too
 //
-// Graph edits (hide, show, remove from the graph, keep as a finding) are
-// written at once; only moves wait for Save layout.
+// Graph edits (hide, show, remove from the graph) are written at once; only
+// moves wait for Save layout.
 (function () {
     'use strict';
     if (window.IntelGraphWorking) return;
@@ -32,6 +35,12 @@
         var block = document.getElementById('ig-working-text');
         try { words = block ? JSON.parse(block.textContent) : {}; } catch (e) { words = {}; }
         return words;
+    }
+    // When a module answered, as the payload's ran_at (seconds) gives it
+    function originDay(o) {
+        if (!o || !o.ran_at) return '';
+        var d = new Date(o.ran_at * 1000);
+        return isNaN(d) ? '' : d.toISOString().slice(0, 10);
     }
     function fill(s, args) {
         var i = 0;
@@ -61,7 +70,6 @@
     }
     var GROUPS = [
         { role: 'member', key: 'groupMember' },
-        { role: 'finding', key: 'groupFinding' },
         { role: 'extra', key: 'groupExtra', icon: 'fas fa-folder-minus' },
         { role: 'pivot', key: 'groupPivot' }
     ];
@@ -89,7 +97,8 @@
     function day(when) { return String(when || '').slice(0, 10); }
     function minute(when) { return String(when || '').slice(0, 16); }
     function toast(message, kind) { if (typeof window.showToast === 'function') window.showToast(message, kind || 'info'); }
-    function sel(rid) { return '[data-rid="' + (window.CSS && CSS.escape ? CSS.escape(rid) : rid) + '"]'; }
+    function cssKey(s) { return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'); }
+    function sel(rid) { return '[data-rid="' + cssKey(rid) + '"]'; }
 
     /* ── what the frame draws, and what the user may do there ── */
     function payload(F) { var h = F.h || F.bound; try { return (h && h.payload()) || {}; } catch (e) { return {}; } }
@@ -105,26 +114,22 @@
     function where(F) { return { collection: collectionOf(F).uuid }; }
 
     /* ── the marks: one quiet rim badge, in one corner ── */
-    function badge(kind) {
+    function badge(kind, origin) {
         var d = dark();
         var B = {
-            finding: { iconClass: 'fas fa-lightbulb', color: d ? 'var(--bs-warning-border-subtle)' : 'var(--bs-warning-text-emphasis)', title: t('badgeFinding') },
-            known:   { iconClass: 'fas fa-circle-check', color: 'var(--bs-success)', title: t('badgeKnown') },
+            missing: { iconClass: 'fas fa-circle-question', color: d ? 'var(--bs-warning-border-subtle)' : 'var(--bs-warning-text-emphasis)', title: t('badgeMissing') },
             extra:   { iconClass: 'fas fa-folder-minus', color: 'var(--bs-secondary)', title: t('badgeExtra') }
         }[kind];
-        return Object.assign({ position: 'sw' }, B, { title: B.title + '\n' + t('badgeFind') });
+        var from = origin ? originText({ from: origin }) + '\n' : '';
+        return Object.assign({ position: 'sw' }, B, { title: B.title + '\n' + from + t('badgeFind') });
     }
     function badgesOf(F) {
-        return function (key, data, node) {
+        return function (key) {
             var W = payload(F).working || {};
             var mark = key ? W[key] || null : null;
             var out = null;
-            if (mark) {
-                if (mark.role === 'member' && mark.missing) out = badge('finding');
-                else if (mark.role === 'extra') out = badge('extra');
-            } else if (node && F.kept[node.id]) {
-                out = badge(data && data.known ? 'known' : 'finding');
-            }
+            if (mark && mark.role === 'member' && mark.missing) out = badge('missing', mark.origin || null);
+            else if (mark && mark.role === 'extra') out = badge('extra');
             if (!out) return [];
             out.onClick = function (e, clicked) { badgeClicked(F, clicked || node); };
             return [out];
@@ -171,9 +176,9 @@
         var r = {
             rid: key, key: key, type: type,
             kind: type === 'ModuleAnswer' ? 'Attribute' : type === 'StandaloneObject' ? 'Object' : (TYPES[type] ? type : 'Attribute'),
-            role: mark.role, known: !!mark.known, missing: !!mark.missing, el: mark.element || null, data: d,
+            role: mark.role, missing: !!mark.missing, el: mark.element || null, data: d,
             value: d.value || d.label || addr, typeLabel: '', eventId: null,
-            from: mark.origin ? { module: mark.origin.module, value: mark.origin.value } : null
+            from: mark.origin ? { module: mark.origin.module, value: mark.origin.value, ran_at: mark.origin.ran_at } : null
         };
         if (type === 'Event') {
             var ev = idx.ev[addr];
@@ -198,17 +203,25 @@
             r.typeLabel = typeName('Value');
         } else if (type === 'StandaloneObject') {
             var so = idx.sobj[addr];
+            r.so = so || null;
             r.value = so ? objectValue({ name: so.name, Attribute: (so.attributes || []).map(function (a) {
                 return { object_relation: a.relation, value: a.value };
             }) }) : d.label;
             r.typeLabel = t('objectOf', (so && so.name) || d.name || typeName('Object'));
         } else if (type === 'ModuleAnswer') {
             var n = idx.doc[addr], c = (n && n.content) || {};
-            r.value = c.value || d.value;
-            r.typeLabel = c.type || d['attr-type'] || typeName('Value');
+            if (Array.isArray(c.attributes)) {
+                // An object a module answered, read as the member it would make
+                r.kind = 'Object';
+                r.value = objectValue({ name: c.name, Attribute: c.attributes.map(function (a) { return { object_relation: a.relation, value: a.value }; }) });
+                r.typeLabel = t('objectOf', c.name || typeName('Object'));
+            } else {
+                r.value = c.value || d.value;
+                r.typeLabel = c.type || d['attr-type'] || typeName('Value');
+            }
             var origin = n && n.origins && n.origins[0];
             if (origin) {
-                r.from = { module: origin.module, value: origin.value };
+                r.from = { module: origin.module, value: origin.value, ran_at: origin.ran_at };
                 var oa = idx.attr[lower(String(origin.node || '').split(':')[1])];
                 if (oa) r.eventId = String(oa.event_id);
             } else if (d.module) {
@@ -225,7 +238,6 @@
         else if (type === 'Value') r.item = r.value ? { type: 'Value', value: r.value } : { type: 'Value', sha256: key.slice(at + 1) };
         else r.item = type === 'ModuleAnswer' ? null : { type: type, uuid: key.slice(at + 1) };
         r.canAdd = r.role === 'extra' && !!r.item;
-        r.canKeep = false;
         return r;
     }
     function enrichEdge(F, id) {
@@ -234,27 +246,27 @@
             return e ? e.getData() : null;
         } catch (err) { return null; }
     }
-    // A node a pivot brought, or one being kept: no document key yet.
-    function looseRow(F, p, node, kept) {
+    // A node a pivot brought: no document key yet.
+    function looseRow(F, p, node) {
         var d = node.getData() || {};
         var target = F.h.targetOf(node)[0] || {};
         var answer = d.scope === 'module';
         var kind = { event: 'Event', object: 'Object', cluster: 'GalaxyCluster', value: 'Value' }[d.type] || 'Attribute';
         var r = {
             rid: node.id, key: null, type: answer ? 'ModuleAnswer' : kind, kind: kind, node: node,
-            role: kept ? 'finding' : 'pivot', pivot: !kept, kept: !!kept, known: !!d.known, data: d,
+            role: 'pivot', pivot: true, data: d,
             value: d.value || d.label,
             typeLabel: d['attr-type'] || (kind === 'Object' ? (d.name ? t('objectOf', d.name) : typeName('Object')) : typeName(kind)),
             eventId: d.event_id ? String(d.event_id) : null, from: null, why: '',
-            item: target.item || (answer && d.known ? { type: 'Value', value: d.value } : null)
+            item: target.item || null
         };
         if (answer) {
             var e = enrichEdge(F, node.id);
-            r.from = { module: d.module || (d.modules || [])[0], value: e ? (e.asked || (e.origin && e.origin.value)) : null };
+            var o = e && e.origin;
+            r.from = { module: d.module || (d.modules || [])[0], value: e ? (e.asked || (o && o.value)) : null, ran_at: o && o.ran_at };
         }
         if (r.eventId && p.events && p.events[r.eventId]) r.eventInfo = p.events[r.eventId].info;
-        r.canAdd = !kept && !!r.item;
-        r.canKeep = false;
+        r.canAdd = !!r.item;
         return r;
     }
     function collect(F) {
@@ -271,16 +283,13 @@
             r.node = isHidden ? null : node;
             rows.push(r);
         });
-        var pivoted = {};
-        h.pivoted().forEach(function (id) { pivoted[id] = true; });
         var g = h.graph();
-        Object.keys(pivoted).concat(Object.keys(F.kept)).forEach(function (id) {
+        h.pivoted().forEach(function (id) {
             var n = g.getMutableNode(id);
-            if (!n) { delete F.kept[id]; return; }
+            if (!n) return;
             var target = h.targetOf(n)[0];
-            if (target && target.key) { delete F.kept[id]; return; }
-            if (!pivoted[id] && !F.kept[id]) return;
-            rows.push(looseRow(F, p, n, !pivoted[id]));
+            if (target && target.key) return;
+            rows.push(looseRow(F, p, n));
         });
         return rows;
     }
@@ -304,7 +313,7 @@
         var f = F.f;
         if (f.role !== 'all') {
             if (f.role === 'member' && r.role !== 'member') return false;
-            if (f.role === 'finding' && !r.missing && r.role !== 'finding') return false;
+            if (f.role === 'missing' && !r.missing) return false;
             if (f.role === 'extra' && r.role !== 'extra') return false;
             if (f.role === 'hidden' && !r.hidden) return false;
         }
@@ -329,11 +338,11 @@
     }
 
     /* ── drawing the list ── */
-    function chip(cls, icon, label) {
-        return '<span class="igw-chip ' + cls + '"><i class="' + icon + '" aria-hidden="true"></i>' + esc(label) + '</span>';
+    function chip(cls, icon, label, attr) {
+        return '<span class="igw-chip ' + cls + '"' + (attr || '') + '><i class="' + icon + '" aria-hidden="true"></i>' + esc(label) + '</span>';
     }
     function chipOf(r) {
-        if (r.missing || r.role === 'finding') return chip('is-finding', 'fas fa-lightbulb', t('chipFinding'));
+        if (r.missing) return chip('is-missing', 'fas fa-circle-question', t('chipMissing'), ' data-igw-missing');
         if (r.hidden) return chip('is-hidden', 'fas fa-eye-slash', t('chipHidden'));
         return '';
     }
@@ -341,6 +350,16 @@
         if (!r.from) return '';
         var module = r.from.module || t('aModule');
         return r.from.value ? t('fromModuleOn', module, r.from.value) : t('fromModule', module);
+    }
+    // from ‹module› on ‹asked›, ‹day›
+    function originText(r) {
+        var on = originDay(r.from);
+        return fromText(r) + (on ? t('originOn', on) : '');
+    }
+    function originHtml(r) {
+        if (!r.from) return '';
+        var said = originText(r);
+        return '<span class="igw-origin" data-igw-origin title="' + esc(said) + '"><i class="fas fa-puzzle-piece" aria-hidden="true"></i>' + esc(said) + '</span>';
     }
     function whyForm(F) {
         var id = 'igw-why-' + F.where;
@@ -367,14 +386,17 @@
         html += '<input type="checkbox" class="form-check-input igw-pick" data-igw-pick aria-label="' + esc(t('selectRow', r.value)) + '"' + (picked ? ' checked' : '') + '>';
         html += '<span class="igw-ico" style="color:' + T.color + '" title="' + esc(typeName(r.kind)) + '"><i class="' + T.icon + '" aria-hidden="true"></i></span>';
         var chipHtml = chipOf(r);
-        html += '<span class="igw-val"><span class="igw-v" title="' + esc(r.value) + '">' + esc(r.value) + '</span>' + chipHtml + '</span>';
+        html += '<span class="igw-val"><span class="igw-v" title="' + esc(r.value) + '">' + esc(r.value) + '</span>' + chipHtml
+            + (r.so ? '<button type="button" class="igw-ibtn igw-open" data-igw-open aria-haspopup="dialog" title="' + esc(t('openObject'))
+                + '" aria-label="' + esc(t('openObjectOf', r.value)) + '"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>' : '')
+            + '</span>';
         var meta = '<span>' + esc(r.typeLabel) + '</span>';
-        if (r.from) meta += '<span class="igw-from" title="' + esc(fromText(r)) + '">' + esc(fromText(r)) + '</span>';
         if (r.eventId && r.type !== 'Event') meta += '<span class="igw-n" title="' + esc(r.eventInfo || '') + '">' + esc(t('eventN', r.eventId)) + '</span>';
         if (r.who) meta += '<span class="igw-n">' + esc(r.who) + '</span>';
         if (r.when) meta += '<span class="igw-n" title="' + esc(r.when) + '">' + esc(day(r.when)) + '</span>';
         if (chipHtml) meta += '<span class="igw-w">' + chipHtml + '</span>';
         html += '<span class="igw-meta">' + meta + '</span>';
+        html += originHtml(r);
         html += '<span class="igw-c-ev">' + (r.eventId
             ? '<span class="igw-cell1">#' + esc(r.eventId) + '</span>' + (r.eventInfo && r.type !== 'Event' ? '<span class="igw-cell2" title="' + esc(r.eventInfo) + '">' + esc(r.eventInfo) + '</span>' : '')
             : '') + '</span>';
@@ -394,14 +416,9 @@
             } else if (canEditCollection(F)) {
                 why += '<button type="button" class="btn btn-link btn-sm igw-say" data-igw-why>' + esc(t('sayWhy')) + '</button>';
             }
-        } else if (r.role === 'pivot') {
-            if (r.canAdd && canEditCollection(F)) {
-                why += '<button type="button" class="btn btn-outline-primary btn-sm igw-do" data-igw-do="add"><i class="fas fa-plus me-1" aria-hidden="true"></i>'
-                    + esc(tn(F.ws ? 'addWs' : 'addColl', 1)) + '</button>';
-            } else if (r.canKeep && graphWritable(F)) {
-                why += '<button type="button" class="btn btn-outline-primary btn-sm igw-do" data-igw-do="keep"><i class="fas fa-thumbtack me-1" aria-hidden="true"></i>'
-                    + esc(tn('keep', 1)) + '</button>';
-            }
+        } else if (r.role === 'pivot' && r.canAdd && canEditCollection(F)) {
+            why += '<button type="button" class="btn btn-outline-primary btn-sm igw-do" data-igw-do="add"><i class="fas fa-plus me-1" aria-hidden="true"></i>'
+                + esc(tn(F.ws ? 'addWs' : 'addColl', 1)) + '</button>';
         }
         html += '<span class="igw-why">' + why + '</span>';
         if (F.editing === r.rid) html += '<div class="igw-edit">' + whyForm(F) + '</div>';
@@ -412,6 +429,7 @@
     function render(F) {
         clearTimeout(F.renderTimer);
         if (!F.h) {
+            F.moreEl.hidden = true;
             F.loadEl.hidden = false;
             F.list.hidden = true;
             F.bulk.hidden = true;
@@ -432,6 +450,8 @@
         Object.keys(F.picks).forEach(function (rid) { if (!F.byRid[rid]) delete F.picks[rid]; });
         if (F.current && !F.byRid[F.current]) F.current = null;
         if (F.editing && !F.byRid[F.editing]) F.editing = null;
+        F.moreEl.hidden = !canEditCollection(F);
+        if (F.no && F.moreEl.hidden) closeNewObject(F);
         var shown = F.rows.filter(function (r) { return matches(F, r); });
         var sort = sorter(F);
         var html = '';
@@ -454,7 +474,12 @@
         }
         var focus = rememberFocus(F);
         var top = F.list.scrollTop;
+        var formFocus = F.formEl && F.formEl.contains(document.activeElement) ? document.activeElement : null;
         F.list.innerHTML = html;
+        if (F.no && F.formEl) {
+            F.list.insertBefore(F.formEl, F.list.firstChild);
+            if (formFocus) formFocus.focus({ preventScroll: true });
+        }
         F.list.scrollTop = top;
         Array.prototype.forEach.call(F.list.querySelectorAll('[data-igw-mixed]'), function (c) { c.indeterminate = true; });
         var tab = F.list.querySelector('.igw-row.is-current') || F.list.querySelector('.igw-row');
@@ -508,8 +533,8 @@
             all.indeterminate = !!n && n < F.shown.length;
         }
     }
-    // What a bulk removal takes: members out of the collection, findings and
-    // extras off the graph, pivots off the canvas.
+    // What a bulk removal takes: members out of the collection, extras off
+    // the graph, pivots off the canvas.
     function removable(F, r) {
         if (r.role === 'member') return canEditCollection(F);
         if (r.role === 'pivot') return true;
@@ -624,6 +649,11 @@
         syncCanvas(F);
         if (r.node && !(opts && opts.reveal === false)) reveal(F, r.node);
     }
+    // A standalone object's row opens it too, once the canvas has answered the pick
+    function findAndOpen(F, rid) {
+        find(F, rid);
+        if (F.byRid[rid] && F.byRid[rid].so) setTimeout(function () { openObject(F, rid); }, 60);
+    }
     function togglePick(F, rid, on) {
         if (on) F.picks[rid] = true; else delete F.picks[rid];
         F.current = rid;
@@ -648,10 +678,11 @@
     var ENTRIES = [
         { id: 'add', icon: 'fas fa-plus', key: function (F) { return F.ws ? 'addWs' : 'addColl'; },
           fits: function (r, T, F) { return !!r.canAdd && canEditCollection(F); }, run: addToCollection },
-        { id: 'keep', icon: 'fas fa-thumbtack', key: 'keep',
-          fits: function (r, T, F) { return !!r.canKeep && graphWritable(F); }, run: keepAsFinding },
+        { id: 'object', icon: 'fas fa-up-right-and-down-left-from-center', key: 'openObject', single: true,
+          fits: function (r, T) { return T.length === 1 && !!r.so; },
+          run: function (F, fit) { openObject(F, fit[0].rid); } },
         { id: 'event', icon: 'fas fa-calendar-plus', key: 'createEvent',
-          fits: function (r) { return r.role === 'finding' && !r.known; }, run: function () { toast(t('eventLater'), 'info'); } },
+          fits: function (r) { return r.role === 'member' && r.missing; }, run: function () { toast(t('eventLater'), 'info'); } },
         { id: 'remove', icon: 'fas fa-folder-minus', danger: true, key: function (F) { return F.ws ? 'removeWs' : 'removeColl'; },
           fits: function (r, T, F) { return r.role === 'member' && canEditCollection(F); }, run: removeFromCollection },
         { id: 'hide', icon: 'fas fa-eye-slash', key: 'hide',
@@ -662,7 +693,7 @@
           fits: function (r, T, F) { return T.length === 1 && r.role === 'member' && canEditCollection(F); },
           run: function (F, fit) { openWhy(F, fit[0].rid); } },
         { id: 'drop', icon: 'fas fa-trash-can', danger: true, divider: true, key: 'drop',
-          fits: function (r, T, F) { return (r.role === 'finding' || r.role === 'extra') && (graphWritable(F) || !r.key); }, run: removeFromGraph },
+          fits: function (r, T, F) { return r.role === 'extra' && (graphWritable(F) || !r.key); }, run: removeFromGraph },
         { id: 'open', icon: 'fas fa-up-right-from-square', divider: true, key: 'openEvent', single: true,
           fits: function (r, T) { return T.length === 1 && !!r.eventId && ['Attribute', 'Object', 'Event'].indexOf(r.type) !== -1; },
           run: function (F, fit) { openEvent(fit[0]); } },
@@ -712,7 +743,9 @@
                 if (!F.h) return;
                 var T = targetsOf(F, el);
                 var fit = T.filter(function (r) { return E.fits(r, T, F); });
-                if (fit.length) E.run(F, fit, T);
+                // What opens from here (a popover) opens where the menu was
+                F.menuPoint = ev && typeof ev.clientX === 'number' ? { x: ev.clientX, y: ev.clientY } : null;
+                try { if (fit.length) E.run(F, fit, T); } finally { F.menuPoint = null; }
             };
             return item;
         });
@@ -731,10 +764,11 @@
         window.removeEventListener('resize', m.close);
         if (refocus && m.anchor && document.contains(m.anchor)) m.anchor.focus();
     }
-    function openListMenu(F, rows, anchor, point, title) {
+    // extra: entries of the list's own, [{ attr, icon, text, run }]
+    function openListMenu(F, rows, anchor, point, title, extra) {
         closeMenu(false);
-        var entries = fitting(F, rows);
-        if (!entries.length) return;
+        var entries = rows.length ? fitting(F, rows) : [];
+        if (!entries.length && !(extra && extra.length)) return;
         var el = document.createElement('div');
         el.className = 'dropdown-menu show igw-menu shadow';
         el.setAttribute('role', 'menu');
@@ -759,6 +793,16 @@
                 closeMenu(false);
                 x.E.run(F, x.fit, rows);
             });
+            el.appendChild(b);
+        });
+        (extra || []).forEach(function (x) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'dropdown-item';
+            b.setAttribute('role', 'menuitem');
+            b.setAttribute(x.attr, '');
+            b.innerHTML = '<i class="' + x.icon + '" aria-hidden="true"></i><span>' + esc(x.text) + '</span>';
+            b.addEventListener('click', function () { closeMenu(false); x.run(); });
             el.appendChild(b);
         });
         el.style.visibility = 'hidden';
@@ -799,8 +843,8 @@
     function settle(F, rows) {
         rows.forEach(function (r) { delete F.busy[r.rid]; delete F.picks[r.rid]; });
     }
-    // A finding MISP now holds gives its place on the graph to the member
-    // holding it; a pivot's answer leaves the canvas once its value is in.
+    // An answer added gives its place on the graph to the member holding it;
+    // a pivot's answer leaves the canvas once it is in.
     function addToCollection(F, fit) {
         var rows = fit.filter(function (r) { return r.item; });
         if (!rows.length) return Promise.resolve();
@@ -827,20 +871,6 @@
             failed(F, err, 'notAdded');
         });
     }
-    function keepAsFinding(F, fit) {
-        var ids = fit.map(function (r) { return r.rid; });
-        var h = F.h;
-        ids.forEach(function (id) { F.kept[id] = true; });
-        F.current = ids[ids.length - 1];
-        F.scrollTo = F.current;
-        var kept = h.keepNow(ids);
-        h.redraw();
-        render(F);
-        return kept.then(function () { if (F.h === h) render(F); }, function (err) {
-            ids.forEach(function (id) { delete F.kept[id]; });
-            failed(F, err, 'notKept');
-        });
-    }
     // Out of the collection, and off the graph laying it out (C14: one click).
     function removeFromCollection(F, fit) {
         var rows = fit.filter(function (r) { return r.role === 'member' && r.key; });
@@ -865,10 +895,7 @@
         var keys = fit.filter(function (r) { return r.key; }).map(function (r) { return r.key; });
         var ids = fit.filter(function (r) { return !r.key; }).map(function (r) { return r.rid; });
         fit.forEach(function (r) { delete F.picks[r.rid]; });
-        if (ids.length) {
-            ids.forEach(function (id) { delete F.kept[id]; });
-            F.h.remove(ids);
-        }
+        if (ids.length) F.h.remove(ids);
         render(F);
         syncCanvas(F);
         if (!keys.length) return Promise.resolve();
@@ -915,6 +942,250 @@
         try {
             navigator.clipboard.writeText(String(r.value)).then(function () { toast(t('copied', r.value), 'success'); }, nope);
         } catch (e) { nope(); }
+    }
+
+    /* ── a standalone object, opened in a popover anchored to its row or node ── */
+    var pop = null;
+    function closeObject() {
+        if (!pop) return;
+        var p = pop;
+        pop = null;
+        p.el.remove();
+        document.removeEventListener('pointerdown', p.outside, true);
+        document.removeEventListener('keydown', p.keys, true);
+        window.removeEventListener('resize', closeObject);
+    }
+    // Below whatever is fixed along the window's top edge (the navbar)
+    function topBound() {
+        var at = document.elementFromPoint(document.documentElement.clientWidth / 2, 1);
+        for (; at && at !== document.body && at !== document.documentElement; at = at.parentElement) {
+            var pos = window.getComputedStyle(at).position;
+            if (pos === 'fixed' || pos === 'sticky') return Math.max(8, at.getBoundingClientRect().bottom + 8);
+        }
+        return 8;
+    }
+    // Wholly inside the window, never scrolling: beside the anchor, else under it
+    function placeObject(el, anchor, point) {
+        var vw = document.documentElement.clientWidth, vh = window.innerHeight, w = el.offsetWidth, h = el.offsetHeight, x, y;
+        var top = topBound();
+        if (anchor) {
+            anchor.scrollIntoView({ block: 'nearest' });
+            var r = anchor.getBoundingClientRect();
+            if (r.width > vw * 0.5) {
+                x = r.left + 48;
+                y = r.bottom + 4;
+                if (y + h > vh - 8) y = r.top - h - 4;
+            } else {
+                x = r.left - w - 8;
+                if (x < 8) x = r.right + 8;
+                y = r.top;
+            }
+        } else {
+            x = (point ? point.x : vw / 2) + 8;
+            y = (point ? point.y : vh / 3) + 8;
+        }
+        el.style.left = Math.max(8, Math.min(x, vw - w - 8)) + 'px';
+        el.style.top = Math.max(top, Math.min(y, vh - h - 8)) + 'px';
+    }
+    function objectHtml(v) {
+        var rec = v.record;
+        var sub = rec.template_uuid
+            ? t('madeFrom', rec.name) + (rec.template_version ? ' · ' + t('templateVersion', rec.template_version) : '')
+            : t('objectOf', rec.name);
+        var html = '<div class="igw-pop-head"><div class="igw-pop-title"><strong>' + esc(v.value) + '</strong>'
+            + '<span class="igw-pop-sub">' + esc(sub) + '</span></div>'
+            + '<button type="button" class="btn-close igw-pop-x" data-igw-pop-close aria-label="' + esc(t('close')) + '"></button></div>';
+        if (v.origin) {
+            html += '<p class="igw-pop-from"><i class="fas fa-puzzle-piece" aria-hidden="true"></i>' + esc(originText({ from: v.origin })) + '</p>';
+        }
+        html += '<table class="igw-pop-attrs"><tbody>' + (rec.attributes || []).map(function (a) {
+            return '<tr data-igw-attribute><th scope="row">' + esc(a.relation) + '</th><td class="igw-pop-type">' + esc(a.type) + '</td><td>' + esc(a.value) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+        var meta = '';
+        if (v.who || v.when) meta += '<dt>' + esc(t('addedBy')) + '</dt><dd>' + esc([v.who, day(v.when)].filter(Boolean).join(' · ')) + '</dd>';
+        if (v.why) meta += '<dt>' + esc(t('why')) + '</dt><dd>' + esc(v.why) + '</dd>';
+        return meta ? html + '<dl class="igw-pop-meta">' + meta + '</dl>' : html;
+    }
+    // v: { key, value, record, origin, who, when, why }; a second open of the
+    // same object closes it
+    function showObject(v, anchor, point) {
+        var same = pop && pop.key === v.key;
+        closeObject();
+        if (same || !v.record) return;
+        var el = document.createElement('div');
+        el.className = 'igw-pop';
+        el.setAttribute('data-igw-detail', v.key);
+        el.setAttribute('role', 'dialog');
+        el.setAttribute('aria-label', v.value);
+        el.tabIndex = -1;
+        el.innerHTML = objectHtml(v);
+        el.style.visibility = 'hidden';
+        document.body.appendChild(el);
+        placeObject(el, anchor, point);
+        el.style.visibility = '';
+        var p = { el: el, key: v.key, anchor: anchor };
+        // The row it opened from is redrawn under it: matched by key, not by element
+        var own = '[data-igw-row="' + cssKey(v.key) + '"], [data-ce-key="' + cssKey(v.key) + '"]';
+        p.outside = function (e) {
+            var t0 = e.target;
+            if (el.contains(t0) || (anchor && anchor.contains(t0)) || (t0.closest && t0.closest(own))) return;
+            closeObject();
+        };
+        // Ahead of the dock's own Escape, which would close the panel
+        p.keys = function (e) {
+            if (e.key !== 'Escape') return;
+            e.preventDefault();
+            e.stopPropagation();
+            closeObject();
+            if (anchor && document.contains(anchor) && anchor.focus) anchor.focus({ preventScroll: true });
+        };
+        el.addEventListener('click', function (e) { if (e.target.closest('[data-igw-pop-close]')) p.keys({ key: 'Escape', preventDefault: function () {}, stopPropagation: function () {} }); });
+        document.addEventListener('pointerdown', p.outside, true);
+        document.addEventListener('keydown', p.keys, true);
+        window.addEventListener('resize', closeObject);
+        pop = p;
+        el.focus({ preventScroll: true });
+    }
+    function openObject(F, rid) {
+        var r = F.byRid[rid];
+        if (!r || !r.so) return;
+        var row = F.menuPoint ? null : F.list.querySelector(sel(rid));
+        showObject({ key: r.key, value: r.value, record: r.so, origin: r.from, who: r.who, when: r.when, why: r.why },
+            row && row.getClientRects().length ? row : null, F.menuPoint || null);
+    }
+
+    /* ── New object from a template…: its form unfolds above the rows ── */
+    function relationsOf(tpl) {
+        var req = tpl.ObjectTemplate.requirements || {};
+        var first = (req.required || []).concat(req.requiredOneOf || []);
+        var els = (tpl.ObjectTemplateElement || []).slice().sort(function (a, b) {
+            var x = first.indexOf(a.object_relation), y = first.indexOf(b.object_relation);
+            return (x === -1 ? 1e3 : x) - (y === -1 ? 1e3 : y);
+        });
+        return { els: els, req: req, first: first };
+    }
+    function formHtml(F) {
+        var N = F.no;
+        var id = 'igw-no-' + F.where;
+        var h = '<form data-igw-template-form novalidate aria-label="' + esc(t('newObjectTitle')) + '">'
+            + '<div class="igw-no-pick"><label for="' + id + '-t">' + esc(t('template')) + '</label>'
+            + '<select id="' + id + '-t" class="form-select form-select-sm" data-igw-template-pick' + (N.busy || !N.list ? ' disabled' : '') + '>'
+            + '<option value="">' + esc(t(N.list ? 'pickTemplate' : 'loadingTemplates')) + '</option>'
+            + (N.list || []).map(function (x) {
+                return '<option value="' + esc(x.uuid) + '"' + (N.tpl && N.tpl.ObjectTemplate.uuid === x.uuid ? ' selected' : '') + '>' + esc(x.name) + '</option>';
+            }).join('') + '</select></div>';
+        if (N.loading) h += '<div class="igw-no-req"><div class="misp-loader" role="status"></div></div>';
+        var err = N.error ? '<div class="igw-no-err" data-igw-template-error role="alert"><i class="fas fa-circle-exclamation" aria-hidden="true"></i><span>' + esc(N.error) + '</span></div>' : '';
+        if (N.tpl) {
+            var R = relationsOf(N.tpl), need = [];
+            if ((R.req.required || []).length) need.push(t('needsAll', R.req.required.join(', ')));
+            if ((R.req.requiredOneOf || []).length) need.push(t('needsOne', R.req.requiredOneOf.join(', ')));
+            h += '<div class="igw-no-req"><i class="fas fa-circle-info" aria-hidden="true"></i><span>' + esc(need.length ? need.join(' ') : t('needsNothing')) + '</span></div>';
+            h += err + '<div class="igw-no-fields">' + R.els.map(function (e, i) {
+                var rel = e.object_relation;
+                return '<div class="igw-no-f"><label for="' + id + '-' + i + '" title="' + esc(e.description || '') + '">' + esc(rel)
+                    + (R.first.indexOf(rel) !== -1 ? '<span class="igw-no-star" aria-hidden="true">*</span>' : '') + '</label>'
+                    + '<input id="' + id + '-' + i + '" type="text" class="form-control form-control-sm" data-igw-field="' + esc(rel) + '" value="' + esc(N.values[rel] || '') + '"'
+                    + ' placeholder="' + esc(e.type) + '" autocomplete="off"' + (N.busy ? ' disabled' : '') + '></div>';
+            }).join('') + '</div>';
+        } else {
+            h += err;
+        }
+        return h + '<div class="igw-no-acts"><button type="submit" class="btn btn-primary btn-sm" data-igw-template-submit' + (!N.tpl || N.busy ? ' disabled' : '') + '>'
+            + esc(t(N.busy ? 'adding' : 'addObject')) + '</button>'
+            + '<button type="button" class="btn btn-link btn-sm" data-igw-template-cancel>' + esc(t('cancel')) + '</button></div></form>';
+    }
+    function drawForm(F) {
+        if (!F.no) {
+            if (F.formEl) { F.formEl.remove(); F.formEl = null; }
+            return;
+        }
+        if (!F.formEl) {
+            F.formEl = document.createElement('li');
+            F.formEl.className = 'igw-newobj';
+        }
+        var focused = F.formEl.contains(document.activeElement) ? document.activeElement.getAttribute('data-igw-field') || document.activeElement.getAttribute('data-igw-template-pick') : null;
+        F.formEl.innerHTML = formHtml(F);
+        if (focused !== null) {
+            var back = F.formEl.querySelector(focused === '' ? '[data-igw-template-pick]' : '[data-igw-field="' + (window.CSS && CSS.escape ? CSS.escape(focused) : focused) + '"]');
+            if (back && !back.disabled) back.focus({ preventScroll: true });
+        }
+        var said = F.formEl.querySelector('[data-igw-template-error]');
+        if (said && said.scrollIntoView) said.scrollIntoView({ block: 'nearest' });
+    }
+    // A short dock shows the list alone while the form is open, as Say why… does
+    function openNewObject(F) {
+        closeObject();
+        F.no = { list: null, tpl: null, values: {}, error: null, busy: false, loading: false };
+        showList(F);
+        drawForm(F);
+        render(F);
+        F.list.scrollTop = 0;
+        var N = F.no;
+        IG().templates().then(function (list) {
+            if (F.no !== N) return;
+            N.list = list;
+            drawForm(F);
+            var pick = F.formEl && F.formEl.querySelector('[data-igw-template-pick]');
+            if (pick) pick.focus({ preventScroll: true });
+        }, function (err) {
+            if (F.no !== N) return;
+            N.list = [];
+            N.error = t('templatesFailed', (err && err.message) || t('didNotGo'));
+            drawForm(F);
+        });
+    }
+    function closeNewObject(F) {
+        var had = !!F.no;
+        F.no = null;
+        drawForm(F);
+        if (had && F.moreEl && !F.moreEl.hidden) F.moreEl.focus({ preventScroll: true });
+    }
+    function pickTemplate(F, uuid) {
+        var N = F.no;
+        N.error = null;
+        N.values = {};
+        N.tpl = null;
+        N.loading = !!uuid;
+        drawForm(F);
+        if (!uuid) return;
+        IG().template(uuid).then(function (tpl) {
+            if (F.no !== N) return;
+            N.loading = false;
+            N.tpl = tpl;
+            drawForm(F);
+            var first = F.formEl.querySelector('[data-igw-field]');
+            if (first) first.focus({ preventScroll: true });
+        }, function (err) {
+            if (F.no !== N) return;
+            N.loading = false;
+            N.error = (err && err.message) || t('didNotGo');
+            drawForm(F);
+        });
+    }
+    function submitNewObject(F) {
+        var N = F.no;
+        if (!N || !N.tpl || N.busy) return;
+        var attributes = Object.keys(N.values).filter(function (k) { return String(N.values[k]).trim() !== ''; })
+            .map(function (k) { return { relation: k, value: String(N.values[k]).trim() }; });
+        if (!attributes.length) { N.error = t('nothingFilled'); drawForm(F); return; }
+        N.busy = true;
+        N.error = null;
+        drawForm(F);
+        var opts = Object.assign(where(F), { tellsRefusals: true });
+        IG().add([{ type: 'StandaloneObject', template: N.tpl.ObjectTemplate.uuid, attributes: attributes }], opts).then(function (out) {
+            if (F.no !== N) return;
+            var refused = out && out.report && (out.report.refused || [])[0];
+            N.busy = false;
+            if (refused) { N.error = refused.error || t('didNotGo'); drawForm(F); return; }
+            closeNewObject(F);
+            render(F);
+        }, function (err) {
+            if (F.no !== N) return;
+            N.busy = false;
+            N.error = (err && err.message) || t('didNotGo');
+            drawForm(F);
+        });
     }
 
     /* ── why ── */
@@ -1027,14 +1298,17 @@
             + '<button type="button" class="btn btn-outline-secondary" data-igw-view="graph" aria-pressed="false">' + esc(t('viewGraph')) + '</button>'
             + '<button type="button" class="btn btn-outline-secondary" data-igw-view="both" aria-pressed="true">' + esc(t('viewBoth')) + '</button>'
             + '<button type="button" class="btn btn-outline-secondary" data-igw-view="list" aria-pressed="false">' + esc(t('viewList')) + '</button>'
-            + '</div></div>'
+            + '</div>'
+            + '<button type="button" class="igw-ibtn igw-bar-more" data-igw-bar-more aria-haspopup="menu" aria-expanded="false" hidden'
+            + ' aria-label="' + esc(t('moreMembers')) + '" title="' + esc(t('moreMembers')) + '"><i class="fas fa-ellipsis" aria-hidden="true"></i></button>'
+            + '</div>'
             + '<div class="igw-tools">'
             + '<div class="igw-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>'
             + '<input type="search" class="form-control form-control-sm" data-igw-q placeholder="' + esc(t('filter')) + '" title="' + esc(t('filterTitle')) + '"'
             + ' aria-label="' + esc(t('filterLabel')) + '"></div>'
             + '<select class="form-select form-select-sm" data-igw-role aria-label="' + esc(t('show')) + '">'
             + '<option value="all">' + esc(t('showAll')) + '</option><option value="member">' + esc(t('showMembers')) + '</option>'
-            + '<option value="finding">' + esc(t('showFindings')) + '</option><option value="extra">' + esc(t('showExtras')) + '</option>'
+            + '<option value="missing">' + esc(t('showMissing')) + '</option><option value="extra">' + esc(t('showExtras')) + '</option>'
             + '<option value="hidden">' + esc(t('showHidden')) + '</option>'
             + '</select>'
             + '<select class="form-select form-select-sm" data-igw-kind aria-label="' + esc(t('type')) + '">'
@@ -1069,7 +1343,7 @@
             h: null, bound: null, rows: [], byRid: {}, shown: [], rowsAt: 0, ws: where === 'dock',
             f: { q: '', role: 'all', kind: 'all' }, sort: { by: 'when', dir: -1 },
             picks: {}, current: null, editing: null, draft: '', saving: false, whyError: null, confirming: false,
-            fresh: {}, kept: {}, why: {}, busy: {}, placedTried: {}, placing: false, stops: [],
+            fresh: {}, why: {}, busy: {}, no: null, formEl: null, menuPoint: null, placedTried: {}, placing: false, stops: [],
             view: ['graph', 'both', 'list'].indexOf(prefs.view) !== -1 ? prefs.view : 'both',
             ratio: typeof prefs.ratio === 'number' ? prefs.ratio : 0.5
         };
@@ -1080,6 +1354,7 @@
         F.bulk = pane.querySelector('[data-igw-bulk]');
         F.countEl = pane.querySelector('[data-igw-count]');
         F.loadEl = pane.querySelector('[data-igw-loading]');
+        F.moreEl = pane.querySelector('[data-igw-bar-more]');
         frames[where] = F;
         wire(F);
         layout(F);
@@ -1092,8 +1367,9 @@
         F.h = h;
         F.bound = h;
         F.rowsAt = 0;
-        F.kept = {};
         F.placedTried = {};
+        // A form left open belongs to what was drawn before
+        if (F.no) { F.no = null; drawForm(F); }
         F.ws = isWorkspace(F);
         var g = h.graph();
         try {
@@ -1276,7 +1552,32 @@
             if (e.key === 'Escape' && F.confirming) { e.stopPropagation(); F.confirming = false; renderBulk(F); }
         });
 
+        F.moreEl.addEventListener('click', function () {
+            openListMenu(F, [], F.moreEl, null, null, [
+                { attr: 'data-igw-new-object', icon: 'fas fa-shapes', text: t('newObject'), run: function () { openNewObject(F); } }
+            ]);
+        });
+
         var L = F.list;
+        // The new object's form, unfolded above the rows
+        L.addEventListener('change', function (e) {
+            if (e.target.matches('[data-igw-template-pick]')) pickTemplate(F, e.target.value);
+        });
+        L.addEventListener('input', function (e) {
+            if (e.target.matches('[data-igw-field]') && F.no) F.no.values[e.target.getAttribute('data-igw-field')] = e.target.value;
+        });
+        L.addEventListener('submit', function (e) {
+            if (!e.target.matches('[data-igw-template-form]')) return;
+            e.preventDefault();
+            submitNewObject(F);
+        });
+        L.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && e.target.closest('[data-igw-template-form]')) { e.preventDefault(); e.stopPropagation(); closeNewObject(F); }
+        }, true);
+        L.addEventListener('click', function (e) {
+            if (e.target.closest('[data-igw-template-cancel]')) closeNewObject(F);
+        });
+
         L.addEventListener('change', function (e) {
             var target = e.target;
             var row = target.closest('[data-rid]');
@@ -1304,6 +1605,7 @@
             if (target.closest('[data-igw-why-cancel]')) { cancelWhy(F); return; }
             if (!r || target.closest('[data-igw-pick]') || target.closest('.igw-edit')) return;
             if (target.closest('[data-igw-show]')) { showOnGraph(F, [r]); return; }
+            if (target.closest('[data-igw-open]')) { openObject(F, rid); return; }
             if (target.closest('[data-igw-why]')) { openWhy(F, rid); return; }
             if (target.closest('[data-igw-more]')) {
                 markCurrent(F, rid);
@@ -1318,7 +1620,7 @@
             }
             if (target.closest('a, button, input, select, textarea')) return;
             if (e.shiftKey || e.ctrlKey || e.metaKey) togglePick(F, rid, !F.picks[rid]);
-            else find(F, rid);
+            else findAndOpen(F, rid);
         });
         L.addEventListener('contextmenu', function (e) {
             var row = e.target.closest('[data-rid]');
@@ -1347,7 +1649,7 @@
                 if (next) { row.tabIndex = -1; next.tabIndex = 0; next.focus(); }
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                find(F, rid);
+                findAndOpen(F, rid);
             } else if (e.key === ' ') {
                 e.preventDefault();
                 togglePick(F, rid, !F.picks[rid]);
@@ -1811,6 +2113,9 @@
     window.IntelGraphWorking = {
         t: t,
         tn: tn,
+        // view { key, value, record, origin, who, when, why }, from the
+        // collection page's members card
+        openObject: function (view, anchor, point) { showObject(view, anchor || null, point || null); },
         frame: function (where, opts) {
             if (frames[where]) return api(frames[where]);
             return api(buildFrame(where, opts.body, opts.stage));

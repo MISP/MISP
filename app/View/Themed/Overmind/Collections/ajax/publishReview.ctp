@@ -98,6 +98,8 @@ foreach ($sections as $section) {
     $total += (int)$review[$section[0]]['count'];
 }
 $opened = false;
+$narrower = $review['narrower'] ?? ['count' => 0, 'items' => []];
+$narrowerCount = (int)$narrower['count'];
 
 ob_start();
 ?>
@@ -135,6 +137,11 @@ summary.cpr-head:focus-visible { outline: 2px solid var(--misp-accent, var(--bs-
 .cpr-choice .form-check-input { flex: none; margin-top: .15rem; }
 .cpr-choice-title { display: block; font-size: .85rem; font-weight: 600; }
 .cpr-choice-hint { display: block; color: var(--bs-secondary-color); font-size: .72rem; line-height: 1.3; margin-top: .1rem; }
+.cpr-narrow { margin-top: .6rem; border: 1px solid var(--bs-warning-border-subtle); border-radius: .5rem; overflow: hidden; }
+.cpr-narrow-head { display: flex; align-items: flex-start; gap: .6rem; padding: .55rem .85rem; background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); font-size: .82rem; line-height: 1.35; }
+.cpr-narrow-head > i { flex: none; margin-top: .15rem; }
+.cpr-narrow-hint { display: block; font-weight: 400; font-size: .75rem; margin-top: .1rem; }
+.cpr-narrow .cpr-list { border-top-color: var(--bs-warning-border-subtle); max-height: 10rem; }
 @media (max-width: 575.98px) { .cpr-choices { grid-template-columns: 1fr; } .cpr-when { display: none; } }
 </style>
 
@@ -188,6 +195,30 @@ summary.cpr-head:focus-visible { outline: 2px solid var(--misp-accent, var(--bs-
                     </details>
                 <?php endif; ?>
             <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+    <?php if ($narrowerCount > 0): ?>
+        <div class="cpr-narrow" data-review-narrower>
+            <div class="cpr-narrow-head">
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>
+                    <span class="fw-semibold"><?= h(__n(
+                        '%s value is held in MISP only by events shared more narrowly than this collection.',
+                        '%s values are held in MISP only by events shared more narrowly than this collection.',
+                        $narrowerCount,
+                        $narrowerCount
+                    )) ?></span>
+                    <span class="cpr-narrow-hint"><?= h(__('Publishing sends them to everyone this collection reaches.')) ?></span>
+                </span>
+            </div>
+            <ul class="cpr-list">
+                <?php foreach ($narrower['items'] as $item): ?>
+                    <?= $member($item, '') ?>
+                <?php endforeach; ?>
+            </ul>
+            <?php if ($narrowerCount > count($narrower['items'])): ?>
+                <div class="cpr-more"><?= h(__('and %s more', $narrowerCount - count($narrower['items']))) ?></div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>

@@ -4602,7 +4602,7 @@
             return {
                 label:    label + ': ' + plural(items.length, 'record', 'records'),
                 items:    items,
-                findings: canvasDocument('keep', only).answers,
+                answers:  canvasDocument('keep', only).answers,
                 graph:    function () { return canvasDocument('keep', only).document; }
             };
         }
