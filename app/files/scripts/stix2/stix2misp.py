@@ -114,7 +114,7 @@ def _error_message(error: Exception) -> str:
 def _process_stix_file(args: argparse.Namespace):
     try:
         bundle = load_stix2_file(args.input)
-        stix_version = getattr(bundle, 'version', '2.1')
+        stix_version = getattr(bundle, 'spec_version', '2.1')
         to_call, arguments = _get_stix_parser(
             is_stix2_from_misp(bundle.objects), args
         )

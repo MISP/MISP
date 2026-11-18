@@ -253,7 +253,15 @@ $foldChildren = empty($objects) ? [] : [
                  * collapse the card on the way to its target.
                  */
                 $objRefs = $object['ObjectReference'] ?? [];
+                $mapButton = $this->element('Objects/object_map_button', [
+                    'object' => $object,
+                    'class' => 'btn btn-sm ov-obj-rel-badge',
+                    'label' => true,
+                ]);
                 ?>
+                <?php if (trim($mapButton) !== ''): ?>
+                    <span class="flex-shrink-0 <?= empty($objRefs) ? 'pe-3' : 'pe-2' ?>"><?= $mapButton ?></span>
+                <?php endif; ?>
                 <?php if (!empty($objRefs)): ?>
                     <?= $this->element('Objects/object_relationships', [
                         'references' => $objRefs,

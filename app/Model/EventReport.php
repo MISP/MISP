@@ -573,6 +573,13 @@ class EventReport extends AppModel
                 )
             );
         }
+        if (!$user['Role']['perm_sync']) {
+            // soft-deleted reports only for the event owner, as in fetchEvent()
+            $conditions['AND'][] = ['OR' => [
+                'EventReport.deleted' => 0,
+                'Event.org_id' => $user['org_id'],
+            ]];
+        }
         return $conditions;
     }
 
@@ -865,7 +872,10 @@ class EventReport extends AppModel
             return $report;
         } else {
             if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
-                $checkResult = $user['Role']['perm_site_admin'] || ($report['Event']['orgc_id'] === $user['org_id']);
+                $checkResult = $user['Role']['perm_site_admin'] || (
+                    $report['Event']['orgc_id'] === $user['org_id'] &&
+                    !$this->Event->isProtectedFromSyncUser($user, $report)
+                );
                 if ($checkResult !== true) {
                     if ($throwErrors) {
                         throw new UnauthorizedException($checkResult);

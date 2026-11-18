@@ -20,7 +20,19 @@ class RedisTool
         if (self::$connection) {
             return self::$connection;
         }
+        self::$connection = self::connect();
+        return self::$connection;
+    }
 
+    /**
+     * A connection of its own, for callers that change connection options:
+     * the shared one from init() must keep the raw serializer.
+     *
+     * @return Redis
+     * @throws Exception
+     */
+    public static function connect()
+    {
         if (!class_exists('Redis')) {
             throw new Exception("Class Redis doesn't exists. Please install redis extension for PHP.");
         }
@@ -50,7 +62,6 @@ class RedisTool
         }
         // By default retry scan if empty results are returned
         $redis->setOption(Redis::OPT_SCAN, Redis::SCAN_RETRY);
-        self::$connection = $redis;
         return $redis;
     }
 

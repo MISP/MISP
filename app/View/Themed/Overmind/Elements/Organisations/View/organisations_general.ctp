@@ -1,16 +1,16 @@
 <?php
 /*
- * The organisation's identity card, built like the user view's: an aside
- * holding the logo (or a glyph when there is none) beside the field table.
- * The aside is tinted by whether the organisation is local or remote.
+ * The organisation's identity card: an aside holding the logo (or a glyph when
+ * there is none), tinted by whether the organisation is local or remote, beside
+ * what describes it. Its id, UUID and dates are in the page header.
  */
-
-$isSiteAdmin = $this->viewVars['isSiteAdmin'] ?? false;
-$fullAccess = $this->viewVars['fullAccess'] ?? false;
 $org = $data['Organisation'] ?? [];
 $local = !empty($org['local']);
 
-$dash = '<span class="text-muted">&mdash;</span>';
+$labelClass = 'text-body-secondary text-uppercase fw-bold';
+$labelStyle = 'font-size:.7rem;';
+$tileStyle = 'width:1.75rem;height:1.75rem;';
+
 $tone = $local ? 'success' : 'secondary';
 $logo = $this->OrgImg->getOrgLogoV2($org, 72, false);
 
@@ -20,112 +20,42 @@ $scopePill = $local
     : '<span class="badge rounded-pill text-bg-light border d-inline-flex align-items-center gap-1 fw-normal text-muted">'
         . '<i class="fas fa-globe"></i>' . __('Remote') . '</span>';
 
-// ── ID —
-$idHtml = isset($org['id']) && $org['id'] !== ''
-    ? '<span class="bg-light border rounded px-2 py-1 fw-semibold small font-monospace">#' . h($org['id']) . '</span>'
-    : $dash;
-
-// ── UUID — monospace chip + copy button
-$uuid = $org['uuid'] ?? '';
-if ($uuid !== '') {
-    $uuidHtml = '<span class="d-inline-flex align-items-center gap-1 bg-light border rounded px-2 py-1">'
-        . '<span class="font-monospace small">' . h($uuid) . '</span>'
-        . '<button type="button" class="text-muted border-0 bg-transparent p-0 ms-1" '
-        . 'data-copy-value="' . h($uuid) . '" '
-        . 'data-copy-msg="' . h(__('UUID copied to clipboard')) . '" '
-        . 'onclick="copyValueToClipboard(this.dataset.copyValue, this.dataset.copyMsg)" '
-        . 'data-bs-toggle="tooltip" title="' . h(__('Copy UUID')) . '" aria-label="' . h(__('Copy UUID')) . '">'
-        . '<i class="fas fa-copy fa-xs"></i></button>'
-        . '</span>';
-} else {
-    $uuidHtml = $dash;
-}
-
-// ── Type — bordered badge
-$type = trim($org['type'] ?? '');
-$typeHtml = $type !== ''
-    ? '<span class="border border-dark rounded px-2 py-1 small">' . h($type) . '</span>'
-    : $dash;
-
-// ── Local — coloured yes/no.
-$localHtml = $local
-    ? '<span class="text-success fw-semibold"><i class="fas fa-circle-check me-1"></i>' . __('Yes') . '</span>'
-    : '<span class="text-muted"><i class="fas fa-circle-xmark me-1"></i>' . __('No') . '</span>';
-
-// ── Domain restrictions — "@domain" chips, dash if none.
 $domains = $org['restricted_to_domain'] ?? [];
 if (!is_array($domains)) {
-    $domains = preg_split('/[\r\n,]+/', trim((string)$domains), -1, PREG_SPLIT_NO_EMPTY);
+    $decoded = json_decode((string)$domains, true);
+    $domains = is_array($decoded) ? $decoded : preg_split('/[\r\n,]+/', trim((string)$domains), -1, PREG_SPLIT_NO_EMPTY);
 }
-$domains = array_values(array_filter(array_map('trim', $domains), function ($d) {
-    return $d !== '';
-}));
-if (empty($domains)) {
-    $domainsHtml = $dash;
-} else {
-    $domainsHtml = '<span class="d-inline-flex flex-wrap gap-1 justify-content-end">';
-    foreach ($domains as $domain) {
-        $domainsHtml .= '<span class="badge text-bg-light border font-monospace">'
-            . '<i class="fas fa-at me-1 text-muted"></i>' . h($domain) . '</span>';
-    }
-    $domainsHtml .= '</span>';
-}
+$domains = array_values(array_filter(array_map('trim', $domains), 'strlen'));
 
-// ── Nationality (declared string) and Country (flag + ISO code) as distinct rows.
 $nationality = trim($org['nationality'] ?? '');
-$nationalityHtml = $nationality !== '' ? h($nationality) : $dash;
+$countryCode = (string)($org['country_code'] ?? '');
+$flag = $countryCode !== '' ? $this->Icon->countryFlag($countryCode, $nationality) : '';
 
-$countryCode = $org['country_code'] ?? '';
-$flag = $countryCode ? $this->Icon->countryFlag($countryCode, $nationality) : '';
-$countryHtml = $flag !== ''
-    ? '<span class="d-inline-flex align-items-center gap-2 justify-content-end">' . $flag . '<span>' . h(strtoupper($countryCode)) . '</span></span>'
-    : $dash;
-
-$sector = trim($org['sector'] ?? '');
-$sectorHtml = $sector !== '' ? h($sector) : $dash;
-
-//Friendly time display
-$timeHtml = function ($value, $icon) use ($dash) {
-    if (empty($value)) {
-        return $dash;
-    }
-    return '<span class="d-inline-flex align-items-center gap-2 justify-content-end text-nowrap">'
-        . '<i class="fas fa-' . $icon . ' text-muted"></i>'
-        . $this->Time->time($value)
-        . '</span>';
-};
-
-// Ordered rows
-$meta = [];
-$meta[] = ['label' => __('ID'), 'html' => $idHtml];
-$meta[] = ['label' => __('UUID'), 'html' => $uuidHtml];
-$meta[] = ['label' => __('Type'), 'html' => $typeHtml];
-$meta[] = ['label' => __('Local'), 'html' => $localHtml];
-$meta[] = ['label' => __('Sector'), 'html' => $sectorHtml];
-$meta[] = ['label' => __('Nationality'), 'html' => $nationalityHtml];
-$meta[] = ['label' => __('Country'), 'html' => $countryHtml];
-$meta[] = ['label' => __('Domain restrictions'), 'html' => $domainsHtml];
-
-if ($isSiteAdmin || $fullAccess) {
-    if (!empty($org['created_by_email'])) {
-        $meta[] = ['label' => __('Created by'), 'html' => '<span class="text-nowrap"><i class="fas fa-user-plus text-muted me-2"></i>' . h($org['created_by_email']) . '</span>'];
-    }
-    if (!empty($org['date_created'])) {
-        $meta[] = ['label' => __('Creation time'), 'html' => $timeHtml($org['date_created'], 'calendar-plus')];
-    }
-    if (!empty($org['date_modified'])) {
-        $meta[] = ['label' => __('Last modified'), 'html' => $timeHtml($org['date_modified'], 'clock-rotate-left')];
-    }
-}
+$facts = [
+    [
+        'tile' => '<i class="fas fa-shapes"></i>',
+        'value' => trim($org['type'] ?? ''),
+        'label' => __('Type'),
+    ],
+    [
+        'tile' => '<i class="fas fa-industry"></i>',
+        'value' => trim($org['sector'] ?? ''),
+        'label' => __('Sector'),
+    ],
+    [
+        'tile' => $flag !== '' ? $flag : '<i class="fas fa-flag"></i>',
+        'value' => $nationality,
+        'label' => $countryCode !== '' ? __('Nationality') . ' · ' . strtoupper($countryCode) : __('Nationality'),
+    ],
+];
+$description = trim($org['description'] ?? '');
+$contacts = trim($org['contacts'] ?? '');
 ?>
 <div class="card shadow-sm mb-3 overflow-hidden">
     <div class="row g-0">
 
-        <!-- ASIDE — the logo -->
         <div class="col-12 col-md-4 col-xl-3 ov-identity-aside p-3 d-flex flex-column gap-3 bg-<?= $tone ?>-subtle">
-
             <div class="align-self-start"><?= $scopePill ?></div>
-
             <div class="d-flex justify-content-center align-items-center flex-grow-1 pb-2">
                 <div class="rounded-circle d-flex align-items-center justify-content-center overflow-hidden bg-body border border-2 border-<?= $tone ?> text-<?= $tone ?>"
                      style="width:110px; height:110px;"
@@ -139,22 +69,62 @@ if ($isSiteAdmin || $fullAccess) {
             </div>
         </div>
 
-        <!-- FIELDS -->
         <div class="col">
-            <table class="table align-middle mb-0">
-                <tbody>
-                    <?php foreach ($meta as $row): ?>
-                        <tr>
-                            <th scope="row" class="text-dark fw-semibold p-3 text-nowrap w-25">
-                                <?= h($row['label']) ?>
-                            </th>
-                            <td class="text-end pe-3">
-                                <?= $row['html'] ?? h($row['value'] ?? '') ?>
-                            </td>
-                        </tr>
+            <div class="p-3 d-flex flex-column gap-3 h-100">
+
+                <div>
+                    <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>">
+                        <i class="misp-icon misp-icon-organisation misp-simple text-primary me-1"></i><?= __('Organisation') ?>
+                    </div>
+                    <?php if ($description !== ''): ?>
+                        <div class="border-start border-3 border-primary bg-primary-subtle bg-opacity-25 rounded-end px-3 py-2 text-break">
+                            <?= nl2br(h($description), false) ?>
+                        </div>
+                    <?php else: ?>
+                        <span class="text-body-secondary fst-italic small"><?= __('No description') ?></span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="row row-cols-1 row-cols-sm-3 g-2">
+                    <?php foreach ($facts as $fact): ?>
+                        <div class="col">
+                            <div class="d-flex align-items-center gap-2 min-w-0<?= $fact['value'] === '' ? ' opacity-75' : '' ?>">
+                                <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 border bg-body-tertiary text-body-secondary overflow-hidden"
+                                      style="<?= $tileStyle ?>"><?= $fact['tile'] ?></span>
+                                <div class="min-w-0">
+                                    <div class="fw-semibold lh-sm text-truncate<?= $fact['value'] === '' ? ' text-body-secondary fst-italic fw-normal' : '' ?>"
+                                         title="<?= h($fact['value']) ?>"><?= $fact['value'] !== '' ? h($fact['value']) : __('Not set') ?></div>
+                                    <div class="small text-body-secondary"><?= h($fact['label']) ?></div>
+                                </div>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
-                </tbody>
-            </table>
+                </div>
+
+                <div>
+                    <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Domain restrictions') ?></div>
+                    <?php if (empty($domains)): ?>
+                        <span class="text-body-secondary small"><?= __('None — its users can have any e-mail address.') ?></span>
+                    <?php else: ?>
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            <?php foreach ($domains as $domain): ?>
+                                <span class="badge rounded-pill border bg-body-tertiary text-body-emphasis fw-normal font-monospace">
+                                    <i class="fas fa-at me-1 opacity-50"></i><?= h($domain) ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="small text-body-secondary mt-1"><?= __('A new user of this organisation needs an e-mail address in one of these domains.') ?></div>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($contacts !== ''): ?>
+                    <div>
+                        <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Contact information') ?></div>
+                        <div class="small text-break bg-body-tertiary border rounded-2 px-3 py-2"><?= nl2br(h($contacts), false) ?></div>
+                    </div>
+                <?php endif; ?>
+
+            </div>
         </div>
 
     </div>

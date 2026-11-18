@@ -219,6 +219,8 @@ class FeedsController extends AppController
         $otherFeeds = $this->Feed->getAllCachingEnabledFeeds($feedId, true);
         $this->set('other_feeds', $otherFeeds);
         $this->set('feedId', $feedId);
+        $withTimestamp = $this->Feed->attachFeedCacheTimestamps([$this->viewVars['data']]);
+        $this->set('cacheTimestamp', $withTimestamp[0]['Feed']['cache_timestamp'] ?? null);
 
         $this->loadModel('Event');
         $distributionLevels = $this->Event->distributionLevels;
@@ -354,7 +356,7 @@ class FeedsController extends AppController
                 } else {
                     $feed['Feed']['input_source'] = strtolower($feed['Feed']['input_source']);
                 }
-                if (!in_array($feed['Feed']['input_source'], array('network', 'local'))) {
+                if (!in_array($feed['Feed']['input_source'], array('network', 'local', 'misp-modules'))) {
                     $feed['Feed']['input_source'] = 'network';
                 }
                 if (!isset($feed['Feed']['delete_local_file'])) {
@@ -379,7 +381,7 @@ class FeedsController extends AppController
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
-        $inputSources = array('network' => 'Network');
+        $inputSources = array('network' => 'Network', 'misp-modules' => 'MISP modules');
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
@@ -403,7 +405,8 @@ class FeedsController extends AppController
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
-            'inputSources' => $inputSources
+            'inputSources' => $inputSources,
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set('allAttributeTypes', $allTypes['attribute']);
         $this->set('allObjectTypes', $allTypes['object']);
@@ -416,6 +419,23 @@ class FeedsController extends AppController
             $this->layout = false;
             $this->render('add');
         }
+    }
+
+    /** Discover gathering producers, including future modules, using normal enablement and restrictions. */
+    private function __gatheringModuleOptions()
+    {
+        if (!Configure::read('Plugin.Gathering_services_enable')) {
+            return [];
+        }
+        $module = ClassRegistry::init('Module');
+        $enabled = $module->getEnabledModules($this->Auth->user(), 'gathering', 'Gathering');
+        $options = [];
+        foreach (is_array($enabled) ? ($enabled['modules'] ?? []) : [] as $descriptor) {
+            if (($descriptor['mispattributes']['gathering_version'] ?? null) === 2) {
+                $options[$descriptor['name']] = $descriptor['meta']['name'] ?? $descriptor['name'];
+            }
+        }
+        return $options;
     }
 
     private function __checkRegex($pattern)
@@ -540,7 +560,7 @@ class FeedsController extends AppController
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
-        $inputSources = array('network' => 'Network');
+        $inputSources = array('network' => 'Network', 'misp-modules' => 'MISP modules');
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
@@ -567,7 +587,8 @@ class FeedsController extends AppController
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
-            'inputSources' => $inputSources
+            'inputSources' => $inputSources,
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set(compact('dropdownData'));
         $this->set('menuData', [
@@ -670,11 +691,11 @@ class FeedsController extends AppController
             }
             $message = __('Fetching the feed has successfully completed.');
             if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                if (isset($result['add'])) {
-                    $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                if (isset($result['add']['successes'])) {
+                    $message .= ' Downloaded ' . $result['add']['successes'] . ' new event(s).';
                 }
-                if (isset($result['edit'])) {
-                    $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+                if (isset($result['edit']['successes'])) {
+                    $message .= ' Updated ' . $result['edit']['successes'] . ' event(s).';
                 }
             }
         }
@@ -736,11 +757,11 @@ class FeedsController extends AppController
                 }
                 $message = __('Fetching the feed has successfully completed.');
                 if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                    if (isset($result['add'])) {
-                        $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                    if (isset($result['add']['successes'])) {
+                        $message .= ' Downloaded ' . $result['add']['successes'] . ' new event(s).';
                     }
-                    if (isset($result['edit'])) {
-                        $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
+                    if (isset($result['edit']['successes'])) {
+                        $message .= ' Updated ' . $result['edit']['successes'] . ' event(s).';
                     }
                 }
             }
@@ -1162,7 +1183,7 @@ class FeedsController extends AppController
         $this->set('id', $feed['Feed']['id']);
         $this->set('feed', $feed);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 
@@ -1672,7 +1693,7 @@ class FeedsController extends AppController
             $customPagination->truncateByPagination($hits, $params);
         }
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 }

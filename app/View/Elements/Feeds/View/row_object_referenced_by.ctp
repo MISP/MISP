@@ -8,7 +8,7 @@
 <?php
   endif;
 ?>
-<div id="Object_<?php echo $object['uuid']; ?>_referenced_by_collapsible" class="collapse">
+<div id="Object_<?php echo h($object['uuid']); ?>_referenced_by_collapsible" class="collapse">
 <?php
   foreach ($object['referenced_by'] as $type => $reference):
     foreach ($reference as $ref):

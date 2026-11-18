@@ -207,7 +207,7 @@ $config = array(
         'realm' => 'lino', // the (default) realm of all the users logging in through this system
         'userModel' => 'User', // name of the User class (MISP class) to check if the user exists
         'userModelKey' => 'email', // User field that will be used for querying.
-        'verifyssl' => true, // Verify TLS Certificate or not
+        'verifyssl' => true, // Verify TLS Certificate or not (default: true when omitted)
         'mixedauth' => false, // false=>Query only LinOTP or true=>OTP from LinOTP, Password from MISP
     ),
     */
@@ -249,6 +249,7 @@ $config = array(
         'ldapAllowReferrals' => true,   // allow or disallow chasing LDAP referrals
         //'ldapEmailField' => array('emailAddress, 'mail'), // Optional : fields from which the email address should be retrieved. Default to 'mail' only. If more than one field is set (e.g. 'emailAddress' and 'mail' in this example), only the first one will be used.
         //'updateUser' => true, // Optional : Will update user on LDAP login to update user fields (e.g. role)
+        //'unblock' => false, // Optional : Set to true to let a successful login re-enable a user disabled in MISP. Default false.
     ),
     */
 

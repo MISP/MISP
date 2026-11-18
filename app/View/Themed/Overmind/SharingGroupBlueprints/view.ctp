@@ -1,35 +1,38 @@
 <?php
-    echo $this->element('genericElementsBS5/Layout/view_layout',
-    [
-        'data' => $data,
-        'tabs' => [
-            [
-                'id' => 'general',
-                'title' => __('General'),
-                'icon' => 'fas fa-info-circle',
+$blueprint = $data['SharingGroupBlueprint'] ?? [];
 
-                // Content
-                'left' => [
-                    'SharingGroupBlueprints/View/sharingGroupBlueprints_general',
-                ],
-                'right' => [
-                    'SharingGroupBlueprints/View/sharingGroupBlueprints_actions',
-                ]
+$this->set('headerIdentity', $blueprint);
+$this->set('headerTitle', $blueprint['name'] ?? '');
+$this->set('headerDescription', empty($blueprint['timestamp'])
+    ? ''
+    : '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
+        . $this->Time->time($blueprint['timestamp']) . '</span>');
+
+echo $this->element('genericElementsBS5/Layout/view_layout', [
+    'data' => $data,
+    'tabs' => [
+        [
+            'id' => 'general',
+            'title' => __('General'),
+            'icon' => 'fas fa-info-circle',
+            'left' => [
+                'SharingGroupBlueprints/View/sharingGroupBlueprints_general',
+                'SharingGroupBlueprints/View/sharingGroupBlueprints_orgs_card',
             ],
-            [
-                'id' => 'organisations',
-                'title' => __('Organisations'),
-                'icon' => 'fas fa-building-user',
-                //'count' => $tag_count ?? 0,
-
-                // Content
-                'left' => [
-                    [
-                        'ajax' => sprintf('%s/SharingGroupBlueprints/viewOrgs/%s', $baseurl, h($data['SharingGroupBlueprint']['id']))
-                    ]
+            'right' => [
+                'SharingGroupBlueprints/View/sharingGroupBlueprints_actions',
+            ],
+        ],
+        [
+            'id' => 'organisations',
+            'title' => __('Organisations'),
+            'icon' => 'fas fa-building-user',
+            'count' => $matchingOrgCount ?? null,
+            'left' => [
+                [
+                    'ajax' => sprintf('%s/SharingGroupBlueprints/viewOrgs/%s', $baseurl, (int)$blueprint['id']),
                 ],
-            ]
-        ]
-    ]);
-?>
-
+            ],
+        ],
+    ],
+]);

@@ -98,6 +98,8 @@ echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
                     'placeholder'       => __('Describe the threat event in precise terms…'),
                     'id'                => 'EventInfo',
                     'data-required-msg' => __('Please provide a name for the event.'),
+                    'data-max-bytes'    => 65535,
+                    'data-max-bytes-msg' => __('Event info is too long: %s bytes at most (about %s characters of plain text).', 65535, 65535),
                 ]) ?>
             </div>
 

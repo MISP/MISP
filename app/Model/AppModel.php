@@ -23,8 +23,10 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
+App::uses('ClientIpTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ColumnLimits', 'Tools');
 App::uses('RedisTool', 'Tools');
 App::uses('BetterCakeEventManager', 'Tools');
 App::uses('Folder', 'Utility');
@@ -279,6 +281,52 @@ class AppModel extends Model
             return true;
         }
         return ucfirst($field) . ' cannot be empty.';
+    }
+
+    // A TEXT column holds 65,535 bytes, not characters: CakePHP's maxLength
+    // counts characters, so multi-byte text could still overflow the column.
+    public function maxBytes(array $value, $limit)
+    {
+        return strlen((string)reset($value)) <= $limit;
+    }
+
+    /** @var array|null the $validate the column limit rules were added for */
+    private $columnLimitRulesFor = null;
+
+    /**
+     * Every save validates through here, so this is where each text column
+     * gets a rule for its own length: in strict mode a value that does not fit
+     * is a PDOException, which the user only ever sees as an internal error.
+     */
+    public function validates($options = array())
+    {
+        if ($this->columnLimitRulesFor !== $this->validate) {
+            $this->addColumnLimitRules();
+            $this->columnLimitRulesFor = $this->validate;
+        }
+        return parent::validates($options);
+    }
+
+    private function addColumnLimitRules()
+    {
+        $validator = $this->validator();
+        foreach (ColumnLimits::of($this) as $field => $limit) {
+            $rules = $this->validate[$field] ?? [];
+            if (isset($rules['maxLength']) || isset($rules['maxBytes'])) {
+                continue;
+            }
+            $validator->add($field, 'columnLimit', [
+                'rule' => ['fitsColumn', $limit],
+                'message' => ColumnLimits::message($field, $limit),
+                'allowEmpty' => true,
+                'required' => false,
+            ]);
+        }
+    }
+
+    public function fitsColumn(array $value, array $limit)
+    {
+        return ColumnLimits::fits(reset($value), $limit);
     }
 
     public function valueIsJsonOrString($value)
@@ -1297,11 +1345,6 @@ class AppModel extends Model
         return $val / (1024 * 1024);
     }
 
-    public function generateRandomFileName()
-    {
-        return RandomTool::random_str(false, 12);
-    }
-
     /**
      * @param string|int $delta
      * @return int Timestamp
@@ -1715,6 +1758,8 @@ class AppModel extends Model
             $orderRules = explode(',', $order);
         } elseif (is_array($order)) {
             $orderRules = $order; // to support multiple column order
+        } else {
+            return null;
         }
 
         $order = array();
@@ -1739,9 +1784,11 @@ class AppModel extends Model
             } else {
                 return null;
             }
+            // A list of fields has numeric keys: "0.id" must not pick one of them
+            $modelFields = $validOrderFields[$model] ?? null;
             if (
                     (in_array($field, $validOrderFields) && $model === $orderModel) ||
-                    (array_key_exists($model, $validOrderFields) && in_array($field, $validOrderFields[$model]))
+                    (is_array($modelFields) && in_array($field, $modelFields))
             ) {
                 $order[] = $model . '.' . $field . ' ' . $direction;
             } else {
@@ -1765,17 +1812,11 @@ class AppModel extends Model
             return $remoteIp;
         }
 
-        $clientIpHeader = Configure::read('MISP.log_client_ip_header');
-        if ($clientIpHeader && isset($_SERVER[$clientIpHeader])) {
-            $headerValue = $_SERVER[$clientIpHeader];
-            // X-Forwarded-For can contain multiple IPs, see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
-            if (($commaPos = strpos($headerValue, ',')) !== false) {
-                $headerValue = substr($headerValue, 0, $commaPos);
-            }
-            $remoteIp = trim($headerValue);
-        } else {
-            $remoteIp = $_SERVER['REMOTE_ADDR'] ?? null;
-        }
+        $remoteIp = ClientIpTool::resolve(
+            $_SERVER,
+            Configure::read('MISP.log_client_ip_header'),
+            Configure::read('MISP.trusted_proxies')
+        );
 
         return $remoteIp;
     }

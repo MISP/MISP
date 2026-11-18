@@ -1362,17 +1362,16 @@ class MispAttribute extends AppModel
             $inPosList = implode(',', $posIds);
 
             if ($options['scope'] === 'Event') {
+                $attributeTagged = $this->Event->visibleAttributeTagSubquery(
+                    $options['user'], $posIds
+                )[0];
                 $conditions['AND'][] =
                     "(Event.id IN (
                         SELECT et.event_id
                         FROM event_tags et
                         WHERE et.tag_id IN ({$inPosList})
                     )
-                    OR Event.id IN (
-                        SELECT at.event_id
-                        FROM attribute_tags at
-                        WHERE at.tag_id IN ({$inPosList})
-                    ))";
+                    OR {$attributeTagged})";
             } elseif ($attributeSelective) {
                 // Selective mode: correlated EXISTS
                 // probes are cheap when the outer scan
@@ -1917,6 +1916,37 @@ class MispAttribute extends AppModel
 
         $this->aclConditionsCache[$cacheKey] = $conditions;
         return $conditions;
+    }
+
+    /**
+     * buildConditions() for the attributes of one event the user can already
+     * see: the event's owner org and site admins see all of them.
+     */
+    public function buildConditionsInEvent(array $user, $eventOrgId)
+    {
+        $objectConditions = $this->Object->buildConditionsInEvent($user, $eventOrgId);
+        if (empty($objectConditions)) {
+            return [];
+        }
+        $visibleObject = $this->subQueryGenerator($this->Object, [
+            'fields' => ['Object.id'],
+            'conditions' => ['Object.id = Attribute.object_id', $objectConditions],
+        ], 'Attribute.object_id');
+        return [
+            'AND' => [
+                ['OR' => [
+                    'Attribute.distribution' => [1, 2, 3, 5],
+                    'AND' => [
+                        'Attribute.distribution' => 4,
+                        'Attribute.sharing_group_id' => $this->SharingGroup->authorizedIds($user),
+                    ],
+                ]],
+                ['OR' => [
+                    'Attribute.object_id' => 0,
+                    $visibleObject[0],
+                ]],
+            ],
+        ];
     }
 
     /**
@@ -3464,6 +3494,7 @@ class MispAttribute extends AppModel
                 }
             }
         }
+        $this->Event->assertNotProtectedFromSyncUser($user, $attribute);
         if ($hard) {
             $save = $this->delete($id);
         } else {
@@ -3583,7 +3614,8 @@ class MispAttribute extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Attribute'
+                            'context' => 'Attribute',
+                            'user' => $user
                         );
                         $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                     }
@@ -3869,9 +3901,8 @@ class MispAttribute extends AppModel
             }
             if ($tags !== false) {
                 // If we sent any tags along, load the associated tag names for each attribute
-                $tag = ClassRegistry::init('Tag');
                 $args = $this->dissectArgs($tags);
-                $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+                $tagArray = $this->Event->EventTag->fetchEventTagIds($args[0], $args[1]);
                 $temp = array();
                 foreach ($tagArray[0] as $accepted) {
                     $temp['OR'][] = array('Event.id' => $accepted);
@@ -3913,7 +3944,7 @@ class MispAttribute extends AppModel
                 'order' => 'Attribute.value' . $valueField . ' ASC',
                 'recursive' => -1, // int
                 'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
-                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
+                'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid', 'Event.info'))),
                 'enforceWarninglist' => $enforceWarninglist,
                 'allow_proposal_blocking' => true,
                 'flatten' => 1
@@ -4229,9 +4260,9 @@ class MispAttribute extends AppModel
     public function generateTypeDefinitions()
     {
         return array(
-            'md5' => array('desc' => __('A checksum in MD5 format'), 'formdesc' => __("You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha1' => array('desc' => __('A checksum in SHA1 format'), 'formdesc' => __("You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha256' => array('desc' => __('A checksum in SHA256 format'), 'formdesc' => __("You are encouraged to use filename|sha256 instead. A checksum in sha256 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'md5' => array('desc' => __('A checksum in MD5 format'), 'formdesc' => __("A checksum in MD5 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha1' => array('desc' => __('A checksum in SHA1 format'), 'formdesc' => __("A checksum in SHA1 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha256' => array('desc' => __('A checksum in SHA256 format'), 'formdesc' => __("A checksum in SHA256 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'filename' => array('desc' => __('Filename'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'pdb' => array('desc' => __('Microsoft Program database (PDB) path information'), 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
             'filename|md5' => array('desc' => __('A filename and an MD5 hash separated by a |'), 'formdesc' => __("A filename and an md5 hash separated by a | (no spaces)"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -4318,23 +4349,23 @@ class MispAttribute extends AppModel
             'campaign-id' => array('desc' => __('Associated campaign ID'), 'default_category' => 'Attribution', 'to_ids' => 0),
             'malware-type' => array('desc' => '', 'default_category' => 'Payload delivery', 'to_ids' => 0),
             'uri' => array('desc' => __('Uniform Resource Identifier'), 'default_category' => 'Network activity', 'to_ids' => 1),
-            'authentihash' => array('desc' => __('Authenticode executable signature hash'), 'formdesc' => __("You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'vhash' => array('desc' => __('A VirusTotal checksum'), 'formdesc' => __("You are encouraged to use filename|vhash instead. A checksum from VirusTotal, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'ssdeep' => array('desc' => __('A checksum in ssdeep format'), 'formdesc' => __("You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'imphash' => array('desc' => __('Import hash - a hash created based on the imports in the sample.'), 'formdesc' => __("You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'authentihash' => array('desc' => __('Authenticode executable signature hash'), 'formdesc' => __("Authenticode executable signature hash. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'vhash' => array('desc' => __('A VirusTotal checksum'), 'formdesc' => __("A checksum from VirusTotal. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'ssdeep' => array('desc' => __('A checksum in ssdeep format'), 'formdesc' => __("A checksum in the SSDeep format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'imphash' => array('desc' => __('Import hash - a hash created based on the imports in the sample.'), 'formdesc' => __("A hash created based on the imports in the sample. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'telfhash' => array('desc' => __('telfhash is symbol hash for ELF files, just like imphash is imports hash for PE files.'), 'formdesc' => __("You are encouraged to use a file object with telfhash"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'pehash' => array('desc' => __('peHash - a hash calculated based of certain pieces of a PE executable file'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'impfuzzy' => array('desc' => __('A fuzzy hash of import table of Portable Executable format'), 'formdesc' => __("You are encouraged to use filename|impfuzzy instead. A fuzzy hash created based on the imports in the sample, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha224' => array('desc' => __('A checksum in SHA-224 format'), 'formdesc' => __("You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha384' => array('desc' => __('A checksum in SHA-384 format'), 'formdesc' => __("You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha512' => array('desc' => __('A checksum in SHA-512 format'), 'formdesc' => __("You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha512/224' => array('desc' => __('A checksum in the SHA-512/224 format'), 'formdesc' => __("You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha512/256' => array('desc' => __('A checksum in the SHA-512/256 format'), 'formdesc' => __("You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha3-224' => array('desc' => __('A checksum in SHA3-224 format'), 'formdesc' => __("You are encouraged to use filename|sha3-224 instead. A checksum in sha3-224 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha3-256' => array('desc' => __('A checksum in SHA3-256 format'), 'formdesc' => __("You are encouraged to use filename|sha3-256 instead. A checksum in sha3-256 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha3-384' => array('desc' => __('A checksum in SHA3-384 format'), 'formdesc' => __("You are encouraged to use filename|sha3-384 instead. A checksum in sha3-384 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'sha3-512' => array('desc' => __('A checksum in SHA3-512 format'), 'formdesc' => __("You are encouraged to use filename|sha3-512 instead. A checksum in sha3-512 format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
-            'tlsh' => array('desc' => __('A checksum in the Trend Micro Locality Sensitive Hash format'), 'formdesc' => __("You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'impfuzzy' => array('desc' => __('A fuzzy hash of import table of Portable Executable format'), 'formdesc' => __("A fuzzy hash created based on the imports in the sample. Use the pe object template to group this hash with other Portable Executable metadata."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha224' => array('desc' => __('A checksum in SHA-224 format'), 'formdesc' => __("A checksum in sha224 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha384' => array('desc' => __('A checksum in SHA-384 format'), 'formdesc' => __("A checksum in sha384 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha512' => array('desc' => __('A checksum in SHA-512 format'), 'formdesc' => __("A checksum in sha512 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha512/224' => array('desc' => __('A checksum in the SHA-512/224 format'), 'formdesc' => __("A checksum in sha512/224 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha512/256' => array('desc' => __('A checksum in the SHA-512/256 format'), 'formdesc' => __("A checksum in sha512/256 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha3-224' => array('desc' => __('A checksum in SHA3-224 format'), 'formdesc' => __("A checksum in sha3-224 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha3-256' => array('desc' => __('A checksum in SHA3-256 format'), 'formdesc' => __("A checksum in sha3-256 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha3-384' => array('desc' => __('A checksum in SHA3-384 format'), 'formdesc' => __("A checksum in sha3-384 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'sha3-512' => array('desc' => __('A checksum in SHA3-512 format'), 'formdesc' => __("A checksum in sha3-512 format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
+            'tlsh' => array('desc' => __('A checksum in the Trend Micro Locality Sensitive Hash format'), 'formdesc' => __("A checksum in the Trend Micro Locality Sensitive Hash format. Use the file object template to group this hash with a filename and other file metadata when available."), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cdhash' => array('desc' => __('An Apple Code Directory Hash, identifying a code-signed Mach-O executable file'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'filename|authentihash' => array('desc' => __('A filename and Authenticode executable signature hash'), 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'filename|vhash' => array('desc' => __('A filename and a VirusTotal hash separated by a |'), 'default_category' => 'Payload delivery', 'to_ids' => 1),

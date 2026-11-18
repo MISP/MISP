@@ -408,27 +408,23 @@ class Galaxy extends AppModel
             return false;
         }
 
+        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_galaxy_editor']) {
+            return false; // user has no permission to modify galaxy
+        }
+
         if ($fromPull) {
             $galaxy['org_id'] = $orgId;
         } else {
             $galaxy['org_id'] = $user['Organisation']['id'];
         }
 
-        if (!isset($galaxy['orgc_id']) && !isset($galaxy['Orgc'])) {
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+            // Only sync users and site admins create galaxies on behalf of other organisations;
+            // captureOrganisationAndSG() would take the creator from Orgc
+            unset($galaxy['Orgc']);
             $galaxy['orgc_id'] = $galaxy['org_id'];
-        } else {
-            if (!isset($galaxy['Orgc'])) {
-                if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            } else {
-                if ($galaxy['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            }
-            if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-            }
+        } elseif (!isset($galaxy['orgc_id']) && !isset($galaxy['Orgc'])) {
+            $galaxy['orgc_id'] = $galaxy['org_id'];
         }
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
@@ -443,16 +439,21 @@ class Galaxy extends AppModel
             }
         }
 
+        $existingGalaxy = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
+        ]);
+        if (!empty($existingGalaxy) && !$this->__mayUpdateCapturedGalaxy($user, $existingGalaxy['Galaxy'])) {
+            // Refusing the update must not refuse the clusters: they still go into the galaxy as it is.
+            return $existingGalaxy;
+        }
+
         $galaxy = $this->GalaxyCluster->captureOrganisationAndSG(['Galaxy' => $galaxy], 'Galaxy', $user);
         $galaxy = $galaxy['Galaxy'];
         if (isset($galaxy['icon']) && !self::isValidIconName($galaxy['icon'])) {
             // A peer's icon that is not an icon name is never stored
             $galaxy['icon'] = '';
         }
-        $existingGalaxy = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
-        ]);
 
         unset($galaxy['id']);
         $galaxy['default'] = false;
@@ -466,6 +467,7 @@ class Galaxy extends AppModel
             $fieldsToSave['Galaxy']['created'] = $existingGalaxy['Galaxy']['created'];
             // Unset these so they don't get updated
             unset($existingGalaxy['Galaxy']['id'], $existingGalaxy['Galaxy']['uuid'], $existingGalaxy['Galaxy']['type'], $existingGalaxy['Galaxy']['created']);
+            unset($existingGalaxy['Galaxy']['org_id'], $existingGalaxy['Galaxy']['orgc_id'], $existingGalaxy['Galaxy']['default']);
             foreach (array_keys(array_intersect_key($existingGalaxy['Galaxy'], $galaxy)) as $key) {
                 if ($existingGalaxy['Galaxy'][$key] != $galaxy[$key]) {
                     $fieldsToSave['Galaxy'][$key] = $galaxy[$key];
@@ -479,10 +481,6 @@ class Galaxy extends AppModel
             return $existingGalaxy; // galaxy already exists and galaxy fields are the same
         }
 
-        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_galaxy_editor']) {
-            return false; // user has no permission to modify galaxy
-        }
-
         if (empty($existingGalaxy)) {
             $this->create();
         }
@@ -492,6 +490,25 @@ class Galaxy extends AppModel
             'recursive' => -1,
             'conditions' => ['Galaxy.id' => $this->id],
         ]);
+    }
+
+    /**
+     * A captured galaxy may change an existing one only if that is not a default
+     * galaxy (those change only through the misp-galaxy update), and only for a
+     * site admin, its owner organisation or a sync user that can see it.
+     */
+    private function __mayUpdateCapturedGalaxy(array $user, array $existing)
+    {
+        if ($existing['default']) {
+            return false;
+        }
+        if ($user['Role']['perm_site_admin'] || $existing['org_id'] == $user['org_id']) {
+            return true;
+        }
+        if (!$user['Role']['perm_sync']) {
+            return false;
+        }
+        return $this->hasAny(array_merge(['Galaxy.id' => $existing['id']], $this->buildConditions($user)));
     }
 
     /**
@@ -659,7 +676,7 @@ class Galaxy extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation with publishing capabilities can publish the galaxy');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);
@@ -999,7 +1016,8 @@ class Galaxy extends AppModel
             $orgc_id = $org_id;
         }
 
-        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+        // No sync exemption: replication never detaches through here
+        if (!$user['Role']['perm_site_admin']) {
             if (
                 ($target_type === 'tag_collection' && !$user['Role']['perm_tag_editor']) ||
                 ($target_type !== 'tag_collection' && !$user['Role']['perm_tagger']) ||
@@ -1007,6 +1025,9 @@ class Galaxy extends AppModel
             ) {
                 throw new MethodNotAllowedException('Invalid ' . Inflector::humanize($target_type) . '.');
             }
+        }
+        if ($target_type !== 'tag_collection') {
+            $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
         }
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
@@ -1111,11 +1132,13 @@ class Galaxy extends AppModel
             if (empty($event)) {
                 throw new NotFoundException('Invalid Event.');
             }
-            if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+            // No sync exemption: replication never detaches through here
+            if (!$user['Role']['perm_site_admin']) {
                 if (!$user['Role']['perm_tagger'] || ($user['org_id'] !== $event['Event']['org_id'] && $user['org_id'] !== $event['Event']['orgc_id'])) {
                     throw new NotFoundException('Invalid Event.');
                 }
             }
+            $this->GalaxyCluster->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
         }
         $connectorModel = Inflector::camelize($targetType) . 'Tag';
         if ($targetType === 'attribute') {
@@ -1174,7 +1197,7 @@ class Galaxy extends AppModel
         $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($targetType), $targetId, $logTitle);
     }
 
-    public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace="mitre-attack")
+    public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace="mitre")
     {
         $galaxy = $this->find('first', array(
             'recursive' => -1,
@@ -1186,6 +1209,293 @@ class Galaxy extends AppModel
             'group' => array('name', 'id')
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
+    }
+
+    /**
+     * A matrix galaxy's attached clusters laid out on its kill chain, each
+     * tactic listing the clusters whose `kill_chain` names it. The tactics are
+     * those of the platforms (kill_chain_order keys) the clusters come from,
+     * so an enterprise technique does not bring in the ICS columns. A cluster
+     * with no kill chain lands in a trailing tactic keyed ''.
+     *
+     * @param array $galaxy Galaxy fields plus a GalaxyCluster list carrying
+     *                      `meta` (as getClustersByTags() returns them)
+     * @return array id, name, icon, description, techniques (distinct
+     *               clusters), covered (tactics holding one), tactics
+     */
+    public function tacticCoverage(array $galaxy)
+    {
+        $order = $galaxy['kill_chain_order'] ?? [];
+        if (is_string($order)) {
+            $order = json_decode($order, true);
+        }
+        $order = (array)$order;
+
+        $entries = [];
+        $placements = [];
+        $platforms = [];
+        foreach ($galaxy['GalaxyCluster'] ?? [] as $cluster) {
+            $externalId = $cluster['meta']['external_id'][0] ?? '';
+            $name = (string)($cluster['value'] ?? '');
+            $suffix = ' - ' . $externalId;
+            if ($externalId !== '' && substr($name, -strlen($suffix)) === $suffix) {
+                $name = substr($name, 0, -strlen($suffix));
+            }
+            $entry = [
+                'id' => (int)$cluster['id'],
+                'name' => $name,
+                'external_id' => $externalId,
+                'description' => (string)($cluster['description'] ?? ''),
+                'local' => !empty($cluster['local']),
+            ];
+            $entries[$entry['id']] = $entry;
+
+            $killChains = $cluster['meta']['kill_chain'] ?? [];
+            foreach ($killChains as $killChain) {
+                $at = strrpos($killChain, ':');
+                $platforms[$at === false ? '' : substr($killChain, 0, $at)] = true;
+                $tactic = $at === false ? $killChain : substr($killChain, $at + 1);
+                $placements[$tactic][$entry['id']] = true;
+            }
+            if (empty($killChains)) {
+                $placements[''][$entry['id']] = true;
+            }
+        }
+
+        // Platforms share most tactics: insert each one after its
+        // predecessor so a tactic missing from the first list keeps its place.
+        $keys = [];
+        foreach (array_intersect_key($order, $platforms) ?: $order as $columns) {
+            $previous = null;
+            foreach ((array)$columns as $column) {
+                if (!in_array($column, $keys, true)) {
+                    $at = $previous === null
+                        ? 0
+                        : array_search($previous, $keys, true) + 1;
+                    array_splice($keys, $at, 0, [$column]);
+                }
+                $previous = $column;
+            }
+        }
+        foreach (array_keys($placements) as $tactic) {
+            if ($tactic !== '' && !in_array((string)$tactic, $keys, true)) {
+                $keys[] = (string)$tactic;
+            }
+        }
+        if (isset($placements[''])) {
+            $keys[] = '';
+        }
+
+        $result = [];
+        $covered = 0;
+        foreach ($keys as $key) {
+            $clusters = array_values(
+                array_intersect_key($entries, $placements[$key] ?? [])
+            );
+            usort($clusters, function ($a, $b) {
+                return strcasecmp($a['name'], $b['name']);
+            });
+            $covered += empty($clusters) ? 0 : 1;
+            $result[] = [
+                'key' => $key,
+                'label' => $key === '' ? __('No tactic') : self::tacticLabel($key),
+                'clusters' => $clusters,
+            ];
+        }
+
+        return [
+            'id' => (int)$galaxy['id'],
+            'name' => (string)$galaxy['name'],
+            'icon' => (string)($galaxy['icon'] ?? ''),
+            'description' => (string)($galaxy['description'] ?? ''),
+            'techniques' => count($entries),
+            'covered' => $covered,
+            'tactics' => $result,
+        ];
+    }
+
+    /**
+     * One platform (a kill_chain_order key) of a matrix galaxy, every
+     * technique in it, with the event's marked: `event` when attached to the
+     * event itself, `indicator` when only its attributes carry it. A revoked
+     * technique is left out unless the event uses it, and a sub-technique
+     * (T1566.001) nests under its parent when both sit in the same column.
+     *
+     * @param array $user
+     * @param array $galaxy Galaxy fields: id, name, icon, kill_chain_order
+     * @param array $onEvent cluster id => true, for the event's own clusters
+     * @param array $onIndicators tag name => number of attributes carrying it
+     * @param int|null $platform position of the kill_chain_order key; null
+     *                           picks the platform using the most techniques
+     * @return array galaxy, platforms (key, label, used, size), platform (position),
+     *               columns (key, label, total, used, cells)
+     */
+    public function eventMatrix(array $user, array $galaxy, array $onEvent, array $onIndicators, $platform = null)
+    {
+        $order = $galaxy['kill_chain_order'] ?? [];
+        if (is_string($order)) {
+            $order = json_decode($order, true);
+        }
+        $order = (array)$order;
+
+        $rows = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+            'conditions' => [
+                'GalaxyCluster.galaxy_id' => $galaxy['id'],
+                'GalaxyCluster.deleted' => 0,
+            ],
+            'fields' => ['GalaxyCluster.id', 'GalaxyCluster.value', 'GalaxyCluster.tag_name'],
+            'contain' => ['GalaxyElement' => [
+                'fields' => ['GalaxyElement.galaxy_cluster_id', 'GalaxyElement.key', 'GalaxyElement.value'],
+                'conditions' => ['GalaxyElement.key' => ['kill_chain', 'external_id']],
+            ]],
+        ]);
+        $revoked = empty($rows) ? [] : ClassRegistry::init('GalaxyClusterRelation')->find('list', [
+            'recursive' => -1,
+            'fields' => ['galaxy_cluster_id', 'galaxy_cluster_id'],
+            'conditions' => [
+                'galaxy_cluster_id' => array_column(array_column($rows, 'GalaxyCluster'), 'id'),
+                'referenced_galaxy_cluster_type' => 'revoked-by',
+            ],
+        ]);
+
+        $techniques = [];
+        foreach ($rows as $row) {
+            $cluster = $row['GalaxyCluster'];
+            $externalId = '';
+            $placements = [];
+            foreach ($cluster['GalaxyElement'] ?? $row['GalaxyElement'] ?? [] as $element) {
+                if ($element['key'] === 'external_id') {
+                    $externalId = $element['value'];
+                    continue;
+                }
+                $at = strrpos($element['value'], ':');
+                if ($at !== false) {
+                    $placements[substr($element['value'], 0, $at)][substr($element['value'], $at + 1)] = true;
+                }
+            }
+            $indicators = $onIndicators[$cluster['tag_name']] ?? 0;
+            $state = isset($onEvent[$cluster['id']]) ? 'event' : ($indicators ? 'indicator' : '');
+            if (empty($placements) || ($state === '' && isset($revoked[$cluster['id']]))) {
+                continue;
+            }
+            $name = $cluster['value'];
+            $suffix = ' - ' . $externalId;
+            if ($externalId !== '' && substr($name, -strlen($suffix)) === $suffix) {
+                $name = substr($name, 0, -strlen($suffix));
+            }
+            $techniques[$cluster['id']] = [
+                'id' => (int)$cluster['id'],
+                'name' => $name,
+                'external_id' => $externalId,
+                'state' => $state,
+                'indicators' => $indicators,
+                'placements' => $placements,
+            ];
+        }
+
+        // Ties on usage go to the larger platform: an enterprise technique
+        // sits on a dozen of them, and Windows is a better pick than Containers.
+        $keys = array_keys($order);
+        $platforms = [];
+        foreach ($keys as $key) {
+            $used = $size = 0;
+            foreach ($techniques as $technique) {
+                if (isset($technique['placements'][$key])) {
+                    $size++;
+                    $used += $technique['state'] !== '' ? 1 : 0;
+                }
+            }
+            $platforms[] = ['key' => $key, 'label' => self::platformLabel($key), 'used' => $used, 'size' => $size];
+        }
+        if ($platform === null || !isset($keys[$platform])) {
+            $platform = 0;
+            foreach ($platforms as $i => $candidate) {
+                if ([$candidate['used'], $candidate['size']] > [$platforms[$platform]['used'], $platforms[$platform]['size']]) {
+                    $platform = $i;
+                }
+            }
+        }
+
+        $columns = [];
+        $platformKey = $keys[$platform] ?? null;
+        foreach ($platformKey === null ? [] : (array)$order[$platformKey] as $tactic) {
+            $cells = [];
+            $byExternalId = [];
+            foreach ($techniques as $id => $technique) {
+                if (isset($technique['placements'][$platformKey][$tactic])) {
+                    unset($technique['placements']);
+                    $cells[$id] = $technique + ['subs' => []];
+                    $byExternalId[$technique['external_id']] = $id;
+                }
+            }
+            foreach ($cells as $id => $cell) {
+                $dot = strrpos($cell['external_id'], '.');
+                $parent = $dot === false ? null : ($byExternalId[substr($cell['external_id'], 0, $dot)] ?? null);
+                if ($parent !== null && $parent !== $id) {
+                    $cells[$parent]['subs'][] = $cell;
+                    unset($cells[$id]);
+                }
+            }
+            $used = 0;
+            foreach ($cells as $id => $cell) {
+                usort($cells[$id]['subs'], function ($a, $b) {
+                    return strnatcmp($a['external_id'], $b['external_id']);
+                });
+                $cells[$id]['subs_used'] = count(array_filter($cell['subs'], function ($sub) {
+                    return $sub['state'] !== '';
+                }));
+                if ($cell['state'] !== '' || $cells[$id]['subs_used']) {
+                    $used++;
+                }
+            }
+            $cells = array_values($cells);
+            usort($cells, function ($a, $b) {
+                return strcasecmp($a['name'], $b['name']);
+            });
+            $columns[] = [
+                'key' => $tactic,
+                'label' => self::tacticLabel($tactic),
+                'total' => count($cells),
+                'used' => $used,
+                'cells' => $cells,
+            ];
+        }
+
+        return [
+            'galaxy' => [
+                'id' => (int)$galaxy['id'],
+                'name' => (string)$galaxy['name'],
+                'icon' => (string)($galaxy['icon'] ?? ''),
+            ],
+            'platforms' => $platforms,
+            'platform' => $platform,
+            'columns' => $columns,
+        ];
+    }
+
+    /**
+     * @param string $key kill-chain tactic, e.g. command-and-control
+     * @return string e.g. Command And Control
+     */
+    public static function tacticLabel($key)
+    {
+        return preg_replace_callback('/\b(ai|ml)\b/i', function ($m) {
+            return strtoupper($m[1]);
+        }, ucwords(str_replace('-', ' ', (string)$key)));
+    }
+
+    /**
+     * @param string $key kill_chain_order key, e.g. mobile-attack-Android
+     * @return string e.g. Mobile · Android
+     */
+    public static function platformLabel($key)
+    {
+        if (preg_match('/^(?:(mobile|ics|pre)-)?attack(?:-(.+))?$/i', (string)$key, $m)) {
+            $families = ['' => 'Enterprise', 'mobile' => 'Mobile', 'ics' => 'ICS', 'pre' => 'PRE-ATT&CK'];
+            $family = $families[strtolower($m[1] ?? '')];
+            return empty($m[2]) ? $family : $family . ' · ' . str_replace('-', ' ', $m[2]);
+        }
+        return ucfirst(str_replace(['-', '_'], ' ', (string)$key));
     }
 
     public function getAllowedMatrixGalaxies(array $user)

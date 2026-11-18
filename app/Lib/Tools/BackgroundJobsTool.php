@@ -250,6 +250,9 @@ class BackgroundJobsTool
         $this->validateQueue($queue);
         $this->validateCommand($command);
 
+        if ($jobId) {
+            $metadata['job_id'] = $jobId;
+        }
         $backgroundJob = new BackgroundJob(
             [
                 'id' => CakeText::uuid(),

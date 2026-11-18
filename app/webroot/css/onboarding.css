@@ -595,6 +595,7 @@ body.onboarding-active .modal-backdrop {
 .onb-accent-tag      { --onb-accent: var(--tag, #DB6A47); }
 .onb-accent-galaxy   { --onb-accent: var(--galaxy, #8B5CF6); }
 .onb-accent-report   { --onb-accent: var(--report, #4DA167); }
+.onb-accent-correlation { --onb-accent: var(--correlation, #E67F0D); }
 
 /* --enrichment (#48435C) was tried for Administration first and failed: a
    dark slate is legible on white but sinks into a dark background. Section

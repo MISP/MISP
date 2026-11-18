@@ -226,6 +226,27 @@ class BackgroundJob implements JsonSerializable
         return $this->error;
     }
 
+    /**
+     * The stderr line that names the error. Cake prints a fatal error as
+     * "Error: <message>" before the trace, after any log echo and warnings.
+     *
+     * @return string|null
+     */
+    public function errorLine(): ?string
+    {
+        $lines = preg_split('/\R/', trim((string)$this->error));
+        foreach (array_reverse($lines) as $line) {
+            $line = trim($line);
+            if (stripos($line, 'error:') !== false &&
+                !preg_match('/^(#\d+ |(Warning|Notice|Strict|Deprecated) Error:)/', $line)
+            ) {
+                return $line;
+            }
+        }
+        $line = trim(end($lines));
+        return $line === '' ? null : $line;
+    }
+
     public function metadata(): array
     {
         return $this->metadata;

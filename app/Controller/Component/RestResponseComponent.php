@@ -2216,8 +2216,14 @@ class RestResponseComponent extends Component
     }
     private function __overwriteDecayingModel($scope, &$field) {
         $this->{$scope} = ClassRegistry::init("DecayingModel");
+        $user = $this->Controller->Auth->user();
+        $conditions = array();
+        if (empty($user['Role']['perm_site_admin'])) {
+            $conditions['OR'] = array('org_id' => $user['org_id'], 'all_orgs' => 1);
+        }
         $models = $this->{$scope}->find('list', array(
             'recursive' => -1,
+            'conditions' => $conditions,
             'fields' => array('name')
         ));
         $field['values'] = array();

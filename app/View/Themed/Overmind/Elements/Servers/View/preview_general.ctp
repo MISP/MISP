@@ -6,31 +6,23 @@
  */
 
 $evt   = $data['Event'] ?? [];
-$org   = $data['Org'] ?? [];
-$orgc  = $data['Orgc'] ?? [];
-$sg    = $data['SharingGroup'] ?? [];
-
-$distribution = (int)($evt['distribution'] ?? 0);
 $isPublished  = !empty($evt['published']);
 
 
-$analysisMap = [
-    0 => ['label' => __('Initial'),   'dot' => '#0d6efd'],
-    1 => ['label' => __('Ongoing'),   'dot' => '#fd7e14'],
-    2 => ['label' => __('Completed'), 'dot' => '#198754'],
+// Same scales as the local event view (Events/View/event_general.ctp).
+$analysisStops = [
+    ['value' => 0, 'title' => __('Initial'),   'tone' => '#0d6efd', 'sub' => __('Raw intelligence')],
+    ['value' => 1, 'title' => __('Ongoing'),   'tone' => '#fd7e14', 'sub' => __('Under investigation')],
+    ['value' => 2, 'title' => __('Completed'), 'tone' => '#198754', 'sub' => __('Verified & closed')],
 ];
-$threatMap = [
-    0 => ['label' => __('Low'),       'color' => '#ffc107'],
-    1 => ['label' => __('Medium'),    'color' => '#fd7e14'],
-    2 => ['label' => __('High'),      'color' => '#dc3545'],
-    3 => ['label' => __('Undefined'), 'color' => '#41464b'],
+$threatStops = [
+    ['value' => 4, 'title' => __('Undefined'), 'tone' => '#41464b', 'sub' => __('No risk')],
+    ['value' => 3, 'title' => __('Low'),       'tone' => '#ffc107', 'sub' => __('Opportunistic')],
+    ['value' => 2, 'title' => __('Medium'),    'tone' => '#fd7e14', 'sub' => __('Targeted campaign')],
+    ['value' => 1, 'title' => __('High'),      'tone' => '#dc3545', 'sub' => __('Active exploitation')],
 ];
 $analysisLevel = (int)($evt['analysis'] ?? 0);
-// Backend: 1=High, 2=Medium, 3=Low, 4=Undefined -> display index 0=Low..3=Undef
 $threatLevelId = (int)($evt['threat_level_id'] ?? 4);
-$threatLevel   = [1 => 2, 2 => 1, 3 => 0, 4 => 3][$threatLevelId] ?? 3;
-$analysis = $analysisMap[$analysisLevel] ?? $analysisMap[0];
-$threat   = $threatMap[$threatLevel] ?? $threatMap[3];
 
 // Dates -> header description strip (like the classic event view).
 $descParts = [];
@@ -84,128 +76,49 @@ $stats = [
 <div class="card mb-3 shadow-sm" id="preview-general-card">
     <div class="card-body">
 
-        <!-- Identifiers + Organisations -->
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <i class="fas fa-fingerprint me-1"></i>
-                        <?= __('Identifiers') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted small fw-bold">ID</span>
-                            <span class="bg-light border rounded px-2 py-1 fw-semibold small font-monospace">
-                                #<?= h($evt['id'] ?? '') ?>
-                            </span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted small fw-bold flex-shrink-0">UUID</span>
-                            <div class="d-inline-flex align-items-center gap-1 bg-light border rounded px-2 py-1">
-                                <span class="font-monospace small text-truncate"><?= h($evt['uuid'] ?? '') ?></span>
-                                <button
-                                    class="text-muted border-0 bg-transparent p-0 ms-1 flex-shrink-0"
-                                    onclick="copyValueToClipboard('<?= h($evt['uuid'] ?? '') ?>', '<?= __('UUID copied to clipboard') ?>')"
-                                    data-bs-toggle="tooltip"
-                                    title="<?= __('Copy UUID') ?>"
-                                    aria-label="<?= __('Copy UUID') ?>">
-                                    <i class="fas fa-copy" style="font-size:0.75rem;"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Created by -->
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <span class="misp-icon misp-icon-user1 misp-hexagone"></span>
-                        <?= __('Created by') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-1">
-                        <div class="d-flex align-items-center gap-2">
-                            <?= $this->OrgImg->getOrgLogoV2($orgc, 20, false) ?>
-                            <span class="fw-medium"><?= h($orgc['name'] ?? '') ?></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Distribution + Publication -->
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <i class="fas fa-broadcast-tower me-1"></i>
-                        <?= __('Distribution') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between">
-                        <?= $this->element('genericElementsBS5/Badges/distribution', [
-                            'distribution' => $distribution,
-                            'full'         => true
-                        ]); ?>
-                        <?php if ($distribution === 4 && !empty($sg['name'])): ?>
-                            <span class="d-inline-flex align-items-center gap-1 small">
-                                <span class="misp-icon misp-icon-sharing-group misp-hexagone text-primary"></span>
-                                <?= h($sg['name']) ?>
-                            </span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <i class="fas fa-paper-plane me-1"></i>
-                        <?= __('Publication') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <?= $this->element('genericElementsBS5/Badges/boolean', [
-                            'boolean'    => $isPublished,
-                            'full'       => true,
-                            'true'       => __('Published'),
-                            'false'      => __('Unpublished'),
-                            'trueColor'  => 'success',
-                            'falseColor' => 'warning',
-                            'trueIcon'   => 'fa-upload',
-                            'falseIcon'  => 'fa-warning',
-                        ]); ?>
-                        <?php if ($isPublished && !empty($evt['publish_timestamp'])): ?>
-                            <div class="d-flex align-items-center gap-1 text-muted small">
-                                <i class="fas fa-history fa-fw"></i>
-                                <?= $this->Time->time($evt['publish_timestamp']) ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Threat level + Analysis (same visualisation as classic view) -->
-        <div class="row g-2 align-items-start mb-3">
-            <div class="col-md-6">
+        <!-- Analysis + Threat level -->
+        <div class="row g-4 mb-3">
+            <div class="col-12 col-md-6">
                 <div class="text-muted small text-uppercase fw-bold mb-2"><?= __('Analysis') ?></div>
-                <?php $analysisPct = (int)(($analysisLevel + 1) / 3 * 100); ?>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="flex-fill" style="height:4px;border-radius:2px;background:#e9ecef;overflow:hidden;">
-                        <div style="height:100%;width:<?= $analysisPct ?>%;border-radius:2px;background:<?= h($analysis['dot']) ?>;"></div>
-                    </div>
-                    <span class="small fw-semibold flex-shrink-0" style="color:<?= h($analysis['dot']) ?>;"><?= h($analysis['label']) ?></span>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                    'field'    => 'analysis',
+                    'value'    => $analysisLevel,
+                    'options'  => $analysisStops,
+                    'readonly' => true,
+                ]) ?>
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
                 <div class="text-muted small text-uppercase fw-bold mb-2"><?= __('Threat Level') ?></div>
-                <?php $threatPct = $threatLevel < 3 ? (int)(($threatLevel + 1) / 3 * 100) : 5; ?>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="flex-fill" style="height:4px;border-radius:2px;background:#e9ecef;overflow:hidden;">
-                        <div style="height:100%;width:<?= $threatPct ?>%;border-radius:2px;background:<?= h($threat['color']) ?>;"></div>
-                    </div>
-                    <span class="small fw-semibold flex-shrink-0" style="color:<?= h($threat['color']) ?>;"><?= h($threat['label']) ?></span>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                    'field'    => 'threat_level_id',
+                    'value'    => $threatLevelId,
+                    'options'  => $threatStops,
+                    'readonly' => true,
+                ]) ?>
+            </div>
+        </div>
+
+        <!-- Publication -->
+        <div class="mb-3">
+            <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Publication') ?></div>
+            <div class="d-flex align-items-center flex-wrap column-gap-3 row-gap-1">
+                <?= $this->element('genericElementsBS5/Badges/boolean', [
+                    'boolean'    => $isPublished,
+                    'full'       => true,
+                    'true'       => __('Published'),
+                    'false'      => __('Unpublished'),
+                    'trueColor'  => 'success',
+                    'falseColor' => 'warning',
+                    'trueIcon'   => 'fa-upload',
+                    'falseIcon'  => 'fa-warning',
+                ]); ?>
+                <?php if (!empty($evt['publish_timestamp'])): ?>
+                    <span class="d-inline-flex align-items-center gap-1 text-muted small">
+                        <i class="fas fa-history fa-fw"></i>
+                        <span class="fw-medium"><?= __('Last:') ?></span>
+                        <?= $this->Time->time($evt['publish_timestamp']) ?>
+                    </span>
+                <?php endif; ?>
             </div>
         </div>
 
