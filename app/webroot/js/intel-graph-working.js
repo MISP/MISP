@@ -120,7 +120,7 @@
             var mark = key ? W[key] || null : null;
             var out = null;
             if (mark) {
-                if (mark.role === 'finding') out = badge(mark.known ? 'known' : 'finding');
+                if (mark.role === 'member' && mark.missing) out = badge('finding');
                 else if (mark.role === 'extra') out = badge('extra');
             } else if (node && F.kept[node.id]) {
                 out = badge(data && data.known ? 'known' : 'finding');
@@ -151,6 +151,8 @@
         ((p.document && p.document.nodes) || []).forEach(function (n) {
             if (n.type === 'ModuleAnswer') idx.doc[lower(n.uuid)] = n;
         });
+        idx.sobj = {};
+        (p.StandaloneObject || []).forEach(function (o) { idx.sobj[lower(o.uuid)] = o; });
         return idx;
     }
     function objectValue(o) {
@@ -167,9 +169,11 @@
         var type = key.slice(0, at), addr = lower(key.slice(at + 1));
         var d = data || {};
         var r = {
-            rid: key, key: key, type: type, kind: type === 'ModuleAnswer' ? 'Attribute' : (TYPES[type] ? type : 'Attribute'),
-            role: mark.role, known: !!mark.known, el: mark.element || null, data: d,
-            value: d.value || d.label || addr, typeLabel: '', eventId: null, from: null
+            rid: key, key: key, type: type,
+            kind: type === 'ModuleAnswer' ? 'Attribute' : type === 'StandaloneObject' ? 'Object' : (TYPES[type] ? type : 'Attribute'),
+            role: mark.role, known: !!mark.known, missing: !!mark.missing, el: mark.element || null, data: d,
+            value: d.value || d.label || addr, typeLabel: '', eventId: null,
+            from: mark.origin ? { module: mark.origin.module, value: mark.origin.value } : null
         };
         if (type === 'Event') {
             var ev = idx.ev[addr];
@@ -192,6 +196,12 @@
         } else if (type === 'Value') {
             r.value = d.value || d.label;
             r.typeLabel = typeName('Value');
+        } else if (type === 'StandaloneObject') {
+            var so = idx.sobj[addr];
+            r.value = so ? objectValue({ name: so.name, Attribute: (so.attributes || []).map(function (a) {
+                return { object_relation: a.relation, value: a.value };
+            }) }) : d.label;
+            r.typeLabel = t('objectOf', (so && so.name) || d.name || typeName('Object'));
         } else if (type === 'ModuleAnswer') {
             var n = idx.doc[addr], c = (n && n.content) || {};
             r.value = c.value || d.value;
@@ -211,10 +221,10 @@
             r.when = r.el.created || null;
         }
         r.why = Object.prototype.hasOwnProperty.call(F.why, key) ? F.why[key] : (r.el ? r.el.description || '' : '');
-        if (type === 'ModuleAnswer') r.item = r.known ? { type: 'Value', value: r.value } : null;
+        if (mark.item) r.item = mark.item;
         else if (type === 'Value') r.item = r.value ? { type: 'Value', value: r.value } : { type: 'Value', sha256: key.slice(at + 1) };
-        else r.item = { type: type, uuid: key.slice(at + 1) };
-        r.canAdd = (r.role === 'extra' || (r.role === 'finding' && r.known)) && !!r.item;
+        else r.item = type === 'ModuleAnswer' ? null : { type: type, uuid: key.slice(at + 1) };
+        r.canAdd = r.role === 'extra' && !!r.item;
         r.canKeep = false;
         return r;
     }
@@ -243,8 +253,8 @@
             r.from = { module: d.module || (d.modules || [])[0], value: e ? (e.asked || (e.origin && e.origin.value)) : null };
         }
         if (r.eventId && p.events && p.events[r.eventId]) r.eventInfo = p.events[r.eventId].info;
-        r.canAdd = !kept && !!r.item && (!answer || r.known);
-        r.canKeep = !kept && answer && !r.known;
+        r.canAdd = !kept && !!r.item;
+        r.canKeep = false;
         return r;
     }
     function collect(F) {
@@ -294,7 +304,7 @@
         var f = F.f;
         if (f.role !== 'all') {
             if (f.role === 'member' && r.role !== 'member') return false;
-            if (f.role === 'finding' && r.role !== 'finding') return false;
+            if (f.role === 'finding' && !r.missing && r.role !== 'finding') return false;
             if (f.role === 'extra' && r.role !== 'extra') return false;
             if (f.role === 'hidden' && !r.hidden) return false;
         }
@@ -323,7 +333,7 @@
         return '<span class="igw-chip ' + cls + '"><i class="' + icon + '" aria-hidden="true"></i>' + esc(label) + '</span>';
     }
     function chipOf(r) {
-        if (r.role === 'finding') return r.known ? chip('is-known', 'fas fa-circle-check', t('chipKnown')) : chip('is-finding', 'fas fa-lightbulb', t('chipFinding'));
+        if (r.missing || r.role === 'finding') return chip('is-finding', 'fas fa-lightbulb', t('chipFinding'));
         if (r.hidden) return chip('is-hidden', 'fas fa-eye-slash', t('chipHidden'));
         return '';
     }
@@ -795,12 +805,16 @@
         var rows = fit.filter(function (r) { return r.item; });
         if (!rows.length) return Promise.resolve();
         var h = F.h;
-        var swaps = rows.filter(function (r) { return r.key && r.type === 'ModuleAnswer' && r.known && graphWritable(F); });
+        // A value answer gives its place to the member; an object answer the
+        // collection holds is drawn as its member where it sits
+        var swaps = rows.filter(function (r) {
+            return r.key && r.type === 'ModuleAnswer' && r.item.type === 'Value' && graphWritable(F);
+        });
         var drops = rows.filter(function (r) { return !r.key && r.type === 'ModuleAnswer'; }).map(function (r) { return r.rid; });
         rows.forEach(function (r) { F.busy[r.rid] = true; });
         render(F);
         var swapped = swaps.reduce(function (p, r) {
-            return p.then(function () { return h.replaceNode(r.key, { type: 'Value', value: r.value }); });
+            return p.then(function () { return h.replaceNode(r.key, { type: 'Value', value: r.item.value }); });
         }, Promise.resolve());
         return swapped.then(function () {
             return IG().add(rows.map(function (r) { return r.item; }), where(F));

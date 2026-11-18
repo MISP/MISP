@@ -28,7 +28,8 @@ class AnalystGraphDocumentTool
 {
     const VERSION = 1;
     const ANSWER = 'ModuleAnswer';
-    const NODE_TYPES = ['Event', 'Attribute', 'Object', 'GalaxyCluster', 'Value', self::ANSWER];
+    const STANDALONE = 'StandaloneObject';
+    const NODE_TYPES = ['Event', 'Attribute', 'Object', 'GalaxyCluster', 'Value', self::ANSWER, self::STANDALONE];
     const ORIGIN_TYPES = ['Attribute', 'Value', self::ANSWER];
     const MAX_NODES = 2000;
     const MAX_BYTES = 16777216;
@@ -684,6 +685,62 @@ class AnalystGraphDocumentTool
             (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
             substr($hash, 20, 12)
         );
+    }
+
+    /**
+     * An object's content as an answer of kind object holds it.
+     *
+     * @param mixed $content
+     * @param string[] $errors
+     * @return array|null
+     */
+    public static function normaliseObjectContent($content, array &$errors)
+    {
+        if (!is_array($content) || ($content['kind'] ?? 'object') !== 'object') {
+            $errors[] = __('content is an object: kind object, a name and its attributes.');
+            return null;
+        }
+        return self::normaliseContent(['kind' => 'object'] + $content, $errors);
+    }
+
+    /**
+     * Where a collection member taken from a module answer came from: the
+     * module, what it was asked and when. The node asked is not kept.
+     *
+     * @param mixed $origin
+     * @param string|null $error
+     * @return array|null {module, type, value, ran_at}
+     */
+    public static function normaliseMemberOrigin($origin, &$error)
+    {
+        $error = null;
+        if (!is_array($origin)) {
+            $error = __('an origin is an object.');
+            return null;
+        }
+        $module = $origin['module'] ?? null;
+        if (!is_string($module) || !preg_match(self::MODULE_PATTERN, $module)) {
+            $error = __('an origin names the module asked.');
+            return null;
+        }
+        $out = ['module' => $module];
+        foreach (['type', 'value'] as $field) {
+            $out[$field] = self::answerString($origin[$field] ?? null, false, $error);
+            if ($out[$field] === null) {
+                $error = __('%s: %s', $field, $error);
+                return null;
+            }
+        }
+        $ranAt = $origin['ran_at'] ?? null;
+        if (is_string($ranAt) && ctype_digit($ranAt)) {
+            $ranAt = (int)$ranAt;
+        }
+        if (!is_int($ranAt) || $ranAt < 0) {
+            $error = __('ran_at must be a timestamp.');
+            return null;
+        }
+        $out['ran_at'] = $ranAt;
+        return $out;
     }
 
     /**

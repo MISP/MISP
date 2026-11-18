@@ -355,9 +355,11 @@ class Collection extends AppModel
                 return self::reviewEnd($row['CollectionElement'], 'element') + [
                     'at' => $row['CollectionElement']['created'],
                     'user_id' => $row['CollectionElement']['user_id'],
+                    'text' => $row['CollectionElement']['element_value'] ?? null,
                 ];
             }, $added),
         ];
+        $review['narrower'] = $this->narrowerReview($user, $collection);
 
         $Removal = ClassRegistry::init('CollectionElementRemoval');
         $removedConditions = ['CollectionElementRemoval.collection_id' => $id];
@@ -419,6 +421,45 @@ class Collection extends AppModel
     }
 
     /**
+     * The values added since the last publish that every attribute the
+     * user can see holding them shares more narrowly than the collection.
+     *
+     * @param array $user
+     * @param array $collection Unwrapped
+     * @return array {count, items: [{type, address, label, meta}]}
+     */
+    private function narrowerReview(array $user, array $collection)
+    {
+        $texts = [];
+        $lastId = 0;
+        do {
+            $rows = $this->CollectionElement->find('all', [
+                'recursive' => -1,
+                'fields' => ['CollectionElement.id', 'CollectionElement.element_sha256', 'CollectionElement.element_value'],
+                'conditions' => [
+                    'CollectionElement.collection_id' => (int)$collection['id'],
+                    'CollectionElement.published' => false,
+                    'CollectionElement.element_type' => 'AttributeValue',
+                    'CollectionElement.id >' => $lastId,
+                ],
+                'order' => ['CollectionElement.id' => 'ASC'],
+                'limit' => 1000,
+            ]);
+            foreach ($rows as $row) {
+                $texts[strtolower($row['CollectionElement']['element_sha256'])] = $row['CollectionElement']['element_value'];
+                $lastId = (int)$row['CollectionElement']['id'];
+            }
+        } while (count($rows) === 1000);
+        $narrower = $this->CollectionElement->narrowerValues($user, (int)$collection['distribution'], array_keys($texts));
+        return [
+            'count' => count($narrower),
+            'items' => array_map(function ($hex) use ($texts) {
+                return ['type' => 'AttributeValue', 'address' => $hex, 'label' => $texts[$hex], 'meta' => []];
+            }, array_slice($narrower, 0, self::REVIEW_LIMIT)),
+        ];
+    }
+
+    /**
      * @param array $row An element, a removal or a relationship, unwrapped
      * @param string $end 'element', 'object' or 'related_object'
      * @return array {type, address}
@@ -453,17 +494,30 @@ class Collection extends AppModel
             $collect($relationship['from']);
             $collect($relationship['to']);
         }
+        $standalone = [];
+        foreach ($targets as $key => $target) {
+            if ($target['type'] === 'StandaloneObject') {
+                $standalone[] = $target['address'];
+                unset($targets[$key]);
+            }
+        }
         $described = empty($targets) ? [] : ClassRegistry::init('AnalystData')->describeTargets($user, array_values($targets));
         $byAddress = [];
         foreach ($described as $address => $description) {
             $byAddress[strtolower((string)$address)] = $description;
+        }
+        $records = empty($standalone) ? [] : ClassRegistry::init('StandaloneObject')->records($standalone);
+        foreach ($records as $uuid => $record) {
+            $byAddress[$uuid] = ['label' => $record['name'], 'meta' => ['attributes' => count($record['attributes'])]];
         }
         $label = function (array $end) use ($byAddress, $collection) {
             if ($end['type'] === 'Collection' && $end['address'] === strtolower($collection['uuid'])) {
                 return $end + ['label' => $collection['name'], 'meta' => []];
             }
             $found = $byAddress[$end['address']] ?? null;
-            return $end + ['label' => $found['label'] ?? null, 'meta' => $found['meta'] ?? []];
+            $text = $end['text'] ?? null;
+            unset($end['text']);
+            return $end + ['label' => $found['label'] ?? $text, 'meta' => $found['meta'] ?? []];
         };
         foreach (['added', 'removed'] as $kind) {
             foreach ($review[$kind]['items'] as $i => $item) {
@@ -1399,6 +1453,9 @@ class Collection extends AppModel
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
             $collections = self::withoutValueElements($collections);
         }
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_STANDALONE_OBJECTS)) {
+            $collections = self::withoutStandaloneObjects($collections);
+        }
         if (empty($collections)) {
             return 0;
         }
@@ -1494,6 +1551,9 @@ class Collection extends AppModel
                     $collection['Collection'][$child] = $row[$child];
                 }
             }
+            if (!empty($collection['Collection']['CollectionElement'])) {
+                $collection['Collection']['CollectionElement'] = $this->CollectionElement->withRecords($collection['Collection']['CollectionElement']);
+            }
             if (!$this->Event->checkDistributionForPush($collection, $server, 'Collection')) {
                 continue;
             }
@@ -1522,6 +1582,29 @@ class Collection extends AppModel
                 $collection['Collection']['CollectionElement'],
                 function ($element) {
                     return empty($element['element_sha256']);
+                }
+            ));
+        }
+        return $collections;
+    }
+
+    /**
+     * A MISP that does not announce standalone objects cannot hold them; the
+     * collections themselves still go.
+     *
+     * @param array $collections As collectDataForPush returns them
+     * @return array
+     */
+    public static function withoutStandaloneObjects(array $collections): array
+    {
+        foreach ($collections as $i => $collection) {
+            if (empty($collection['Collection']['CollectionElement'])) {
+                continue;
+            }
+            $collections[$i]['Collection']['CollectionElement'] = array_values(array_filter(
+                $collection['Collection']['CollectionElement'],
+                function ($element) {
+                    return ($element['element_type'] ?? null) !== 'StandaloneObject';
                 }
             ));
         }
@@ -1671,6 +1754,9 @@ class Collection extends AppModel
         }
         if (!empty($collection['Collection']['CollectionElement']) && (empty($user) || !self::showsAdders($user, $collection['Collection']))) {
             $collection['Collection']['CollectionElement'] = self::withoutAdders($collection['Collection']['CollectionElement']);
+        }
+        if (!empty($collection['Collection']['CollectionElement'])) {
+            $collection['Collection']['CollectionElement'] = $this->CollectionElement->withRecords($collection['Collection']['CollectionElement']);
         }
         return $collection;
     }

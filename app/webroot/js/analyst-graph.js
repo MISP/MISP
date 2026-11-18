@@ -53,6 +53,47 @@
         return node.type + ':' + addressOf(node);
     }
 
+    // A standalone object, drawn as the module answer it holds: one from a
+    // module merges with that answer landing again; one made by hand has
+    // its own id and no module.
+    function standaloneNode(kit, rec, known) {
+        var node = kit.answerNode({
+            module: rec.module || 'standalone',
+            modules: rec.module ? [rec.module] : [],
+            origins: [],
+            content: {
+                kind: 'object', name: rec.name, meta_category: rec.meta_category,
+                description: rec.description, comment: rec.comment, attributes: rec.attributes || []
+            }
+        }, null, known);
+        var all = [node].concat(node.children || []);
+        if (!rec.module) {
+            var id = 'sobj:' + lower(rec.uuid);
+            (node.children || []).forEach(function (c) { c.id = id + c.id.slice(node.id.length); });
+            node.id = id;
+            all.forEach(function (n) {
+                n.data.scope = 'standalone';
+                delete n.data.module;
+                delete n.data.modules;
+            });
+        }
+        node.data.standalone_uuid = lower(rec.uuid);
+        return node;
+    }
+
+    // What IntelGraph.add sends for a module answer: the object or the value
+    // it holds, with where it came from.
+    function answerAddItem(doc) {
+        if (!doc || doc.type !== 'ModuleAnswer' || !doc.content) return null;
+        var c = doc.content;
+        var item = c.kind === 'object'
+            ? { type: 'StandaloneObject', module: doc.module, content: c }
+            : { type: 'Value', value: String(c.value) };
+        var o = (doc.origins || [])[0];
+        if (o) item.origin = { module: o.module, type: o.type, value: o.value, ran_at: o.ran_at };
+        return item;
+    }
+
     function valueNodeData(v) {
         return {
             type:        'value',
@@ -99,6 +140,7 @@
         var attributes = byUuid(payload.Attribute);
         var clusters = byUuid(payload.GalaxyCluster);
         var values = byUuid(payload.Value, 'sha256');
+        var standalone = byUuid(payload.StandaloneObject);
         kit.mergePriorities(payload.ui_priorities);
         // An answer claims who kept it: the graph's organisation
         var keptBy = (payload.Graph && payload.Graph.Orgc && payload.Graph.Orgc.name) || null;
@@ -120,7 +162,7 @@
             (obj.Attribute || []).forEach(function (a) { parentOf[lower(a.uuid)] = 'obj:' + lower(obj.uuid); });
         });
 
-        var idOf = {}, keyOf = {}, folded = {}, clusterIdOf = {}, valueIdOf = {}, answerIdOf = {};
+        var idOf = {}, keyOf = {}, folded = {}, clusterIdOf = {}, valueIdOf = {}, answerIdOf = {}, standaloneIdOf = {};
         // The nodes the document hides, built and not drawn: what Show lands
         var hiddenNodes = {}, hiddenIds = {};
         var unplaced = [], loose = {};
@@ -166,6 +208,12 @@
                     node = kit.answerNode(n, keptBy, known);
                     answerIdOf[uuid] = node.id;
                     break;
+                case 'StandaloneObject':
+                    if (standalone[uuid]) {
+                        node = standaloneNode(kit, standalone[uuid], known);
+                        standaloneIdOf[uuid] = node.id;
+                    }
+                    break;
             }
             if (!node) return;
             node.data.graph_node = true;
@@ -201,6 +249,7 @@
             if (type === 'GalaxyCluster') return clusterIdOf[uuid] || null;
             if (type === 'Value') return valueIdOf[uuid] || null;
             if (type === 'ModuleAnswer') return answerIdOf[uuid] || null;
+            if (type === 'StandaloneObject') return standaloneIdOf[uuid] || null;
             return null;
         }
 
@@ -285,6 +334,7 @@
     // A node brought onto the canvas, as the document names it.
     function documentNode(node) {
         var d = node.getData() || {};
+        if (d.standalone_uuid) return { type: 'StandaloneObject', uuid: lower(d.standalone_uuid) };
         var at = node.id.indexOf(':');
         var prefix = node.id.slice(0, at + 1);
         if (prefix === 'event:') return { type: 'Event', uuid: lower(d.uuid || node.id.slice(at + 1)) };
@@ -1054,14 +1104,16 @@
         }
 
         // A menu's node or selection, each as { id, key, item, pivoted }: key
-        // is the document's, null while a pivot's node is not saved; item
-        // names the record as IntelGraph.add takes it, null for an answer.
+        // is the document's, null while a pivot's node is not saved; item is
+        // what IntelGraph.add sends for it, a module answer as the object or
+        // the value it holds; null for an answer that cannot be kept.
         function targetOf(el) {
             return nodesOf(el).map(function (n) {
                 var doc = documentNodeOf(n);
                 var item = null;
                 if (doc && doc.type === 'Value') item = { type: 'Value', value: doc.value };
-                else if (doc && doc.type !== 'ModuleAnswer') item = { type: doc.type, uuid: doc.uuid };
+                else if (doc && doc.type === 'ModuleAnswer') item = answerAddItem(doc);
+                else if (doc && doc.type) item = { type: doc.type, uuid: doc.uuid };
                 return { id: n.id, key: state.built.keyOf[n.id] || null, item: item, pivoted: isPivoted(n) };
             });
         }

@@ -405,7 +405,11 @@
         return typeof o.x === 'number' && typeof o.y === 'number' ? { x: o.x, y: o.y } : null;
     }
 
-    // items: [{ type, uuid } | { type: 'Value', value }]. Resolves
+    // items: [{ type, uuid } | { type: 'Value', value, origin? }
+    //   | { type: 'StandaloneObject', module, content, origin? }
+    //   | { type: 'StandaloneObject', template, attributes, comment? }];
+    // origin { module, type, value, ran_at } says which module answered
+    // what, and when; the graph handle's targetOf builds these. Resolves
     // { status: 'added' | 'unchanged' | 'no-workspace', collection, report,
     // undo }; a refusal rejects, after intel-graph:refused.
     // options.collection adds to that collection instead of the workspace.

@@ -2146,9 +2146,11 @@ class MispAttribute extends AppModel
      * @param array $user
      * @param array $valueIds
      * @param int $limit Stop once this many are found.
+     * @param array|null $reach Only attributes shared at one of these levels,
+     *      by their event, their object and themselves (inherit passes)
      * @return int[] in ascending order
      */
-    public function visibleValueIds(array $user, array $valueIds, $limit)
+    public function visibleValueIds(array $user, array $valueIds, $limit, array $reach = null)
     {
         $valueIds = array_values(array_unique(array_map('intval', $valueIds)));
         sort($valueIds);
@@ -2161,9 +2163,20 @@ class MispAttribute extends AppModel
             'type' => 'INNER',
             'conditions' => ['Event.id = Attribute.event_id'],
         ]];
+        if ($reach !== null) {
+            $reach = array_values(array_map('intval', $reach));
+            $inherit = array_merge($reach, [5]);
+            $conditions['AND'][] = [
+                'Event.distribution' => $reach,
+                'Attribute.distribution' => $inherit,
+                'OR' => ['Attribute.object_id' => 0, 'Object.distribution' => $inherit],
+            ];
+        }
         $acl = $this->buildConditions($user);
-        if (!empty($acl)) {
-            $conditions['AND'][] = $acl;
+        if (!empty($acl) || $reach !== null) {
+            if (!empty($acl)) {
+                $conditions['AND'][] = $acl;
+            }
             $joins[] = [
                 'table' => 'objects',
                 'alias' => 'Object',

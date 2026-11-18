@@ -89,6 +89,8 @@ if (!class_exists('AppModel', false)) {
 }
 
 require_once __DIR__ . '/../Model/AnalystData.php';
+require_once __DIR__ . '/../Lib/Tools/AnalystGraphDocumentTool.php';
+require_once __DIR__ . '/../Lib/Tools/DistributionLevel.php';
 require_once __DIR__ . '/../Model/CollectionElement.php';
 require_once __DIR__ . '/../Model/Collection.php';
 require_once __DIR__ . '/../Lib/Tools/ActiveWorkspaceTool.php';
@@ -204,6 +206,12 @@ class WorkspaceTestGraph
 class WorkspaceTestParent
 {
     public $touched = array();
+    public $distribution = 0;
+
+    public function field($field, $conditions = null)
+    {
+        return $this->distribution;
+    }
 
     public function updateAll($fields, $conditions)
     {
@@ -639,7 +647,7 @@ class CollectionWorkspaceTest extends TestCase
             CollectionElement::itemTarget(array('type' => 'Event', 'uuid' => strtoupper(self::EVENT)))
         );
         $this->assertSame(
-            array('key' => 'Value:' . $value, 'element_type' => 'AttributeValue', 'column' => 'element_sha256', 'address' => $value),
+            array('key' => 'Value:' . $value, 'element_type' => 'AttributeValue', 'column' => 'element_sha256', 'address' => $value, 'text' => 'evil.example'),
             CollectionElement::itemTarget(array('type' => 'Value', 'value' => ' evil.example '))
         );
         $this->assertSame('Value:' . $value, CollectionElement::itemTarget(array('type' => 'Value', 'sha256' => strtoupper($value)))['key']);
@@ -667,12 +675,11 @@ class CollectionWorkspaceTest extends TestCase
             array('type' => 'Note', 'uuid' => self::ATTRIBUTE),
         ), 'from the hunt');
 
-        $this->assertSame(array('Event:9b000000-0000-4000-8000-0000000000e3', 'Value:' . $value), $report['added']);
+        $this->assertSame(array('Event:9b000000-0000-4000-8000-0000000000e3', 'Value:' . $value, 'Value:' . hash('sha256', 'never.example')), $report['added']);
         $this->assertSame(array('Event:' . self::EVENT), $report['present']);
-        $this->assertSame(array(6, 4, 5), array_column($report['refused'], 'index'));
+        $this->assertSame(array(6, 5), array_column($report['refused'], 'index'));
         $errors = array_column($report['refused'], 'error', 'index');
         $this->assertSame('Not a record a collection can hold.', $errors[6]);
-        $this->assertSame('Not in MISP yet: no attribute holds this value.', $errors[4]);
         $this->assertSame('Not found or not authorised.', $errors[5]);
         $this->assertContains('9B000000-0000-4000-8000-0000000000E3', $elements->readableAsked['Event'], 'looked up as stored, either case');
 

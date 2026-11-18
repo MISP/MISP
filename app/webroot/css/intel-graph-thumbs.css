@@ -101,7 +101,8 @@ button.igt:focus-visible {
 .igt-Object { fill: var(--igt-object); }
 .igt-GalaxyCluster { fill: var(--igt-galaxy); }
 .igt-Value { fill: var(--igt-value); }
-.igt-ModuleAnswer { fill: var(--igt-answer); }
+.igt-ModuleAnswer,
+.igt-StandaloneObject { fill: var(--igt-answer); }
 
 .igt-pin {
     fill: none;

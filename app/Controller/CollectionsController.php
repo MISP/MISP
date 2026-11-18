@@ -320,6 +320,9 @@ class CollectionsController extends AppController
         $report = null;
         if (!empty($items)) {
             $report = $this->Collection->CollectionElement->addItems($user, $id, $items);
+            if ($original !== null && !empty($report['added'])) {
+                $this->Collection->CollectionElement->copyOrigins($original['id'], $id, $report['added']);
+            }
         }
         $collection = $this->Collection->workspaceSummaries($user, ['Collection.id' => $id], 1)[0] ?? null;
         $workspace = null;
@@ -793,6 +796,9 @@ class CollectionsController extends AppController
                     if (!empty($collection['CollectionElement']) && !Collection::showsAdders($user, $collection['Collection'])) {
                         $collections[$k]['CollectionElement'] = Collection::withoutAdders($collection['CollectionElement']);
                     }
+                    if (!empty($collections[$k]['CollectionElement'])) {
+                        $collections[$k]['CollectionElement'] = $this->Collection->CollectionElement->withRecords($collections[$k]['CollectionElement']);
+                    }
                 }
                 return $collections;
             }
@@ -814,7 +820,10 @@ class CollectionsController extends AppController
             // only. The HTML index shows just element_count and must not eager-load every
             // element across the paginated list.
             if (SyncTool::valueTargetsWithheld()) {
-                $params['contain']['CollectionElement'] = ['conditions' => ['CollectionElement.element_sha256' => null]];
+                $params['contain']['CollectionElement'] = ['conditions' => [
+                    'CollectionElement.element_sha256' => null,
+                    'CollectionElement.element_type !=' => 'StandaloneObject',
+                ]];
             } else {
                 $params['contain'][] = 'CollectionElement';
             }

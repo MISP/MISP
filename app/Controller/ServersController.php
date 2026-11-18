@@ -2596,6 +2596,7 @@ class ServersController extends AppController
             'collection_sync' => true, // check if Collection sync (indexMinimal/fetch/capture) is supported
             'analyst_graph' => true, // analyst data sync carries the Graph type
             'analyst_data_batch_push' => true, // analyst_data/pushAnalystDataBatch takes a list of records
+            'standalone_objects' => true, // collections carry objects MISP does not hold, with their records
         ];
         return $this->RestResponse->viewData($response, 'json');
     }

@@ -57,6 +57,10 @@ class AnalystGraphData extends AppModel
             }
         }
         $events = $this->events($user, $uuids['Event'], $objects, $attributes);
+        $standalone = $this->inOrder(
+            $this->model('StandaloneObject')->records($uuids[AnalystGraphDocumentTool::STANDALONE]),
+            $uuids[AnalystGraphDocumentTool::STANDALONE]
+        );
 
         $document = AnalystGraphDocumentTool::withNodes($document, $visible);
         $document['view'] = (object)($document['view'] ?? []);
@@ -67,6 +71,7 @@ class AnalystGraphData extends AppModel
             'Attribute' => $attributes,
             'GalaxyCluster' => $clusters,
             'Value' => $values,
+            'StandaloneObject' => $standalone,
             'events' => $events ?: new stdClass(),
             'ui_priorities' => $priorities ?: new stdClass(),
             'edges' => $this->edges($user, $uuids['Event'], $objects, $attributes, $clusters, $values, $events, $this->answersOf($drawn)),

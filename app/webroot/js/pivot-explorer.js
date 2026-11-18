@@ -3548,6 +3548,7 @@
         function graphItemOf(node) {
             if (!node || typeof node.getData !== 'function') return null;
             var d = node.getData() || {};
+            if (d.standalone_uuid) return { type: 'StandaloneObject', uuid: d.standalone_uuid, label: d.label || d.name };
             // A module answer saved into the event is the record it became
             var pivots = _graph && _graph.pivots;
             var id = (pivots && typeof pivots.canonicalId === 'function' && pivots.canonicalId(node)) || node.id;

@@ -1038,6 +1038,9 @@ class GraphTest extends TestCase
                 return self::inList($uuid, $readable);
             }));
         });
+        $this->fake('StandaloneObject')->on('records', function (array $uuids) {
+            return array();
+        });
         $this->fake('MispObject')->on('fetchGraphObjects', function ($user, $conditions) use ($objects) {
             $found = array();
             foreach (array_reverse($objects, true) as $uuid => $object) {
@@ -1515,6 +1518,119 @@ class GraphTest extends TestCase
     private static function keys(array $nodes)
     {
         return array_map(array('AnalystGraphDocumentTool', 'nodeKey'), $nodes);
+    }
+
+    const STANDALONE_A = '5a000000-0000-4000-8000-0000000000a1';
+    const STANDALONE_B = '5a000000-0000-4000-8000-0000000000b2';
+
+    public function testAStandaloneObjectNodeIsKeyedByItsLowerCaseUuid()
+    {
+        $document = self::normalised(array(array('type' => 'StandaloneObject', 'uuid' => strtoupper(self::STANDALONE_A), 'x' => 1, 'pinned' => 1, 'extra' => 'dropped')));
+
+        $this->assertSame(array('type' => 'StandaloneObject', 'uuid' => self::STANDALONE_A, 'x' => 1, 'pinned' => true), $document['nodes'][0]);
+        $this->assertSame('StandaloneObject:' . self::STANDALONE_A, AnalystGraphDocumentTool::nodeKey($document['nodes'][0]));
+
+        list(, $errors) = AnalystGraphDocumentTool::normalise(array('nodes' => array(array('type' => 'StandaloneObject', 'uuid' => 'nope'))));
+        $this->assertNotEmpty($errors);
+        $this->assertStringContainsString('invalid uuid', $errors[0]);
+    }
+
+    public function testResolveDrawsTheStandaloneObjectsTheUserMaySee()
+    {
+        $this->registerResolveFakes(array(self::STANDALONE_A));
+        $record = array('uuid' => self::STANDALONE_A, 'name' => 'domain-ip', 'attributes' => array());
+        $this->fake('StandaloneObject')->on('records', function (array $uuids) use ($record) {
+            return array_intersect_key(array(self::STANDALONE_A => $record), array_flip($uuids));
+        });
+        $document = self::normalised(array(
+            array('type' => 'StandaloneObject', 'uuid' => self::STANDALONE_B),
+            array('type' => 'StandaloneObject', 'uuid' => self::STANDALONE_A),
+        ));
+
+        $resolved = (new AnalystGraphData())->resolve(array('id' => 1), $document);
+
+        $this->assertSame(array('StandaloneObject:' . self::STANDALONE_A), array_map(array('AnalystGraphDocumentTool', 'nodeKey'), $resolved['document']['nodes']));
+        $this->assertSame(array($record), $resolved['StandaloneObject']);
+    }
+
+    public function testObjectContentIsAnAnswerOfKindObject()
+    {
+        $errors = array();
+
+        $content = AnalystGraphDocumentTool::normaliseObjectContent(array(
+            'name' => 'domain-ip',
+            'attributes' => array(array('relation' => 'domain', 'type' => 'domain', 'value' => 'a.example', 'to_ids' => 1, 'extra' => 'dropped')),
+        ), $errors);
+
+        $this->assertSame(array(), $errors);
+        $this->assertSame(array(
+            'kind' => 'object', 'name' => 'domain-ip', 'meta_category' => '', 'description' => '', 'comment' => '',
+            'attributes' => array(array('relation' => 'domain', 'type' => 'domain', 'value' => 'a.example', 'category' => '', 'comment' => '', 'to_ids' => true)),
+        ), $content);
+    }
+
+    public function badObjectContents()
+    {
+        return array(
+            'not an object' => array('text', 'content is an object: kind object, a name and its attributes.'),
+            'another kind' => array(array('kind' => 'attribute', 'type' => 'domain', 'value' => 'a'), 'content is an object: kind object, a name and its attributes.'),
+            'no name' => array(array('attributes' => array()), 'content.name: must be a string.'),
+            'attributes not a list' => array(array('name' => 'n', 'attributes' => array('relation' => 'a')), 'content.attributes must be a list of at most ' . AnalystGraphDocumentTool::MAX_ANSWER_ATTRIBUTES . ' attributes.'),
+            'attribute without a value' => array(array('name' => 'n', 'attributes' => array(array('relation' => 'a', 'type' => 'domain'))), 'content.attributes[0].value: must be a string.'),
+        );
+    }
+
+    /**
+     * @dataProvider badObjectContents
+     */
+    public function testObjectContentThatIsNotOneIsRefusedWithItsReason($content, $reason)
+    {
+        $errors = array();
+
+        $this->assertNull(AnalystGraphDocumentTool::normaliseObjectContent($content, $errors));
+        $this->assertSame(array($reason), $errors);
+    }
+
+    public function testAMemberOriginKeepsTheModuleWhatWasAskedAndWhen()
+    {
+        $error = 'unset';
+
+        $origin = AnalystGraphDocumentTool::normaliseMemberOrigin(
+            array('module' => 'circl_passivedns', 'type' => 'domain', 'value' => 'a.example', 'ran_at' => '1791100000', 'node' => 'Value:x', 'extra' => 1),
+            $error
+        );
+
+        $this->assertNull($error);
+        $this->assertSame(array('module' => 'circl_passivedns', 'type' => 'domain', 'value' => 'a.example', 'ran_at' => 1791100000), $origin);
+        $zero = AnalystGraphDocumentTool::normaliseMemberOrigin(array('module' => 'm', 'type' => 't', 'value' => 'v', 'ran_at' => 0), $error);
+        $this->assertSame(0, $zero['ran_at']);
+    }
+
+    public function badMemberOrigins()
+    {
+        $good = array('module' => 'circl_passivedns', 'type' => 'domain', 'value' => 'a.example', 'ran_at' => 1);
+        return array(
+            'not an object' => array('x', 'an origin is an object.'),
+            'no module' => array(array_diff_key($good, array('module' => 1)), 'an origin names the module asked.'),
+            'bad module' => array(array('module' => 'a b') + $good, 'an origin names the module asked.'),
+            'no value' => array(array_diff_key($good, array('value' => 1)), 'value: must be a string.'),
+            'empty type' => array(array('type' => '') + $good, 'type: must not be empty.'),
+            'no time' => array(array_diff_key($good, array('ran_at' => 1)), 'ran_at must be a timestamp.'),
+            'negative time' => array(array('ran_at' => -5) + $good, 'ran_at must be a timestamp.'),
+            'time with letters' => array(array('ran_at' => '12a') + $good, 'ran_at must be a timestamp.'),
+            'fractional time' => array(array('ran_at' => 1.5) + $good, 'ran_at must be a timestamp.'),
+        );
+    }
+
+    /**
+     * @dataProvider badMemberOrigins
+     */
+    public function testABadMemberOriginIsRefusedWithItsReason($origin, $reason)
+    {
+        $error = null;
+
+        $this->assertNull(AnalystGraphDocumentTool::normaliseMemberOrigin($origin, $error));
+        $this->assertSame($reason, $error);
     }
 
     private static function normalised(array $nodes, array $groups = array())

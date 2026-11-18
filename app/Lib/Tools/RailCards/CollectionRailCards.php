@@ -43,7 +43,7 @@ class CollectionRailCards
                 $groups[$type]['facets'][$facet] = ($groups[$type]['facets'][$facet] ?? 0) + 1;
             }
         }
-        $order = array_flip(['Event', 'Attribute', 'Object', 'GalaxyCluster', 'AttributeValue']);
+        $order = array_flip(['Event', 'Attribute', 'Object', 'StandaloneObject', 'GalaxyCluster', 'AttributeValue']);
         uksort($groups, function ($a, $b) use ($order) {
             return ($order[$a] ?? 99) <=> ($order[$b] ?? 99);
         });
@@ -141,6 +141,8 @@ class CollectionRailCards
                 return empty($element['Attribute']) ? false : $element['Attribute']['type'];
             case 'Object':
                 return empty($element['Object']) ? false : $element['Object']['name'];
+            case 'StandaloneObject':
+                return empty($element['StandaloneObject']) ? false : $element['StandaloneObject']['name'];
             case 'GalaxyCluster':
                 if (empty($element['GalaxyCluster'][0])) {
                     return false;
@@ -160,6 +162,8 @@ class CollectionRailCards
                 return [__('Attributes'), 'misp-icon misp-icon-attribute misp-simple', 'attribute'];
             case 'Object':
                 return [__('Objects'), 'misp-icon misp-icon-object misp-simple', 'object'];
+            case 'StandaloneObject':
+                return [__('Standalone objects'), 'misp-icon misp-icon-object misp-simple', 'object'];
             case 'GalaxyCluster':
                 return [__('Galaxy clusters'), 'misp-icon misp-icon-galaxy misp-simple', 'galaxy'];
             case 'AttributeValue':

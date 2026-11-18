@@ -330,6 +330,14 @@ class CollectionPushFakeLog
     }
 }
 
+class CollectionPushFakeElement
+{
+    public function withRecords(array $elements)
+    {
+        return $elements;
+    }
+}
+
 class CollectionPushTest extends TestCase
 {
     private $collection;
@@ -340,6 +348,7 @@ class CollectionPushTest extends TestCase
         Configure::reset();
         ClassRegistry::reset();
         $this->collection = new CollectionPushTestable();
+        $this->collection->CollectionElement = new CollectionPushFakeElement();
         $this->sync = new CollectionPushTestServerSync();
     }
 

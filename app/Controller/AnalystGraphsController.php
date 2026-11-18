@@ -6,6 +6,7 @@ App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('MispTheme', 'MispTheme');
 App::uses('Graph', 'Model');
+App::uses('CollectionElement', 'Model');
 
 /**
  * The actions only an analyst graph has. Creating, editing, viewing and
@@ -237,23 +238,74 @@ class AnalystGraphsController extends AppController
             unset($graph['Graph']['content']);
             $summary = $this->Graph->typed($graph['Graph']);
         }
-        list($members, $elements, $leftOut) = $this->__memberNodes($user, $collection['id'], $document['nodes'] ?? []);
-        $document['nodes'] = array_merge($document['nodes'] ?? [], $members);
+        $document['nodes'] = $this->__answersAsMembers($collection['id'], $document['nodes'] ?? []);
+        list($members, $elements, $leftOut) = $this->__memberNodes($user, $collection['id'], $document['nodes']);
+        $document['nodes'] = array_merge($document['nodes'], $members);
         $payload = $this->AnalystGraphData->resolve($user, $document);
         $summary['node_count'] = $payload['meta']['nodes'];
         $payload['meta']['members'] = count($elements);
         $payload['meta']['members_left_out'] = $leftOut;
         $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
         $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($user, $payload['document']['nodes']);
-        $payload['working'] = $this->__workingMarks($user, $collection, $payload['document']['nodes'], $elements, $members, $payload['known_values']);
+        $payload['working'] = $this->__workingMarks($user, $collection, $payload['document']['nodes'], $elements, $members);
         return $this->RestResponse->viewData(['Graph' => $summary, 'Collection' => $collection] + $payload, 'json');
+    }
+
+    /**
+     * A module's object answer the collection now holds as a standalone
+     * object is that member, drawn where the answer sat.
+     *
+     * @param int $collectionId
+     * @param array $nodes The graph's
+     * @return array
+     */
+    private function __answersAsMembers($collectionId, array $nodes)
+    {
+        $answers = [];
+        $present = [];
+        foreach ($nodes as $i => $node) {
+            if (!is_array($node) || !isset($node['type'])) {
+                continue;
+            }
+            if (AnalystGraphDocumentTool::isAnswer($node) && ($node['content']['kind'] ?? null) === 'object') {
+                $answers[$i] = strtolower((string)$node['uuid']);
+            } elseif ($node['type'] === AnalystGraphDocumentTool::STANDALONE) {
+                $present[strtolower((string)$node['uuid'])] = true;
+            }
+        }
+        if (empty($answers)) {
+            return $nodes;
+        }
+        $held = ClassRegistry::init('CollectionElement')->find('list', [
+            'recursive' => -1,
+            'fields' => ['CollectionElement.id', 'CollectionElement.element_uuid'],
+            'conditions' => [
+                'CollectionElement.collection_id' => $collectionId,
+                'CollectionElement.element_type' => AnalystGraphDocumentTool::STANDALONE,
+                'CollectionElement.element_uuid' => array_values(array_unique($answers)),
+            ],
+        ]);
+        $held = array_flip(array_map('strtolower', $held));
+        foreach ($answers as $i => $uuid) {
+            if (!isset($held[$uuid])) {
+                continue;
+            }
+            if (isset($present[$uuid])) {
+                unset($nodes[$i]);
+                continue;
+            }
+            $present[$uuid] = true;
+            $nodes[$i] = ['type' => AnalystGraphDocumentTool::STANDALONE, 'uuid' => $uuid]
+                + array_intersect_key($nodes[$i], array_flip(['x', 'y', 'pinned', 'collapsed', 'pulled_out', 'hidden']));
+        }
+        return array_values($nodes);
     }
 
     /**
      * The collection's members as graph document nodes, in the order they
      * joined, leaving out those the graph holds; no more than the graph
-     * would hold in all. A value is drawn only when the user can read an
-     * attribute holding it.
+     * would hold in all. A value is drawn by the text it keeps; one kept
+     * without text only when the user can read an attribute holding it.
      *
      * @param array $user
      * @param int $collectionId
@@ -273,8 +325,8 @@ class AnalystGraphsController extends AppController
             'recursive' => -1,
             'fields' => [
                 'CollectionElement.uuid', 'CollectionElement.element_type', 'CollectionElement.element_uuid',
-                'CollectionElement.element_sha256', 'CollectionElement.description', 'CollectionElement.user_id',
-                'CollectionElement.created',
+                'CollectionElement.element_sha256', 'CollectionElement.element_value', 'CollectionElement.description',
+                'CollectionElement.user_id', 'CollectionElement.created', 'CollectionElement.origin',
             ],
             'conditions' => $conditions,
             'order' => ['CollectionElement.id' => 'ASC'],
@@ -307,7 +359,9 @@ class AnalystGraphsController extends AppController
                 continue;
             }
             $held[$target['key']] = true;
-            if ($target['element_type'] === 'AttributeValue') {
+            if ($target['element_type'] === 'AttributeValue' && is_string($element['element_value'])) {
+                $nodes[] = ['type' => 'Value', 'value' => $element['element_value'], 'sha256' => $target['address']];
+            } elseif ($target['element_type'] === 'AttributeValue') {
                 $values[] = ['element_type' => 'AttributeValue', 'element_sha256' => $target['address'], 'at' => count($nodes)];
                 $nodes[] = null;
             } else {
@@ -327,21 +381,22 @@ class AnalystGraphsController extends AppController
     }
 
     /**
-     * What each node of the working view is to the collection: a member, a
-     * finding (an answer from a module, or a value no attribute the user can
-     * read holds) or an extra (a record the graph holds and the collection
-     * does not). A member says who added it, when and why; who only to the
-     * collection's organisation.
+     * What each node of the working view is to the collection: a member, or
+     * an extra (anything else the graph holds: a record, a value, a module's
+     * answer), with the item an add would send. A member says who added it,
+     * when and why, who only to the collection's organisation; `missing`
+     * when MISP holds it nowhere the user can see (a value no attribute they
+     * can read carries, a standalone object); `origin` when a module's
+     * answer brought it.
      *
      * @param array $user
      * @param array $collection Collection::workspaceSummaries()'s
      * @param array $nodes The resolved document's nodes
      * @param array $elements Every member's element by node key
      * @param array $placed The members the graph lacked
-     * @param string[] $knownValues The answers' values MISP holds
-     * @return array|stdClass node key => {role, placed?, known?, element?}
+     * @return array|stdClass node key => {role, placed?, missing?, origin?, element?, item?}
      */
-    private function __workingMarks(array $user, array $collection, array $nodes, array $elements, array $placed, array $knownValues)
+    private function __workingMarks(array $user, array $collection, array $nodes, array $elements, array $placed)
     {
         $placedKeys = array_flip(array_map(['AnalystGraphDocumentTool', 'nodeKey'], $placed));
         $adders = [];
@@ -353,44 +408,74 @@ class AnalystGraphsController extends AppController
                 'conditions' => ['User.id' => $ids],
             ]);
         }
-        $loose = [];
-        foreach ($nodes as $node) {
-            if ($node['type'] === 'Value' && !isset($elements[AnalystGraphDocumentTool::nodeKey($node)])) {
-                $loose[] = $node['sha256'];
+        $values = [];
+        foreach ($elements as $element) {
+            if ($element['element_type'] === 'AttributeValue') {
+                $values[] = $element['element_sha256'];
             }
         }
-        $held = empty($loose) ? [] : array_flip(ClassRegistry::init('CollectionElement')->readableUuids($user, 'AttributeValue', $loose));
-        $known = array_flip($knownValues);
+        $held = empty($values) ? [] : array_flip(ClassRegistry::init('CollectionElement')->readableUuids($user, 'AttributeValue', $values));
         $marks = [];
         foreach ($nodes as $node) {
             $key = AnalystGraphDocumentTool::nodeKey($node);
-            if (isset($elements[$key])) {
-                $element = $elements[$key];
-                $userId = (int)$element['user_id'];
-                $mark = ['role' => 'member'];
-                if (isset($placedKeys[$key])) {
-                    $mark['placed'] = true;
-                }
-                $mark['element'] = [
-                    'uuid' => $element['uuid'],
-                    'created' => $element['created'],
-                    'description' => (string)$element['description'],
-                    'user' => isset($adders[$userId]) ? ['id' => $userId, 'email' => $adders[$userId]] : null,
-                ];
-            } elseif (AnalystGraphDocumentTool::isAnswer($node)) {
-                $mark = ['role' => 'finding'];
-                $content = $node['content'] ?? [];
-                if (in_array($content['kind'] ?? null, ['attribute', 'element'], true) && isset($known[(string)($content['value'] ?? '')])) {
-                    $mark['known'] = true;
-                }
-            } elseif ($node['type'] === 'Value' && !isset($held[$node['sha256']])) {
-                $mark = ['role' => 'finding'];
-            } else {
-                $mark = ['role' => 'extra'];
+            if (!isset($elements[$key])) {
+                $marks[$key] = ['role' => 'extra', 'item' => self::__itemOf($node)];
+                continue;
             }
+            $element = $elements[$key];
+            $userId = (int)$element['user_id'];
+            $mark = ['role' => 'member'];
+            if (isset($placedKeys[$key])) {
+                $mark['placed'] = true;
+            }
+            $type = $element['element_type'];
+            if ($type === AnalystGraphDocumentTool::STANDALONE || ($type === 'AttributeValue' && !isset($held[$element['element_sha256']]))) {
+                $mark['missing'] = true;
+            }
+            $origin = CollectionElement::decodedOrigin($element['origin'] ?? null);
+            if ($origin !== null) {
+                $mark['origin'] = $origin;
+            }
+            $mark['element'] = [
+                'uuid' => $element['uuid'],
+                'created' => $element['created'],
+                'description' => (string)$element['description'],
+                'user' => isset($adders[$userId]) ? ['id' => $userId, 'email' => $adders[$userId]] : null,
+            ];
             $marks[$key] = $mark;
         }
         return $marks ?: new stdClass();
+    }
+
+    /**
+     * What an add sends for a node the collection does not hold: a module's
+     * answer as the value or the object it holds, with where it came from.
+     *
+     * @param array $node A resolved document node
+     * @return array
+     */
+    private static function __itemOf(array $node)
+    {
+        if ($node['type'] === 'Value') {
+            return ['type' => 'Value', 'value' => $node['value']];
+        }
+        if (!AnalystGraphDocumentTool::isAnswer($node)) {
+            return ['type' => $node['type'], 'uuid' => $node['uuid']];
+        }
+        $content = $node['content'];
+        $origin = $node['origins'][0] ?? null;
+        $item = $content['kind'] === 'object'
+            ? ['type' => AnalystGraphDocumentTool::STANDALONE, 'module' => $node['module'], 'content' => $content]
+            : ['type' => 'Value', 'value' => $content['value']];
+        if ($origin !== null) {
+            $item['origin'] = [
+                'module' => $origin['module'],
+                'type' => $origin['type'],
+                'value' => $origin['value'],
+                'ran_at' => $origin['ran_at'],
+            ];
+        }
+        return $item;
     }
 
     /**
