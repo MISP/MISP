@@ -1,6 +1,6 @@
 <?php
     $selectAllCheckbox = false;
-    echo '<thead class="checkbox-index">';
+    echo '<thead class="checkbox-index"><tr>';
     foreach ($fields as $k => $header) {
         if (!isset($header['requirement']) || $header['requirement']) {
             $header_data = '';
@@ -54,8 +54,9 @@
                 if (!empty($header['element']) && in_array($header['element'], ['selector', 'checkbox'])) {
                     $selectAllCheckbox = true;
                     $header_data = sprintf(
-                        '<input id="select_all" class="%s ms-1" type="checkbox" %s>',
+                        '<input id="select_all" class="%s ms-1" type="checkbox" aria-label="%s" %s>',
                         empty($header['select_all_class']) ? 'select_all' : $header['select_all_class'],
+                        h(__('Select all items on this page')),
                         empty($header['select_all_function']) ? 'onclick="toggleAllAttributeCheckboxes(this);"' : 'onclick="' . $header['select_all_function'] . '"'
                     );
                 } else {
@@ -93,12 +94,12 @@
             }
 
             echo sprintf(
-                '<th%s%s>%s</th>',
+                '<th scope="col"%s%s>%s</th>',
                 !empty($classes) ? ' class="' . implode(' ', $classes) .'"' : '',
                 !empty($header['header_title']) ? ' title="' . h($header['header_title']) . '"' : '',
                 $header_data
             );
         }
     }
-    echo '</thead>';
+    echo '</tr></thead>';
 ?>
