@@ -1391,11 +1391,27 @@ class UsersController extends AppController
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
             }
+            // bcrypt throws on a NUL byte, and Cake hashes only for unknown accounts
+            $password = $this->request->data['User']['password'] ?? null;
+            if (is_string($password) && strpos($password, "\0") !== false) {
+                $this->request->data['User']['password'] = '';
+            }
             $unauth_user = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
-                'fields' => ['User.password', 'User.totp', 'User.hotp_counter', 'User.disabled'],
+                'fields' => ['User.email', 'User.password', 'User.totp', 'User.hotp_counter', 'User.disabled'],
                 'recursive' => -1,
             ]);
+            // The collation also matches accent and width variants, each counted
+            // apart by the lockout: those fail as an unknown account would.
+            if (
+                $unauth_user &&
+                isset($this->Auth->authenticate['Form']) &&
+                $this->Bruteforce->usernameKey($this->request->data['User']['email']) !==
+                $this->Bruteforce->usernameKey($unauth_user['User']['email'])
+            ) {
+                $this->Auth->authenticate['Form']['scope'] = ['User.id' => 0];
+                $this->Auth->constructAuthenticate();
+            }
             if ($unauth_user) {
                 // Check the length of the user's authkey match old format. This can be removed in future.
                 $userPass = $unauth_user['User']['password'];
@@ -3549,7 +3565,14 @@ class UsersController extends AppController
         if ($this->_isSiteAdmin()) {
             return true;
         }
-        return !Configure::read('MISP.disable_user_login_change');
+        if (Configure::read('MISP.disable_user_login_change')) {
+            return false;
+        }
+        // External backends find accounts by e-mail: a self-chosen address
+        // would capture a directory identity on its first login.
+        return empty(Configure::read('Security.auth')) &&
+            !Configure::read('ApacheSecureAuth.apacheEnv') &&
+            !Configure::read('Plugin.CustomAuth_enable');
     }
 
     /**

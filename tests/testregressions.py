@@ -4872,5 +4872,531 @@ class CorrelationGenerationRequiresPost(unittest.TestCase):
         self.assertEqual(405, self._get('correlations/generateOccurrences').status_code)
 
 
+class ObjectRevisionKeepsStoredAttributes(unittest.TestCase):
+    """An object revision held in the session never decides which attribute rows a save writes.
+
+    objects/revise_object stored the submitted attributes, ids included, and a later
+    objects/edit/<id>/cur_object_tmp_uuid:<uuid> merged them into the stored object before the
+    diff, which then saved leftover entries by their own id with no ownership check. A user able
+    to edit their own object could so rewrite or soft-delete an attribute of another
+    organisation's private event. Needs a web session: API-key requests drop the PHP session.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_orgs = []
+        cls.created_users = []
+        cls.event_uuids = []
+        cls.event_ids = []
+        try:
+            role_id = least_privileged_role(cls.admin, 'perm_add', 'perm_modify')
+            templates = send(cls.admin, 'GET', 'objectTemplates/index')
+            template = None
+            for entry in templates:
+                candidate = entry['ObjectTemplate']
+                if candidate['name'] == 'ip-port' and candidate['active']:
+                    if template is None or int(candidate['version']) > int(template['version']):
+                        template = candidate
+            if template is None:
+                raise unittest.SkipTest('the ip-port object template is not available')
+            cls.template = template
+            org_a = make_org(cls.admin, 'regression revision org')
+            cls.created_orgs.append(org_a)
+            org_b = make_org(cls.admin, 'regression revision victim org')
+            cls.created_orgs.append(org_b)
+            cls.user_a = make_user(cls.admin, org_a.id, role_id)
+            cls.created_users.append(cls.user_a)
+            cls.password = 'Rg%s-%sAa1!' % (random(), random())
+            check_response(cls.admin.update_user(
+                {'password': cls.password, 'confirm_password': cls.password,
+                 'change_pw': 0, 'termsaccepted': 1}, cls.user_a.id))
+            connector_a = PyMISP(url, cls.user_a.authkey)
+            connector_a.global_pythonify = True
+
+            event_a = MISPEvent()
+            event_a.info = 'regression revision own event %s' % random()
+            event_a.distribution = 0
+            obj = MISPObject('ip-port', standalone=False)
+            obj.template_uuid = template['uuid']
+            obj.template_version = template['version']
+            obj.add_attribute('ip', type='ip-dst', value='192.0.2.%d' % (int(random(), 16) % 250 + 1))
+            obj.add_attribute('dst-port', type='port', value='4443')
+            event_a.add_object(obj)
+            cls.event_a = check_response(connector_a.add_event(event_a))
+            cls.event_ids.append(cls.event_a.id)
+            cls.event_uuids.append(cls.event_a.uuid)
+            cls.object_id = int(cls.event_a.objects[0].id)
+
+            victim = MISPEvent()
+            victim.info = 'regression revision victim event %s' % random()
+            victim.distribution = 0
+            victim.add_attribute('text', 'victim-value-' + random())
+            # created by an organisation B member: the admin's own org would own it otherwise
+            user_b = make_user(cls.admin, org_b.id, role_id)
+            cls.created_users.append(user_b)
+            connector_b = PyMISP(url, user_b.authkey)
+            connector_b.global_pythonify = True
+            cls.victim_event = check_response(connector_b.add_event(victim))
+            cls.event_ids.append(cls.victim_event.id)
+            cls.event_uuids.append(cls.victim_event.uuid)
+            cls.victim_attribute_id = int(cls.victim_event.attributes[0].id)
+            cls.victim_before = cls._attribute(cls.victim_attribute_id)
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for event_id in cls.event_ids:
+            cls.admin._prepare_request('POST', 'events/delete/%s' % event_id)
+        for row in send(cls.admin, 'GET', 'eventBlocklists/index', check_errors=False) or []:
+            row = row.get('EventBlocklist', row)
+            if row.get('event_uuid') in cls.event_uuids:
+                send(cls.admin, 'POST', 'eventBlocklists/delete/%s' % row['id'], check_errors=False)
+        for user in cls.created_users:
+            cls.admin.delete_user(user)
+        for org in cls.created_orgs:
+            cls.admin.delete_organisation(org)
+
+    @classmethod
+    def _attribute(cls, attribute_id):
+        reply = send(cls.admin, 'POST', 'attributes/restSearch',
+                     data={'returnFormat': 'json', 'eventid': cls.victim_event.id,
+                           'deleted': [0, 1]})
+        found = [a for a in reply['Attribute'] if int(a['id']) == int(attribute_id)][0]
+        return {'value': str(found['value']), 'deleted': int(found['deleted']),
+                'object_id': int(found['object_id']), 'event_id': int(found['event_id'])}
+
+    def _object(self):
+        reply = send(self.admin, 'GET', 'objects/view/%s' % self.object_id)
+        return reply['Object']
+
+    def _login(self):
+        session = requests.Session()
+        login = session.get(url + '/users/login', allow_redirects=False)
+        form = login.text[login.text.index('id="UserLoginForm"'):]
+        form = form[:form.index('</form>')]
+        fields = {}
+        for tag in re.findall(r'<input[^>]*>', form):
+            name = re.search(r'name="([^"]+)"', tag)
+            value = re.search(r'value="([^"]*)"', tag)
+            if name and value:
+                fields[name.group(1)] = html.unescape(value.group(1))
+        fields['data[User][email]'] = self.user_a.email
+        fields['data[User][password]'] = self.password
+        session.post(url + '/users/login', data=fields, allow_redirects=False)
+        # The key header only exempts the calls from the form-hash check; the user is already
+        # signed in by the cookie, so the session (and the stored revision) survives them.
+        session.headers.update({'Accept': 'application/json', 'Content-Type': 'application/json',
+                                'Authorization': self.user_a.authkey})
+        return session
+
+    @staticmethod
+    def _flatten(prefix, value, out):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                ObjectRevisionKeepsStoredAttributes._flatten('%s[%s]' % (prefix, k), v, out)
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                ObjectRevisionKeepsStoredAttributes._flatten('%s[%s]' % (prefix, i), v, out)
+        else:
+            out[prefix] = '' if value is None else str(value)
+
+    def _revise(self, session, attributes):
+        """Returns the cur_object_tmp_uuid the revision answer carries. Posted as the object
+        form does (urlencoded, HTML answer): the JSON view of this action does not exist."""
+        obj = self._object()
+        fields = {}
+        self._flatten('data', {'Object': {
+            'distribution': 0, 'comment': '', 'template_uuid': obj['template_uuid'],
+            'template_version': obj['template_version'], 'name': obj['name'],
+            'meta-category': obj['meta-category']}, 'Attribute': attributes}, fields)
+        response = session.post(
+            '%s/objects/revise_object/edit/%s/%s/%s' % (
+                url, self.event_a.id, self.template['id'], self.object_id),
+            data=fields, allow_redirects=False,
+            headers={'Accept': 'text/html', 'Content-Type': 'application/x-www-form-urlencoded'})
+        self.assertEqual(200, response.status_code,
+                         'revise_object answered %s' % response.status_code)
+        found = re.search(r'name="data\[Object\]\[cur_object_tmp_uuid\]"[^>]*value="([0-9a-f-]{36})"',
+                          response.text) or \
+            re.search(r'value="([0-9a-f-]{36})"[^>]*name="data\[Object\]\[cur_object_tmp_uuid\]"',
+                      response.text)
+        self.assertIsNotNone(found, 'the revision answer carries no cur_object_tmp_uuid')
+        return found.group(1)
+
+    @staticmethod
+    def _entry(relation, attr_type, value, **extra):
+        entry = {'object_relation': relation, 'type': attr_type, 'category': 'Network activity',
+                 'value': value, 'distribution': 5, 'to_ids': 0, 'comment': ''}
+        entry.update(extra)
+        return entry
+
+    def _own_attributes(self):
+        return [self._entry(a['object_relation'], a['type'], a['value'], uuid=a['uuid'])
+                for a in self._object()['Attribute']]
+
+    def _post_edit(self, session, path, attributes):
+        obj = self._object()
+        return session.post(
+            '%s/objects/edit/%s' % (url, path),
+            data=json.dumps({'Object': {'distribution': 0, 'comment': obj.get('comment', ''),
+                                        'name': obj['name']},
+                             'Attribute': attributes}),
+            allow_redirects=False)
+
+    def test_foreign_attribute_id_is_not_written(self):
+        session = self._login()
+        own = self._own_attributes()
+        probe = self._entry('ip', 'ip-dst', '198.51.100.77', id=self.victim_attribute_id)
+        revision = self._revise(session, own + [probe])
+        response = self._post_edit(
+            session, '%s/cur_object_tmp_uuid:%s' % (self.object_id, revision), own)
+        self.assertLess(response.status_code, 400, 'objects/edit answered %s' % response.status_code)
+        self.assertEqual(self.victim_before, self._attribute(self.victim_attribute_id),
+                         'a revision rewrote an attribute of another organisation')
+
+    def test_new_attribute_through_revision(self):
+        session = self._login()
+        before = {a['uuid']: a['value'] for a in self._object()['Attribute']}
+        added = self._entry('ip', 'ip-dst', '203.0.113.%d' % (int(random(), 16) % 250 + 1))
+        own = self._own_attributes()
+        self._revise(session, own + [added])
+        response = self._post_edit(session, str(self.object_id), own + [added])
+        self.assertLess(response.status_code, 400, 'objects/edit answered %s' % response.status_code)
+        after = self._object()['Attribute']
+        values = {a['value'] for a in after if not int(a['deleted'])}
+        self.assertIn(added['value'], values, 'the revised new attribute was not saved')
+        for uuid, value in before.items():
+            self.assertTrue(any(a['uuid'] == uuid and a['value'] == value and not int(a['deleted'])
+                                for a in after), 'an original attribute was lost')
+
+
+class AuthKeyAddCanonicalUserId(unittest.TestCase):
+    """authKeys/add takes the target user id only as a JSON int or a digit string.
+
+    The ownership check cast the id with (int) while Cake saved the same float rounded to
+    14 significant digits, so user N posting 46.9999999999999-style ids got a key for N+1.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.created_keys = []
+        cls.users = []
+        cls.org = None
+        try:
+            role_id = None
+            for entry in send(cls.admin, 'GET', 'roles'):
+                role = entry['Role'] if 'Role' in entry else entry
+                if role['name'] == 'User' and int(role['perm_auth']) \
+                        and not int(role['perm_site_admin']) and not int(role['perm_admin']):
+                    role_id = int(role['id'])
+            if role_id is None:
+                raise unittest.SkipTest('no stock User role with perm_auth')
+            cls.org = make_org(cls.admin, 'regression authkey float org')
+            cls.users = [make_user(cls.admin, cls.org.id, role_id),
+                         make_user(cls.admin, cls.org.id, role_id)]
+            cls.lower, cls.upper = int(cls.users[0].id), int(cls.users[1].id)
+            if cls.upper != cls.lower + 1:
+                raise unittest.SkipTest('the two users do not have consecutive ids')
+            for user in cls.users:
+                cls.created_keys += cls._keys_of(int(user.id))
+            created = send(cls.admin, 'POST', 'authKeys/add/%s' % cls.lower,
+                           data={'comment': 'regression'})
+            cls.created_keys.append(int(created['AuthKey']['id']))
+            cls.lower_client = PyMISP(url, created['AuthKey']['authkey_raw'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        keys = set(cls.created_keys)
+        for user in cls.users:
+            keys.update(cls._keys_of(int(user.id)))
+        for key_id in keys:
+            cls.admin._prepare_request('POST', 'authKeys/delete/%s' % key_id)
+        for user in cls.users:
+            cls.admin.delete_user(user)
+        if cls.org is not None:
+            cls.admin.delete_organisation(cls.org)
+
+    @classmethod
+    def _keys_of(cls, user_id):
+        response = cls.admin._prepare_request('GET', 'authKeys/index/user_id:%s' % user_id)
+        body = response.json()
+        return [int(k['AuthKey']['id']) for k in body if int(k['AuthKey']['user_id']) == int(user_id)]
+
+    def _add(self, user_id):
+        response = self.lower_client._prepare_request(
+            'POST', 'authKeys/add', data={'user_id': user_id, 'comment': 'regression'})
+        self.last = response
+        if response.status_code < 300:
+            body = response.json()
+            type(self).created_keys.append(int(body['AuthKey']['id']))
+            return body['AuthKey']
+        return None
+
+    def test_float_user_id_is_refused(self):
+        digits = len(str(self.lower))
+        value = self.lower + 1 - 10 ** -(15 - digits)
+        self.assertEqual(self.lower, int(value))
+        self.assertEqual(float(self.upper), float('%.14g' % value))
+        before = self._keys_of(self.upper)
+        added = self._add(value)
+        print('float user_id %r -> %s %s' % (value, self.last.status_code, self.last.text[:200]))
+        self.assertIsNone(added, 'a float user id was accepted')
+        self.assertGreaterEqual(self.last.status_code, 400)
+        self.assertEqual(before, self._keys_of(self.upper), 'the next user received a key')
+
+    def test_own_user_id_forms_still_work(self):
+        for value in (self.lower, str(self.lower)):
+            added = self._add(value)
+            self.assertIsNotNone(added, 'own id %r refused: %s' % (value, self.last.text[:200]))
+            self.assertEqual(self.lower, int(added['user_id']))
+        response = self.lower_client._prepare_request(
+            'POST', 'authKeys/add/me', data={'comment': 'regression'})
+        self.assertLess(response.status_code, 300, response.text[:200])
+        added = response.json()['AuthKey']
+        type(self).created_keys.append(int(added['id']))
+        self.assertEqual(self.lower, int(added['user_id']))
+
+    def test_other_users_id_is_refused(self):
+        before = self._keys_of(self.upper)
+        added = self._add(self.upper)
+        self.assertIsNone(added, 'a key was created for another user')
+        self.assertGreaterEqual(self.last.status_code, 400)
+        self.assertEqual(before, self._keys_of(self.upper))
+
+
+class LoginLockoutCanonicalAddress(unittest.TestCase):
+    """The web login must answer a NUL-byte password alike for known and unknown addresses,
+    must not let accent/width-folded aliases of an address log in, and must count failures
+    under one case-folded key, so an address with a non-ASCII capital is locked out too."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.users = []
+        cls.org = None
+        try:
+            cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+            cls.org = make_org(cls.admin, 'regression lockout org')
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        for user in cls.users:
+            cls.admin.delete_user(user.id)
+        if cls.org is not None:
+            cls.admin._prepare_request('POST', 'admin/organisations/delete/%s' % cls.org.id)
+
+    def _fixture(self, local):
+        user = MISPUser()
+        user.email = '%s-%s@test.local' % (local, random())
+        user.org_id = self.org.id
+        user.role_id = self.role_id
+        user = check_response(self.admin.add_user(user))
+        type(self).users.append(user)
+        password = 'Rg%s-%sAa1!' % (random(), random())
+        check_response(self.admin.update_user(
+            {'password': password, 'confirm_password': password,
+             'change_pw': 0, 'termsaccepted': 1}, user.id))
+        return user, password
+
+    def _attempt(self, session, email, password):
+        login = session.get(url + '/users/login', allow_redirects=False)
+        form = login.text[login.text.index('id="UserLoginForm"'):]
+        form = form[:form.index('</form>')]
+        fields = {}
+        for tag in re.findall(r'<input[^>]*>', form):
+            name = re.search(r'name="([^"]+)"', tag)
+            value = re.search(r'value="([^"]*)"', tag)
+            if name and value:
+                fields[name.group(1)] = html.unescape(value.group(1))
+        fields['data[User][email]'] = email
+        fields['data[User][password]'] = password
+        return session.post(url + '/users/login', data=fields, allow_redirects=False)
+
+    def _logged_in(self, session, email):
+        me = session.get(url + '/users/view/me.json', allow_redirects=False,
+                         headers={'Accept': 'application/json'})
+        return me.status_code == 200 and me.json()['User']['email'].lower() == email.lower()
+
+    def _login(self, email, password, stored=None):
+        """(response, logged in as the stored address) for a fresh session."""
+        session = requests.Session()
+        response = self._attempt(session, email, password)
+        return response, self._logged_in(session, stored or email)
+
+    def test_good_login_is_detected(self):
+        user, password = self._fixture('lockout')
+        response, ok = self._login(user.email, password)
+        self.assertTrue(ok, response.status_code)
+        self.assertFalse(self._login(user.email, password + 'x')[1])
+
+    def test_nul_password_answers_alike(self):
+        user, _ = self._fixture('lockout')
+        known = self._login(user.email, 'bad\x00pass')[0].status_code
+        unknown = self._login('lockout-unknown-%s@test.local' % random(), 'bad\x00pass')[0].status_code
+        self.assertEqual(known, unknown)
+        self.assertNotEqual(500, known)
+
+    def test_folded_alias_cannot_log_in(self):
+        user, password = self._fixture('lockout')
+        self.assertTrue(self._login(user.email.upper(), password, user.email)[1], 'upper-case control failed')
+        local, domain = user.email.split('@')
+        for alias in ('\u013a' + local[1:], '\uff4c' + local[1:]):
+            response, ok = self._login(alias + '@' + domain, password, user.email)
+            self.assertFalse(ok, 'folded alias %r logged in (%s)' % (alias, response.status_code))
+
+    def _capital_fixture(self):
+        user, password = self._fixture('\u00c4rger')
+        self.assertTrue(user.email.startswith('\u00c4rger-'), user.email)
+        return user, password
+
+    def _assert_locked(self, user, password):
+        response, ok = self._login(user.email, password)
+        self.assertEqual(403, response.status_code)
+        self.assertFalse(ok)
+
+    def test_non_ascii_capital_address_locks_out(self):
+        user, password = self._capital_fixture()
+        for _ in range(5):
+            self.assertFalse(self._login(user.email, 'wrong-' + password)[1])
+        self._assert_locked(user, password)
+
+    def test_case_variants_share_one_counter(self):
+        user, password = self._capital_fixture()
+        local, domain = user.email.split('@')
+        lower = local.lower() + '@' + domain
+        upper = local.upper() + '@' + domain
+        for email in (lower,) * 3 + (upper,) * 2:
+            self.assertFalse(self._login(email, 'wrong-' + password)[1])
+        self._assert_locked(user, password)
+        other, other_password = self._capital_fixture()
+        lower = other.email.split('@')[0].lower() + '@' + domain
+        self.assertTrue(self._login(lower, other_password, other.email)[1], 'lower-case variant did not log in')
+
+
+class LoginChangeExternalAuth(unittest.TestCase):
+    """While external authentication is configured, only site admins may change a login e-mail.
+
+    LDAP/Shibboleth-style backends find accounts by e-mail, so a self-chosen address would
+    capture a directory identity on its first login. CustomAuth is the switchable signal; its
+    header is parked on an unused name first so it never captures the suite's API requests.
+    """
+    HEADER = 'Plugin.CustomAuth_header'
+    ENABLE = 'Plugin.CustomAuth_enable'
+
+    @classmethod
+    def _setting(cls, name):
+        return send(cls.admin, 'GET', 'servers/getSetting/%s' % name)['value']
+
+    @classmethod
+    def _set(cls, name, value):
+        send(cls.admin, 'POST', 'servers/serverSettingsEdit/%s' % name, data={'value': value})
+        got = cls._setting(name)
+        if got != value:
+            raise Exception('%s is %r, wanted %r' % (name, got, value))
+
+    @classmethod
+    def _external_auth(cls, on):
+        if on:
+            cls._set(cls.HEADER, 'X_MISP_REGRESSION_UNUSED')
+            cls._set(cls.ENABLE, True)
+        else:
+            cls._set(cls.ENABLE, False)
+            cls._set(cls.HEADER, 'AUTHORIZATION')
+
+    @classmethod
+    def _role(cls, name):
+        for entry in send(cls.admin, 'GET', 'roles'):
+            role = entry['Role'] if 'Role' in entry else entry
+            if role['name'] == name:
+                return int(role['id'])
+        raise unittest.SkipTest('no stock %s role' % name)
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.users = []
+        cls.org = None
+        try:
+            cls.org = make_org(cls.admin, 'regression login change org')
+            cls.org_admin = make_user(cls.admin, cls.org.id, cls._role('Org Admin'))
+            cls.plain = make_user(cls.admin, cls.org.id, cls._role('User'))
+            cls.users = [cls.org_admin, cls.plain]
+            cls.clients = {}
+            for name, user in (('org_admin', cls.org_admin), ('plain', cls.plain)):
+                created = send(cls.admin, 'POST', 'authKeys/add/%s' % user.id,
+                               data={'comment': 'regression'})
+                cls.clients[name] = PyMISP(url, created['AuthKey']['authkey_raw'])
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            cls._external_auth(False)
+        finally:
+            for user in cls.users:
+                cls.admin.delete_user(user.id)
+            if cls.org is not None:
+                cls.admin.delete_organisation(cls.org.id)
+
+    def _email(self):
+        return send(self.admin, 'GET', 'admin/users/view/%s' % self.plain.id)['User']['email']
+
+    def _attempt(self, editor):
+        """Change the plain user's e-mail as `editor`; returns (target, stored address)."""
+        target = 'captured-%s@test.local' % random()
+        if editor == 'plain':
+            api, path = self.clients['plain'], 'users/edit/me'
+        elif editor == 'org_admin':
+            api, path = self.clients['org_admin'], 'admin/users/edit/%s' % self.plain.id
+        else:
+            api, path = self.admin, 'admin/users/edit/%s' % self.plain.id
+        response = api._prepare_request('POST', path, data={'email': target})
+        print('%s -> %s %s' % (editor, response.status_code, response.text[:120]))
+        return target, self._email()
+
+    def _run(self, editor, external):
+        self._external_auth(external)
+        try:
+            return self._attempt(editor)
+        finally:
+            self._external_auth(False)
+
+    def test_self_service_login_change_without_external_auth(self):
+        target, stored = self._run('plain', False)
+        self.assertEqual(target, stored)
+
+    def test_self_service_login_change_refused_with_external_auth(self):
+        target, stored = self._run('plain', True)
+        self.assertNotEqual(target, stored, 'the e-mail change was accepted')
+
+    def test_org_admin_login_change_refused_with_external_auth(self):
+        target, stored = self._run('org_admin', True)
+        self.assertNotEqual(target, stored, 'the e-mail change was accepted')
+
+    def test_site_admin_login_change_allowed_with_external_auth(self):
+        target, stored = self._run('site_admin', True)
+        self.assertEqual(target, stored)
+
+
 if __name__ == '__main__':
     unittest.main()

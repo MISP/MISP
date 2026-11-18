@@ -328,6 +328,7 @@ class AttachmentTool
      */
     public function deleteAll($eventId)
     {
+        $this->assertId($eventId);
         if ($this->attachmentDirIsS3()) {
             // AWS S3 SDK validates that the Directory (Prefix) to delete is a string.
             // So we need to validate that it can be casted to string
@@ -586,11 +587,25 @@ class AttachmentTool
      */
     private function getPath($shadow, $eventId, $attributeId, $pathSuffix, $forceNonBucketed = false)
     {
+        $this->assertId($eventId);
+        $this->assertId($attributeId);
         $path = $shadow ? ('shadow' . DS) : '';
         if (Configure::read('MISP.attachments_bucketed') && empty($forceNonBucketed) && !$this->attachmentDirIsS3()) {
             return $path . 'bucket_' . (1000*(floor($eventId / 1000))) . DS . $eventId . DS . $attributeId . $pathSuffix;
         }
         return $path . $eventId . DS . $attributeId . $pathSuffix;
+    }
+
+    /**
+     * Ids become path components, so only a plain non-negative integer is accepted.
+     * @param mixed $id
+     * @throws InvalidArgumentException
+     */
+    private function assertId($id)
+    {
+        if (!is_int($id) && !(is_string($id) && ctype_digit($id))) {
+            throw new InvalidArgumentException('Invalid event or attribute ID for an attachment path.');
+        }
     }
 
     /**

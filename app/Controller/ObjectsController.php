@@ -253,6 +253,7 @@ class ObjectsController extends AppController
 
         if (isset($this->request->data['Attribute'])) {
             foreach ($this->request->data['Attribute'] as &$attribute) {
+                unset($attribute['id'], $attribute['event_id'], $attribute['object_id']);
                 if (empty($attribute['uuid'])) {
                     $attribute['uuid'] = CakeText::uuid();
                 }
@@ -936,7 +937,8 @@ class ObjectsController extends AppController
             $this->set('updateable_attribute', $templateData['updateable_attribute']);
             $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
             $this->set('original_template_unknown', $templateData['original_template_unknown']);
-            if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
+            // The revision only pre-fills the form: a save must diff against the stored object alone
+            if (!$this->request->is('post') && !$this->request->is('put') && !empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
                 $revisedObjectData = $this->Session->read('object_being_created');
                 if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
                     $revisedObjectData = $revisedObjectData['data'];
