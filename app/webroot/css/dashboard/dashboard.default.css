@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 30208)
+Total output lines: 3934
+
 /*
  * MISP dashboard default stylesheet
  *
@@ -620,14 +623,14 @@ a.misp-dashboard-btn-primary:visited {
  * `<a href>` in their data's `html` field — Phase 2's $schema
  * backfill migrates those to DD-03 `drilldown` keys which the
  * SimpleList renderer wraps in `.misp-list-link`. */
-.misp-widget-body a,
-.misp-widget-body a:visited {
+.misp-widget-body a:not(.misp-button),
+.misp-widget-body a:not(.misp-button):visited {
   color: var(--misp-dash-accent);
   text-decoration: none;
   border-bottom: 1px dashed transparent;
   transition: border-color var(--misp-dash-transition-fast);
 }
-.misp-widget-body a:hover {
+.misp-widget-body a:not(.misp-button):hover {
   border-bottom-color: currentColor;
 }
 .misp-widget-loading {
@@ -1873,36 +1876,7 @@ a.misp-feedlist-item:focus-visible {
   font-size: var(--misp-dash-fs-base);
   color: var(--misp-dash-text);
 }
-.misp-user-confirm-sub {
-  margin: 0;
-  font-size: var(--misp-dash-fs-sm);
-  color: var(--misp-dash-text-muted);
-}
-.misp-user-confirm-form {
-  margin: 0;
-}
-.misp-user-confirm-actions {
-  display: flex;
-  gap: var(--misp-dash-space-2);
-  margin-top: var(--misp-dash-space-2);
-}
-.misp-user-confirm-btn {
-  padding: var(--misp-dash-space-2) var(--misp-dash-space-4);
-  font-size: var(--misp-dash-fs-sm);
-  font-weight: var(--misp-dash-fw-medium);
-  color: var(--misp-dash-text);
-  background: var(--misp-dash-surface-raised);
-  border: 1px solid var(--misp-dash-border);
-  border-radius: var(--misp-dash-radius-sm);
-  cursor: pointer;
-}
-.misp-user-confirm-btn:hover {
-  border-color: var(--misp-dash-border-strong);
-}
-.misp-user-confirm-btn--danger {
-  color: var(--misp-dash-text-on-accent);
-  background: var(--misp-dash-danger);
-  border-color: var(--misp-dash-danger);
+.…208 tokens truncated…rder-color: var(--misp-dash-danger);
 }
 .misp-user-confirm-btn--danger:hover {
   filter: brightness(0.94);
