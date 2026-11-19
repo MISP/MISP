@@ -18,6 +18,8 @@
 //   frame.attach(handle)    once it is ready; frame.detach(), frame.none(on)
 //   IntelGraphWorking.t(key, …), .tn(key, n, …)  the words, from
 //                           Elements/intel_graph_working_text.ctp
+//   IntelGraphWorking.sharingPicker(collection, state)  what a graph saved
+//                           on it is shared with, into state.sharing
 //   IntelGraphWorking.openObject(view, anchor, point)  a standalone object's
 //                           popover, for the collection page's members card too
 //
@@ -57,6 +59,65 @@
         var pair = text()[key];
         var s = Array.isArray(pair) ? pair[n === 1 ? 0 : 1] : pair;
         return fill(s == null ? key : s, [n].concat(Array.prototype.slice.call(arguments, 2)));
+    }
+
+    /* ── what a graph saved on the collection is shared with ─ */
+    // The levels from the narrowest, with the collection's sharing group
+    // when it has one; the collection's own is chosen first. state.sharing
+    // holds the choice; a note warns when it reaches beyond the collection.
+    var sharingSeq = 0;
+    function sharingPicker(c, state) {
+        var own = { distribution: +c.distribution, sharing_group_id: +c.distribution === 4 ? c.sharing_group_id : null };
+        if (!state.sharing) state.sharing = own;
+        var same = function (a, b) {
+            return +a.distribution === +b.distribution && (+a.distribution !== 4 || String(a.sharing_group_id) === String(b.sharing_group_id));
+        };
+        var level = function (d) { return (IG().distribution(d) || {}).label || String(d); };
+        var options = [0, 1, 2, 3].map(function (d) { return { distribution: d, sharing_group_id: null, label: level(d) }; });
+        if (own.distribution === 4) {
+            options.splice(1, 0, { distribution: 4, sharing_group_id: own.sharing_group_id, label: (c.sharing_group && c.sharing_group.name) || level(4) });
+        }
+        var wrap = document.createElement('span');
+        wrap.className = 'igw-sharing';
+        var label = document.createElement('label');
+        label.className = 'igw-sharing-label';
+        label.textContent = t('sharedWith');
+        label.htmlFor = 'igw-sharing-' + (++sharingSeq);
+        var select = document.createElement('select');
+        select.className = 'form-select form-select-sm';
+        select.id = label.htmlFor;
+        select.disabled = !!state.busy;
+        options.forEach(function (o, i) {
+            var opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = o.label + (same(o, own) ? ' ' + t('likeCollection') : '');
+            opt.selected = same(o, state.sharing);
+            select.appendChild(opt);
+        });
+        var note = document.createElement('span');
+        note.className = 'igw-sharing-wider';
+        note.setAttribute('role', 'status');
+        function warn() {
+            var words = IG().widerNote(Object.assign({ type: 'Collection' }, own), state.sharing);
+            note.textContent = '';
+            note.hidden = !words;
+            if (!words) return;
+            var i = document.createElement('i');
+            i.className = 'fas fa-triangle-exclamation';
+            i.setAttribute('aria-hidden', 'true');
+            note.appendChild(i);
+            note.appendChild(document.createTextNode(' ' + words));
+        }
+        select.addEventListener('change', function () {
+            var o = options[+select.value];
+            state.sharing = { distribution: o.distribution, sharing_group_id: o.sharing_group_id };
+            warn();
+        });
+        wrap.appendChild(label);
+        wrap.appendChild(select);
+        wrap.appendChild(note);
+        warn();
+        return wrap;
     }
 
     var TYPES = {
@@ -1973,9 +2034,12 @@
             f.appendChild(input);
             f.appendChild(go);
             f.appendChild(button('btn btn-outline-secondary', t('cancel'), function () { P.saveAs = null; renderState(); }));
-            var note = el('span', 'igw-saveas-note' + (s.error ? ' is-error' : ''), s.error || t('sharedLikeCollection'));
-            if (s.error) note.setAttribute('role', 'alert');
-            f.appendChild(note);
+            f.appendChild(sharingPicker((P.h && P.h.payload() || {}).Collection || {}, s));
+            if (s.error) {
+                var note = el('span', 'igw-saveas-note is-error', s.error);
+                note.setAttribute('role', 'alert');
+                f.appendChild(note);
+            }
             f.addEventListener('submit', function (e) {
                 e.preventDefault();
                 createGraph();
@@ -2000,11 +2064,12 @@
             var working = d.kind === 'working';
             // The canvas, moves and all, becomes the graph laying the workspace out
             if (working) P.layout = 'clean';
+            var sharing = s.sharing || { distribution: c.distribution, sharing_group_id: c.sharing_group_id };
             IG().create({
                 name: name,
                 target: { type: 'Collection', uuid: uuid },
-                distribution: c.distribution,
-                sharing_group_id: c.sharing_group_id || null,
+                distribution: sharing.distribution,
+                sharing_group_id: +sharing.distribution === 4 ? sharing.sharing_group_id : null,
                 content: h.documentOf()
             }, { activate: working }).then(function (created) {
                 P.saveAs = null;
@@ -2172,6 +2237,7 @@
     window.IntelGraphWorking = {
         t: t,
         tn: tn,
+        sharingPicker: sharingPicker,
         // view { key, value, record, origin, who, when, why }, from the
         // collection page's members card
         openObject: function (view, anchor, point) { showObject(view, anchor || null, point || null); },

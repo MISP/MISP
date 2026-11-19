@@ -22,6 +22,8 @@
  *                          that edits several records at once and must be able
  *                          to leave each one's level alone (mass edit: 6). It
  *                          is then the default selection
+ *   $keepTitle, $keepSub, $keepIcon  that card's words and glyph, for a
+ *                          form whose leading choice means something else
  *   $accent        string  accent key, see ModalAccent (default 'primary')
  *   $label         string  section label (default 'Distribution'; '' drops it)
  *   $required      bool    REQUIRED badge on the section label
@@ -84,9 +86,9 @@ $options = [];
 if (isset($keep)) {
     $options[] = [
         'value' => $keep,
-        'title' => __('Keep current'),
-        'sub' => __('Each one keeps the level it has'),
-        'icon' => 'fas fa-equals',
+        'title' => $keepTitle ?? __('Keep current'),
+        'sub' => $keepSub ?? __('Each one keeps the level it has'),
+        'icon' => $keepIcon ?? 'fas fa-equals',
         'tone' => '#6c757d',
         'toneBg' => 'rgba(108, 117, 125, .12)',
     ];

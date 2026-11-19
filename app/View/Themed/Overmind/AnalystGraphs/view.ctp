@@ -207,6 +207,7 @@ echo $this->element('genericElements/assetLoader', [
                 <label class="form-label fw-semibold" for="ig-page-settings-distribution"><?= __('Distribution') ?></label>
                 <select class="form-select mb-2" id="ig-page-settings-distribution"></select>
                 <select class="form-select mb-2" id="ig-page-settings-sg" hidden aria-label="<?= __('Sharing group') ?>"></select>
+                <div class="small text-warning-emphasis mb-2" data-ig-page-settings-wider role="status" hidden></div>
                 <div class="invalid-feedback d-block" data-ig-page-settings-error></div>
             </div>
             <div class="modal-footer justify-content-between">

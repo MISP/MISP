@@ -1046,7 +1046,7 @@ class Collection extends AppModel
                 'Collection.orgc_id', 'Collection.user_id', 'Collection.modified',
                 'Collection.published', 'Collection.last_published', 'Collection.analysis',
             ],
-            'contain' => ['Orgc'],
+            'contain' => ['Orgc', 'SharingGroup'],
             'order' => ['Collection.modified' => 'DESC', 'Collection.id' => 'DESC'],
             'limit' => $limit,
         ]);
@@ -1080,6 +1080,8 @@ class Collection extends AppModel
                 'type' => $collection['type'],
                 'distribution' => (int)$collection['distribution'],
                 'sharing_group_id' => $collection['sharing_group_id'] === null ? null : (int)$collection['sharing_group_id'],
+                'sharing_group' => (int)$collection['distribution'] === 4 && !empty($row['SharingGroup']['id'])
+                    ? ['id' => (int)$row['SharingGroup']['id'], 'name' => $row['SharingGroup']['name']] : null,
                 'modified' => $collection['modified'],
                 'Orgc' => [
                     'id' => (int)($row['Orgc']['id'] ?? $collection['orgc_id']),

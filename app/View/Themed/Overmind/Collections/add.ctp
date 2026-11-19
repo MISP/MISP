@@ -108,6 +108,14 @@ echo $this->Form->create('Collection', [
             ]) ?>
         </div>
 
+        <?php if ($isEdit && !empty($id)): ?>
+            <?= $this->element('Collections/share_along_field', [
+                'collectionId' => $id,
+                'stored' => $data,
+                'accent' => 'primary',
+            ]) ?>
+        <?php endif; ?>
+
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 ">
             <?= $this->element('genericElementsBS5/Forms/section_label', [

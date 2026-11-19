@@ -368,6 +368,26 @@
             return (config.explorer && config.explorer.analystSharing) || { levels: [], sharingGroups: [] };
         }
 
+        // Said when the graph would reach beyond the record it hangs on
+        function sharingChanged(form) {
+            var dist = form.querySelector('#ig-page-settings-distribution');
+            var sg = form.querySelector('#ig-page-settings-sg');
+            var wider = form.querySelector('[data-ig-page-settings-wider]');
+            sg.hidden = dist.value !== '4';
+            var words = window.IntelGraph.widerNote(sharing().target, {
+                distribution: +dist.value,
+                sharing_group_id: dist.value === '4' ? sg.value : null
+            });
+            wider.textContent = '';
+            wider.hidden = !words;
+            if (words) {
+                var mark = el('i', 'fas fa-triangle-exclamation');
+                mark.setAttribute('aria-hidden', 'true');
+                wider.appendChild(mark);
+                wider.appendChild(document.createTextNode(' ' + words));
+            }
+        }
+
         window.igGraphPageSettings = function () {
             var form = find('[data-ig-page-settings-form]');
             form.querySelector('#ig-page-settings-name').value = graph.name;
@@ -388,7 +408,7 @@
                 o.selected = g[0] === graph.sharing_group_id;
                 sg.appendChild(o);
             });
-            sg.hidden = dist.value !== '4';
+            sharingChanged(form);
             form.querySelector('[data-ig-page-settings-error]').textContent = '';
             var m = modal('ig-page-settings');
             if (m) m.show();
@@ -400,7 +420,8 @@
             var dist = form.querySelector('#ig-page-settings-distribution');
             var sg = form.querySelector('#ig-page-settings-sg');
             var error = form.querySelector('[data-ig-page-settings-error]');
-            dist.addEventListener('change', function () { sg.hidden = dist.value !== '4'; });
+            dist.addEventListener('change', function () { sharingChanged(form); });
+            sg.addEventListener('change', function () { sharingChanged(form); });
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var name = form.querySelector('#ig-page-settings-name').value.trim();

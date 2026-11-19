@@ -4316,8 +4316,10 @@
             description.name = 'description';
             description.rows = 2;
             var dist = selectOf('distribution', graphSharing.levels, graphSharing.default);
-            var sg = selectOf('sharing_group_id', [['', '—']].concat(graphSharing.sharingGroups), '');
+            var sg = selectOf('sharing_group_id', [['', '—']].concat(graphSharing.sharingGroups), graphSharing.sharingGroup || '');
             var sgRow = formRow('Sharing group', sg);
+            var wider = el('div', 'pe-save-graph-wider');
+            wider.setAttribute('role', 'status');
             // Only a collection can be the workspace
             var activate = el('input');
             activate.name = 'activate';
@@ -4334,6 +4336,7 @@
             form.appendChild(formRow('Description', description));
             form.appendChild(formRow('Distribution', dist));
             form.appendChild(sgRow);
+            form.appendChild(wider);
             var size = sizeBlock(documentSize(doc.document, graphSharing.limits), []);
             var tooLarge = false;
             // The size, and whether Save may go on, for the document as it now stands
@@ -4364,8 +4367,24 @@
             form.appendChild(summary);
             form.appendChild(size);
             form.appendChild(error);
-            sgRow.hidden = dist.value !== '4';
-            dist.addEventListener('change', function () { sgRow.hidden = dist.value !== '4'; });
+            // Said when the graph would reach beyond the record it hangs on
+            function sharingChanged() {
+                sgRow.hidden = dist.value !== '4';
+                var words = window.IntelGraph && window.IntelGraph.widerNote
+                    ? window.IntelGraph.widerNote(graphSharing.target, { distribution: +dist.value, sharing_group_id: dist.value === '4' ? sg.value : null })
+                    : null;
+                wider.textContent = '';
+                wider.hidden = !words;
+                if (words) {
+                    var mark = el('i', 'fas fa-triangle-exclamation');
+                    mark.setAttribute('aria-hidden', 'true');
+                    wider.appendChild(mark);
+                    wider.appendChild(document.createTextNode(' ' + words));
+                }
+            }
+            sharingChanged();
+            dist.addEventListener('change', sharingChanged);
+            sg.addEventListener('change', sharingChanged);
 
             var busy = false;
             var closed;

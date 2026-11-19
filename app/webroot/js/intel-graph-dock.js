@@ -1693,17 +1693,13 @@
         row.appendChild(go);
         row.appendChild(button('btn btn-outline-secondary', t('cancel'), function () { saveAs = null; renderFoot(); }));
         form.appendChild(row);
-        var note = el('div', 'ig-so-saveas-note');
+        form.appendChild(W.sharingPicker(a.Collection, saveAs));
         if (saveAs.error) {
-            note.classList.add('is-error');
+            var note = el('div', 'ig-so-saveas-note is-error');
             note.setAttribute('role', 'alert');
             note.textContent = saveAs.error;
-        } else {
-            note.appendChild(el('span', null, t('sharedLike')));
-            var badge = distributionBadge(a.Collection.distribution);
-            if (badge) note.appendChild(badge);
+            form.appendChild(note);
         }
-        form.appendChild(note);
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             createGraph();
@@ -1728,11 +1724,12 @@
         saveAs.error = null;
         renderFoot();
         var c = a.Collection;
+        var sharing = saveAs.sharing || { distribution: c.distribution, sharing_group_id: c.sharing_group_id };
         IG().create({
             name: name,
             target: { type: 'Collection', uuid: c.uuid },
-            distribution: c.distribution,
-            sharing_group_id: c.sharing_group_id || null,
+            distribution: sharing.distribution,
+            sharing_group_id: +sharing.distribution === 4 ? sharing.sharing_group_id : null,
             content: h.documentOf()
         }, { activate: true }).then(function () {
             saveAs = null;

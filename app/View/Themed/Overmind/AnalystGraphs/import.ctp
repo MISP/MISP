@@ -2,7 +2,6 @@
 /**
  * @var array $distributionLevels
  * @var array $sharingGroups
- * @var int $defaultDistribution
  * @var array $collections [{type, uuid, label}]
  * @var int $transferLimit
  */
@@ -75,7 +74,10 @@ echo $this->Form->create('Graph', [
                 'accent' => $color,
                 'levels' => $distributionLevels,
                 'sharingGroups' => $sharingGroups,
-                'value' => $defaultDistribution,
+                'keep' => '',
+                'keepTitle' => __('Like its target'),
+                'keepSub' => __('Each graph is shared as the record it hangs on'),
+                'keepIcon' => 'fas fa-link',
                 'id' => 'analyst-graph-import-distribution',
                 'hint' => __('Applies to every imported graph.'),
             ]) ?>

@@ -995,7 +995,6 @@ class AnalystGraphsController extends AppController
         }
         $this->set('distributionLevels', $levels);
         $this->set('sharingGroups', ClassRegistry::init('SharingGroup')->fetchAllAuthorised($user, 'name', 1));
-        $this->set('defaultDistribution', (int)(Configure::read('MISP.default_analyst_data_distribution') ?? 1));
         $this->set('collections', $this->__orgCollections($user));
         $this->set('transferLimit', self::TRANSFER_LIMIT);
     }

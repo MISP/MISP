@@ -208,12 +208,12 @@ class CollectionsController extends AppController
                 'Shared along with the collection: %s.',
                 implode(__(' and '), array_filter([
                     $done['graphs'] ? __n('%s saved graph', '%s saved graphs', $done['graphs'], $done['graphs']) : null,
-                    $done['relationships'] ? __n('%s relationship', '%s relationships', $done['relationships'], $done['relationships']) : null,
+                    $done['relationships'] ? __n('%s link between members', '%s links between members', $done['relationships'], $done['relationships']) : null,
                 ]))
             ));
         }
         if (!$this->IndexFilter->isRest() && !empty($done['failed'])) {
-            $this->Flash->error(__n('One graph or relationship could not be shared along.', '%s graphs or relationships could not be shared along.', count($done['failed']), count($done['failed'])));
+            $this->Flash->error(__n('One graph or link could not be shared along.', '%s graphs or links could not be shared along.', count($done['failed']), count($done['failed'])));
         }
         return $done;
     }
