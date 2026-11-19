@@ -50,10 +50,10 @@ class UsersEvolutionWidget
         $data = array();
         $data['data'] = array();
         // Add total users data for all timestamps
-        for ($i = 0; $i < $limit; $i++) {
+        for ($i = $limit - 1; $i >= 0; $i--) {
             $itemTime = strtotime('- ' . $i . $delta, $endOfDay);
             $item = array();
-            $item['date'] = strftime('%Y-%m-%d', $itemTime);
+            $item['date'] = date('Y-m-d', $itemTime);
             $item['users'] = $this->usersAtTime($itemTime);
             $data['data'][] = $item;
         }
