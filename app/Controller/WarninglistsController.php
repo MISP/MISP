@@ -458,9 +458,10 @@ class WarninglistsController extends AppController
         if (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid ID.'));
         }
-        // The page pages its values through viewEntries(); only the API and the
-        // CSV export need the whole list, which can run to a million rows.
-        $withEntries = $this->IndexFilter->isCsv() || $this->_isRest();
+        // Overmind pages its values through viewEntries(); the classic view, the
+        // API and the CSV export still need the whole list.
+        $withEntries = $this->IndexFilter->isCsv() || $this->_isRest()
+            || $this->theme !== 'Overmind';
         $warninglist = $this->Warninglist->find('first', array(
             'contain' => $withEntries ? array('WarninglistEntry', 'WarninglistType') : array('WarninglistType'),
             'conditions' => array('id' => $id))
