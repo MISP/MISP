@@ -83,7 +83,15 @@ class LdapSync extends LdapAuthenticate
             return false;
         }
 
-        $orgId = $this->getOrganisationId($this->User, $entry, $groups);
+        // getOrganisationId() was written for the login path and throws when the
+        // directory resolves no organisation. In a batch sweep that would abort
+        // the whole run, so treat it like an unresolved role: this user is invalid.
+        try {
+            $orgId = $this->getOrganisationId($this->User, $entry, $groups);
+        } catch (UnauthorizedException $e) {
+            $this->report($verbose, $user, 'no organisation resolved from LDAP');
+            return false;
+        }
 
         if ($update) {
             $this->applyChanges($user, $orgId, $roleId, $verbose);
