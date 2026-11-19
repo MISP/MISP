@@ -103,7 +103,6 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 		self::$auth_property_name =  Configure::read('AadAuth.auth_property_name') ?? 'userPrincipalName';
 
 		$this->Log = ClassRegistry::init('Log');
-		$this->Log->create();
 
 		$this->settings['fields'] = ['username' => 'email'];
 	}
@@ -125,6 +124,9 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 			'action' => 'auth',
 			'title' => $logmessage
 		];
+		// create() must precede every save, otherwise the shared Log instance
+		// still holds the previous row's id and this becomes an UPDATE.
+		$this->Log->create();
 		$this->Log->saveOrFailSilently($log);
 		CakeLog::write($level, $logmessage);
 
