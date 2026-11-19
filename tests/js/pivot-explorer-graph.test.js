@@ -250,7 +250,14 @@ function buildGraph(payload, options) {
     vm.createContext(sandbox);
     vm.runInContext(NODES_SRC, sandbox, { filename: 'misp-pivot-nodes.js' });
     SIDEBAR_SRC.forEach(([f, src]) => vm.runInContext(src, sandbox, { filename: f }));
-    vm.runInContext(SRC, sandbox, { filename: 'pivot-explorer.js' });
+    // The event page's own boot fetches a server-trimmed payload and is served
+    // by the server element pivot. Handing the explorer the whole payload
+    // instead keeps the page-held element pivot, which this suite exercises.
+    const BOOT_HOST = '            collect:     true,\n';
+    if (SRC.split(BOOT_HOST).length !== 2) throw new Error('boot host literal not found');
+    const SRC_WITH_EVENT = options.serverBoot ? SRC : SRC.replace(BOOT_HOST, BOOT_HOST + '            event:       { Event: globalThis.__payload.Event },\n');
+    sandbox.__payload = payload;
+    vm.runInContext(SRC_WITH_EVENT, sandbox, { filename: 'pivot-explorer.js' });
 
     // The build happens in a promise chain off fetch(); let it settle.
     return new Promise(res => setTimeout(res, 0)).then(() => {
@@ -260,7 +267,8 @@ function buildGraph(payload, options) {
         // What the element pivot offers at open, unnarrowed: everything the
         // canvas does not hold. Still called the tray, which it replaced.
         const elements = constructed.opts.pivots.find(p => p.id === 'event-elements');
-        const tray = elements.fetch([], {}, {}).nodes.map(n => ({
+        return Promise.resolve(elements.fetch([], {}, {})).then(res => {
+        const tray = res.nodes.map(n => ({
             id: n.id, label: n.data.label, kind: n.data.type,
         }));
         return {
@@ -273,6 +281,7 @@ function buildGraph(payload, options) {
             fetchLog,
             tray, errors,
         };
+        });
     });
 }
 
@@ -585,17 +594,17 @@ test('the edge-kind dimension is declared for pivotick', async () => {
        r.edgeTypeAccessor({ getData: () => null }), undefined);
 
     eq('object-reference is styled in D1 blue',
-       r.edgeStyleMap['object-reference'], { strokeColor: '#428bca' });
+       r.edgeStyleMap['object-reference'], { strokeColor: '#428BCA' });
     eq('the implemented kinds are styled',
        Object.keys(r.edgeStyleMap),
        ['object-reference', 'in-event', 'analyst-relationship', 'correlation',
         'feed-correlation', 'feed-event', 'server-correlation', 'tag', 'cluster-relation', 'enrichment']);
     eq('in-event is thin grey, with no arrowhead',
-       r.edgeStyleMap['in-event'], { strokeColor: '#6c737d', strokeWidth: 1, markerEnd: 'none' });
+       r.edgeStyleMap['in-event'], { strokeColor: '#6C737D', strokeWidth: 1, markerEnd: 'none' });
     eq('correlations are dashed grey (D1 palette)',
-       r.edgeStyleMap['correlation'], { strokeColor: '#888', dashed: true });
+       r.edgeStyleMap['correlation'], { strokeColor: '#8A8F98', dashed: true });
     eq('analyst relationships are dashed orange (D1 palette)',
-       r.edgeStyleMap['analyst-relationship'], { strokeColor: '#f39a1f', dashed: true });
+       r.edgeStyleMap['analyst-relationship'], { strokeColor: '#F39A1F', dashed: true });
 
     const facets = g.opts.UI.filter.edgeFacets;
     eq('two edge facets — the layer switch, then what an edge asserts', facets.length, 2);
@@ -1145,9 +1154,9 @@ test('two foreign elements of one event share its card, also drawn as an endpoin
     eq('one card', ids(g.nodes), ['attr:e1', 'attr:x1', 'event:EV-77', 'obj:o9']);
 });
 
-test('the event is fetched with its server correlations', async () => {
-    const g = await buildGraph(ev({}));
-    ok('asked for', g.fetchLog.some(f => /\/misp\/events\/view\/1\/includeServerCorrelations:1\.json$/.test(f.url)));
+test('the event page boots from the graph endpoint', async () => {
+    const g = await buildGraph(ev({}), { serverBoot: true });
+    ok('asked for', g.fetchLog.some(f => /\/misp\/events\/graph\/1\.json$/.test(f.url)));
 });
 
 test('double-click on another event opens it, and does nothing anywhere else', async () => {
@@ -2074,8 +2083,8 @@ test('saving an analyst relationship: addressed by MISP type, landing with what 
     const g = await withAnalyst(analystOnly);
     const d = await g.opts.callbacks.onBeforeEdgeCreate(edgeCtx(own.attrE1, foreign.attr, { custom: 'seen-with' }));
     ok('to the source, typed', g.fetchLog.some(f => /\/misp\/analystData\/add\/Relationship\/e1\/Attribute\.json$/.test(f.url)));
-    eq('body', g.adds, [{ Relationship: { related_object_uuid: 'x1', related_object_type: 'Attribute',
-                                          relationship_type: 'seen-with', distribution: '1' } }]);
+    eq('body', g.adds, [{ Relationship: { related_object_type: 'Attribute', relationship_type: 'seen-with',
+                                          related_object_uuid: 'x1', distribution: '1' } }]);
     eq('decision', d, { accept: true,
         data: { kind: 'analyst-relationship', label: 'seen-with', relationship_type: 'seen-with',
                 uuid: 'AR-NEW', orgc: 'ORG-ME', authors: 'me@x' },
@@ -2144,8 +2153,8 @@ test('sharing: with two kinds it is asked second, and only for the analyst kind'
     const d = await g.opts.callbacks.onBeforeEdgeCreate(ar);
     eq('the second form', [ar.asks.length, ar.asks[1].title, ar.asks[1].submitLabel, ar.asks[1].fields.map(x => x.key)],
        [2, 'Share the relationship', 'Save', ['distribution', 'sharing_group_id', 'authors']]);
-    eq('saved as answered, authors trimmed', g.adds, [{ Relationship: { related_object_uuid: 'B', related_object_type: 'Object',
-       relationship_type: 'a', distribution: '3', authors: 'Alice' } }]);
+    eq('saved as answered, authors trimmed', g.adds, [{ Relationship: { related_object_type: 'Object', relationship_type: 'a',
+       related_object_uuid: 'B', distribution: '3', authors: 'Alice' } }]);
     eq('and it lands', d.accept, true);
     const cancelled = edgeCtxSeq(own.objA, own.objB, [{ kind: 'analyst-relationship', custom: 'a' }, null]);
     eq('cancelling the second form saves nothing', [await g.opts.callbacks.onBeforeEdgeCreate(cancelled), g.adds.length],
@@ -2348,7 +2357,7 @@ test('its summaries are dropped whenever a node comes or goes', async () => {
         ok(evt + ' is watched', (g.graph.listeners[evt] || []).length >= 1);
         g.graph.listeners[evt].forEach(f => f(pnode({})));
     });
-    const once = ['event-elements', 'object-surroundings', 'card-attributes', 'card-ids', 'card-network', 'card-correlations'];
+    const once = ['event-elements', 'feed-hits', 'object-surroundings', 'card-attributes', 'card-ids', 'card-network', 'card-correlations'];
     eq('each drops this pivot\'s cache, and those of the pivots that leave out what is drawn',
        g.graph.pivots.invalidated, once.concat(once));
 });
@@ -2404,10 +2413,10 @@ test('an element wears one badge: everything said about it, coloured by its own 
     eq('the event node carries its own', nodeById(g.nodes, 'event:EV-SELF').data.analyst_count, 1);
     const b = badgesOf(g, c1);
     eq('one badge, north-west, a bubble without a count',
-       b.map(x => [x.position, x.text, x.color]), [['nw', null, '#6fbe80']]);
+       b.map(x => [x.position, x.text, x.color]), [['nw', null, '#2F6B3A']]);
     eq('it says what it counts', b[0].title, '5 notes and opinions — endorsed');
     eq('colours', ['disputed', 'neutral', 'none'].map(m => badgesOf(g, { analyst_count: 1, analyst_mood: m })[0].color),
-       ['#b94a48', '#999', '#999']);
+       ['#A63C3A', '#59595A', '#59595A']);
     eq('singular', badgesOf(g, { analyst_count: 1, analyst_mood: 'none' })[0].title, '1 note or opinion');
 });
 
@@ -2533,15 +2542,21 @@ test('17: an edge reads by the kind of link and what it asserts', async () => {
 
 /* ─────────────────── task 18: the node context menu ─────────────────── */
 
+const WS_ICON = 'misp-icon misp-icon-analyst-graph misp-simple';
 const menuItem = (g, text) => g.opts.UI.contextMenu.menuNode.menu.find(i => i.text === text);
 const shows = (g, text, data) => menuItem(g, text).visible(data === null ? null : pnode(data));
 
 test('18: MISP adds six entries to the node menu, after the library\'s own', async () => {
     const g = await buildGraph(ev({ Object: [obj({ uuid: 'A' })] }));
     eq('in this order', g.opts.UI.contextMenu.menuNode.menu.map(i => [i.text, i.iconClass]), [
-        ['Save this element', 'fas fa-save'], ['Add to active workspace', 'fas fa-circle-nodes'],
+        ['Save this element', 'fas fa-save'],
+        ['Add to workspace', WS_ICON], ['In workspace ✓ — show in the dock', 'fas fa-check'],
+        ['Remove from workspace', 'fas fa-folder-minus'],
+        ['Add to another collection…', 'fas fa-folder-plus'],
+        ['New collection with this…', 'fas fa-circle-plus'],
         ['Open its event', 'fas fa-external-link-alt'], ['Browse feed', 'fas fa-rss'],
-        ['Preview in feed', 'fas fa-rss'], ['Copy value', 'fas fa-copy']]);
+        ['Preview in feed', 'fas fa-rss'], ['Copy value', 'fas fa-copy'],
+        ['Edit context', 'misp-icon misp-icon-tag misp-simple'], ['Add analyst data', 'fas fa-comment-dots']]);
     ok('no topbar of ours, and the edge and note menus left alone',
        !g.opts.UI.contextMenu.menuNode.topbar
        && JSON.stringify(Object.keys(g.opts.UI.contextMenu)) === JSON.stringify(['menuNode', 'menuSelection', 'menuCanvas']));
@@ -2927,7 +2942,7 @@ test('5b: past 10,000 hits, a badge on each attribute', async () => {
        [true, true, true]);
     const b = badgesOf(g, c1);
     eq('one badge, bottom-left, off the analyst corner', b.map(x => [x.position, x.iconClass, x.color]),
-       [['sw', 'fas fa-rss', '#5bc0de']]);
+       [['sw', 'fas fa-rss', '#D4A017']]);
     ok('it says why no feed is named', /too many/.test(b[0].title), b[0].title);
     eq('no badge without the flag', badgesOf(g, c2), []);
     eq('both badges when there is analyst data too',
@@ -4053,7 +4068,11 @@ test('enrich save: offered from the node menu and the selection menu', async () 
     const one = menuItem(g, 'Save this element');
     const many = g.opts.UI.contextMenu.menuSelection.menu.find(i => i.text === 'Save selection');
     eq('the selection menu holds that and the graph add', g.opts.UI.contextMenu.menuSelection.menu.map(i => [i.text, i.iconClass]),
-       [['Save selection', 'fas fa-save'], ['Add selection to active workspace', 'fas fa-circle-nodes']]);
+       [['Save selection', 'fas fa-save'],
+        ['Add the selection to the workspace', WS_ICON], ['In workspace ✓ — show in the dock', 'fas fa-check'],
+        ['Remove from workspace', 'fas fa-folder-minus'],
+        ['Add the selection to another collection…', 'fas fa-folder-plus'],
+        ['New collection with the selection…', 'fas fa-circle-plus']]);
     const n = id => ({ id, getData: () => ({ type: 'object', scope: 'module' }) });
     const ledger = g.graph.pivots;
     ['r1', 'r2', 'r3'].forEach(id => ledger.savable.add(id));
