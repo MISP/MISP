@@ -1483,7 +1483,7 @@ class MispObject extends AppModel
                     return true;
                 }
                 if (isset($object['timestamp'])) {
-                    if ($force || $existingObject['Object']['timestamp'] >= $object['timestamp']) {
+                    if (!$force && $existingObject['Object']['timestamp'] >= $object['timestamp']) {
                         $nothingToChange = true;
                         return true;
                     }
