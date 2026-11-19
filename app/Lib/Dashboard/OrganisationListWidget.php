@@ -4,7 +4,7 @@ class OrganisationListWidget
     public $title = 'Organisation list';
     public $category = 'orgs';
     public $render = 'BarChart';
-    public $description = 'The countries represented via organisations on the current instance.';
+    public $description = 'Counts organisations by nationality.';
     public $width = 3;
     public $height = 4;
     public $params = [
@@ -40,46 +40,36 @@ class OrganisationListWidget
         App::uses('WidgetToolkit', 'Lib/Dashboard/Tools');
         $WidgetToolkit = new WidgetToolkit();
         $this->countryCodes = $WidgetToolkit->getCountryCodeMapping();
-        $params = [
-            'conditions' => [
-                'Nationality !=' => ''
-            ]
-        ];
+        $this->Organisation = ClassRegistry::init('Organisation');
+        $conditions = [$this->Organisation->createConditions($user)];
         if (!empty($options['filter']) && is_array($options['filter'])) {
             foreach ($this->validFilterKeys as $filterKey) {
-                if (!empty($options['filter'][$filterKey])) {
-                    if (!is_array($options['filter'][$filterKey])) {
-                        $options['filter'][$filterKey] = [$options['filter'][$filterKey]];
+                $field = 'Organisation.' . $filterKey;
+                foreach ((array)($options['filter'][$filterKey] ?? []) as $value) {
+                    if (is_string($value) && $value === '') {
+                        continue;
                     }
-                    $tempConditionBucket = [];
-                    foreach ($options['filter'][$filterKey] as $value) {
-                        if ($value[0] === '!') {
-                            $tempConditionBucket['Organisation.' . $filterKey . ' NOT IN'][] = mb_substr($value, 1);
-                        } else {
-                            $tempConditionBucket['Organisation.' . $filterKey . ' IN'][] = $value;
-                        }
-                    }
-                    if (!empty($tempConditionBucket)) {
-                        $params['conditions']['AND'][] = $tempConditionBucket;
+                    if (is_string($value) && $value[0] === '!') {
+                        $conditions[$field . ' NOT IN'][] = mb_substr($value, 1);
+                    } else {
+                        $conditions[$field . ' IN'][] = $value;
                     }
                 }
             }
         }
-        $this->Organisation = ClassRegistry::init('Organisation');
         $orgs = $this->Organisation->find('all', [
             'recursive' => -1,
-            'fields' => ['Organisation.nationality', 'COUNT(Organisation.nationality) AS frequency'],
-            'conditions' => $params['conditions'],
+            'fields' => ['Organisation.nationality', 'COUNT(*) AS frequency'],
+            'conditions' => $conditions,
             'group' => ['Organisation.nationality']
         ]);
         $results = [];
-        foreach($orgs as $org) {
+        foreach ($orgs as $org) {
             $country = $org['Organisation']['nationality'];
-            $count = $org['0']['frequency'];
-            if (isset($this->countryCodes[$country])) {
-                $countryCode = $this->countryCodes[$country];
-                $results[$countryCode] = $count;
-            }
+            $label = $country === null || $country === ''
+                ? __('Not specified')
+                : ($this->countryCodes[$country] ?? $country);
+            $results[$label] = ($results[$label] ?? 0) + $org[0]['frequency'];
         }
         arsort($results);
         return ['data' => $results];
