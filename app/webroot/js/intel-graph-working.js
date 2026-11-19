@@ -2,8 +2,9 @@
 // list beside the canvas holding every member and extra it draws, and what a
 // pivot brought. One selection is shared by the list and the canvas; the
 // menus of both offer what fits each node. Any object (a MISP object, a
-// standalone member, a module's answer) opens in a popover from its row or
-// its node; New object from a template… unfolds its form above the rows.
+// standalone member, a module's answer) opens in a popover from the caret
+// beside its value or Open in its menus; New object from a template…
+// unfolds its form above the rows.
 //
 // Two frames: the dock (intel-graph-dock.js builds it around its stage) and
 // the collection page's Pivot Explorer tab (started here, from
@@ -674,11 +675,6 @@
         syncCanvas(F);
         if (r.node && !(opts && opts.reveal === false)) reveal(F, r.node);
     }
-    // A standalone object's row opens it too, once the canvas has answered the pick
-    function findAndOpen(F, rid) {
-        find(F, rid);
-        if (F.byRid[rid] && F.byRid[rid].so) setTimeout(function () { openObject(F, rid); }, 60);
-    }
     function togglePick(F, rid, on) {
         if (on) F.picks[rid] = true; else delete F.picks[rid];
         F.current = rid;
@@ -971,12 +967,10 @@
 
     /* ── a standalone object, opened in a popover anchored to its row or node ── */
     var pop = null;
-    var closed = { key: null, at: 0 };
     function closeObject() {
         if (!pop) return;
         var p = pop;
         pop = null;
-        closed = { key: p.key, at: Date.now() };
         document.documentElement.classList.remove('igw-pop-open');
         p.el.remove();
         document.removeEventListener('pointerdown', p.outside, true);
@@ -1417,22 +1411,6 @@
                     if (rid) markCurrent(F, rid);
                 }, 0);
             });
-            // A plain click on an object opens it where it was clicked, as its row does
-            bus.on('nodeClick', function (ev, node) {
-                if (!ev || !node || ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) return;
-                var point = typeof ev.clientX === 'number' ? { x: ev.clientX, y: ev.clientY } : null;
-                setTimeout(function () {
-                    if (F.h !== h) return;
-                    refreshRows(F, true);
-                    var rid = ridOfNode(F, node);
-                    var r = rid && F.byRid[rid];
-                    if (!r || !r.so) return;
-                    // The pointerdown that closed it was this click: it stays closed
-                    if (closed.key === (r.key || r.rid) && Date.now() - closed.at < 600) return;
-                    F.menuPoint = point;
-                    try { openObject(F, rid); } finally { F.menuPoint = null; }
-                }, 80);
-            });
         } catch (e) { /* no interaction bus: the list follows writes only */ }
         try {
             g.on('nodeAdd', function () { if (F.h === h) renderSoon(F); });
@@ -1666,7 +1644,7 @@
             }
             if (target.closest('a, button, input, select, textarea')) return;
             if (e.shiftKey || e.ctrlKey || e.metaKey) togglePick(F, rid, !F.picks[rid]);
-            else findAndOpen(F, rid);
+            else find(F, rid);
         });
         L.addEventListener('contextmenu', function (e) {
             var row = e.target.closest('[data-rid]');
@@ -1695,7 +1673,7 @@
                 if (next) { row.tabIndex = -1; next.tabIndex = 0; next.focus(); }
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                findAndOpen(F, rid);
+                find(F, rid);
             } else if (e.key === ' ') {
                 e.preventDefault();
                 togglePick(F, rid, !F.picks[rid]);
