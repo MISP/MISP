@@ -59,12 +59,6 @@ class XMLConverterTool
     {
         foreach ($attributes as $key => $value) {
             unset($attributes[$key]['value1'], $attributes[$key]['value2'], $attributes[$key]['category_order']);
-            if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) {
-                $attributes[$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
-                foreach ($attributes[$key]['RelatedAttribute'] as &$ra) {
-                    $ra = array('Attribute' => array(0 => $ra));
-                }
-            }
             if (isset($attributes[$key]['ShadowAttribute'])) {
                 foreach ($attributes[$key]['ShadowAttribute'] as $skey => $svalue) {
                     $attributes[$key]['ShadowAttribute'][$skey]['Org'] = array(0 => $attributes[$key]['ShadowAttribute'][$skey]['Org']);
@@ -84,8 +78,8 @@ class XMLConverterTool
                 }
             }
             if (isset($attributes[$key]['SharingGroup'])) {
-                $attributes[$key]['SharingGroup'][0] = $attributes[$key]['SharingGroup'];
-                unset($attributes[$key]['SharingGroup']);
+                $sharingGroup = $attributes[$key]['SharingGroup'];
+                $attributes[$key]['SharingGroup'] = array(0 => $sharingGroup);
             }
             if (isset($attributes[$key]['AttributeTag'])) {
                 foreach ($attributes[$key]['AttributeTag'] as $atk => $tag) {
