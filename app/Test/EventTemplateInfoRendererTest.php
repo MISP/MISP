@@ -61,7 +61,7 @@ class EventTemplateInfoRendererTest extends TestCase
     public function testDateVariableFallsBackToTodayWhenNoContext(): void
     {
         $out = $this->renderer->render('Today: {{date}}');
-        $this->assertRegExp('/^Today: \d{4}-\d{2}-\d{2}$/', $out);
+        $this->assertMatchesRegularExpression('/^Today: \d{4}-\d{2}-\d{2}$/', $out);
     }
 
     public function testNowVariableUsesContextOverride(): void
@@ -78,7 +78,7 @@ class EventTemplateInfoRendererTest extends TestCase
     {
         $out = $this->renderer->render('At {{now}}');
         // ISO-8601 with timezone offset: 2026-04-23T12:34:56+02:00
-        $this->assertRegExp(
+        $this->assertMatchesRegularExpression(
             '/^At \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+\-]\d{2}:\d{2}$/',
             $out
         );
