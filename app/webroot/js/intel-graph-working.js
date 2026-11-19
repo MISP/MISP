@@ -1,8 +1,9 @@
 // The working view: a collection drawn by the graph laying it out, with a
 // list beside the canvas holding every member and extra it draws, and what a
 // pivot brought. One selection is shared by the list and the canvas; the
-// menus of both offer what fits each node. A standalone object opens in a
-// popover; New object from a template… unfolds its form above the rows.
+// menus of both offer what fits each node. A standalone object, or an object
+// a module answered, opens in a popover; New object from a template… unfolds
+// its form above the rows.
 //
 // Two frames: the dock (intel-graph-dock.js builds it around its stage) and
 // the collection page's Pivot Explorer tab (started here, from
@@ -213,6 +214,7 @@
             if (Array.isArray(c.attributes)) {
                 // An object a module answered, read as the member it would make
                 r.kind = 'Object';
+                r.so = answerRecord(c, mark.item && mark.item.module);
                 r.value = objectValue({ name: c.name, Attribute: c.attributes.map(function (a) { return { object_relation: a.relation, value: a.value }; }) });
                 r.typeLabel = t('objectOf', c.name || typeName('Object'));
             } else {
@@ -240,6 +242,12 @@
         r.canAdd = r.role === 'extra' && !!r.item;
         return r;
     }
+    // An object answer's content, read as the record adding it would make: it
+    // opens as a standalone member does, its template not known until then
+    function answerRecord(content, module) {
+        if (!content || !Array.isArray(content.attributes)) return null;
+        return { name: content.name, module: module || null, template_uuid: null, template_version: null, attributes: content.attributes };
+    }
     function enrichEdge(F, id) {
         try {
             var e = F.h.graph().getMutableEdges().filter(function (x) { return x.to && x.to.id === id; })[0];
@@ -266,6 +274,7 @@
             r.from = { module: d.module || (d.modules || [])[0], value: e ? (e.asked || (o && o.value)) : null, ran_at: o && o.ran_at };
         }
         if (r.eventId && p.events && p.events[r.eventId]) r.eventInfo = p.events[r.eventId].info;
+        if (r.item && r.item.type === 'StandaloneObject') r.so = answerRecord(r.item.content, r.item.module);
         r.canAdd = !!r.item;
         return r;
     }
@@ -1050,7 +1059,7 @@
         var r = F.byRid[rid];
         if (!r || !r.so) return;
         var row = F.menuPoint ? null : F.list.querySelector(sel(rid));
-        showObject({ key: r.key, value: r.value, record: r.so, origin: r.from, who: r.who, when: r.when, why: r.why },
+        showObject({ key: r.key || r.rid, value: r.value, record: r.so, origin: r.from, who: r.who, when: r.when, why: r.why },
             row && row.getClientRects().length ? row : null, F.menuPoint || null);
     }
 
