@@ -74,6 +74,14 @@ foreach ($elements as $element) {
         $refId = (int)$object['event_id'];
         $subtitle = $object['meta-category'] ?? null;
         $url = $baseurl . '/objects/view/' . $object['id'];
+        $record = [
+            'name' => $object['name'],
+            'template_uuid' => $object['template_uuid'] ?? null,
+            'template_version' => $object['template_version'] ?? null,
+            'attributes' => array_map(function ($attribute) {
+                return ['relation' => $attribute['object_relation'], 'type' => $attribute['type'] ?? '', 'value' => $attribute['value']];
+            }, $object['Attribute'] ?? []),
+        ];
     } elseif ($type === 'AttributeValue') {
         $sha256 = strtolower((string)($element['element_sha256'] ?? ''));
         $key = 'Value:' . $sha256;
@@ -152,8 +160,13 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
     background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); border: 1px solid var(--bs-warning-border-subtle);
 }
 [data-collection-elements] .ce-chip > i { font-size: .625rem; }
-[data-collection-elements] .ce-open { min-width: 0; padding: 0; border: 0; background: none; color: var(--bs-emphasis-color); text-align: start; }
-[data-collection-elements] .ce-open:hover, [data-collection-elements] .ce-open:focus-visible { text-decoration: underline; }
+[data-collection-elements] .ce-open {
+    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem; padding: 0;
+    border: 0; border-radius: var(--bs-border-radius); background: transparent; color: var(--bs-secondary-color); font-size: .7rem;
+}
+[data-collection-elements] .ce-open:hover, [data-collection-elements] .ce-open:focus-visible, [data-collection-elements] .ce-open[aria-expanded="true"] {
+    background: var(--bs-secondary-bg); color: var(--bs-emphasis-color); outline: 0;
+}
 [data-collection-elements] .ce-origin { margin-top: .15rem; font-size: .8125rem; color: var(--bs-secondary-color); }
 [data-collection-elements] .ce-origin > i { margin-right: .35rem; font-size: .7rem; }
 </style>
@@ -330,16 +343,7 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
             node.setAttribute('data-ce-key', row.key);
             var label = row.title !== null ? row.title : row.uuid;
             var titleClass = row.title !== null ? 'fw-semibold text-truncate' : 'font-monospace small text-truncate';
-            var title;
-            if (row.record) {
-                title = el('button', titleClass + ' ce-open', label);
-                title.type = 'button';
-                title.setAttribute('aria-haspopup', 'dialog');
-                title.title = i18n.open + ': ' + label;
-                title.addEventListener('click', function () { openObject(row, node); });
-            } else {
-                title = row.url ? el('a', titleClass + ' text-decoration-none', label) : el('span', titleClass, label);
-            }
+            var title = row.url ? el('a', titleClass + ' text-decoration-none', label) : el('span', titleClass, label);
             if (row.url) {
                 title.href = row.url;
             } else if (row.title === null) {
@@ -353,6 +357,18 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
                 chip.setAttribute('data-ce-missing', '');
                 chip.insertBefore(el('i', 'fas fa-circle-question'), chip.firstChild).setAttribute('aria-hidden', 'true');
                 titleLine.appendChild(chip);
+            }
+            // An object opens in the working view's popover from its caret only
+            if (row.record) {
+                var caret = el('button', 'ce-open');
+                caret.type = 'button';
+                caret.setAttribute('data-ce-open', '');
+                caret.setAttribute('aria-haspopup', 'dialog');
+                caret.setAttribute('aria-label', i18n.open + ': ' + label);
+                caret.title = i18n.open;
+                caret.appendChild(el('i', 'fas fa-chevron-down')).setAttribute('aria-hidden', 'true');
+                caret.addEventListener('click', function () { openObject(row, node); });
+                titleLine.appendChild(caret);
             }
 
             var metaLine = node.querySelector('[data-ce-meta]');
@@ -382,14 +398,6 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
                 from.insertBefore(el('i', 'fas fa-puzzle-piece'), from.firstChild).setAttribute('aria-hidden', 'true');
                 metaLine.insertAdjacentElement('afterend', from);
             }
-            if (row.record) {
-                node.addEventListener('click', function (event) {
-                    if (!event.target.closest('a, button')) {
-                        openObject(row, node);
-                    }
-                });
-            }
-
             var remove = node.querySelector('[data-ce-remove]');
             if (remove) {
                 remove.href = payload.removeUrl + row.id;

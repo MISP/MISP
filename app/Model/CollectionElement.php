@@ -314,6 +314,7 @@ class CollectionElement extends AppModel
                     'fields' => [
                         'Object.id', 'Object.uuid', 'Object.name',
                         'Object.meta-category', 'Object.event_id',
+                        'Object.template_uuid', 'Object.template_version',
                     ],
                     'contain' => ['Event' => ['fields' => ['id', 'info']]]
                 ]);
@@ -329,7 +330,7 @@ class CollectionElement extends AppModel
                 if (!empty($ids)) {
                     $attributes = ClassRegistry::init('MispAttribute')->fetchAttributesSimple($user, [
                         'conditions' => ['Attribute.object_id' => array_keys($ids), 'Attribute.deleted' => 0],
-                        'fields' => ['Attribute.id', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.value'],
+                        'fields' => ['Attribute.id', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.type', 'Attribute.value'],
                         'order' => ['Attribute.id' => 'ASC'],
                     ]);
                     foreach ($attributes as $row) {
@@ -337,6 +338,7 @@ class CollectionElement extends AppModel
                         if ($uuid !== null) {
                             $byUuid[$uuid]['Attribute'][] = [
                                 'object_relation' => $row['Attribute']['object_relation'],
+                                'type' => $row['Attribute']['type'],
                                 'value' => $row['Attribute']['value'],
                             ];
                         }
