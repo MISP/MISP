@@ -194,14 +194,15 @@ class AttributeValidationTool
                         $ipv6 = substr($value, 1, strpos($value, ']')-1);
                         $port = explode(':', substr($value, strpos($value, ']')))[1];
                         $parts = array($ipv6, $port);
-                    } elseif (str_contains($value, '.')) { // 2001:db8::1.80
-                        $parts = explode('.', $value);
                     } elseif (str_contains($value, ' port ')) { // 2001:db8::1 port 80
                         $parts = explode(' port ', $value);
-                    } elseif (str_contains($value, 'p')) { // 2001:db8::1p80
-                        $parts = explode('p', $value);
                     } elseif (str_contains($value, '#')) { // 2001:db8::1#80
                         $parts = explode('#', $value);
+                    } elseif (str_contains($value, '.') && filter_var(substr($value, 0, strrpos($value, '.')), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) { // 2001:db8::1.80
+                        // Split on the last dot only: an IPv4-embedded IPv6 address (::ffff:192.0.2.1) contains dots itself
+                        $parts = array(substr($value, 0, strrpos($value, '.')), substr($value, strrpos($value, '.') + 1));
+                    } elseif (str_contains($value, 'p')) { // 2001:db8::1p80
+                        $parts = explode('p', $value);
                     } else { // 2001:db8::1:80 this one is ambiguous
                         $temp = explode(':', $value);
                         $parts = array(implode(':', array_slice($temp, 0, count($temp)-1)), end($temp));
