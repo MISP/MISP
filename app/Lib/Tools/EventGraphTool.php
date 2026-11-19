@@ -402,7 +402,7 @@
                 $added_value = array();
                 foreach ($obj['Attribute'] as $ObjAttr) {
                     // Record existing object_relation
-                    $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
+                    $this->__json['existing_object_relation'][$ObjAttr['object_relation']] = 0; // set-alike
                     $Tags = $ObjAttr['AttributeTag'];
                     foreach ($Tags as $tag) {
                         $tag = $tag['Tag'];
