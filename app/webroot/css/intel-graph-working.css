@@ -209,6 +209,7 @@
     border-radius: var(--bs-border-radius-lg); box-shadow: var(--bs-box-shadow); overflow-wrap: anywhere;
 }
 .igw-pop:focus { outline: 0; }
+.igw-pop-open .pvt-node-focus .pvt-node-card, .igw-pop-open .pvt-tooltip { display: none !important; }
 .igw-pop-head { display: flex; align-items: flex-start; gap: .6rem; margin-bottom: .55rem; }
 .igw-pop-title { flex: 1 1 auto; min-width: 0; line-height: 1.25; }
 .igw-pop-title strong { display: block; font-size: .9375rem; color: var(--bs-emphasis-color); }

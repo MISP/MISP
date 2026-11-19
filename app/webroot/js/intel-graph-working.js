@@ -1,9 +1,9 @@
 // The working view: a collection drawn by the graph laying it out, with a
 // list beside the canvas holding every member and extra it draws, and what a
 // pivot brought. One selection is shared by the list and the canvas; the
-// menus of both offer what fits each node. A standalone object, or an object
-// a module answered, opens in a popover; New object from a template… unfolds
-// its form above the rows.
+// menus of both offer what fits each node. Any object (a MISP object, a
+// standalone member, a module's answer) opens in a popover from its row or
+// its node; New object from a template… unfolds its form above the rows.
 //
 // Two frames: the dock (intel-graph-dock.js builds it around its stage) and
 // the collection page's Pivot Explorer tab (started here, from
@@ -196,6 +196,7 @@
             r.value = o ? objectValue(o) : d.label;
             r.typeLabel = (o && o.name) || d.name ? t('objectOf', (o && o.name) || d.name) : typeName('Object');
             r.eventId = o ? String(o.event_id) : (d.event_id || null);
+            r.so = o ? objectRecord(o) : null;
         } else if (type === 'GalaxyCluster') {
             r.value = d.value || d.label;
             r.typeLabel = d.galaxy_name ? t('clusterOf', d.galaxy_name) : typeName('GalaxyCluster');
@@ -242,11 +243,25 @@
         r.canAdd = r.role === 'extra' && !!r.item;
         return r;
     }
-    // An object answer's content, read as the record adding it would make: it
-    // opens as a standalone member does, its template not known until then
+    // Every object opens in the popover, read as a record: an answer's content
+    // (its template not known until it is added), a MISP object, or what a
+    // drawn object node holds
     function answerRecord(content, module) {
         if (!content || !Array.isArray(content.attributes)) return null;
         return { name: content.name, module: module || null, template_uuid: null, template_version: null, attributes: content.attributes };
+    }
+    function objectRecord(o) {
+        return { name: o.name, module: null, template_uuid: o.template_uuid || null, template_version: o.template_version || null,
+                 attributes: (o.Attribute || []).map(function (a) { return { relation: a.object_relation, type: a.type, value: a.value }; }) };
+    }
+    function nodeRecord(node, d) {
+        var kids = (node && node.children) || [];
+        if (!kids.length) return null;
+        return { name: d.name || d.label, module: null, template_uuid: null, template_version: null,
+                 attributes: kids.map(function (c) {
+                     var x = (c.getData && c.getData()) || {};
+                     return { relation: x.object_relation, type: x['attr-type'] || '', value: x.value };
+                 }) };
     }
     function enrichEdge(F, id) {
         try {
@@ -275,6 +290,7 @@
         }
         if (r.eventId && p.events && p.events[r.eventId]) r.eventInfo = p.events[r.eventId].info;
         if (r.item && r.item.type === 'StandaloneObject') r.so = answerRecord(r.item.content, r.item.module);
+        else if (kind === 'Object') r.so = nodeRecord(node, d);
         r.canAdd = !!r.item;
         return r;
     }
@@ -955,10 +971,13 @@
 
     /* ── a standalone object, opened in a popover anchored to its row or node ── */
     var pop = null;
+    var closed = { key: null, at: 0 };
     function closeObject() {
         if (!pop) return;
         var p = pop;
         pop = null;
+        closed = { key: p.key, at: Date.now() };
+        document.documentElement.classList.remove('igw-pop-open');
         p.el.remove();
         document.removeEventListener('pointerdown', p.outside, true);
         document.removeEventListener('keydown', p.keys, true);
@@ -1053,6 +1072,8 @@
         document.addEventListener('keydown', p.keys, true);
         window.addEventListener('resize', closeObject);
         pop = p;
+        // Pivotick's own hover card would say the same beside it
+        document.documentElement.classList.add('igw-pop-open');
         el.focus({ preventScroll: true });
     }
     function openObject(F, rid) {
@@ -1395,6 +1416,22 @@
                     var rid = ridOfNode(F, node);
                     if (rid) markCurrent(F, rid);
                 }, 0);
+            });
+            // A plain click on an object opens it where it was clicked, as its row does
+            bus.on('nodeClick', function (ev, node) {
+                if (!ev || !node || ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+                var point = typeof ev.clientX === 'number' ? { x: ev.clientX, y: ev.clientY } : null;
+                setTimeout(function () {
+                    if (F.h !== h) return;
+                    refreshRows(F, true);
+                    var rid = ridOfNode(F, node);
+                    var r = rid && F.byRid[rid];
+                    if (!r || !r.so) return;
+                    // The pointerdown that closed it was this click: it stays closed
+                    if (closed.key === (r.key || r.rid) && Date.now() - closed.at < 600) return;
+                    F.menuPoint = point;
+                    try { openObject(F, rid); } finally { F.menuPoint = null; }
+                }, 80);
             });
         } catch (e) { /* no interaction bus: the list follows writes only */ }
         try {
