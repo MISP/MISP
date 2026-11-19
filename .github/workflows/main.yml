@@ -264,7 +264,7 @@ jobs:
       # PyMISP 3 needs Python 3.11+, jammy ships 3.10
       - name: Python 3.12 for jammy
         if: matrix.os == 'ubuntu-22.04'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
