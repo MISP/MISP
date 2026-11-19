@@ -100,8 +100,8 @@ $config = [
         </div>
     </template>
     <?= $this->element('genericElements/assetLoader', [
-        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-chooser', 'intel-graph-working', 'intel-graph-dock', 'intel-graph-actions'],
-        'css' => ['intel-graph-dock', 'intel-graph-thumbs', 'intel-graph-actions', 'intel-graph-working'],
+        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-chooser', 'intel-graph-way-out', 'intel-graph-working', 'intel-graph-dock', 'intel-graph-actions'],
+        'css' => ['intel-graph-dock', 'intel-graph-thumbs', 'intel-graph-actions', 'intel-graph-working', 'intel-graph-way-out'],
     ]) ?>
 <?php else: ?>
     <?= $this->element('genericElements/assetLoader', ['js' => ['intel-graph']]) ?>

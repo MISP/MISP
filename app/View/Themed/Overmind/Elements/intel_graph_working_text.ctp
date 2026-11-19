@@ -99,6 +99,8 @@ $text = [
     'addWs' => [__('Add to workspace'), __('Add %s to the workspace')],
     'addColl' => [__('Add to the collection'), __('Add %s to the collection')],
     'createEvent' => __('Create an event with what is not in MISP yet…'),
+    'createEventFrom' => __('Create an event from the selection…'),
+    'addToEvent' => __('Add the selection to an event…'),
     'removeWs' => [__('Remove from workspace'), __('Remove %s from the workspace')],
     'removeColl' => [__('Remove from the collection'), __('Remove %s from the collection')],
     'hide' => [__('Hide on this graph'), __('Hide %s on this graph')],
@@ -114,7 +116,6 @@ $text = [
     'notShown' => __('Not shown'),
     'notDropped' => __('Not removed from the graph'),
     'didNotGo' => __('it did not go through'),
-    'eventLater' => __('Creating an event with what is not in MISP yet is not available yet.'),
     'drawFailed' => __('The graph could not be drawn'),
     'splitLabel' => __('Share the room between the graph and the list'),
     'splitTitle' => __('Drag to share the room · double-click to even it'),
@@ -181,3 +182,4 @@ $text = [
 ];
 ?>
 <script type="application/json" id="ig-working-text"><?= json_encode($text, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<?= $this->element('intel_graph_way_out_text') ?>

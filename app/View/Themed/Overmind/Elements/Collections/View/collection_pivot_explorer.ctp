@@ -17,8 +17,8 @@ echo $this->element('intel_graph_working_text');
 if (empty($intelGraph)) {
     echo $this->element('intel_graph_boot', ['intelGraph' => ['active' => null], 'withDock' => false]);
     echo $this->element('genericElements/assetLoader', [
-        'js' => ['intel-graph-working'],
-        'css' => ['intel-graph-working'],
+        'js' => ['intel-graph-way-out', 'intel-graph-working'],
+        'css' => ['intel-graph-working', 'intel-graph-way-out'],
     ]);
 }
 ?>

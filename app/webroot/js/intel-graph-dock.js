@@ -1124,6 +1124,11 @@
         renderTray();
     });
 
+    IG().on('replaced', function (d) {
+        if (current && drawnCollection() === lower(d.collection)) follow(null);
+        renderHead();
+    });
+
     document.addEventListener('intel-graph:refused', function (e) { if (!(e.detail || {}).tellsRefusals) refuse(e.detail || {}); });
     function refuse(d) {
         if (!d.collection) return;

@@ -695,6 +695,26 @@
         syncCanvas(F);
     }
 
+    /* ── ways out: an event made of what the workspace holds ── */
+    function missingRows(F) {
+        refreshRows(F, true);
+        return F.rows.filter(function (r) { return r.role === 'member' && r.missing && r.key; });
+    }
+    // A member goes by its key, anything else by what an add would send
+    function wayOut(F, mode, rows) {
+        if (!window.IntelGraphWayOut) return;
+        var c = collectionOf(F);
+        var items = rows.map(function (r) {
+            if (r.role === 'member' && r.key) return r.key;
+            return r.item ? Object.assign({}, r.item, r.key ? { node: r.key } : {}) : null;
+        }).filter(Boolean);
+        if (!items.length) return;
+        window.IntelGraphWayOut.open(mode, items, {
+            collection: c.uuid, name: c.name, analysis: c.analysis, members: c.element_count,
+            graph: graphWritable(F) ? F.h.uuid() : null
+        });
+    }
+
     /* ── what each node offers, on the canvas and in the list alike ── */
     var ENTRIES = [
         { id: 'add', icon: 'fas fa-plus', key: function (F) { return F.ws ? 'addWs' : 'addColl'; },
@@ -703,7 +723,14 @@
           fits: function (r, T) { return T.length === 1 && !!r.so; },
           run: function (F, fit) { openObject(F, fit[0].rid); } },
         { id: 'event', icon: 'fas fa-calendar-plus', key: 'createEvent',
-          fits: function (r) { return r.role === 'member' && r.missing; }, run: function () { toast(t('eventLater'), 'info'); } },
+          fits: function (r, T, F) { return r.role === 'member' && r.missing && canEditCollection(F); },
+          run: function (F) { wayOut(F, 'missing', missingRows(F)); } },
+        { id: 'eventFrom', icon: 'fas fa-calendar-plus', key: 'createEventFrom',
+          fits: function (r, T, F) { return T.length > 1 && (r.role === 'member' || !!r.item) && canEditCollection(F); },
+          run: function (F, fit) { wayOut(F, 'selection', fit); } },
+        { id: 'eventAdd', icon: 'fas fa-calendar-check', key: 'addToEvent',
+          fits: function (r, T, F) { return T.length > 1 && (r.role === 'member' || !!r.item) && canEditCollection(F); },
+          run: function (F, fit) { wayOut(F, 'add', fit); } },
         { id: 'remove', icon: 'fas fa-folder-minus', danger: true, key: function (F) { return F.ws ? 'removeWs' : 'removeColl'; },
           fits: function (r, T, F) { return r.role === 'member' && canEditCollection(F); }, run: removeFromCollection },
         { id: 'hide', icon: 'fas fa-eye-slash', key: 'hide',
@@ -1285,6 +1312,10 @@
     document.addEventListener('intel-graph:removed', function (e) {
         framesOf((e.detail || {}).collection).forEach(follow);
     });
+    // Records an event was made with took their members' places
+    document.addEventListener('intel-graph:replaced', function (e) {
+        framesOf((e.detail || {}).collection).forEach(follow);
+    });
     document.addEventListener('intel-graph:described', function (e) {
         var d = e.detail || {};
         if (!d.key) return;
@@ -1577,9 +1608,13 @@
         });
 
         F.moreEl.addEventListener('click', function () {
-            openListMenu(F, [], F.moreEl, null, null, [
-                { attr: 'data-igw-new-object', icon: 'fas fa-shapes', text: t('newObject'), run: function () { openNewObject(F); } }
-            ]);
+            var extra = [];
+            if (missingRows(F).length) {
+                extra.push({ attr: 'data-igw-way-out', icon: 'fas fa-calendar-plus', text: t('createEvent'),
+                             run: function () { wayOut(F, 'missing', missingRows(F)); } });
+            }
+            extra.push({ attr: 'data-igw-new-object', icon: 'fas fa-shapes', text: t('newObject'), run: function () { openNewObject(F); } });
+            openListMenu(F, [], F.moreEl, null, null, extra);
         });
 
         var L = F.list;
