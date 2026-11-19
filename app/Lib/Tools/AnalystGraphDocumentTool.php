@@ -433,6 +433,66 @@ class AnalystGraphDocumentTool
     }
 
     /**
+     * Put records where other nodes sit: each node named by a key of $map
+     * becomes the record its entry names, in the same place, with the same
+     * flags and groups. A node whose record the document already holds is
+     * dropped instead, the record staying where it is.
+     *
+     * @param array $document A stored document, decoded
+     * @param array $map `Type:address` => the record's node ({type, uuid})
+     * @return array [array $document, array $report {replaced: {old: new}, absent: [old]}]
+     */
+    public static function replaceNodes(array $document, array $map)
+    {
+        $report = ['replaced' => [], 'absent' => []];
+        $nodes = isset($document['nodes']) && is_array($document['nodes']) ? $document['nodes'] : [];
+        $present = array_flip(self::nodeKeysOf($nodes));
+        $renamed = [];
+        $out = [];
+        foreach ($nodes as $node) {
+            $key = self::nodeKeysOf([$node])[0] ?? null;
+            if ($key === null || !isset($map[$key])) {
+                $out[] = $node;
+                continue;
+            }
+            $errors = [];
+            $kept = array_intersect_key($node, array_flip(['x', 'y', 'pinned', 'collapsed', 'pulled_out', 'hidden']));
+            $record = self::normaliseNode(array_intersect_key((array)$map[$key], array_flip(['type', 'uuid', 'value'])) + $kept, $errors);
+            if ($record === null || self::isAnswer($record)) {
+                $out[] = $node;
+                continue;
+            }
+            $newKey = self::nodeKey($record);
+            $report['replaced'][$key] = $newKey;
+            $renamed[$key] = $newKey;
+            if ($newKey !== $key && isset($present[$newKey])) {
+                continue;
+            }
+            $present[$newKey] = true;
+            $out[] = $record;
+        }
+        foreach (array_keys($map) as $key) {
+            if (!isset($report['replaced'][$key])) {
+                $report['absent'][] = $key;
+            }
+        }
+        if (empty($renamed)) {
+            return [$document, $report];
+        }
+        foreach ($document['groups'] ?? [] as $i => $group) {
+            if (!isset($group['members']) || !is_array($group['members'])) {
+                continue;
+            }
+            $members = [];
+            foreach ($group['members'] as $member) {
+                $members[$renamed[$member] ?? $member] = true;
+            }
+            $document['groups'][$i]['members'] = array_keys($members);
+        }
+        return [self::withNodes($document, $out), $report];
+    }
+
+    /**
      * @param mixed $item A node, or a `Type:uuid` key
      * @return string|null
      */

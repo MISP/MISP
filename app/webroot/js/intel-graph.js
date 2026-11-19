@@ -461,6 +461,56 @@
         });
     }
 
+    function itemOut(item) {
+        return typeof item === 'string' ? item : bare(item);
+    }
+
+    function wayOutCollection(options) {
+        return lower((options && options.collection) || (active && active.Collection.uuid));
+    }
+
+    // What items (as add() takes them, or { key, ... }) would become in an
+    // event: target { event_id } for an event the user may modify, else a
+    // new event's { distribution, sharing_group_id }, whose plan also carries
+    // the form's choices. options.collection plans in that collection.
+    function eventPlan(items, target, options) {
+        var uuid = wayOutCollection(options);
+        if (!uuid) return Promise.reject(new Error('There is no workspace to make an event from.'));
+        return request('POST', elementsPath('eventPlan', uuid), Object.assign({ items: (items || []).map(itemOut) }, target || {}));
+    }
+
+    // Makes an event of the items, target { event: { info, date,
+    // distribution, sharing_group_id?, threat_level_id, analysis } }, or adds
+    // them to target { event_id }. An item may carry the attribute_type,
+    // category, to_ids and comment of what it becomes, and the graph node it
+    // is drawn as (node); options.graph names the workspace graph the new
+    // records take their places on. Emits intel-graph:replaced.
+    function toEvent(items, target, options) {
+        var uuid = wayOutCollection(options);
+        if (!uuid) return Promise.reject(new Error('There is no workspace to make an event from.'));
+        var body = Object.assign({ items: (items || []).map(itemOut) }, target || {});
+        if (options && options.graph) body.graph = options.graph;
+        return request('POST', elementsPath('toEvent', uuid), body).then(function (report) {
+            var replaced = report.replaced || {};
+            var gone = Object.keys(replaced);
+            countMoved(uuid, report);
+            if (gone.length) {
+                shareHeld(uuid, gone.map(function (key) { return replaced[key]; }), gone);
+            }
+            emit('replaced', { collection: uuid, report: report, replaced: replaced, event: report.event });
+            return report;
+        });
+    }
+
+    // { tied, found }: the events the user may modify for a selection of the
+    // workspace (or options.collection) to go into, those it holds first;
+    // q searches by id, uuid or info.
+    function eventChoices(q, options) {
+        var uuid = wayOutCollection(options);
+        if (!uuid) return Promise.reject(new Error('There is no workspace.'));
+        return request('GET', elementsPath('eventChoices', uuid) + (q ? '?q=' + encodeURIComponent(q) : ''));
+    }
+
     // collection: { name, type?, distribution?, sharing_group_id?,
     // description? }, research and for the organisation only unless it says
     // otherwise (a copy takes its original's type). options.activate (default
@@ -763,6 +813,9 @@
         add: add,
         remove: remove,
         describe: describe,
+        eventPlan: eventPlan,
+        toEvent: toEvent,
+        eventChoices: eventChoices,
         keyOf: keyOf,
         keyNow: keyNow,
         holds: holds,

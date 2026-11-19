@@ -180,8 +180,11 @@ class ACLComponent extends Component
             'delete' => ['perm_modify'],
             'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'describe' => ['perm_modify'],
+            'eventChoices' => ['AND' => ['perm_add', 'perm_modify']],
+            'eventPlan' => ['AND' => ['perm_add', 'perm_modify']],
             'index' => ['*'],
             'removeItems' => ['perm_modify'],
+            'toEvent' => ['AND' => ['perm_add', 'perm_modify']],
         ],
         'correlationExclusions' => [
             'add' => [],

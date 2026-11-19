@@ -2,6 +2,8 @@
 App::uses('AppController', 'Controller');
 App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystData', 'Model');
+App::uses('CollectionToEvent', 'Model');
+App::uses('NewEventFormTool', 'Tools');
 
 class CollectionElementsController extends AppController
 {
@@ -14,7 +16,7 @@ class CollectionElementsController extends AppController
         // Posted by hand-built AJAX from the collection pickers and the
         // workspace, which send the CSRF token as the X-CSRF-Token header
         // instead of _Token fields.
-        $this->_csrfTokenHeaderOnly(['addElementToCollection', 'addItems', 'contains', 'describe', 'removeItems']);
+        $this->_csrfTokenHeaderOnly(['addElementToCollection', 'addItems', 'contains', 'describe', 'eventPlan', 'removeItems', 'toEvent']);
         $this->CollectionElement->current_user = $this->Auth->user();
     }
 
@@ -94,6 +96,242 @@ class CollectionElementsController extends AppController
         $target = $this->__editableCollection($user, $collection);
         $report = $this->CollectionElement->heldItems($user, $target['id'], $this->__items());
         return $this->RestResponse->viewData(['collection_uuid' => $target['uuid']] + $report, 'json');
+    }
+
+    /**
+     * What a selection of the collection would become in an event: {items,
+     * event_id} for an event the user may modify, or {items, distribution,
+     * sharing_group_id} for a new one, which also answers the form's choices.
+     *
+     * @param string $collection Its uuid or id
+     */
+    public function eventPlan($collection)
+    {
+        $this->request->allowMethod(['post']);
+        $user = $this->Auth->user();
+        $target = $this->__editableCollection($user, $collection);
+        $items = $this->__wayOutItems();
+        $data = $this->request->data;
+        if (isset($data['event_id'])) {
+            list($eventTarget, $rights) = $this->__existingEvent($user, $data['event_id']);
+        } else {
+            $distribution = $data['distribution'] ?? Configure::read('MISP.default_event_distribution') ?? 0;
+            if (!is_scalar($distribution) || !in_array((int)$distribution, [0, 1, 2, 3, 4], true)) {
+                throw new BadRequestException(__('A distribution is 0 to 4.'));
+            }
+            $eventTarget = ['distribution' => (int)$distribution, 'sharing_group_id' => $data['sharing_group_id'] ?? null];
+            $rights = $this->__wayOutRights($user, null);
+        }
+        $this->loadModel('CollectionToEvent');
+        $plan = $this->CollectionToEvent->plan($user, $target, $items, $eventTarget, $rights);
+        if (!isset($data['event_id'])) {
+            $plan['form'] = $this->__newEventForm($user, $target);
+        }
+        return $this->RestResponse->viewData(['collection_uuid' => $target['uuid']] + $plan, 'json');
+    }
+
+    /**
+     * Make an event of a selection of the collection, or add it to one:
+     * {items, event {info, date, distribution, sharing_group_id,
+     * threat_level_id, analysis} | event_id, graph?}. Each item may carry
+     * the attribute_type, category, to_ids and comment of what it becomes,
+     * and the graph node it is drawn as. What is made for a member MISP did
+     * not hold takes its place, in the collection and on `graph`, the
+     * workspace graph, when the user may write it.
+     *
+     * @param string $collection Its uuid or id
+     */
+    public function toEvent($collection)
+    {
+        $this->request->allowMethod(['post']);
+        $user = $this->Auth->user();
+        $target = $this->__editableCollection($user, $collection);
+        $items = $this->__wayOutItems();
+        $data = $this->request->data;
+        if (isset($data['event_id'])) {
+            list($eventTarget, $rights) = $this->__existingEvent($user, $data['event_id']);
+        } else {
+            $this->loadModel('Event');
+            list($fields, $errors) = NewEventFormTool::fields($user, $data['event'] ?? null, $this->Event);
+            if (!empty($errors)) {
+                return $this->__refused($errors);
+            }
+            $eventTarget = ['fields' => $fields];
+            $rights = $this->__wayOutRights($user, null);
+        }
+        $graph = $this->__workspaceGraph($user, $target, $data['graph'] ?? null);
+        $this->loadModel('CollectionToEvent');
+        $result = $this->CollectionToEvent->apply($user, $target, $items, $eventTarget, $rights, $graph);
+        if (isset($result['errors'])) {
+            return $this->__refused($result['errors']);
+        }
+        $result['event']['url'] = Configure::read('MISP.baseurl') . '/events/view/' . $result['event']['id'];
+        ActiveWorkspaceTool::used($user, $target['uuid']);
+        $now = $this->CollectionElement->Collection->workspaceSummaries($user, ['Collection.id' => $target['id']], 1)[0] ?? $target;
+        return $this->RestResponse->viewData([
+            'collection_uuid' => $target['uuid'],
+            'element_count' => $now['element_count'],
+            'Collection' => $now,
+        ] + $result, 'json');
+    }
+
+    /**
+     * The events a selection of the collection may go into: {tied, found},
+     * those the collection holds first, then the newest or those matching
+     * `q` (an id, a uuid or words of the info).
+     *
+     * @param string $collection Its uuid or id
+     */
+    public function eventChoices($collection)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $target = $this->__editableCollection($user, $collection);
+        $q = $this->request->query['q'] ?? '';
+        if (!is_string($q) || mb_strlen($q) > 255) {
+            throw new BadRequestException(__('Search with at most 255 characters.'));
+        }
+        $this->loadModel('CollectionToEvent');
+        return $this->RestResponse->viewData(
+            ['collection_uuid' => $target['uuid']] + $this->CollectionToEvent->choices($user, $target, $q),
+            'json'
+        );
+    }
+
+    /**
+     * @param array $user
+     * @param mixed $ref An event's id or uuid
+     * @return array [{event: row}, rights]
+     * @throws NotFoundException|ForbiddenException
+     */
+    private function __existingEvent(array $user, $ref)
+    {
+        $this->loadModel('Event');
+        $event = is_scalar($ref) ? $this->Event->fetchSimpleEvent($user, (string)$ref) : null;
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        if (!$this->ACL->canModifyEvent($user, $event)) {
+            throw new ForbiddenException(__('You cannot add to the event “%s”.', $event['Event']['info']));
+        }
+        return [['event' => $event], $this->__wayOutRights($user, $event)];
+    }
+
+    /**
+     * @param array $user
+     * @param array|null $event null for a new event of the user's
+     * @return array {tag, link}
+     */
+    private function __wayOutRights(array $user, $event)
+    {
+        if ($event === null) {
+            $role = $user['Role'];
+            $tag = !empty($role['perm_site_admin'])
+                || ((!empty($role['perm_tagger']) || !empty($role['perm_sync'])) && (!empty($role['perm_modify_org']) || !empty($role['perm_modify'])));
+        } else {
+            $tag = $this->ACL->canModifyTag($user, $event);
+        }
+        return ['tag' => $tag, 'link' => $this->ACL->canUserAccess($user, 'analystData', 'add')];
+    }
+
+    /**
+     * The workspace graph to lay the new records out on, when the user may
+     * write it.
+     *
+     * @param array $user
+     * @param array $collection
+     * @param mixed $uuid
+     * @return array|null {id, uuid}
+     * @throws BadRequestException
+     */
+    private function __workspaceGraph(array $user, array $collection, $uuid)
+    {
+        if ($uuid === null || $uuid === '') {
+            return null;
+        }
+        if (!is_string($uuid) || !Validation::uuid($uuid)) {
+            throw new BadRequestException(__('Name the graph by its uuid.'));
+        }
+        if (!$this->ACL->canUserAccess($user, 'analystGraphs', 'save')) {
+            return null;
+        }
+        $Graph = ClassRegistry::init('Graph');
+        $Graph->current_user = $user;
+        $graph = $Graph->find('first', [
+            'conditions' => ['AND' => [
+                ['Graph.uuid' => array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]))],
+                $Graph->buildConditions($user),
+            ]],
+            'contain' => ['Org', 'Orgc'],
+        ]);
+        if (empty($graph) || $graph['Graph']['object_type'] !== 'Collection'
+            || strtolower($graph['Graph']['object_uuid']) !== strtolower($collection['uuid'])
+        ) {
+            throw new BadRequestException(__('That graph is not on “%s”.', $collection['name']));
+        }
+        if (empty($graph['Graph']['_canEdit'])) {
+            return null;
+        }
+        return ['id' => (int)$graph['Graph']['id'], 'uuid' => strtolower($graph['Graph']['uuid'])];
+    }
+
+    /**
+     * What the new event's form offers, at the instance's defaults.
+     *
+     * @param array $user
+     * @param array $collection
+     * @return array
+     */
+    private function __newEventForm(array $user, array $collection)
+    {
+        $this->loadModel('Event');
+        $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($user, 'name', 1);
+        $distributions = $this->Event->distributionLevels;
+        if (empty($sharingGroups)) {
+            unset($distributions[4]);
+        }
+        $threatLevels = array_column($this->Event->ThreatLevel->find('all', ['recursive' => -1]), 'ThreatLevel');
+        $distribution = (int)(Configure::read('MISP.default_event_distribution') ?? 0);
+        return [
+            'defaults' => [
+                'info' => $collection['name'],
+                'date' => date('Y-m-d'),
+                'distribution' => isset($distributions[$distribution]) ? $distribution : 0,
+                'threat_level_id' => (int)(Configure::read('MISP.default_event_threat_level') ?: 4),
+                'analysis' => 0,
+            ],
+            'distributions' => $distributions,
+            'sharing_groups' => $sharingGroups,
+            'threat_levels' => array_column($threatLevels, 'name', 'id'),
+            'analysis_levels' => $this->Event->analysisLevels,
+        ];
+    }
+
+    /**
+     * @return array
+     * @throws BadRequestException
+     */
+    private function __wayOutItems()
+    {
+        $items = $this->request->data['items'] ?? null;
+        if (!is_array($items) || empty($items) || array_keys($items) !== range(0, count($items) - 1)) {
+            throw new BadRequestException(__('A list of items is required.'));
+        }
+        if (count($items) > CollectionToEvent::ITEM_LIMIT) {
+            throw new BadRequestException(__('At most %s items go into an event at once.', CollectionToEvent::ITEM_LIMIT));
+        }
+        return $items;
+    }
+
+    /**
+     * @param array $errors field => message
+     * @return CakeResponse
+     */
+    private function __refused(array $errors)
+    {
+        $response = $this->RestResponse->viewData(['errors' => $errors], 'json');
+        $response->statusCode(400);
+        return $response;
     }
 
     /**
