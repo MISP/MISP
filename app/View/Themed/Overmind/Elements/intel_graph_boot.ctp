@@ -70,6 +70,11 @@ $config = [
     ],
     'text' => [
         'none' => __('No workspace'),
+        'wider' => [
+            'Collection' => __('Wider than this collection: people who can’t see it will see which records are in it.'),
+            'Event' => __('Wider than this event: people who can’t see it will see which records are on this graph.'),
+            'GalaxyCluster' => __('Wider than this cluster: people who can’t see it will see which records are on this graph.'),
+        ],
     ],
 ];
 ?>

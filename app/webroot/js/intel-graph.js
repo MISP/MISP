@@ -16,7 +16,7 @@
 //   canSaveGraph        the user may save a graph
 //   assets     { js: [{ global, url }], css: [{ path, url }] }, in load order
 //   explorer   options handed to every mounted graph (labelPlan, orgUuid, …)
-//   text       { none }
+//   text       { none, wider: { <target type>: words } }
 //   transport  optional: (method, path, body) → Promise<data>, replacing HTTP
 //
 // An item may carry a `label`, what it is called on screen; it stays here.
@@ -802,10 +802,34 @@
         return levels[level] || null;
     }
 
+    // Whether sharing a reaches fewer than sharing b, each { distribution,
+    // sharing_group_id }: organisation < sharing group < community <
+    // connected < all, another sharing group counting as fewer.
+    var REACH = { 0: 0, 4: 1, 1: 2, 2: 3, 3: 4 };
+    function reachOf(sharing) {
+        var rank = REACH[+sharing.distribution];
+        return rank === undefined ? 4 : rank;
+    }
+    function reachesFewer(a, b) {
+        return reachOf(a) < reachOf(b)
+            || (+a.distribution === 4 && +b.distribution === 4 && String(a.sharing_group_id) !== String(b.sharing_group_id));
+    }
+
+    // The warning for a graph shared as `chosen` beyond the record it hangs
+    // on, target { type, distribution, sharing_group_id }; else null.
+    function widerNote(target, chosen) {
+        if (!target || target.distribution == null || !chosen || !reachesFewer(target, chosen)) {
+            return null;
+        }
+        return (text.wider || {})[target.type] || null;
+    }
+
     window.IntelGraph = {
         active: getActive,
         page: page,
         distribution: distribution,
+        reachesFewer: reachesFewer,
+        widerNote: widerNote,
         collectionTypes: function () { return config.collectionTypes || []; },
         refreshActive: refreshActive,
         setActive: setActive,

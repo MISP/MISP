@@ -628,7 +628,7 @@ class AnalystGraphsController extends AppController
 
     /**
      * A copy of the graph owned by the user's organisation, holding the nodes
-     * they can see. Its distribution is the analyst-data default.
+     * they can see, shared as the record it is forked onto.
      *
      * @param string $uuid
      */
@@ -1063,11 +1063,17 @@ class AnalystGraphsController extends AppController
         foreach ($authorised as $id => $name) {
             $sharingGroups[] = [(int)$id, $name];
         }
+        $target = $this->Graph->targetSharing($graph['object_type'] ?? null, $graph['object_uuid'] ?? null);
         return [
             'levels' => $levels,
             'sharingGroups' => $sharingGroups,
             'default' => (int)$graph['distribution'],
             'sharingGroup' => $graph['sharing_group_id'],
+            'target' => $target === null ? null : [
+                'type' => $graph['object_type'],
+                'distribution' => (int)$target['distribution'],
+                'sharing_group_id' => $target['sharing_group_id'],
+            ],
             'authors' => $user['email'] ?? '',
         ];
     }

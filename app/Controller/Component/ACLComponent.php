@@ -169,6 +169,7 @@ class ACLComponent extends Component
             'indexMinimal' => ['*'],
             'publish' => ['AND' => ['perm_modify', 'perm_publish']],
             'quickAdd' => ['perm_modify'],
+            'shareAlong' => ['perm_modify'],
             'unpublish' => ['AND' => ['perm_modify', 'perm_publish']],
             'view' => ['*']
         ],

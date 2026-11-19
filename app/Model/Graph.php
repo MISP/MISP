@@ -89,6 +89,7 @@ class Graph extends AnalystData
 
     public function beforeValidate($options = array())
     {
+        $this->fillSharing();
         parent::beforeValidate($options);
         if (empty($this->id) && empty($this->data[$this->alias]['id']) && !isset($this->data[$this->alias]['content'])) {
             $this->data[$this->alias]['content'] = AnalystGraphDocumentTool::emptyDocument();
@@ -149,16 +150,47 @@ class Graph extends AnalystData
         return $data;
     }
 
+    /**
+     * Leaves the distribution out unless given, so that fillSharing() can
+     * tell a graph made without one.
+     */
+    public function create($data = [], $filterKey = false)
+    {
+        $created = parent::create($data, $filterKey);
+        if (is_array($data) && !isset($data[$this->alias]['distribution']) && !isset($data['distribution'])) {
+            unset($this->data[$this->alias]['distribution']);
+        }
+        return $created;
+    }
+
+    /**
+     * A new graph made without a distribution takes its target's, else the
+     * analyst-data default.
+     */
+    private function fillSharing()
+    {
+        $data = &$this->data[$this->alias];
+        if (!empty($data['id']) || !empty($this->id) || (isset($data['distribution']) && $data['distribution'] !== '')) {
+            return;
+        }
+        $sharing = $this->targetSharing($data['object_type'] ?? null, $data['object_uuid'] ?? null);
+        $data = ($sharing ?? ['distribution' => (string)$this->_schema['distribution']['default']]) + (array)$data;
+    }
+
     public function beforeSave($options = [])
     {
-        parent::beforeSave($options);
+        $this->fillSharing();
         $data = &$this->data[$this->alias];
+        $id = $data['id'] ?? $this->id;
+        parent::beforeSave($options);
         if (isset($data['content'])) {
             $data = AnalystGraphDocumentTool::measure($data['content']) + $data;
         }
-        $id = $data['id'] ?? $this->id;
         if (empty($id)) {
             $data['revision'] = 1;
+        } elseif (!isset($data['content'])) {
+            unset($data['revision']);
+            return true;
         } else {
             $stored = $this->find('first', [
                 'conditions' => [$this->alias . '.id' => $id],
@@ -173,6 +205,35 @@ class Graph extends AnalystData
             $this->whitelist = array_merge($this->whitelist, ['revision', 'content_size', 'node_count']);
         }
         return true;
+    }
+
+    /**
+     * The sharing of the record a graph hangs on, which a graph made without
+     * one takes.
+     *
+     * @param string|null $type
+     * @param string|null $uuid
+     * @return array|null {distribution, sharing_group_id}
+     */
+    public function targetSharing($type, $uuid)
+    {
+        if (!in_array($type, self::VALID_TARGETS, true) || !is_string($uuid) || !Validation::uuid($uuid)) {
+            return null;
+        }
+        $row = ClassRegistry::init($type)->find('first', [
+            'conditions' => [$type . '.uuid' => array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]))],
+            'fields' => [$type . '.distribution', $type . '.sharing_group_id'],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        $distribution = isset($row[$type]['distribution']) ? (string)$row[$type]['distribution'] : null;
+        if (!in_array($distribution, ['0', '1', '2', '3', '4'], true)) {
+            return null;
+        }
+        return [
+            'distribution' => $distribution,
+            'sharing_group_id' => $distribution === '4' ? (int)$row[$type]['sharing_group_id'] : null,
+        ];
     }
 
     public function afterSave($created, $options = array())

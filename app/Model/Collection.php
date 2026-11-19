@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('DistributionLevel', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SyncTool', 'Tools');
 
@@ -529,6 +530,147 @@ class Collection extends AppModel
             $review['relationships']['items'][$i]['to'] = $label($relationship['to']);
         }
         return $review;
+    }
+
+    /**
+     * What may go along with the collection shared as $to: the graphs its
+     * organisation keeps on it and the relationships it drew between its
+     * members, those the user may change that reach fewer than $to. One that
+     * already reached fewer than the collection is not ticked.
+     *
+     * @param array $user
+     * @param array $collection Unwrapped, as stored before the change
+     * @param array $to [distribution, sharing_group_id]
+     * @return array {graphs, relationships}, each {count, items}
+     */
+    public function shareAlong(array $user, array $collection, array $to)
+    {
+        $rows = $this->shareAlongRows($user, $collection, $to);
+        $from = [$collection['distribution'], $collection['sharing_group_id']];
+        $groups = ClassRegistry::init('SharingGroup')->fetchAllAuthorised($user, 'name', 1);
+        $item = function (array $row) use ($from, $groups) {
+            $group = (int)$row['distribution'] === 4 ? (int)$row['sharing_group_id'] : null;
+            return [
+                'uuid' => $row['uuid'],
+                'distribution' => (int)$row['distribution'],
+                'sharing_group' => $group === null ? null : ['id' => $group, 'name' => $groups[$group] ?? null],
+                'ticked' => !DistributionLevel::reachesFewer([$row['distribution'], $row['sharing_group_id']], $from),
+            ];
+        };
+        $graphs = array_map(function ($row) use ($item) {
+            return $item($row) + ['name' => $row['name'], 'node_count' => (int)$row['node_count']];
+        }, $rows['graphs']);
+        $relationships = array_map(function ($row) use ($item) {
+            return $item($row) + [
+                'relationship_type' => $row['relationship_type'],
+                'from' => self::reviewEnd($row, 'object'),
+                'to' => self::reviewEnd($row, 'related_object'),
+            ];
+        }, $rows['relationships']);
+        $labelled = $this->labelReview($user, $collection, [
+            'added' => ['items' => []],
+            'removed' => ['items' => []],
+            'relationships' => ['items' => $relationships],
+        ]);
+        return [
+            'graphs' => ['count' => count($graphs), 'items' => $graphs],
+            'relationships' => ['count' => count($relationships), 'items' => $labelled['relationships']['items']],
+        ];
+    }
+
+    /**
+     * Shares as $to what shareAlong() lists and $picked names.
+     *
+     * @param array $user
+     * @param array $collection Unwrapped, as stored before the change
+     * @param array $to [distribution, sharing_group_id]
+     * @param array $picked {graphs: [uuid], relationships: [uuid]}
+     * @return array {graphs: int, relationships: int, failed: [{type, uuid, errors}]}
+     */
+    public function applyShareAlong(array $user, array $collection, array $to, array $picked)
+    {
+        $done = ['graphs' => 0, 'relationships' => 0, 'failed' => []];
+        $rows = $this->shareAlongRows($user, $collection, $to);
+        $sharing = [
+            'distribution' => (string)(int)$to[0],
+            'sharing_group_id' => (int)$to[0] === 4 ? (int)$to[1] : null,
+        ];
+        foreach (['graphs' => 'Graph', 'relationships' => 'Relationship'] as $kind => $modelName) {
+            $wanted = [];
+            foreach ((array)($picked[$kind] ?? []) as $uuid) {
+                if (is_string($uuid)) {
+                    $wanted[strtolower($uuid)] = true;
+                }
+            }
+            if (empty($wanted)) {
+                continue;
+            }
+            $Model = ClassRegistry::init($modelName);
+            $Model->current_user = $user;
+            foreach ($rows[$kind] as $row) {
+                if (!isset($wanted[strtolower($row['uuid'])])) {
+                    continue;
+                }
+                $Model->create(false);
+                $saved = $Model->save(
+                    [$modelName => ['id' => (int)$row['id'], 'modified' => date('Y-m-d H:i:s')] + $sharing],
+                    ['fieldList' => ['distribution', 'sharing_group_id', 'modified']]
+                );
+                if ($saved) {
+                    $done[$kind]++;
+                } else {
+                    $done['failed'][] = ['type' => $modelName, 'uuid' => $row['uuid'], 'errors' => $Model->validationErrors];
+                }
+            }
+        }
+        return $done;
+    }
+
+    /**
+     * @param array $user
+     * @param array $collection Unwrapped
+     * @param array $to [distribution, sharing_group_id]
+     * @return array {graphs: [row], relationships: [row]}, unwrapped
+     */
+    private function shareAlongRows(array $user, array $collection, array $to)
+    {
+        $rows = ['graphs' => [], 'relationships' => []];
+        $orgcUuid = $collection['Orgc']['uuid'] ?? $this->Orgc->field('uuid', ['Orgc.id' => $collection['orgc_id']]);
+        $mayChange = !empty($user['Role']['perm_site_admin'])
+            || (!empty($user['Role']['perm_add']) && !empty($user['Role']['perm_analyst_data']));
+        if (empty($orgcUuid) || !$mayChange) {
+            return $rows;
+        }
+        $fewer = function (array $row) use ($to) {
+            return DistributionLevel::reachesFewer([$row['distribution'], $row['sharing_group_id']], $to);
+        };
+        $Graph = ClassRegistry::init('Graph');
+        $graphs = $Graph->find('all', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['id', 'uuid', 'name', 'node_count', 'distribution', 'sharing_group_id', 'orgc_uuid'],
+            'conditions' => [
+                'Graph.object_type' => 'Collection',
+                'Graph.object_uuid' => self::spellings($collection['uuid']),
+                'Graph.orgc_uuid' => $orgcUuid,
+                'Graph.locked' => false,
+            ],
+            'order' => ['Graph.modified' => 'DESC'],
+        ]);
+        foreach ($graphs as $graph) {
+            if ($fewer($graph['Graph']) && $Graph->canEditAnalystData($user, $graph, 'Graph')) {
+                $rows['graphs'][] = $graph['Graph'];
+            }
+        }
+        $Relationship = ClassRegistry::init('Relationship');
+        $members = $this->memberAddresses([(int)$collection['id']])[(int)$collection['id']] ?? [];
+        $members[strtolower($collection['uuid'])] = true;
+        foreach ($this->relationshipsBetween($orgcUuid, $members) as $relationship) {
+            if ($fewer($relationship) && $Relationship->canEditAnalystData($user, ['Relationship' => $relationship], 'Relationship')) {
+                $rows['relationships'][] = $relationship;
+            }
+        }
+        return $rows;
     }
 
     /**

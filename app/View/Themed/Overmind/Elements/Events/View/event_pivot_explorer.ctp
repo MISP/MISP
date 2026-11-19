@@ -45,8 +45,17 @@
         }
         if ($canGraph) {
             App::uses('AnalystGraphDocumentTool', 'Tools');
+            // A saved graph starts shared as the event it hangs on
+            $eventSharingGroup = (int)($data['Event']['distribution'] ?? 0) === 4
+                ? (int)$data['Event']['sharing_group_id'] : null;
             $graphSharing = $sharing + [
-                'default' => (int)(Configure::read('MISP.default_analyst_data_distribution') ?? 1),
+                'default' => (int)($data['Event']['distribution'] ?? 0),
+                'sharingGroup' => $eventSharingGroup,
+                'target' => [
+                    'type' => 'Event',
+                    'distribution' => (int)($data['Event']['distribution'] ?? 0),
+                    'sharing_group_id' => $eventSharingGroup,
+                ],
                 'limits' => AnalystGraphDocumentTool::limits(),
             ];
         }

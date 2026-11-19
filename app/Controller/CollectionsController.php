@@ -145,6 +145,79 @@ class CollectionsController extends AppController
      * @return array The collection, unwrapped, with its Orgc
      * @throws NotFoundException
      */
+    /**
+     * What would go along with the collection shared as ?distribution= and
+     * ?sharing_group_id=: its organisation's graphs on it and relationships
+     * between its members that reach fewer. Takes the edit right.
+     */
+    public function shareAlong($id)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $collection = $this->__visibleCollection($user, $id);
+        if (!$this->Collection->mayModify($user['id'], $collection['id'])) {
+            throw new ForbiddenException(__('Invalid Collection or insufficient privileges'));
+        }
+        $distribution = (string)$this->request->query('distribution');
+        if (!in_array($distribution, ['0', '1', '2', '3', '4'], true)) {
+            throw new BadRequestException(__('Distribution is one of 0, 1, 2, 3 or 4.'));
+        }
+        $to = [(int)$distribution, $distribution === '4' ? (int)$this->request->query('sharing_group_id') : null];
+        return $this->RestResponse->viewData($this->Collection->shareAlong($user, $collection, $to), 'json');
+    }
+
+    /**
+     * @param mixed $input share_along as posted: {graphs, relationships}, or
+     *   that as a JSON string
+     * @return array|null {graphs: [uuid], relationships: [uuid]}
+     */
+    private function __shareAlongInput($input)
+    {
+        if (is_string($input) && $input !== '') {
+            $input = json_decode($input, true);
+        }
+        if (!is_array($input)) {
+            return null;
+        }
+        $picked = [];
+        foreach (['graphs', 'relationships'] as $kind) {
+            $picked[$kind] = array_values(array_filter((array)($input[$kind] ?? []), function ($uuid) {
+                return is_string($uuid) && Validation::uuid($uuid);
+            }));
+        }
+        return $picked;
+    }
+
+    /**
+     * @param array $before The collection as stored before the edit
+     * @param array $saved The collection as saved
+     * @param array $picked __shareAlongInput()'s
+     * @return array Collection::applyShareAlong()'s
+     */
+    private function __applyShareAlong(array $before, array $saved, array $picked)
+    {
+        $stored = $this->Collection->find('first', [
+            'recursive' => -1,
+            'fields' => ['Collection.distribution', 'Collection.sharing_group_id'],
+            'conditions' => ['Collection.id' => (int)$saved['id']],
+        ]);
+        $to = [(int)$stored['Collection']['distribution'], $stored['Collection']['sharing_group_id']];
+        $done = $this->Collection->applyShareAlong($this->Auth->user(), $before, $to, $picked);
+        if (!$this->IndexFilter->isRest() && ($done['graphs'] || $done['relationships'])) {
+            $this->Flash->info(__(
+                'Shared along with the collection: %s.',
+                implode(__(' and '), array_filter([
+                    $done['graphs'] ? __n('%s saved graph', '%s saved graphs', $done['graphs'], $done['graphs']) : null,
+                    $done['relationships'] ? __n('%s relationship', '%s relationships', $done['relationships'], $done['relationships']) : null,
+                ]))
+            ));
+        }
+        if (!$this->IndexFilter->isRest() && !empty($done['failed'])) {
+            $this->Flash->error(__n('One graph or relationship could not be shared along.', '%s graphs or relationships could not be shared along.', count($done['failed']), count($done['failed'])));
+        }
+        return $done;
+    }
+
     private function __visibleCollection(array $user, $id)
     {
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
@@ -602,6 +675,8 @@ class CollectionsController extends AppController
             if (empty($this->request->data['Collection'])) {
                 $this->request->data = ['Collection' => $this->request->data];
             }
+            $shareAlong = $this->__shareAlongInput($this->request->data['Collection']['share_along'] ?? null);
+            unset($this->request->data['Collection']['share_along']);
             $data = $this->request->data;
             // The sharing-group authorisation check must run against the EFFECTIVE distribution
             // and sharing group after the edit, not only when 'distribution' is present in the
@@ -653,8 +728,11 @@ class CollectionsController extends AppController
                     $this->__assertCanUseNestedElements($collection, (int)$id);
                     return $collection;
                 },
-                'afterSave' => function (array &$collection) use ($data) {
+                'afterSave' => function (array &$collection) use ($data, $oldCollection, $shareAlong) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
+                    if ($shareAlong !== null) {
+                        $collection['share_along'] = $this->__applyShareAlong($oldCollection['Collection'], $collection['Collection'], $shareAlong);
+                    }
                     return $collection;
                 }
             ];

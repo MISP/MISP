@@ -233,7 +233,7 @@ class GraphTestWritableGraph extends GraphTestGraph
         return $this->db;
     }
 
-    public function create($data = array())
+    public function create($data = array(), $filterKey = false)
     {
         $this->id = false;
         $this->data = array();
