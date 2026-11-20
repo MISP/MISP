@@ -2,6 +2,14 @@
 // You can count on me. Raiders roll.
 class CountExport
 {
+    // Internal attribute-fetch contract; undeclared exporters keep full rows.
+    public $fetch_requirements = [
+        'fields' => [],
+        'attributeTags' => false,
+        'organisations' => false,
+        'threatLevels' => false,
+    ];
+
     public $additional_params = array(
         'flatten' => 1
     );

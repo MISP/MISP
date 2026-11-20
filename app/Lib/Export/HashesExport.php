@@ -2,6 +2,14 @@
 
 class HashesExport
 {
+    // Internal attribute-fetch contract; undeclared exporters keep full rows.
+    public $fetch_requirements = [
+        'fields' => ['Attribute.type', 'Attribute.value'],
+        'attributeTags' => false,
+        'organisations' => false,
+        'threatLevels' => false,
+    ];
+
     public $additional_params = array(
         'flatten' => 1
     );
