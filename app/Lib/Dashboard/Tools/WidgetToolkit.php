@@ -3,6 +3,16 @@
 class WidgetToolkit
 {
 
+    public static function daysAgo($days)
+    {
+        if ((!is_int($days) && !is_string($days))
+            || !preg_match('/\A([0-9]+)d?\z/i', (string)$days, $matches)
+        ) {
+            return false;
+        }
+        return strtotime('-' . $matches[1] . ' days');
+    }
+
     public function getCountryCodeMapping(): array
     {
         return [
