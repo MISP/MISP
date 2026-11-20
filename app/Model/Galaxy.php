@@ -1202,25 +1202,22 @@ class Galaxy extends AppModel
         $namespace = null
     )
     {
-        // Older installations may still have the legacy namespace.
-        $namespaces = $namespace === null
-            ? ['mitre', 'mitre-attack']
-            : [$namespace];
-        foreach ($namespaces as $galaxyNamespace) {
-            $galaxy = $this->find('first', [
-                'recursive' => -1,
-                'fields' => ['Galaxy.id'],
-                'conditions' => [
-                    'Galaxy.type' => $type,
-                    'Galaxy.namespace' => $galaxyNamespace,
-                ],
-                'order' => ['Galaxy.version DESC', 'Galaxy.id ASC'],
-            ]);
-            if (!empty($galaxy)) {
-                return $galaxy['Galaxy']['id'];
-            }
+        // Bundled galaxies only: misp-galaxy renames namespaces, and a custom
+        // galaxy can reuse the type with a far higher (timestamp) version.
+        $conditions = [
+            'Galaxy.type' => $type,
+            'Galaxy.default' => true,
+        ];
+        if ($namespace !== null) {
+            $conditions['Galaxy.namespace'] = $namespace;
         }
-        return 0;
+        $galaxy = $this->find('first', [
+            'recursive' => -1,
+            'fields' => ['Galaxy.id'],
+            'conditions' => $conditions,
+            'order' => ['Galaxy.version DESC', 'Galaxy.id ASC'],
+        ]);
+        return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
 
     /**

@@ -21,50 +21,99 @@ require_once __DIR__ . '/../Model/Galaxy.php';
 
 class GalaxyMitreAttackLookupTest extends \PHPUnit\Framework\TestCase
 {
-    public function testDefaultLookupPrefersTheBundledNamespace()
+    public function testFindsTheBundledGalaxyUnderTheCurrentNamespace()
     {
-        $galaxy = $this->galaxyWithNamespaces([
-            'mitre-attack' => 17,
-            'mitre' => 42,
+        $galaxy = $this->galaxyWithRows([
+            $this->row(42, 'mitre', true, 20),
         ]);
 
         $this->assertSame(42, $galaxy->getMitreAttackGalaxyId());
     }
 
-    public function testDefaultLookupFallsBackToTheLegacyNamespace()
+    public function testFindsTheBundledGalaxyUnderTheLegacyNamespace()
     {
-        $galaxy = $this->galaxyWithNamespaces(['mitre-attack' => 17]);
+        $galaxy = $this->galaxyWithRows([
+            $this->row(17, 'mitre-attack', true, 19),
+        ]);
 
         $this->assertSame(17, $galaxy->getMitreAttackGalaxyId());
     }
 
-    public function testExplicitNamespaceRestrictsLookup()
+    public function testIgnoresACustomGalaxyOfTheSameType()
     {
-        $galaxy = $this->galaxyWithNamespaces(['mitre' => 42]);
+        $galaxy = $this->galaxyWithRows([
+            $this->row(42, 'mitre', true, 20),
+            $this->row(99, 'mitre', false, 1790000000),
+        ]);
 
         $this->assertSame(42, $galaxy->getMitreAttackGalaxyId());
+    }
+
+    public function testReturnsZeroWithoutABundledGalaxy()
+    {
+        $galaxy = $this->galaxyWithRows([
+            $this->row(99, 'mitre', false, 1790000000),
+        ]);
+
+        $this->assertSame(0, $galaxy->getMitreAttackGalaxyId());
+    }
+
+    public function testExplicitNamespaceRestrictsLookup()
+    {
+        $galaxy = $this->galaxyWithRows([
+            $this->row(42, 'mitre', true, 20),
+        ]);
+
+        $this->assertSame(42, $galaxy->getMitreAttackGalaxyId(
+            'mitre-attack-pattern',
+            'mitre'
+        ));
         $this->assertSame(0, $galaxy->getMitreAttackGalaxyId(
             'mitre-attack-pattern',
             'mitre-attack'
         ));
     }
 
-    private function galaxyWithNamespaces(array $ids)
+    private function row($id, $namespace, $default, $version)
     {
-        return new class ($ids) extends Galaxy {
-            private $ids;
+        return [
+            'id' => $id,
+            'type' => 'mitre-attack-pattern',
+            'namespace' => $namespace,
+            'default' => $default,
+            'version' => $version,
+        ];
+    }
 
-            public function __construct(array $ids)
+    private function galaxyWithRows(array $rows)
+    {
+        return new class ($rows) extends Galaxy {
+            private $rows;
+
+            public function __construct(array $rows)
             {
-                $this->ids = $ids;
+                $this->rows = $rows;
             }
 
             public function find($type = 'first', $query = array())
             {
-                $namespace = $query['conditions']['Galaxy.namespace'];
-                return isset($this->ids[$namespace])
-                    ? ['Galaxy' => ['id' => $this->ids[$namespace]]]
-                    : [];
+                $rows = array_filter(
+                    $this->rows,
+                    function ($row) use ($query) {
+                        foreach ($query['conditions'] as $field => $value) {
+                            $column = substr($field, strlen('Galaxy.'));
+                            if ($row[$column] != $value) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                );
+                usort($rows, function ($a, $b) {
+                    return [$b['version'], $a['id']]
+                        <=> [$a['version'], $b['id']];
+                });
+                return empty($rows) ? [] : ['Galaxy' => reset($rows)];
             }
         };
     }
