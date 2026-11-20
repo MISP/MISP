@@ -5573,7 +5573,7 @@ class EventsController extends AppController
                 $this->redirect(array('action' => 'index'));
             }
         } else {
-            $eventList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
+            $eventList = (is_numeric($id) || Validation::uuid($id)) ? [$id] : $this->_jsonDecode($id);
             $this->request->data['Event']['id'] = json_encode($eventList);
             $this->set('idArray', $eventList);
             $this->layout = false;
@@ -6122,7 +6122,7 @@ class EventsController extends AppController
                 'yara-json' => __('YARA rules (JSON)'),
             ];
 
-            $idList = is_numeric($id) ? [$id] : $this->_jsonDecode($id);
+            $idList = (is_numeric($id) || Validation::uuid($id)) ? [$id] : $this->_jsonDecode($id);
             if (empty($idList)) {
                 throw new NotFoundException(__('Invalid input.'));
             }
