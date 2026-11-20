@@ -905,14 +905,7 @@ class CollectionsController extends AppController
             // authoritative replace (D5), so include CollectionElement for REST callers
             // only. The HTML index shows just element_count and must not eager-load every
             // element across the paginated list.
-            if (SyncTool::valueTargetsWithheld()) {
-                $params['contain']['CollectionElement'] = ['conditions' => [
-                    'CollectionElement.element_sha256' => null,
-                    'CollectionElement.element_type !=' => 'StandaloneObject',
-                ]];
-            } else {
-                $params['contain'][] = 'CollectionElement';
-            }
+            $params['contain']['CollectionElement'] = Collection::servedElementOptions();
             // The generic index filter list registers the fully-qualified 'Collection.uuid'
             // key, but harvestParameters only matches a named param whose key is literally
             // 'Collection.uuid'. The sync client sends bare uuid[] named params, so harvest

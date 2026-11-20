@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('CollectionElement', 'Model');
 App::uses('DistributionLevel', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SyncTool', 'Tools');
@@ -1595,7 +1596,7 @@ class Collection extends AppModel
 
         $collections = $this->collectDataForPush($server);
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
-            $collections = self::withoutValueElements($collections);
+            $collections = self::withoutElementsNewIn30($collections);
         }
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_STANDALONE_OBJECTS)) {
             $collections = self::withoutStandaloneObjects($collections);
@@ -1710,13 +1711,13 @@ class Collection extends AppModel
     }
 
     /**
-     * A MISP older than 3.0 cannot hold elements addressed by a value's SHA-256;
+     * A MISP older than 3.0 holds only event and galaxy cluster elements;
      * the collections themselves still go.
      *
      * @param array $collections As collectDataForPush returns them
      * @return array
      */
-    public static function withoutValueElements(array $collections): array
+    public static function withoutElementsNewIn30(array $collections): array
     {
         foreach ($collections as $i => $collection) {
             if (empty($collection['Collection']['CollectionElement'])) {
@@ -1724,12 +1725,22 @@ class Collection extends AppModel
             }
             $collections[$i]['Collection']['CollectionElement'] = array_values(array_filter(
                 $collection['Collection']['CollectionElement'],
-                function ($element) {
-                    return empty($element['element_sha256']);
-                }
+                ['CollectionElement', 'heldBefore30']
             ));
         }
         return $collections;
+    }
+
+    /**
+     * @return array Containable options for a collection's elements: a MISP
+     *      older than 3.0 is served only those it can hold
+     */
+    public static function servedElementOptions(): array
+    {
+        if (!SyncTool::valueTargetsWithheld()) {
+            return [];
+        }
+        return ['conditions' => ['CollectionElement.element_type' => CollectionElement::PRE30_TYPES]];
     }
 
     /**

@@ -30,6 +30,14 @@ class CollectionElement extends AppModel
     ];
 
     /**
+     * The element types a MISP older than 3.0 can hold.
+     */
+    const PRE30_TYPES = [
+        'Event',
+        'GalaxyCluster',
+    ];
+
+    /**
      * Model behind each pointer type, for those whose class name differs.
      */
     private $typeModels = [
@@ -560,7 +568,7 @@ class CollectionElement extends AppModel
     /*
      *  Pass a Collection as received from another instance to this function to capture the elements
      *  The received object is authoritative, so all elements that no longer exist in the upstream will be culled.
-     *  A MISP older than 3.0 cannot hold value or standalone-object elements: from one ($fromPre30), they are neither taken nor culled.
+     *  A MISP older than 3.0 holds only event and galaxy cluster elements: from one ($fromPre30), the others are neither taken nor culled.
      *  From another instance ($remote), a new element keeps the time it was added there and names nobody.
      *  A value's text is kept only when it is the text its SHA-256 names; a standalone object comes with its record.
      */
@@ -591,7 +599,7 @@ class CollectionElement extends AppModel
                 if (!is_array($element)) {
                     continue;
                 }
-                if ($fromPre30 && self::isV3Element($element)) {
+                if ($fromPre30 && !self::heldBefore30($element)) {
                     continue;
                 }
                 if (empty($element['uuid'])) {
@@ -672,7 +680,7 @@ class CollectionElement extends AppModel
                 }
             }
             foreach ($oldElements as $toDelete) {
-                if ($fromPre30 && self::isV3Element($toDelete)) {
+                if ($fromPre30 && !self::heldBefore30($toDelete)) {
                     continue;
                 }
                 $this->delete($toDelete['id']);
@@ -1240,12 +1248,11 @@ class CollectionElement extends AppModel
 
     /**
      * @param array $element
-     * @return bool Whether the element is one a MISP older than 3.0 cannot
-     *      hold: a value, addressed by its SHA-256, or a standalone object
+     * @return bool Whether a MISP older than 3.0 can hold the element
      */
-    private static function isV3Element(array $element)
+    public static function heldBefore30(array $element)
     {
-        return !empty($element['element_sha256']) || ($element['element_type'] ?? null) === 'StandaloneObject';
+        return in_array($element['element_type'] ?? null, self::PRE30_TYPES, true);
     }
 
     /**
