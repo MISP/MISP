@@ -104,6 +104,8 @@ class Feed extends AppModel
         'url_params' => ''
     ];
 
+    public $jobId = 0;
+
     const SUPPORTED_URL_PARAM_FILTERS = [
         'timestamp',
         'publish_timestamp',
@@ -111,6 +113,11 @@ class Feed extends AppModel
 
     const CACHE_DIR = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS;
 
+    public function setJobId($job)
+    {
+       $this->jobId = $job;
+    }
+    
     /*
      *  Cleanup of empty belongsTo relationships
      */
