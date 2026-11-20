@@ -295,6 +295,53 @@ class Sighting extends AppModel
     }
 
     /**
+     * Yield visible sightings newest first without loading the full window.
+     */
+    public function getRecentSightings(array $user, $last): Generator
+    {
+        if (Configure::read('MISP.disable_sighting_loading')) {
+            return;
+        }
+
+        $conditions = $this->Attribute->setTimestampConditions(
+            $last,
+            [],
+            'Sighting.date_sighting'
+        );
+        $batchSize = 100;
+        do {
+            $batch = $this->find('all', [
+                'recursive' => -1,
+                'fields' => ['Sighting.id', 'Sighting.date_sighting'],
+                'conditions' => $conditions,
+                'order' => ['Sighting.date_sighting DESC', 'Sighting.id DESC'],
+                'limit' => $batchSize,
+            ]);
+            if (!$batch) {
+                return;
+            }
+            $ids = Hash::extract($batch, '{n}.Sighting.id');
+            $visible = $this->getSightings($user, $ids, true, true);
+            $visibleById = array_column(array_column($visible, 'Sighting'), null, 'id');
+            foreach ($ids as $id) {
+                if (isset($visibleById[$id])) {
+                    yield $visibleById[$id];
+                }
+            }
+
+            // Sightings can share a timestamp, so use the ID as a tie-breaker.
+            $cursor = end($batch)['Sighting'];
+            $conditions['OR'] = [
+                ['Sighting.date_sighting <' => $cursor['date_sighting']],
+                [
+                    'Sighting.date_sighting' => $cursor['date_sighting'],
+                    'Sighting.id <' => $cursor['id'],
+                ],
+            ];
+        } while (count($batch) === $batchSize);
+    }
+
+    /**
      * Return sighting without ACL checks
      *
      * @param int $id
