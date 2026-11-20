@@ -44,12 +44,9 @@ class RecentSightingsWidget
         /** @var Sighting $Sighting */
         $Sighting = ClassRegistry::init('Sighting');
 
-        $filters = array('last' => $last, 'includeAttribute' => 'true', 'includeEvent' => 'true');
         $data = array();
-        $count = 0;
 
-        foreach (JsonTool::decode($Sighting->restSearch($user, 'json', $filters)->intoString())['response'] as $el) {
-            $sighting = $el['Sighting'];
+        foreach ($Sighting->getRecentSightings($user, $last) as $sighting) {
             $event = $sighting['Event'];
             $attribute = $sighting['Attribute'];
 
@@ -65,8 +62,9 @@ class RecentSightingsWidget
                                     $event['id']
                                 )
                         );
-            ++$count;
-            if ($count >= $limit ) break;
+            if (count($data) >= $limit) {
+                break;
+            }
         }
         return $data;
 	}
