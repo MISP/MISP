@@ -469,13 +469,18 @@ class EventsController extends AppController
                     $pieces = explode('|', $v);
                     $test = array();
                     foreach ($pieces as $piece) {
+                        if ($piece === '') {
+                            continue; // an empty component, e.g. from "a||b", matches nothing and has no first character
+                        }
                         if ($piece[0] === '!') {
                             $this->paginate['conditions']['AND'][] = array('lower(Event.info) NOT LIKE' => '%' . mb_strtolower(substr($piece, 1)) . '%');
                         } else {
                             $test['OR'][] = array('lower(Event.info) LIKE' => '%' . mb_strtolower($piece) . '%');
                         }
                     }
-                    $this->paginate['conditions']['AND'][] = $test;
+                    if (!empty($test)) {
+                        $this->paginate['conditions']['AND'][] = $test;
+                    }
                     break;
                 case 'tag':
                 case 'tags':
