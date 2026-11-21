@@ -237,8 +237,8 @@
 </script>
 <?php
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['vis', 'distribution-graph'],
-    'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph'],
+    'css' => ['vis-network.min', 'distribution-graph'],
+    'js' => ['vis-network.min', 'jquery-ui.min', 'network-distribution-graph'],
 ]);
 // Event-template picker modal for "Add Event → From Template" (PRD §5.2
 // F2.1/F2.2). Self-contained — exposes window.openEventTemplatePicker

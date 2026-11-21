@@ -661,8 +661,8 @@
 </script>
 <?php
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['vis', 'distribution-graph'],
-    'js' => ['vis', 'jquery-ui.min', 'network-distribution-graph', 'event-timestamps'],
+    'css' => ['vis-network.min', 'distribution-graph'],
+    'js' => ['vis-network.min', 'jquery-ui.min', 'network-distribution-graph', 'event-timestamps'],
 ]);
 if (!$ajax
     && $this->Acl->canAccess('eventTemplates', 'index')
