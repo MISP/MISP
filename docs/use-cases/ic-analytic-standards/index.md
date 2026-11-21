@@ -10,7 +10,7 @@ This exercise follows the analyst who answers that question and the reviewer who
 
 1. Use a MISP `3.0_wip` instance with Event Reports and Analyst Data. For authoring, install the object definitions for `intelligence-report`, `intelligence-source-assessment` and `intelligence-judgment`. If the judgment template is missing, update the deployed object library to a revision containing the judgment template (`2156511` or a descendant). On the MISP object templates page, choose **Update Object** to load the definitions into the database. [Judgment template and revision](https://github.com/MISP/misp-objects/pull/599)
 2. Use a misp-modules service containing **Cited Intelligence Briefing Export**. In the server's plugin settings, enable `Plugin.Export_services_enable`, point the export URL and port at the service, and enable `Plugin.Export_intelligence_briefing_export_enabled`. The service advertises `intelligence_briefing_export` at `GET /modules`. [Module and version details](https://github.com/MISP/misp-modules/pull/1160)
-3. From the event list, choose **Import Event → MISP Export File**, select `greyhaven-event.json`, leave **Publish imported events** clear, and submit **Import MISP file**. Open **Exercise | Greyhaven archive receipt gap**. The event uses **Your organisation only**, carries `tlp:clear`, and contains contextual attributes with IDS disabled. Local numeric IDs will differ from the screenshots.
+3. To import the example tags with a tagger account, first have an administrator enable the three [taxonomies and entries used in the event](#find-judgments-and-evidence-with-taxonomy-tags). From the event list, choose **Import Event → MISP Export File**, select `greyhaven-event.json`, leave **Publish imported events** clear, and submit **Import MISP file**. Open **Exercise | Greyhaven archive receipt gap**. The event uses **Your organisation only**, carries `tlp:clear`, and contains contextual attributes with IDS disabled. Local numeric IDs will differ from the screenshots.
 4. Open the **Reports** tab. Read **09:25 watch assessment | Initial coverage** first, **Receipt reconciliation | 09:50 UTC** second, and **Greyhaven archive | 10:00 duty briefing** last. The briefing is the only report that cites judgment objects, so the exporter can select it automatically.
 
 The event contains four source reports, four source assessments, two judgment objects, six standalone attributes and three Event Reports. On **General**, the graph connects the judgments to the underlying records. Open **Objects** to read a relationship in its original direction.
@@ -51,6 +51,45 @@ In this exercise *likely* uses the ICD 203 likelihood band of 55–80%, and *rou
 5. Write the customer-facing narrative in an **Event Report**. Insert each judgment using a native object reference, for example `@[object](78525216-886e-5324-8a4a-db45516a56fc)` for J1. Use native attribute references for individual observations. State the information cutoff, decision deadline, implications and next check in the narrative. Attach a Note for the editor's cutoff and an Opinion to the disputed judgment so dissent travels with the claim.
 
 ![The 10:00 MISP Event Report with clickable judgment, source and clock-warning references and Analyst Data in the side panel.](images/cited-event-report.png)
+
+## Find judgments and evidence with taxonomy tags
+
+A reviewer at handover wants to find claims the watch calls *likely* despite weak evidence. J1 and J2 both use *likely*, but only J2 has **low** confidence. The example puts both machine tags on each object's `judgment` attribute. This lets a reviewer search for the combination and open the precise claim that needs attention.
+
+**Source reliability and information credibility (standard 1).** Each INTREP carries its Admiralty grades on its `narrative` attribute. GH-01 through GH-03 have `admiralty-scale:source-reliability="b"` and `admiralty-scale:information-credibility="2"`. On GH-04, `admiralty-scale:source-reliability="c"` rates the operator as fairly reliable. `admiralty-scale:information-credibility="3"` rates this particular account as possibly true. Open the source assessment for the collection method and the missing sequence number. [Admiralty Scale](https://github.com/MISP/misp-taxonomies/blob/27a72012c540af6db256462ba5f95767d5ed4c39/admiralty-scale/machinetag.json)
+
+**Likelihood and judgment confidence (standard 2).** Both claims carry `estimative-language:likelihood-probability="likely"`. J1 also carries `estimative-language:confidence-in-analytic-judgment="moderate"` and J2 carries `estimative-language:confidence-in-analytic-judgment="low"`. The reviewer's *roughly even chance* estimate stays in the dissenting Opinion so readers can tell whose estimate it is. In the screenshot, the small 0 beside *low* is the taxonomy's numeric value for that confidence category. Fen's assessed likelihood is still 55–80%. [Estimative language and its ICD 203 bands](https://github.com/MISP/misp-taxonomies/blob/27a72012c540af6db256462ba5f95767d5ed4c39/estimative-language/machinetag.json)
+
+![MISP Attributes view filtered to likely judgments. The indexing-delay claim has moderate confidence and the Fen forecast has low confidence.](images/judgment-tags.png)
+
+**How the watch challenged its assumptions (objectivity and standard 4).** The 10:00 Event Report carries `event-assessment:alternative-points-of-view-process="intra-office-peer-review"`. Follow J2 to the archive reviewer's Opinion for the competing interpretation of the marker and the evidence that would change the reviewer's mind. [Event assessment](https://github.com/MISP/misp-taxonomies/blob/27a72012c540af6db256462ba5f95767d5ed4c39/event-assessment/machinetag.json)
+
+To apply the tags to an existing copy, enable the namespaces and their entries on MISP's **Taxonomies** page. In the event's **Objects** tab, expand the INTREP or judgment and use the **+** in the **Tags** column on the named attribute. To attach the method to the briefing through the API, use `POST /eventReports/addTag/<report-id>/<tag-id>` with the IDs from your instance.
+
+When a rating changes, update its tag, structured value and rationale together. The analytic tags make the records searchable in MISP. The briefing exporter reads the judgment and source-assessment fields for its Markdown and carries handling markings such as `tlp:clear` into the file.
+
+To reproduce the handover search, send this JSON body to MISP's `POST /attributes/restSearch`. The supplied event returns one attribute, **The Fen batch is likely to reach the archive by 12:00 UTC.** Following its parent judgment reveals the retry assumption and the contrary clock warning.
+
+```json
+{
+  "returnFormat": "json",
+  "eventid": "863d82bf-2d62-5113-be27-791ac723494b",
+  "tags": {
+    "AND": [
+      "estimative-language:likelihood-probability=\"likely\"",
+      "estimative-language:confidence-in-analytic-judgment=\"low\""
+    ]
+  }
+}
+```
+
+### Tags for follow-up work
+
+- **Request independent corroboration (standards 1 and 4).** While Fen's sequence is unknown, the watch can tag the clock-warning attribute `collaborative-intelligence:request="complementary-validation"` and specify the dated local manifest it needs in a Note. [Collaborative intelligence](https://github.com/MISP/misp-taxonomies/blob/27a72012c540af6db256462ba5f95767d5ed4c39/collaborative-intelligence/machinetag.json)
+- **Queue the handover review.** A watch desk can place `workflow:todo="review-before-publication"` on the draft Event Report and remove it when the review is complete. The fingerprint-matched Opinion records approval of the particular export. [Workflow](https://github.com/MISP/misp-taxonomies/blob/27a72012c540af6db256462ba5f95767d5ed4c39/workflow/machinetag.json)
+- **Evaluate the delivered product (timeliness and standards 5–6).** If the continuity lead confirms that the five-site count answered the decision question, a reviewer could tag the 10:00 report `cti-evaluation:relevance="high"` and record the feedback in a Note. If the lead could restate both the five-site finding and the uncertainty about Fen, record that observation when assigning a clarity rating such as `cti-evaluation:clarity="high"`. Rate timeliness against when the lead actually received the briefing. [CTI evaluation](https://github.com/MISP/misp-taxonomies/blob/27a72012c540af6db256462ba5f95767d5ed4c39/cti-evaluation/machinetag.json)
+
+A reviewer can test the remaining questions directly in the event. J2 names the assumption about the completion marker (standard 3). The 09:25 report preserves the earlier judgment (7). The noon follow-up scores the forecast against its deadline (8). The reconciliation table shows the missing site alongside the five confirmed arrivals (9).
 
 ## Export and review the briefing
 

@@ -166,7 +166,15 @@
             "value": "The receipt dashboard showed 0 of 6 expected batches at 09:24. A service-desk ticket repeated the same dashboard count. The dashboard reads the central index.",
             "to_ids": false,
             "disable_correlation": true,
-            "distribution": "5"
+            "distribution": "5",
+            "Tag": [
+              {
+                "name": "admiralty-scale:source-reliability=\"b\""
+              },
+              {
+                "name": "admiralty-scale:information-credibility=\"2\""
+              }
+            ]
           }
         ]
       },
@@ -356,7 +364,15 @@
             "value": "The approved shift ledger called for holding the central indexing queue from 09:05 until 09:35. The ledger lists an 11:30 retry for unacknowledged batches. It records a plan, without execution telemetry.",
             "to_ids": false,
             "disable_correlation": true,
-            "distribution": "5"
+            "distribution": "5",
+            "Tag": [
+              {
+                "name": "admiralty-scale:source-reliability=\"b\""
+              },
+              {
+                "name": "admiralty-scale:information-credibility=\"2\""
+              }
+            ]
           }
         ]
       },
@@ -546,7 +562,15 @@
             "value": "An independent destination journal recorded five matching batch IDs from Alder, Birch, Cedar, Elm and Pine. Creation times were 09:07–09:09, before the deadline. Central receipt times were 09:36–09:41. No Fen entry appeared by 09:42.",
             "to_ids": false,
             "disable_correlation": true,
-            "distribution": "5"
+            "distribution": "5",
+            "Tag": [
+              {
+                "name": "admiralty-scale:source-reliability=\"b\""
+              },
+              {
+                "name": "admiralty-scale:information-credibility=\"2\""
+              }
+            ]
           }
         ],
         "ObjectReference": [
@@ -768,7 +792,15 @@
             "value": "The operator recalled a completion marker for the morning job but did not have its sequence number. A clock warning was transcribed from the console. Neither a local manifest nor a journal entry for the Fen batch was available at cutoff.",
             "to_ids": false,
             "disable_correlation": true,
-            "distribution": "5"
+            "distribution": "5",
+            "Tag": [
+              {
+                "name": "admiralty-scale:source-reliability=\"c\""
+              },
+              {
+                "name": "admiralty-scale:information-credibility=\"3\""
+              }
+            ]
           }
         ],
         "ObjectReference": [
@@ -916,7 +948,15 @@
             "value": "A central indexing delay likely explains the missing receipts for five of the six sites.",
             "to_ids": false,
             "disable_correlation": true,
-            "distribution": "5"
+            "distribution": "5",
+            "Tag": [
+              {
+                "name": "estimative-language:likelihood-probability=\"likely\""
+              },
+              {
+                "name": "estimative-language:confidence-in-analytic-judgment=\"moderate\""
+              }
+            ]
           },
           {
             "uuid": "c42f4b95-5174-5177-8459-e711dee90ba8",
@@ -1011,7 +1051,15 @@
             "value": "The Fen batch is likely to reach the archive by 12:00 UTC.",
             "to_ids": false,
             "disable_correlation": true,
-            "distribution": "5"
+            "distribution": "5",
+            "Tag": [
+              {
+                "name": "estimative-language:likelihood-probability=\"likely\""
+              },
+              {
+                "name": "estimative-language:confidence-in-analytic-judgment=\"low\""
+              }
+            ]
           },
           {
             "uuid": "fadae8c2-c09f-571e-8478-1e6f6a3c2860",
@@ -1117,6 +1165,11 @@
             "authors": "Duty editor (exercise)",
             "language": "en",
             "note": "Cutoff is 09:50 UTC. The continuity lead asked whether the region lost data. The watch counted matched packets, kept Fen open and retained the reviewer's lower estimate."
+          }
+        ],
+        "Tag": [
+          {
+            "name": "event-assessment:alternative-points-of-view-process=\"intra-office-peer-review\""
           }
         ]
       }
