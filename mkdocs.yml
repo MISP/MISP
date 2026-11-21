@@ -78,6 +78,8 @@ nav:
       - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
       - 'OpenBSD 7.0': 'xINSTALL.OpenBSD.md'
       - 'Ubuntu 22.04': 'xINSTALL.ubuntu2204.md'
+    - Use cases:
+      - 'Applying IC Analytic Standards in MISP': 'use-cases/ic-analytic-standards/index.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'

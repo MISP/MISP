@@ -1,0 +1,1125 @@
+{
+  "Event": {
+    "uuid": "863d82bf-2d62-5113-be27-791ac723494b",
+    "info": "Exercise | Greyhaven archive receipt gap",
+    "date": "2026-10-14",
+    "threat_level_id": "4",
+    "analysis": "1",
+    "distribution": "0",
+    "published": false,
+    "Tag": [
+      {
+        "name": "tlp:clear",
+        "colour": "#ffffff",
+        "exportable": true
+      }
+    ],
+    "Attribute": [
+      {
+        "uuid": "1b9e7137-fa0a-51d8-8394-660746d18977",
+        "category": "Other",
+        "type": "text",
+        "value": "GH-01-1014",
+        "comment": "Alder destination receipt. Packet created at 09:07 UTC, indexed at 09:36 UTC. From GH-03.",
+        "first_seen": "2026-10-14T09:36:00Z",
+        "last_seen": "2026-10-14T09:36:00Z",
+        "to_ids": false,
+        "disable_correlation": true,
+        "distribution": "5"
+      },
+      {
+        "uuid": "686a1224-6d18-510c-a266-ed4ab92a650e",
+        "category": "Other",
+        "type": "text",
+        "value": "GH-02-1014",
+        "comment": "Birch destination receipt. Packet created at 09:07 UTC, indexed at 09:37 UTC. From GH-03.",
+        "first_seen": "2026-10-14T09:37:00Z",
+        "last_seen": "2026-10-14T09:37:00Z",
+        "to_ids": false,
+        "disable_correlation": true,
+        "distribution": "5"
+      },
+      {
+        "uuid": "af45a058-eddd-595c-802a-3fe6e57794cf",
+        "category": "Other",
+        "type": "text",
+        "value": "GH-03-1014",
+        "comment": "Cedar destination receipt. Packet created at 09:08 UTC, indexed at 09:38 UTC. From GH-03.",
+        "first_seen": "2026-10-14T09:38:00Z",
+        "last_seen": "2026-10-14T09:38:00Z",
+        "to_ids": false,
+        "disable_correlation": true,
+        "distribution": "5"
+      },
+      {
+        "uuid": "0e0cc153-6cd3-5315-918b-ee5f8a36f8b4",
+        "category": "Other",
+        "type": "text",
+        "value": "GH-04-1014",
+        "comment": "Elm destination receipt. Packet created at 09:08 UTC, indexed at 09:40 UTC. From GH-03.",
+        "first_seen": "2026-10-14T09:40:00Z",
+        "last_seen": "2026-10-14T09:40:00Z",
+        "to_ids": false,
+        "disable_correlation": true,
+        "distribution": "5"
+      },
+      {
+        "uuid": "099a38d2-bafe-581b-acf5-4401970314cb",
+        "category": "Other",
+        "type": "text",
+        "value": "GH-05-1014",
+        "comment": "Pine destination receipt. Packet created at 09:09 UTC, indexed at 09:41 UTC. From GH-03.",
+        "first_seen": "2026-10-14T09:41:00Z",
+        "last_seen": "2026-10-14T09:41:00Z",
+        "to_ids": false,
+        "disable_correlation": true,
+        "distribution": "5"
+      },
+      {
+        "uuid": "7f28b4a1-314f-552a-8dac-b3472861b539",
+        "category": "Other",
+        "type": "text",
+        "value": "Fen console clock warning",
+        "comment": "Operator transcription in GH-04. The warning has no verified duration or offset.",
+        "first_seen": "2026-10-14T09:45:00Z",
+        "last_seen": "2026-10-14T09:45:00Z",
+        "to_ids": false,
+        "disable_correlation": true,
+        "distribution": "5"
+      }
+    ],
+    "Object": [
+      {
+        "name": "intelligence-report",
+        "uuid": "afaa66c2-ea99-5dfb-bb71-d669a507b0cc",
+        "meta-category": "misc",
+        "template_uuid": "a88289fe-9afb-54b7-97a6-f51c6a004942",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "GH-01 | Operations desk",
+        "Attribute": [
+          {
+            "uuid": "30fb5ef6-19ef-5eca-9883-9d501bb08b03",
+            "object_relation": "report-id",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-01",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "dae98b63-6799-5d16-bcf4-c9b1988a5d93",
+            "object_relation": "report-type",
+            "type": "text",
+            "category": "Other",
+            "value": "INTREP",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "f4b9ffb6-910e-5071-9206-b8e0e9aaa2c8",
+            "object_relation": "reporting-unit",
+            "type": "text",
+            "category": "Other",
+            "value": "Operations desk",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "601ccdbe-aa3a-57ee-994c-74725a9380dc",
+            "object_relation": "activity-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:24:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "da089efc-0604-57e4-af99-faf7ce214dc0",
+            "object_relation": "date-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:25:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "84fdbb39-fce2-5007-91d5-7130090233a6",
+            "object_relation": "classification",
+            "type": "text",
+            "category": "Other",
+            "value": "TLP:CLEAR",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "9859db07-976c-576d-b327-4778377dbf17",
+            "object_relation": "narrative",
+            "type": "text",
+            "category": "Other",
+            "value": "The receipt dashboard showed 0 of 6 expected batches at 09:24. A service-desk ticket repeated the same dashboard count. The dashboard reads the central index.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-source-assessment",
+        "uuid": "0ead5c6b-8368-5e80-9575-03cfb962af3d",
+        "meta-category": "misc",
+        "template_uuid": "2d3a5895-6c54-50b5-bd25-ce33e974c50a",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "Source evaluation for GH-01",
+        "Attribute": [
+          {
+            "uuid": "a8341d69-036f-55bc-9e73-fb76aa0c9265",
+            "object_relation": "related-report",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-01",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "921943b4-fd3e-5755-bb41-d0c16f918653",
+            "object_relation": "source-id",
+            "type": "text",
+            "category": "Other",
+            "value": "DASH",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "5cc1d008-43f7-506c-b590-b7962f9165c1",
+            "object_relation": "source-type",
+            "type": "text",
+            "category": "Other",
+            "value": "TECHINT",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "831f3239-2407-5c0a-8645-d64b37649e56",
+            "object_relation": "source-summary",
+            "type": "text",
+            "category": "Other",
+            "value": "Index query and the ticket derived from it.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "05fe70e5-7ce4-57f1-8c22-3278ba71fd23",
+            "object_relation": "collection-method",
+            "type": "text",
+            "category": "Other",
+            "value": "Query of the central receipt index at 09:24.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "a7245d64-cb81-5cfb-bf4d-2cdead1adc0a",
+            "object_relation": "source-reliability",
+            "type": "text",
+            "category": "Other",
+            "value": "B - Usually reliable",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "e818fd33-776a-5224-8cf9-e542043a3805",
+            "object_relation": "information-credibility",
+            "type": "text",
+            "category": "Other",
+            "value": "2 - Probably true",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "b5bc621b-410d-5348-a433-fae9d9bdfde6",
+            "object_relation": "confidence",
+            "type": "text",
+            "category": "Other",
+            "value": "high",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "997438da-5b10-5dea-ac36-8dd85420cc7b",
+            "object_relation": "evaluation",
+            "type": "text",
+            "category": "Other",
+            "value": "The saved query covers all six expected IDs. It measures indexing at one instant. The ticket repeats the query and adds no independent confirmation of loss.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "7911de5e-de33-5fcd-abbd-3c49e27a7f20",
+            "object_uuid": "0ead5c6b-8368-5e80-9575-03cfb962af3d",
+            "relationship_type": "assesses",
+            "referenced_uuid": "afaa66c2-ea99-5dfb-bb71-d669a507b0cc"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-report",
+        "uuid": "62e31593-5860-574b-8d16-733459a27293",
+        "meta-category": "misc",
+        "template_uuid": "a88289fe-9afb-54b7-97a6-f51c6a004942",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "GH-02 | Change control",
+        "Attribute": [
+          {
+            "uuid": "d02b668e-4a74-54b1-96e0-3b1655ae1aa5",
+            "object_relation": "report-id",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-02",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "3f6bb06c-cdc4-596c-95b9-0d49628077d4",
+            "object_relation": "report-type",
+            "type": "text",
+            "category": "Other",
+            "value": "INTREP",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "af9b9ea9-f4e3-595e-968d-9098a75dc4e0",
+            "object_relation": "reporting-unit",
+            "type": "text",
+            "category": "Other",
+            "value": "Change control",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "2349b1a4-2b37-530f-9f3b-2b633c1ea38d",
+            "object_relation": "activity-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:05:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "2fbe0932-3776-5e92-b92b-d8ce443c9535",
+            "object_relation": "date-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:32:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "5599f88e-a146-5910-b137-92f2f82c729d",
+            "object_relation": "classification",
+            "type": "text",
+            "category": "Other",
+            "value": "TLP:CLEAR",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "f4a3b8c7-9dc1-547c-9482-608fc3d4f992",
+            "object_relation": "narrative",
+            "type": "text",
+            "category": "Other",
+            "value": "The approved shift ledger called for holding the central indexing queue from 09:05 until 09:35. The ledger lists an 11:30 retry for unacknowledged batches. It records a plan, without execution telemetry.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-source-assessment",
+        "uuid": "86a665cb-d177-51c3-bb96-743d8d8c6b92",
+        "meta-category": "misc",
+        "template_uuid": "2d3a5895-6c54-50b5-bd25-ce33e974c50a",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "Source evaluation for GH-02",
+        "Attribute": [
+          {
+            "uuid": "0a80e13b-5210-5e46-930f-126d3f464a3c",
+            "object_relation": "related-report",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-02",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "7e645c2f-2bf2-55bd-aa64-055124d2b48c",
+            "object_relation": "source-id",
+            "type": "text",
+            "category": "Other",
+            "value": "PLAN",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "1491dcf9-2eeb-518f-a852-07526883da14",
+            "object_relation": "source-type",
+            "type": "text",
+            "category": "Other",
+            "value": "Other",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "b14e6b83-2106-54cf-b63e-51c3be8a5e8d",
+            "object_relation": "source-summary",
+            "type": "text",
+            "category": "Other",
+            "value": "Change ledger signed before the gap.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "36cc1379-2431-5698-9db6-db2fd3c8015d",
+            "object_relation": "collection-method",
+            "type": "text",
+            "category": "Other",
+            "value": "Read the approved maintenance entry and retry schedule.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "1150a613-d7f3-54ed-8f75-c085eb2439f1",
+            "object_relation": "source-reliability",
+            "type": "text",
+            "category": "Other",
+            "value": "B - Usually reliable",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "dc91c996-c807-5dc9-b172-cd2ec14c73ea",
+            "object_relation": "information-credibility",
+            "type": "text",
+            "category": "Other",
+            "value": "2 - Probably true",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "2b820b2a-e7c1-5191-80f2-923fe64a67d1",
+            "object_relation": "confidence",
+            "type": "text",
+            "category": "Other",
+            "value": "medium",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "439b55af-4016-5c74-b5cc-a665f8775f5b",
+            "object_relation": "evaluation",
+            "type": "text",
+            "category": "Other",
+            "value": "Change control has direct access to planned work. The time match favors an indexing delay. A scheduler entry cannot establish when the hold actually ran.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "9f5c1573-506b-516d-ac11-ab1836d997e9",
+            "object_uuid": "86a665cb-d177-51c3-bb96-743d8d8c6b92",
+            "relationship_type": "assesses",
+            "referenced_uuid": "62e31593-5860-574b-8d16-733459a27293"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-report",
+        "uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102",
+        "meta-category": "misc",
+        "template_uuid": "a88289fe-9afb-54b7-97a6-f51c6a004942",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "GH-03 | Archive reconciliation",
+        "Attribute": [
+          {
+            "uuid": "5da82890-c453-5784-9001-bfbe65d0ba6f",
+            "object_relation": "report-id",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-03",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "01ac3242-b17b-5e2d-b987-fb87a297ccc4",
+            "object_relation": "report-type",
+            "type": "text",
+            "category": "Other",
+            "value": "INTREP",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "d181e99e-2776-551f-8b12-b3e4e739c0c9",
+            "object_relation": "reporting-unit",
+            "type": "text",
+            "category": "Other",
+            "value": "Archive reconciliation",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "f9398ed8-5d44-5963-bd83-8c75f13c750e",
+            "object_relation": "activity-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:41:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "01a10870-0e53-5aee-be9d-fb261beb0e2a",
+            "object_relation": "date-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:42:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "a17b47fb-b7e9-5075-83b4-c45654a2d59b",
+            "object_relation": "classification",
+            "type": "text",
+            "category": "Other",
+            "value": "TLP:CLEAR",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "1d151a46-5a80-56f9-8925-658843b7070a",
+            "object_relation": "narrative",
+            "type": "text",
+            "category": "Other",
+            "value": "An independent destination journal recorded five matching batch IDs from Alder, Birch, Cedar, Elm and Pine. Creation times were 09:07–09:09, before the deadline. Central receipt times were 09:36–09:41. No Fen entry appeared by 09:42.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "0cd07560-95b5-5d0f-9418-8d1d09aa23e0",
+            "object_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102",
+            "relationship_type": "references",
+            "referenced_uuid": "1b9e7137-fa0a-51d8-8394-660746d18977"
+          },
+          {
+            "uuid": "f5ba10b5-2780-5c37-a5bc-78b002ebfa7f",
+            "object_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102",
+            "relationship_type": "references",
+            "referenced_uuid": "686a1224-6d18-510c-a266-ed4ab92a650e"
+          },
+          {
+            "uuid": "166b713f-c203-54d9-94bf-dd018bc2f58f",
+            "object_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102",
+            "relationship_type": "references",
+            "referenced_uuid": "af45a058-eddd-595c-802a-3fe6e57794cf"
+          },
+          {
+            "uuid": "118e6982-1b4f-55f7-b307-3b36ff2c1e1b",
+            "object_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102",
+            "relationship_type": "references",
+            "referenced_uuid": "0e0cc153-6cd3-5315-918b-ee5f8a36f8b4"
+          },
+          {
+            "uuid": "a11d898a-3cdb-51ff-9958-1ae9ce24f3f5",
+            "object_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102",
+            "relationship_type": "references",
+            "referenced_uuid": "099a38d2-bafe-581b-acf5-4401970314cb"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-source-assessment",
+        "uuid": "c457db52-c81c-5e6c-abf9-1b90a19d6af7",
+        "meta-category": "misc",
+        "template_uuid": "2d3a5895-6c54-50b5-bd25-ce33e974c50a",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "Source evaluation for GH-03",
+        "Attribute": [
+          {
+            "uuid": "6d69df90-01dc-5001-9c7a-d6e1574c6465",
+            "object_relation": "related-report",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-03",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "373eef59-1c27-5a2b-93f8-4d23892c5fe5",
+            "object_relation": "source-id",
+            "type": "text",
+            "category": "Other",
+            "value": "DEST",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "e2865b40-fcba-5408-a4fa-c9a5a5195f0f",
+            "object_relation": "source-type",
+            "type": "text",
+            "category": "Other",
+            "value": "TECHINT",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "d7382efd-1823-5247-94e1-67ade1952c1b",
+            "object_relation": "source-summary",
+            "type": "text",
+            "category": "Other",
+            "value": "Destination journal and five matched batch IDs.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "9af6cdcc-82bb-5d4f-aa9e-c9715c922ce8",
+            "object_relation": "collection-method",
+            "type": "text",
+            "category": "Other",
+            "value": "Join destination receipts to the six expected origin and sequence pairs, then compare UTC creation and receipt times.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "b348a87d-6503-569c-bcd3-819d1baf2edb",
+            "object_relation": "source-reliability",
+            "type": "text",
+            "category": "Other",
+            "value": "B - Usually reliable",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "7e817f46-aa02-5378-98d2-57d9b34809f9",
+            "object_relation": "information-credibility",
+            "type": "text",
+            "category": "Other",
+            "value": "2 - Probably true",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "498d8aef-3b50-5989-8316-202cf47e87ed",
+            "object_relation": "confidence",
+            "type": "text",
+            "category": "Other",
+            "value": "high",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "f039adb9-5bb0-5fc1-a8d3-d58a12f2df00",
+            "object_relation": "evaluation",
+            "type": "text",
+            "category": "Other",
+            "value": "The destination recorded arrivals directly. Origin metadata embedded in each packet corroborates its sequence and creation time. The later count and timestamps are direct observations for five sites only.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "d3e66508-d7cb-5fbe-bdbb-b24f849b6437",
+            "object_uuid": "c457db52-c81c-5e6c-abf9-1b90a19d6af7",
+            "relationship_type": "assesses",
+            "referenced_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-report",
+        "uuid": "153e98b6-6f54-57a4-8375-50dfd63ff878",
+        "meta-category": "misc",
+        "template_uuid": "a88289fe-9afb-54b7-97a6-f51c6a004942",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "GH-04 | Fen duty operator",
+        "Attribute": [
+          {
+            "uuid": "a99a028d-894e-5d4d-afde-7f98a26e8f82",
+            "object_relation": "report-id",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-04",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "949e5aba-b358-5a2f-874c-22127cdbd099",
+            "object_relation": "report-type",
+            "type": "text",
+            "category": "Other",
+            "value": "INTREP",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "2008dcd3-2b1c-514f-a5fe-2c051d1b4ed0",
+            "object_relation": "reporting-unit",
+            "type": "text",
+            "category": "Other",
+            "value": "Fen duty operator",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "7e83fe6c-e068-5c9e-9c50-7b7ff42506e9",
+            "object_relation": "activity-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:45:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "486831c7-feb5-538a-aaa6-9eb62dfbfc89",
+            "object_relation": "date-time",
+            "type": "datetime",
+            "category": "Other",
+            "value": "2026-10-14T09:47:00Z",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "4b6442c5-c4cb-56d1-a72e-897673f24309",
+            "object_relation": "classification",
+            "type": "text",
+            "category": "Other",
+            "value": "TLP:CLEAR",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "87477de3-e88b-5c19-9e9c-f65a89003a00",
+            "object_relation": "narrative",
+            "type": "text",
+            "category": "Other",
+            "value": "The operator recalled a completion marker for the morning job but did not have its sequence number. A clock warning was transcribed from the console. Neither a local manifest nor a journal entry for the Fen batch was available at cutoff.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "51cd56c2-99dc-59e4-8852-e5c5112ed81d",
+            "object_uuid": "153e98b6-6f54-57a4-8375-50dfd63ff878",
+            "relationship_type": "references",
+            "referenced_uuid": "7f28b4a1-314f-552a-8dac-b3472861b539"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-source-assessment",
+        "uuid": "a313ad5d-30ff-5da7-9b34-dd767c72f0af",
+        "meta-category": "misc",
+        "template_uuid": "2d3a5895-6c54-50b5-bd25-ce33e974c50a",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "Source evaluation for GH-04",
+        "Attribute": [
+          {
+            "uuid": "aa91ffa4-80a5-59d5-b971-34d07cc89361",
+            "object_relation": "related-report",
+            "type": "text",
+            "category": "Other",
+            "value": "GH-04",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "bc038c1a-ab83-548b-8bcb-aacf2cb7076a",
+            "object_relation": "source-id",
+            "type": "text",
+            "category": "Other",
+            "value": "FIELD",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "2cfa3ca5-9137-55d1-a8de-a167664f0aff",
+            "object_relation": "source-type",
+            "type": "text",
+            "category": "Other",
+            "value": "Other",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "3b948595-ab27-5a65-ae63-0d7e53e828a5",
+            "object_relation": "source-summary",
+            "type": "text",
+            "category": "Other",
+            "value": "Operator phone call and transcribed clock warning.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "79640148-d5d8-5e24-9cf1-a8a0ef58e890",
+            "object_relation": "collection-method",
+            "type": "text",
+            "category": "Other",
+            "value": "Duty desk read-back of the operator's recollection at 09:45.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "c7e01ec4-5eb6-5584-a4f8-f97ca0d4f49c",
+            "object_relation": "source-reliability",
+            "type": "text",
+            "category": "Other",
+            "value": "C - Fairly reliable",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "07836608-c1e7-5e8f-b19c-7e1a7fb10654",
+            "object_relation": "information-credibility",
+            "type": "text",
+            "category": "Other",
+            "value": "3 - Possibly true",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "46de30de-3de7-56a7-b313-2d7fe755a4df",
+            "object_relation": "confidence",
+            "type": "text",
+            "category": "Other",
+            "value": "low",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "798f5d48-21d0-5978-bf4a-b90cffcc1923",
+            "object_relation": "evaluation",
+            "type": "text",
+            "category": "Other",
+            "value": "The operator had direct console access. The marker could refer to a previous run. The clock warning and recollection have the same witness and cannot corroborate each other.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "f178e11f-3a02-5b99-99f3-275bb1489154",
+            "object_uuid": "a313ad5d-30ff-5da7-9b34-dd767c72f0af",
+            "relationship_type": "assesses",
+            "referenced_uuid": "153e98b6-6f54-57a4-8375-50dfd63ff878"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-judgment",
+        "uuid": "78525216-886e-5324-8a4a-db45516a56fc",
+        "meta-category": "misc",
+        "template_uuid": "79562e38-cc69-4580-a382-16f5c8d157c8",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "J1 | Explain the five late receipts",
+        "Attribute": [
+          {
+            "uuid": "d482c17f-b78d-5bcd-a555-509cf88578ae",
+            "object_relation": "title",
+            "type": "text",
+            "category": "Other",
+            "value": "Five sites continued collecting",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "deabab9a-4090-5c5e-8d88-cd9761a1cf2f",
+            "object_relation": "judgment",
+            "type": "text",
+            "category": "Other",
+            "value": "A central indexing delay likely explains the missing receipts for five of the six sites.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "c42f4b95-5174-5177-8459-e711dee90ba8",
+            "object_relation": "confidence",
+            "type": "text",
+            "category": "Other",
+            "value": "moderate",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "5760cedd-fd01-5d4d-bb4b-b0610f5cd866",
+            "object_relation": "confidence-rationale",
+            "type": "text",
+            "category": "Other",
+            "value": "Five matching identifiers and pre-deadline creation times establish continuity at those sites. Their arrivals cluster immediately after the scheduled hold. The actual queue execution log is missing, so the mechanism is less certain than the count.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "70347785-5bc4-5ed5-9612-8fb0a74cccfa",
+            "object_relation": "alternative",
+            "type": "text",
+            "category": "Other",
+            "value": "A transport backlog would also preserve creation times. If network delivery records place the five packets at the destination only after 09:35 while the indexer was idle, favor transport delay.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "07827ecb-24f4-536f-bffa-3661091a13fc",
+            "object_uuid": "78525216-886e-5324-8a4a-db45516a56fc",
+            "relationship_type": "supported-by",
+            "referenced_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102"
+          },
+          {
+            "uuid": "5ec8ae2e-3ad2-546d-9ff2-08c6950d40bd",
+            "object_uuid": "78525216-886e-5324-8a4a-db45516a56fc",
+            "relationship_type": "supported-by",
+            "referenced_uuid": "62e31593-5860-574b-8d16-733459a27293"
+          },
+          {
+            "uuid": "00953bf9-a60b-561d-8428-181ad06aac65",
+            "object_uuid": "78525216-886e-5324-8a4a-db45516a56fc",
+            "relationship_type": "cites",
+            "referenced_uuid": "afaa66c2-ea99-5dfb-bb71-d669a507b0cc"
+          }
+        ],
+        "Relationship": [
+          {
+            "uuid": "8d9b74f8-aa37-53fc-a70f-aa4c62085293",
+            "object_uuid": "78525216-886e-5324-8a4a-db45516a56fc",
+            "object_type": "Object",
+            "distribution": "0",
+            "created": "2026-10-14 09:50:00",
+            "modified": "2026-10-14 09:50:00",
+            "authors": "Greyhaven watch",
+            "related_object_uuid": "34510b00-2189-571a-91a0-f6a625e45f97",
+            "related_object_type": "EventReport",
+            "relationship_type": "references"
+          }
+        ]
+      },
+      {
+        "name": "intelligence-judgment",
+        "uuid": "b9280e1a-3484-510c-8c0e-76f0543ed474",
+        "meta-category": "misc",
+        "template_uuid": "79562e38-cc69-4580-a382-16f5c8d157c8",
+        "template_version": "1",
+        "distribution": "5",
+        "comment": "J2 | Forecast one outstanding batch",
+        "Attribute": [
+          {
+            "uuid": "0c5941d5-fcb5-51b6-9299-23ebf1371954",
+            "object_relation": "title",
+            "type": "text",
+            "category": "Other",
+            "value": "Fen recovery before noon",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "2c798bf3-639c-5730-894b-5d11f0a28f7f",
+            "object_relation": "judgment",
+            "type": "text",
+            "category": "Other",
+            "value": "The Fen batch is likely to reach the archive by 12:00 UTC.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "fadae8c2-c09f-571e-8478-1e6f6a3c2860",
+            "object_relation": "confidence",
+            "type": "text",
+            "category": "Other",
+            "value": "low",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "68728931-f01f-598e-8a8f-6b80f61b8890",
+            "object_relation": "confidence-rationale",
+            "type": "text",
+            "category": "Other",
+            "value": "The operator recalls a completion marker and the schedule provides one retry at 11:30. We assume the marker belongs to today's batch and that a retry can replay it. We have no local sequence number, and Fen is the only site still missing.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          },
+          {
+            "uuid": "df545f7d-a742-59aa-9feb-bbf5ba3ea2cf",
+            "object_relation": "alternative",
+            "type": "text",
+            "category": "Other",
+            "value": "Fen may have missed local collection. A manifest for a different date or an empty local spool after the retry would favor that explanation. A matching receipt after noon would establish late recovery but miss this forecast.",
+            "to_ids": false,
+            "disable_correlation": true,
+            "distribution": "5"
+          }
+        ],
+        "ObjectReference": [
+          {
+            "uuid": "659ba8f0-e0a2-5646-84c9-ea75264c514a",
+            "object_uuid": "b9280e1a-3484-510c-8c0e-76f0543ed474",
+            "relationship_type": "supported-by",
+            "referenced_uuid": "153e98b6-6f54-57a4-8375-50dfd63ff878"
+          },
+          {
+            "uuid": "935a3625-2ea2-5d11-9ace-b19764a816e8",
+            "object_uuid": "b9280e1a-3484-510c-8c0e-76f0543ed474",
+            "relationship_type": "supported-by",
+            "referenced_uuid": "62e31593-5860-574b-8d16-733459a27293"
+          },
+          {
+            "uuid": "ea956f07-f5cb-500e-9ef6-dc07fb7013b4",
+            "object_uuid": "b9280e1a-3484-510c-8c0e-76f0543ed474",
+            "relationship_type": "contradicted-by",
+            "referenced_uuid": "7f28b4a1-314f-552a-8dac-b3472861b539"
+          },
+          {
+            "uuid": "9ad9970d-db0a-5548-8a09-9701706334cb",
+            "object_uuid": "b9280e1a-3484-510c-8c0e-76f0543ed474",
+            "relationship_type": "cites",
+            "referenced_uuid": "8eeb4b38-3886-5ace-bba8-0edcb7c36102"
+          }
+        ],
+        "Opinion": [
+          {
+            "uuid": "023675a5-4afa-508e-a0c1-f7ec69f5c412",
+            "object_uuid": "b9280e1a-3484-510c-8c0e-76f0543ed474",
+            "object_type": "Object",
+            "distribution": "0",
+            "created": "2026-10-14 09:51:00",
+            "modified": "2026-10-14 09:51:00",
+            "authors": "Archive reviewer (exercise)",
+            "opinion": 25,
+            "comment": "I would use roughly even chance for Fen. The operator could have seen yesterday's marker. I need a dated local sequence before moving higher."
+          }
+        ]
+      }
+    ],
+    "EventReport": [
+      {
+        "uuid": "34510b00-2189-571a-91a0-f6a625e45f97",
+        "name": "09:25 watch assessment | Initial coverage",
+        "content": "At 09:25 UTC all six sites have an unverified collection gap. A regional collection interruption is a plausible working explanation. Confidence is low. The dashboard and the help-desk ticket both draw on the central index. No destination journal or change record has reached the watch. Next update before the 10:00 handover.",
+        "distribution": "5",
+        "timestamp": "1791969900"
+      },
+      {
+        "uuid": "8cca92f3-9465-58cb-879a-8ab701d81fb1",
+        "name": "Receipt reconciliation | 09:50 UTC",
+        "content": "One batch per site was due at 09:10 UTC on 14 October. Match each identifier to its site and date. Times come from GH-03.\n\n| Site | Batch | Created (UTC) | Indexed (UTC) |\n| --- | --- | --- | --- |\n| Alder | @[attribute](1b9e7137-fa0a-51d8-8394-660746d18977) | 09:07 | 09:36 |\n| Birch | @[attribute](686a1224-6d18-510c-a266-ed4ab92a650e) | 09:07 | 09:37 |\n| Cedar | @[attribute](af45a058-eddd-595c-802a-3fe6e57794cf) | 09:08 | 09:38 |\n| Elm | @[attribute](0e0cc153-6cd3-5315-918b-ee5f8a36f8b4) | 09:08 | 09:40 |\n| Pine | @[attribute](099a38d2-bafe-581b-acf5-4401970314cb) | 09:09 | 09:41 |\n| Fen | Unverified | Unknown | No receipt by 09:50 |\n\nFive of six batches can be traced to a destination receipt. The Fen cell is open pending a local sequence and the 11:30 retry.",
+        "distribution": "5",
+        "timestamp": "1791971400"
+      },
+      {
+        "uuid": "4bdaac58-f1db-5fbf-8877-f85301c804cf",
+        "name": "Greyhaven archive | 10:00 duty briefing",
+        "content": "Five of six sites collected on time. Their receipts appeared late. Fen remains unverified. The continuity lead needs the coverage count for the 10:00 UTC handover on 14 October. Information cutoff 09:50 UTC.\n\nCurrent coverage. @[object](78525216-886e-5324-8a4a-db45516a56fc) At 09:24 the index showed zero receipts @[object](afaa66c2-ea99-5dfb-bb71-d669a507b0cc). A change ledger scheduled a queue hold @[object](62e31593-5860-574b-8d16-733459a27293). By 09:42 the destination journal contained five matching batches created before 09:10 @[object](8eeb4b38-3886-5ace-bba8-0edcb7c36102). This changes the 09:25 working explanation of a regional collection interruption.\n\nOutlook through noon. @[object](b9280e1a-3484-510c-8c0e-76f0543ed474) Fen reported a completion marker @[object](153e98b6-6f54-57a4-8375-50dfd63ff878) and a clock warning @[attribute](7f28b4a1-314f-552a-8dac-b3472861b539). The watch cannot verify which run produced the marker. A coverage statement for all six sites would depend on that unresolved observation.\n\nFollow-up. At 12:00 UTC the reconciliation analyst will match Fen's site, date and sequence against the destination journal. Record on-time recovery, late recovery, confirmed local loss or still unknown in a dated follow-up. Keep this forecast for comparison.",
+        "distribution": "5",
+        "timestamp": "1791971580",
+        "Note": [
+          {
+            "uuid": "a7e95aea-768c-553a-ae06-6e5bfc61c45d",
+            "object_uuid": "4bdaac58-f1db-5fbf-8877-f85301c804cf",
+            "object_type": "EventReport",
+            "distribution": "0",
+            "created": "2026-10-14 09:53:00",
+            "modified": "2026-10-14 09:53:00",
+            "authors": "Duty editor (exercise)",
+            "language": "en",
+            "note": "Cutoff is 09:50 UTC. The continuity lead asked whether the region lost data. The watch counted matched packets, kept Fen open and retained the reviewer's lower estimate."
+          }
+        ]
+      }
+    ]
+  }
+}
