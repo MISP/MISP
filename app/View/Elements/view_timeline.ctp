@@ -23,12 +23,14 @@
 </div>
 <?= $this->element('genericElements/assetLoader', [
     'js' => [
+        'vis-timeline-graph2d.min',
         'moment.min',
         'Chart.min',
         'chartjs-adapter-moment.min',
         'event-timeline',
     ],
     'css' => [
+        'vis-timeline-graph2d.min',
         'event-timeline',
     ],
 ]);

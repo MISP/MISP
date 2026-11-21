@@ -24,14 +24,14 @@
 </div>
 <?= $this->element('genericElements/assetLoader', [
      'js' => [
-         'vis',
+         'vis-network.min',
          'bootstrap-typeahead',
          'contextual_menu',
          'action_table',
          'event-graph',
      ],
      'css' => [
-         'vis',
+         'vis-network.min',
          'contextual_menu',
          'action_table',
          'event-graph',
