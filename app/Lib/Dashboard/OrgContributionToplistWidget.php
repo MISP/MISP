@@ -1,4 +1,6 @@
 <?php
+App::uses('WidgetToolkit', 'Lib/Dashboard/Tools');
+
 class OrgContributionToplistWidget
 {
     public $title = 'Contributor Top List (Orgs)';
@@ -8,7 +10,7 @@ class OrgContributionToplistWidget
     public $width = 3;
     public $height = 4;
     public $params = [
-        'days' => 'How many days back should the list go - for example, setting 7 will only show contributions in the past 7 days. (integer)',
+        'days' => 'Days to look back, for example 7 or "7d".',
         'month' => 'Who contributed most this month? (boolean)',
         'previous_month' => 'Who contributed most the previous, finished month? (boolean)',
         'year' => 'Which contributed most this year? (boolean)',
@@ -53,7 +55,7 @@ class OrgContributionToplistWidget
     private function timeConditions($options)
     {
         if (!empty($options['days'])) {
-            $condition = strtotime(sprintf("-%s days", $options['days']));
+            $condition = WidgetToolkit::daysAgo($options['days']);
         } else if (!empty($options['month'])) {
             $condition = strtotime('first day of this month 00:00:00', time());
         } else if (!empty($options['previous_month'])) {
