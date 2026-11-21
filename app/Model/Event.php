@@ -5168,7 +5168,10 @@ class Event extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'Event',
-                ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
+                [
+                    'id', 'info', 'analysis', 'threat_level_id', 'distribution',
+                    'date', 'timestamp', 'publish_timestamp',
+                ]
             );
         } else {
             // No order asked for. MySQL answers an id lookup in id order off

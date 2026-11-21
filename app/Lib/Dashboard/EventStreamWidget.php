@@ -80,7 +80,7 @@ class EventStreamWidget
             'metadata' => 1,
             'limit' => 5,
             'page' => 1,
-            'order' => 'Event.id DESC'
+            'order' => ['Event.date DESC', 'Event.id DESC'],
         ];
         $field_options = [
             'id' => [
