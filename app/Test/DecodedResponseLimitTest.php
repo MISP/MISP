@@ -261,6 +261,52 @@ PHP);
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
+    public function testCurlDownloadWritesResponseToDisk(): void
+    {
+        $this->load();
+        require_once __DIR__ . '/../Lib/Tools/CurlClient.php';
+        $base = $this->startServer();
+        $client = new CurlClient(['timeout' => 20]);
+        $client->setMaxSize(500);
+        $destination = $this->dir . '/download';
+
+        $response = $client->download("$base/", $destination);
+        $this->assertSame(200, $response->code);
+        $this->assertSame('', $response->body);
+        $this->assertSame(str_repeat('a', 500), file_get_contents($destination));
+        $this->assertSame(str_repeat('a', 500), $client->get("$base/")->body);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testCurlDownloadLimitsDecodedBytesOnDisk(): void
+    {
+        $this->load();
+        require_once __DIR__ . '/../Lib/Tools/CurlClient.php';
+        $base = $this->startServer();
+        $client = new CurlClient(['timeout' => 20]);
+        $limit = 1048576;
+        $client->setMaxSize($limit);
+        $destination = $this->dir . '/download';
+
+        try {
+            $client->download("$base/?bomb=1", $destination);
+            $this->fail('The decoded download size was not limited');
+        } catch (SocketException $e) {
+            $this->assertStringContainsString("maximum allowed size of $limit bytes", $e->getMessage());
+        }
+        $size = filesize($destination);
+        $this->assertGreaterThan(0, $size);
+        $this->assertLessThanOrEqual($limit, $size);
+        $this->assertSame(str_repeat('a', 500), $client->get("$base/")->body);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function testUnzipFirstFile(): void
     {
         $this->load();

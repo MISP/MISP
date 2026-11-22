@@ -353,20 +353,6 @@ class CurlClient extends HttpSocketExtended
             $options[CURLOPT_NOBODY] = true;
         }
 
-        if (is_resource($this->downloadStream)) {
-            $stream = $this->downloadStream;
-            $options[CURLOPT_RETURNTRANSFER] = false;
-            $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use ($stream) {
-                $offset = 0;
-                while ($offset < strlen($chunk)) {
-                    $written = fwrite($stream, substr($chunk, $offset));
-                    if (!$written) { return 0; }
-                    $offset += $written;
-                }
-                return $offset;
-            };
-        }
-
         if (!empty($request['header'])) {
             $headers = [];
             foreach ($request['header'] as $key => $value) {
@@ -400,7 +386,34 @@ class CurlClient extends HttpSocketExtended
         // the limit covers what a small compressed response inflates to.
         $limit = $this->maxSize ?: DecompressTool::limit();
         $body = '';
-        $options[CURLOPT_WRITEFUNCTION] = self::bodyCollector($body, $limit);
+        $stream = $this->downloadStream;
+        $streaming = is_resource($stream);
+        $streamLimitExceeded = false;
+        if ($streaming) {
+            $options[CURLOPT_RETURNTRANSFER] = false;
+            $received = 0;
+            $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use (
+                $stream, $limit, &$received, &$streamLimitExceeded
+            ) {
+                $length = strlen($chunk);
+                $received += $length;
+                if ($limit && $received > $limit) {
+                    $streamLimitExceeded = true;
+                    return 0;
+                }
+                $offset = 0;
+                while ($offset < $length) {
+                    $written = fwrite($stream, substr($chunk, $offset));
+                    if (!$written) {
+                        return 0;
+                    }
+                    $offset += $written;
+                }
+                return $length;
+            };
+        } else {
+            $options[CURLOPT_WRITEFUNCTION] = self::bodyCollector($body, $limit);
+        }
         if (!curl_setopt_array($this->ch, $options)) {
             throw new \RuntimeException('curl error: Could not set options');
         }
@@ -410,7 +423,7 @@ class CurlClient extends HttpSocketExtended
 
         if ($output === false) {
             $errorCode = curl_errno($this->ch);
-            if ($limit && $errorCode === CURLE_WRITE_ERROR) {
+            if ($limit && $errorCode === CURLE_WRITE_ERROR && (!$streaming || $streamLimitExceeded)) {
                 throw new SocketException("Response exceeds the maximum allowed size of $limit bytes.");
             }
             // Both of these mean the size limit tripped: 63 when the server
@@ -427,7 +440,6 @@ class CurlClient extends HttpSocketExtended
         }
 
         $code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
-        if (is_resource($this->downloadStream)) { $output = ''; }
 
         // Try to release pointer to local function to avoid circular reference and releasing memory
         // See https://github.com/php-mod/curl/issues/95
