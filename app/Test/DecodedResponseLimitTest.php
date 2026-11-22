@@ -187,6 +187,16 @@ if (isset($_GET['bomb'])) {
     }
     header('Content-Encoding: gzip');
     echo $out . deflate_add($ctx, '', ZLIB_FINISH);
+} elseif (isset($_GET['redirect'])) {
+    if ($_GET['redirect'] === '1') {
+        header('Location: /?redirect=2', true, 302);
+    } else {
+        header('Location: /', true, 307);
+    }
+    echo 'intermediate body';
+} elseif (isset($_GET['no_location'])) {
+    http_response_code(302);
+    echo 'terminal body';
 } elseif (isset($_GET['empty'])) {
     http_response_code(204);
 } else {
@@ -275,6 +285,40 @@ PHP);
         $this->assertSame('', $response->body);
         $this->assertSame(str_repeat('a', 500), file_get_contents($destination));
         $this->assertSame(str_repeat('a', 500), $client->get("$base/")->body);
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testCurlDownloadWithValidatedRedirectsWritesOnlyTerminalBody(): void
+    {
+        $this->load();
+        require_once __DIR__ . '/../Lib/Tools/CurlClient.php';
+        require_once __DIR__ . '/../Lib/Tools/UrlEgressValidator.php';
+        $base = $this->startServer();
+        $client = new CurlClient(['timeout' => 20]);
+        $client->setMaxSize(500);
+        $hops = [];
+        $client->setRedirectValidator(static function ($from, $to) use (&$hops) {
+            $hops[] = [$from, $to];
+            return true;
+        });
+        $destination = $this->dir . '/download';
+
+        $response = $client->download("$base/?redirect=1", $destination);
+        $this->assertSame(200, $response->code);
+        $this->assertSame('', $response->body);
+        $this->assertSame(str_repeat('a', 500), file_get_contents($destination));
+        $this->assertSame([
+            ["$base/?redirect=1", "$base/?redirect=2"],
+            ["$base/?redirect=2", "$base/"],
+        ], $hops);
+
+        $destination = $this->dir . '/terminal';
+        $response = $client->download("$base/?no_location=1", $destination);
+        $this->assertSame(302, $response->code);
+        $this->assertSame('terminal body', file_get_contents($destination));
     }
 
     /**

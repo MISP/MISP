@@ -382,6 +382,7 @@ class CurlClient extends HttpSocketExtended
             }
             return $len;
         };
+        $validateRedirects = $this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD');
         // The write function sees the body after libcurl has decoded it, so
         // the limit covers what a small compressed response inflates to.
         $limit = $this->maxSize ?: DecompressTool::limit();
@@ -393,13 +394,21 @@ class CurlClient extends HttpSocketExtended
             $options[CURLOPT_RETURNTRANSFER] = false;
             $received = 0;
             $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use (
-                $stream, $limit, &$received, &$streamLimitExceeded
+                $stream, $limit, $validateRedirects, $url, &$responseHeaders, &$received, &$streamLimitExceeded
             ) {
                 $length = strlen($chunk);
                 $received += $length;
                 if ($limit && $received > $limit) {
                     $streamLimitExceeded = true;
                     return 0;
+                }
+                // The next request will stream its own body into the same destination.
+                if ($validateRedirects && self::redirectTarget(
+                    curl_getinfo($curl, CURLINFO_HTTP_CODE),
+                    $responseHeaders,
+                    $url
+                ) !== null) {
+                    return $length;
                 }
                 $offset = 0;
                 while ($offset < $length) {
@@ -445,8 +454,8 @@ class CurlClient extends HttpSocketExtended
         // See https://github.com/php-mod/curl/issues/95
         curl_reset($this->ch);
 
-        if ($this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD')) {
-            $target = $this->redirectTarget($code, $responseHeaders, $url);
+        if ($validateRedirects) {
+            $target = self::redirectTarget($code, $responseHeaders, $url);
             if ($target !== null) {
                 if ($redirectsFollowed >= 10) {
                     throw new SocketException("Too many redirects while fetching $url.");
@@ -469,7 +478,7 @@ class CurlClient extends HttpSocketExtended
      * @param string $currentUrl
      * @return string|null absolute redirect target, or null if not a redirect
      */
-    private function redirectTarget($code, array $responseHeaders, $currentUrl)
+    private static function redirectTarget($code, array $responseHeaders, $currentUrl)
     {
         if (!in_array((int)$code, [301, 302, 303, 307, 308], true)) {
             return null;
