@@ -482,6 +482,11 @@ class AnalystDataController extends AppController
         }
         if ($overmind) {
             $this->__setTargetExistence($this->viewVars['data'] ?? []);
+            if ($this->modelSelection === 'Graph') {
+                App::uses('ActiveWorkspaceTool', 'Tools');
+                $active = ActiveWorkspaceTool::stored($this->Auth->user());
+                $this->set('workspaceGraphUuid', $active['graph_uuid'] ?? null);
+            }
         }
         $this->_setViewElements();
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
@@ -541,7 +546,9 @@ class AnalystDataController extends AppController
             }
         }
         $user = $this->Auth->user();
-        $described = empty($values) ? [] : $this->AnalystData->describeTargets($user, $values);
+        // A saved graph's target is an event, a cluster or a collection, named by the index
+        $toDescribe = $model === 'Graph' ? array_merge($values, $targets) : $values;
+        $described = empty($toDescribe) ? [] : $this->AnalystData->describeTargets($user, $toDescribe);
         $this->set('analystTargets', $described);
         $this->set(
             'analystTargetExists',

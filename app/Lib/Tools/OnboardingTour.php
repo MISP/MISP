@@ -69,6 +69,8 @@ class OnboardingTour
 
     const GRAPH_VIEW_MATCH = '^/(analyst_graphs|analystGraphs)/view/';
 
+    const COLLECTION_VIEW_MATCH = '^/collections/view/[0-9a-fA-F-]+';
+
     /** Detail pages the Data models and Sync sections open from a list. */
     const TAXONOMY_VIEW = '^/taxonomies/view/[0-9]+';
     const GALAXY_VIEW = '^/galaxies/view/[0-9]+';
@@ -1976,7 +1978,8 @@ class OnboardingTour
             'icon' => 'fas fa-magnifying-glass-chart',
             'colour' => 'correlation',
             'summary' => __('Everything known about one indicator, the profile '
-                . 'that judges it, and the graphs that tie it to the rest.'),
+                . 'that judges it, the graphs that tie it to the rest, and '
+                . 'the workspace an investigation is kept in.'),
             'groups' => [
                 [
                     'id' => 'value-intelligence',
@@ -1996,10 +1999,16 @@ class OnboardingTour
                     'steps' => self::pivotExplorerSteps(),
                 ],
                 [
-                    'id' => 'workspaces',
-                    'title' => __('Workspaces'),
+                    'id' => 'workspace',
+                    'title' => __('Your workspace'),
+                    'requires' => ['collectionElements', 'addItems'],
+                    'steps' => self::workspaceSteps(),
+                ],
+                [
+                    'id' => 'saved-graphs',
+                    'title' => __('Saved graphs'),
                     'requires' => ['analystGraphs', 'view'],
-                    'steps' => self::intelligenceGraphSteps(),
+                    'steps' => self::savedGraphSteps(),
                 ],
             ],
         ];
@@ -2237,36 +2246,147 @@ class OnboardingTour
         ];
     }
 
-    private static function intelligenceGraphSteps()
+    private static function workspaceSteps()
     {
         return [
+            self::openEventStep(
+                '/events/index',
+                __('Open any event'),
+                __('A workspace is fed from the records you read, so start '
+                    . 'from one.')
+            ),
+            [
+                'pageMatch' => self::EVENT_VIEW_MATCH,
+                'anchor' => '[data-tour="event-investigations-add"]',
+                'placement' => 'left',
+                'optional' => true,
+                'title' => __('Add to workspace'),
+                'body' => '<p>' . __('Events, clusters, attributes, objects '
+                    . 'and values all carry this button. A click adds the '
+                    . 'record to the collection you are working in, and a tick '
+                    . 'then says it is there.') . '</p><p>' . __('Its arrow '
+                    . 'adds the record to another collection, or starts a new '
+                    . 'one with it.') . '</p>',
+            ],
             [
                 'anchor' => '[data-tour="nav-intel-graph"]',
                 'placement' => 'bottom',
                 'optional' => true,
-                'requires' => ['analystGraphs', 'addNodes'],
-                'title' => __('Your active workspace'),
-                'body' => '<p>' . __('Where the Pivot Explorer is for '
-                    . 'exploring, a <strong>workspace</strong> keeps the '
-                    . 'result: a saved, shareable set of records and a '
-                    . 'drawing of how they relate.') . '</p><p>' . __('This '
-                    . 'chip shows the workspace you are working in. Every '
-                    . '<strong>Add to workspace</strong> button in MISP sends '
-                    . 'its record here; click the chip to open the workspace '
-                    . 'beside any page.') . '</p>',
+                'title' => __('Your workspace'),
+                'body' => '<p>' . __('Your <strong>workspace</strong> is the '
+                    . 'collection you are working in. This chip shows which '
+                    . 'one, or says <strong>No workspace</strong>.') . '</p><p>'
+                    . __('Click it to '
+                    . 'open the workspace beside any page, switch to another '
+                    . 'one or start a new collection. Every tab of the '
+                    . 'browser follows the switch.') . '</p>',
             ],
+            [
+                'page' => '/collections/index',
+                'anchor' => '[data-tour="page-title"]',
+                'placement' => 'bottom',
+                'skipIf' => self::COLLECTION_VIEW_MATCH,
+                'title' => __('A workspace is a collection'),
+                'body' => '<p>' . __('Collections are sets of records '
+                    . 'gathered for an investigation, shared like any other '
+                    . 'record. Any collection you may edit can be your '
+                    . 'workspace.') . '</p>',
+            ],
+            [
+                'page' => '/collections/index',
+                'anchor' => 'a[href*="/collections/view/"]',
+                'placement' => 'right',
+                'advance' => 'click',
+                'optional' => true,
+                'skipIf' => self::COLLECTION_VIEW_MATCH,
+                'title' => __('Open one'),
+                'body' => '<p>' . __('Pick a collection to see what working '
+                    . 'in it looks like.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::COLLECTION_VIEW_MATCH,
+                'anchor' => '[data-intel-graph-workspace]',
+                'placement' => 'left',
+                'optional' => true,
+                'waitingText' => __('Open a collection to carry on, or skip '
+                    . 'this part if there are none yet.'),
+                'title' => __('Make it my workspace'),
+                'body' => '<p>' . __('Sends what you add from now on to this '
+                    . 'collection, from any page.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::COLLECTION_VIEW_MATCH,
+                'anchor' => '[data-tour="quick-actions"] .lb-seg',
+                'placement' => 'left',
+                'optional' => true,
+                'title' => __('Publishing'),
+                'body' => '<p>' . __('A collection shared beyond your '
+                    . 'organisation keeps its changes in-house until someone '
+                    . 'publishes them, as an event does. Its members, saved '
+                    . 'graphs and the links between them go out '
+                    . 'together.') . '</p><p>' . __('Publishing takes the same '
+                    . 'right as publishing an event; without it, your changes '
+                    . 'wait for a publisher.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::COLLECTION_VIEW_MATCH,
+                'anchor' => '[data-tour="view-tab-pivot-explorer"]',
+                'placement' => 'bottom',
+                'advance' => 'click',
+                'waitingText' => __('Open a collection to carry on, or skip '
+                    . 'this part if there are none yet.'),
+                'title' => __('The working view'),
+                'body' => '<p>' . __('Open <strong>Pivot Explorer</strong> to '
+                    . 'draw the collection.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::COLLECTION_VIEW_MATCH,
+                'anchor' => '[data-igw-page]',
+                'placement' => 'top',
+                'optional' => true,
+                'title' => __('Working in it'),
+                'body' => '<p>' . __('Your workspace draws every member, laid '
+                    . 'out the way you saved it, with a list beside the graph '
+                    . 'to sort, filter and tidy up. New members are placed for '
+                    . 'you.') . '</p><p>' . __('The workspace beside any page '
+                    . 'is this same view. A collection that is not your '
+                    . 'workspace opens with every member and an automatic '
+                    . 'layout.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::COLLECTION_VIEW_MATCH,
+                'anchor' => '[data-igw-bar-more]',
+                'placement' => 'bottom',
+                'optional' => true,
+                'title' => __('From findings to an event'),
+                'body' => '<p>' . __('Values and objects MISP does not hold '
+                    . 'yet are marked as such, and this menu makes an event of '
+                    . 'them. Select members instead to make an event of those, '
+                    . 'or to add them to one you may edit.') . '</p><p>'
+                    . __('What is copied is never '
+                    . 'shared wider than where it came from, and the new '
+                    . 'records take their place in the collection.') . '</p>',
+            ],
+        ];
+    }
+
+    private static function savedGraphSteps()
+    {
+        return [
             [
                 'page' => '/analystData/index/Graph',
                 'anchor' => '[data-tour="page-title"]',
                 'placement' => 'bottom',
                 'skipIf' => self::GRAPH_VIEW_MATCH,
-                'title' => __('All saved graphs'),
-                'body' => '<p>' . __('Saved graphs are analyst data, attached to a '
-                    . 'collection, an event or a galaxy cluster and shared '
-                    . 'like any other record.') . '</p><p>' . __('Each one '
-                    . 'also appears in a <strong>Saved graphs</strong> card on the '
-                    . 'record it belongs to, which is where new ones are '
-                    . 'started.') . '</p>',
+                'title' => __('Saved graphs'),
+                'body' => '<p>' . __('A saved graph is a picture you keep. '
+                    . 'You make it in a Pivot Explorer with <strong>Save as '
+                    . 'graph</strong>, and it stays on that event, galaxy '
+                    . 'cluster or collection, shared like any other '
+                    . 'record.') . '</p><p>' . __('Each record lists its own '
+                    . 'in its <strong>In investigations</strong> or '
+                    . '<strong>Saved graphs</strong> card; this page lists '
+                    . 'them all.') . '</p>',
             ],
             [
                 'page' => '/analystData/index/Graph',
@@ -2285,10 +2405,12 @@ class OnboardingTour
                 'waitingText' => __('Open a graph from the list to carry on, '
                     . 'or skip this part if there are none yet.'),
                 'title' => __('The canvas'),
-                'body' => '<p>' . __('The same canvas as the Pivot Explorer, '
-                    . 'but what you arrange here is kept: positions, nodes '
-                    . 'pulled in from a pivot, nodes removed and links '
-                    . 'hidden.') . '</p>',
+                'body' => '<p>' . __('A saved graph keeps its own nodes and '
+                    . 'changes only when someone saves it: positions, nodes '
+                    . 'kept from a pivot, nodes removed and links '
+                    . 'hidden.') . '</p><p>' . __('A graph of a collection '
+                    . 'that has grown since says how many members joined '
+                    . 'it.') . '</p>',
             ],
             [
                 'pageMatch' => self::GRAPH_VIEW_MATCH,
@@ -2308,10 +2430,10 @@ class OnboardingTour
                 'optional' => true,
                 'title' => __('Settings and forks'),
                 'body' => '<p>' . __('Rename a graph or change who can see it '
-                    . 'from its settings.') . '</p><p>' . __('A graph from '
-                    . 'another organisation is read-only: '
-                    . '<strong>Fork</strong> it to get a copy your '
-                    . 'organisation owns.') . '</p>',
+                    . 'from its settings. It starts shared like the record it '
+                    . 'is kept on.') . '</p><p>' . __('A graph from another '
+                    . 'organisation is read-only: <strong>Fork</strong> it to '
+                    . 'get a copy your organisation owns.') . '</p>',
             ],
         ];
     }

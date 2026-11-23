@@ -5,7 +5,7 @@
  */
 
 $this->set('headerTitle', __('Analyst Data'));
-$this->set('headerDescription', __('Notes, opinions, relationships and saved graphs enriching your MISP data. Pick a collection to explore.'));
+$this->set('headerDescription', __('Notes, opinions, relationships and saved graphs enriching your MISP data. Pick a kind to open its list.'));
 
 $types = [
     'Note' => [

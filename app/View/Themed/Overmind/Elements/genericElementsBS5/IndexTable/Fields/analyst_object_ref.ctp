@@ -12,7 +12,8 @@ App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
  *
  * $analystTargetExists (address => true), set by the controller, says which targets
  * this instance still holds. Without it every uuid is linked, as before.
- * $analystTargets (SHA-256 => description) holds the text of the values the user can see.
+ * $analystTargets (address => description) holds the text of the values the user can
+ * see, and the name of any other target the controller described.
  */
 $type = (string)Hash::get($row, $field['type_path'] ?? '');
 $isValue = in_array($type, AnalystData::SHA256_TARGETS, true);
@@ -23,7 +24,7 @@ if ($uuid === '') {
     return;
 }
 
-$described = $isValue ? ($analystTargets[strtolower($uuid)] ?? null) : null;
+$described = $analystTargets[$isValue ? strtolower($uuid) : $uuid] ?? null;
 $valueText = $described['value'] ?? null;
 if ($isValue) {
     $url = $valueText === null ? '' : $baseurl . '/values/view/' . ValueUrlTool::address($valueText);
@@ -44,11 +45,16 @@ $missingTitle = __(
 <div class="d-flex align-items-center gap-2 flex-wrap">
     <?php if ($type !== ''): ?>
         <span class="badge bg-secondary-subtle text-secondary-emphasis text-uppercase">
-            <?= h($isValue ? __('Value') : $type) ?>
+            <?= h($isValue ? __('Value') : Inflector::humanize(Inflector::underscore($type))) ?>
         </span>
     <?php endif; ?>
     <?php if ($resolves && $isValue): ?>
         <a class="text-decoration-none font-monospace small text-body-primary text-break"
+           href="<?= h($url) ?>" title="<?= h($uuid) ?>">
+            <?= h($described['label']) ?>
+        </a>
+    <?php elseif ($resolves && $described !== null && $described['label'] !== ''): ?>
+        <a class="text-decoration-none small text-body-primary text-break"
            href="<?= h($url) ?>" title="<?= h($uuid) ?>">
             <?= h($described['label']) ?>
         </a>

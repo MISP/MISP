@@ -1,6 +1,7 @@
 <?php
 
 $m = $modelSelection;
+$workspaceGraphUuid = $workspaceGraphUuid ?? null;
 $viewUrl = $baseurl . '/analystData/view/' . $m . '/%id%';
 $canEdit = function ($row) use ($m) {
     return !empty($row[$m]['_canEdit']);
@@ -93,13 +94,23 @@ if ($m === 'Note') {
         'sort' => $m . '.name',
         'element' => 'custom',
         // The graph's picture (intel-graph-thumbs.js) beside its name
-        'function' => function ($row) {
+        'function' => function ($row) use ($workspaceGraphUuid) {
+            $mark = '';
+            if (!empty($workspaceGraphUuid) && strtolower($row['Graph']['uuid']) === $workspaceGraphUuid) {
+                $mark = sprintf(
+                    ' <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-semibold ms-1" title="%s">'
+                    . '<i class="fas fa-bullseye me-1" aria-hidden="true"></i>%s</span>',
+                    h(__('It lays out your workspace')),
+                    h(__('Workspace'))
+                );
+            }
             return sprintf(
-                '<div class="igt-cell" data-tour="graph-row"><span data-intel-graph-thumb="%s" data-revision="%s" data-surface="index" data-name="%s"></span><span>%s</span></div>',
+                '<div class="igt-cell" data-tour="graph-row"><span data-intel-graph-thumb="%s" data-revision="%s" data-surface="index" data-name="%s"></span><span>%s%s</span></div>',
                 h($row['Graph']['uuid']),
                 h($row['Graph']['revision'] ?? ''),
                 h($row['Graph']['name']),
-                h($row['Graph']['name'])
+                h($row['Graph']['name']),
+                $mark
             );
         },
         'class' => 'idx-col-wrap',
@@ -234,7 +245,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'mode' => 'quickFilter',
-                        'placeholder' => __('Search %s…', strtolower($m)),
+                        'placeholder' => $m === 'Graph' ? __('Search saved graphs…') : __('Search %s…', strtolower($m)),
                     ],
                 ],
                 // The type is baked into the URL so deleteSelection knows which model to hit.
