@@ -18,13 +18,13 @@
         "geoip2/geoip2": "~2.0",
         "browscap/browscap-php": "^7.0",
         "matthiasmullie/scrapbook": ">=1.5.3",
-        "league/flysystem": ">=1.0",
+        "league/flysystem": "^3.35.3",
         "supervisorphp/supervisor": "^4.0",
-        "guzzlehttp/guzzle": "^7.4.5",
+        "guzzlehttp/guzzle": "^7.15.2",
         "lstrojny/fxmlrpc": "*",
         "php-http/message": "*",
         "php-http/message-factory": "*",
-        "league/commonmark": "^2.8",
+        "league/commonmark": "^2.10.2",
         "justinrainbow/json-schema": "^6.8"
     },
     "_comments": [
