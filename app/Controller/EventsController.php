@@ -8148,11 +8148,7 @@ class EventsController extends AppController
                 if ($temp['name'] == $module) {
                     $moduleFound = true;
                     $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
-                    if (isset($temp['meta']['config'])) {
-                        foreach ($temp['meta']['config'] as $conf) {
-                            $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
-                        }
-                    }
+                    $options = $this->Module->getModuleConfig($temp, $type, $this->Auth->user());
                     break;
                 }
             }
@@ -8420,10 +8416,9 @@ class EventsController extends AppController
                 'module' => $module['name'],
                 'event_id' => $eventId,
             );
-            if (isset($module['meta']['config'])) {
-                foreach ($module['meta']['config'] as $conf) {
-                    $modulePayload['config'][$conf] = Configure::read('Plugin.Import_' . $moduleName . '_' . $conf);
-                }
+            $config = $this->Module->getModuleConfig($module, 'Import', $this->Auth->user());
+            if (!empty($config)) {
+                $modulePayload['config'] = $config;
             }
             if ($moduleName === 'csvimport') {
                 if (empty($requestData['config']['header']) && $requestData['config']['has_header'] === '1') {

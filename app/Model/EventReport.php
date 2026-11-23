@@ -1274,10 +1274,9 @@ class EventReport extends AppModel
         if (!is_array($module)) {
             throw new MethodNotAllowedException('The requested module is not available.');
         }
-        if (isset($module['meta']['config'])) {
-            foreach ($module['meta']['config'] as $conf) {
-                $postData['config'][$conf] = Configure::read('Plugin.Enrichment_' . $moduleName . '_' . $conf);
-            }
+        $config = $mispModule->getModuleConfig($module, 'Enrichment', $user);
+        if (!empty($config)) {
+            $postData['config'] = $config;
         }
 
         $result = $mispModule->queryModuleServer($postData, false, 'Enrichment', false, [], true);
