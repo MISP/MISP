@@ -28,6 +28,7 @@ if (!function_exists('__')) {
 }
 require_once __DIR__ . '/../Lib/Tools/JsonTool.php';
 require_once __DIR__ . '/../Lib/Tools/BetterSecurity.php';
+require_once __DIR__ . '/../Lib/Tools/EncryptedValue.php';
 require_once __DIR__ . '/../Model/Module.php';
 require_once __DIR__ . '/../Model/UserSetting.php';
 

@@ -21,8 +21,10 @@ class PersonalModuleApiKeysTest extends TestCase
         require_once __DIR__ . '/PersonalModuleApiKeysStubs.php';
         Configure::write('MISP.disableUserSelfManagement', false);
         Configure::write('Security.encryption_key', null);
+        Configure::write('Plugin.Modules_allow_personal_credentials', true);
         $this->module = new PersonalKeysTestModule();
         $this->module->settings = [
+            'Plugin.Modules_allow_personal_credentials' => true,
             'Plugin.Enrichment_virustotal_apikey' => 'instance-key',
             'Plugin.Enrichment_virustotal_url' => 'https://configured.example',
             'Plugin.Enrichment_virustotal_limit' => 10,
@@ -45,6 +47,61 @@ class PersonalModuleApiKeysTest extends TestCase
         $other['name'] = 'other';
         $this->assertNull($this->module->getModuleConfig($other, 'Enrichment', ['id' => 1])['apikey']);
         $this->assertSame('instance-key', $this->module->settings['Plugin.Enrichment_virustotal_apikey']);
+    }
+
+    public function testDisabledInstanceIgnoresPersonalCredentials()
+    {
+        $this->module->settings['Plugin.Modules_allow_personal_credentials'] = false;
+        $this->assertSame('instance-key', $this->config(1)['apikey']);
+        $this->assertSame([], $this->module->lookups);
+
+        Configure::write('Plugin.Modules_allow_personal_credentials', false);
+        $setting = new PersonalKeysTestSetting();
+        $this->assertArrayNotHasKey('module_api_keys', $setting->settingPlaceholders(['id' => 1, 'Role' => []]));
+        $this->expectException(MethodNotAllowedException::class);
+        $setting->setSetting(['id' => 1, 'Role' => []], [
+            'UserSetting' => ['setting' => 'module_api_keys', 'value' => $this->module->credentials[1]],
+        ]);
+    }
+
+    public function testPersonalAccountIsNeverCompletedWithInstanceCredentials()
+    {
+        $listing = ['name' => 'lastline_query', 'meta' => ['config' => ['username', 'password', 'url']]];
+        $this->module->settings += [
+            'Plugin.Enrichment_lastline_query_username' => 'instance-account',
+            'Plugin.Enrichment_lastline_query_password' => 'instance-secret',
+            'Plugin.Enrichment_lastline_query_url' => 'https://configured.example',
+        ];
+        $this->module->credentials = [
+            1 => ['Enrichment' => ['lastline_query' => ['username' => 'alice-account']]],
+            2 => ['Enrichment' => ['lastline_query' => ['password' => 'bob-secret']]],
+            3 => ['Enrichment' => ['lastline_query' => ['username' => 'carol-account', 'password' => 'carol-secret']]],
+        ];
+        $config = function ($userId) use ($listing) {
+            return $this->module->getModuleConfig($listing, 'Enrichment', ['id' => $userId]);
+        };
+        // An account name alone must not be paired with the instance secret.
+        $this->assertSame(['username' => 'alice-account', 'password' => null, 'url' => 'https://configured.example'], $config(1));
+        $this->assertSame(['username' => null, 'password' => 'bob-secret', 'url' => 'https://configured.example'], $config(2));
+        $this->assertSame(['username' => 'carol-account', 'password' => 'carol-secret', 'url' => 'https://configured.example'], $config(3));
+        $this->assertSame(['username' => 'instance-account', 'password' => 'instance-secret', 'url' => 'https://configured.example'], $config(4));
+    }
+
+    public function testInstanceProxyAccountCannotBeOverridden()
+    {
+        $listing = ['name' => 'vysion', 'meta' => ['config' => ['apikey', 'proxy_username', 'proxy_password']]];
+        $this->module->settings += [
+            'Plugin.Enrichment_vysion_apikey' => 'instance-key',
+            'Plugin.Enrichment_vysion_proxy_username' => 'proxy-account',
+            'Plugin.Enrichment_vysion_proxy_password' => 'proxy-secret',
+        ];
+        $this->module->credentials[1] = ['Enrichment' => ['vysion' => [
+            'apikey' => 'alice-key', 'proxy_username' => 'alice', 'proxy_password' => 'alice-proxy',
+        ]]];
+        $this->assertSame(
+            ['apikey' => 'alice-key', 'proxy_username' => 'proxy-account', 'proxy_password' => 'proxy-secret'],
+            $this->module->getModuleConfig($listing, 'Enrichment', ['id' => 1])
+        );
     }
 
     public function testBlankAndNullCredentialsUseInstanceDefaultsButZeroIsAKey()
@@ -105,7 +162,15 @@ class PersonalModuleApiKeysTest extends TestCase
         $this->assertTrue(UserSetting::validate_module_api_keys(['Import' => ['test' => ['api_key' => null]]], []));
         foreach (['apikey', 'api_key', 'authkey', 'auth_key', 'api_token', 'virustotal_apikey', 'client_secret'] as $name) {
             $this->assertTrue(Module::isPersonalCredential($name));
+            $this->assertTrue(Module::isPersonalSecret($name));
         }
+        foreach (['username', 'client_id', 'api_id', 'socradar_username'] as $name) {
+            $this->assertTrue(Module::isPersonalCredential($name));
+            $this->assertTrue(Module::isPersonalIdentifier($name));
+            $this->assertFalse(Module::isPersonalSecret($name));
+        }
+        // Leaving a secret masked means "keep the saved one".
+        $this->assertTrue(UserSetting::validate_module_api_keys(['Export' => ['test' => ['apikey' => '*****']]], []));
     }
 
     public function testInvalidCredentialsAndControlsAreRejected()
@@ -114,36 +179,82 @@ class PersonalModuleApiKeysTest extends TestCase
             ['Enrichment' => ['bad.module' => []]], ['Enrichment' => ['module' => 'bad']]] as $value) {
             $this->assertFalse(UserSetting::validate_module_api_keys($value, []));
         }
-        foreach (['url', 'api_url', 'enabled', 'restrict', 'execution_timeout', 'timeout', 'apikey_url'] as $name) {
+        foreach (['url', 'api_url', 'enabled', 'restrict', 'execution_timeout', 'timeout', 'apikey_url',
+            'proxy_username', 'proxy_password', 'proxy_api_key'] as $name) {
+            $this->assertFalse(Module::isPersonalCredential($name), $name);
             $this->assertFalse(UserSetting::validate_module_api_keys(['Enrichment' => ['test' => [$name => 'bad']]], []));
         }
-        foreach ([true, 42, [], '*****'] as $value) {
+        foreach ([true, 42, [], ['encrypted' => 'smuggled']] as $value) {
             $this->assertFalse(UserSetting::validate_module_api_keys(['Export' => ['test' => ['apikey' => $value]]], []));
         }
+        // Account names are never masked, so a masked one cannot mean "keep".
+        $this->assertFalse(UserSetting::validate_module_api_keys(['Export' => ['test' => ['username' => '*****']]], []));
     }
 
     public function testStorageRoundTripWithAndWithoutEncryptionAndRedactedReads()
     {
+        $credentials = ['Enrichment' => [
+            'virustotal' => ['apikey' => 'alice-key'],
+            'lastline_query' => ['username' => 'alice-account', 'password' => 'alice-secret'],
+        ]];
+        $masked = ['Enrichment' => [
+            'virustotal' => ['apikey' => '*****'],
+            'lastline_query' => ['username' => 'alice-account', 'password' => '*****'],
+        ]];
         foreach ([null, str_repeat('K', 32)] as $key) {
             Configure::write('Security.encryption_key', $key);
             $setting = new PersonalKeysTestSetting();
-            $setting->data = ['UserSetting' => ['setting' => 'module_api_keys', 'value' => $this->module->credentials[1]]];
+            $setting->data = ['UserSetting' => ['setting' => 'module_api_keys', 'value' => $credentials]];
             $this->assertTrue($setting->beforeValidate());
             $this->assertTrue($setting->beforeSave());
             $raw = $setting->data['UserSetting']['value'];
             $this->assertTrue(JsonTool::isValid($raw));
+            // Account names are stored readable so they can be shown without the key.
+            $this->assertStringContainsString('alice-account', $raw);
             if ($key !== null) {
                 $this->assertStringNotContainsString('alice-key', $raw);
+                $this->assertStringNotContainsString('alice-secret', $raw);
             }
             $setting->rows[1] = ['UserSetting' => ['setting' => 'module_api_keys', 'value' => $raw]];
-            $this->assertSame($this->module->credentials[1], $setting->getModuleApiKeys(1));
+            $this->assertSame($credentials, $setting->getModuleApiKeys(1));
             $this->assertSame([], $setting->getModuleApiKeys(2));
             $this->assertFalse($setting->queries[0]['callbacks']);
             $this->assertSame(1, $setting->queries[0]['conditions']['UserSetting.user_id']);
-            $this->assertSame('*****', $setting->afterFind([$setting->rows[1]])[0]['UserSetting']['value']);
-            $this->assertSame('*****', $setting->afterFind([$setting->rows[1]['UserSetting']], false)[0]['value']);
-            $this->assertSame('*****', $setting->afterFind($setting->rows[1]['UserSetting'], false)['value']);
+            $this->assertSame($masked, $setting->afterFind([$setting->rows[1]])[0]['UserSetting']['value']);
+            $this->assertSame($masked, $setting->afterFind([$setting->rows[1]['UserSetting']], false)[0]['value']);
+            $this->assertSame($masked, $setting->afterFind($setting->rows[1]['UserSetting'], false)['value']);
         }
+    }
+
+    public function testMaskedSecretOnSaveKeepsTheSavedOne()
+    {
+        Configure::write('Security.encryption_key', str_repeat('K', 32));
+        $setting = new PersonalKeysTestSetting();
+        $setting->data = ['UserSetting' => ['user_id' => 1, 'setting' => 'module_api_keys', 'value' => [
+            'Enrichment' => ['lastline_query' => ['username' => 'alice-account', 'password' => 'alice-secret']],
+        ]]];
+        $setting->beforeValidate();
+        $this->assertTrue($setting->beforeSave());
+        $setting->rows[1] = ['UserSetting' => ['setting' => 'module_api_keys', 'value' => $setting->data['UserSetting']['value']]];
+
+        // Renaming the account as the settings form shows it, secret still masked.
+        $setting->data = ['UserSetting' => ['user_id' => 1, 'setting' => 'module_api_keys', 'value' => [
+            'Enrichment' => ['lastline_query' => ['username' => 'alice-renamed', 'password' => '*****']],
+        ]]];
+        $setting->beforeValidate();
+        $this->assertTrue($setting->beforeSave());
+        $setting->rows[1]['UserSetting']['value'] = $setting->data['UserSetting']['value'];
+        $this->assertSame(
+            ['Enrichment' => ['lastline_query' => ['username' => 'alice-renamed', 'password' => 'alice-secret']]],
+            $setting->getModuleApiKeys(1)
+        );
+
+        // Nothing saved to keep: the save is refused rather than storing the mask.
+        $setting->data = ['UserSetting' => ['user_id' => 2, 'setting' => 'module_api_keys', 'value' => [
+            'Enrichment' => ['lastline_query' => ['password' => '*****']],
+        ]]];
+        $setting->beforeValidate();
+        $this->assertFalse($setting->beforeSave());
     }
 
     public function testWrongEncryptionKeyFailsInsteadOfFallingBackToInstanceCredentials()
@@ -177,14 +288,19 @@ class PersonalModuleApiKeysTest extends TestCase
         $this->assertStringContainsString('alice-key', $setting->rows[1]['UserSetting']['value']);
     }
 
-    public function testOnlyOwnerCanReadOrDeleteThePersonalSetting()
+    public function testOwnerAndSiteAdminsCanReadOrDeleteThePersonalSetting()
     {
         $setting = new PersonalKeysTestSetting();
         $row = ['UserSetting' => ['setting' => 'module_api_keys', 'user_id' => '1']];
+        $siteAdmin = ['id' => 2, 'Role' => ['perm_site_admin' => true]];
         $this->assertTrue($setting->checkAccess(['id' => 1], $row));
-        $this->assertFalse($setting->checkAccess(['id' => 2, 'Role' => ['perm_site_admin' => true]], $row));
+        $this->assertTrue($setting->checkAccess($siteAdmin, $row));
+        $this->assertFalse($setting->checkAccess(['id' => 3, 'Role' => ['perm_site_admin' => false, 'perm_admin' => true]], $row));
+        $this->assertFalse($setting->checkAccess(['id' => 3, 'Role' => []], $row));
         Configure::write('MISP.disableUserSelfManagement', true);
         $this->assertFalse($setting->checkAccess(['id' => 1], $row));
+        // A site admin can still remove a key the owner no longer may.
+        $this->assertTrue($setting->checkAccess($siteAdmin, $row));
     }
 
     public function testAdminCannotWriteAnotherUsersPersonalCredentials()
