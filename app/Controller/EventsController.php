@@ -8416,7 +8416,10 @@ class EventsController extends AppController
                 'module' => $module['name'],
                 'event_id' => $eventId,
             );
-            $modulePayload['config'] = $this->Module->getModuleConfig($module, 'Import', $this->Auth->user());
+            $config = $this->Module->getModuleConfig($module, 'Import', $this->Auth->user());
+            if (!empty($config)) {
+                $modulePayload['config'] = $config;
+            }
             if ($moduleName === 'csvimport') {
                 if (empty($requestData['config']['header']) && $requestData['config']['has_header'] === '1') {
                     $requestData['config']['header'] = ' ';

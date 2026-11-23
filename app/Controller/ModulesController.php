@@ -32,7 +32,10 @@ class ModulesController extends AppController
         if ($module['name'] != $modname) {
             throw new MethodNotAllowedException('Module not found or not available.');
         }
-        $data['config'] = $this->Module->getModuleConfig($module, 'Enrichment', $this->Auth->user());
+        $config = $this->Module->getModuleConfig($module, 'Enrichment', $this->Auth->user());
+        if (!empty($config)) {
+            $data['config'] = $config;
+        }
 
         // Query
         $result = $this->Module->queryModuleServer($data, true);

@@ -9785,7 +9785,10 @@ class Event extends AppModel
             throw new NotFoundException('Invalid event.');
         }
         $modulePayload = array('module' => $module['name']);
-        $modulePayload['config'] = $this->Module->getModuleConfig($module, 'Export', $user);
+        $config = $this->Module->getModuleConfig($module, 'Export', $user);
+        if (!empty($config)) {
+            $modulePayload['config'] = $config;
+        }
         $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
             App::uses('JSONConverterTool', 'Tools');
