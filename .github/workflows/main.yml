@@ -491,10 +491,10 @@ jobs:
       - name: Audit PHP dependencies
         if: ${{ !cancelled() }}
         working-directory: app
-        run: |
+        env:
           # Two dependencies are abandoned upstream: list them, don't fail
-          composer config --no-plugins audit.abandoned report
-          composer audit --no-dev
+          COMPOSER_AUDIT_ABANDONED: report
+        run: composer audit --no-dev
 
       - name: System logs
         if: ${{ always() }}
