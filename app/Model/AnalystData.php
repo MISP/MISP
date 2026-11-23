@@ -634,7 +634,7 @@ class AnalystData extends AppModel
         $alias = $model->alias;
         if ($type === 'Event') {
             $conditions = $model->createEventConditions($user);
-        } elseif (in_array($type, self::ANALYST_DATA_TYPES, true)) {
+        } elseif (in_array($type, self::ANALYST_DATA_TYPES, true) || in_array($type, ['Collection', 'GalaxyCluster'], true)) {
             $conditions = $model->buildConditions($user);
         } else {
             $conditions = [];
@@ -692,6 +692,7 @@ class AnalystData extends AppModel
             'EventReport' => ['EventReport', ['name', 'event_id'], 'name'],
             'GalaxyCluster' => ['GalaxyCluster', ['value', 'type'], 'value'],
             'Galaxy' => ['Galaxy', ['name', 'type'], 'name'],
+            'Collection' => ['Collection', ['name'], 'name'],
             'Note' => ['Note', ['note', 'language'], 'note'],
             'Opinion' => ['Opinion', ['opinion', 'comment'], 'comment'],
             'Relationship' => ['Relationship', ['relationship_type', 'related_object_type'], 'relationship_type'],
