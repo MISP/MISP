@@ -1968,18 +1968,10 @@ class AppController extends Controller
         if (!isset($this->RestSearch->paramArray[$scope])) {
             throw new NotFoundException(__('RestSearch is not implemented (yet) for this scope.'));
         }
-        if ($scope === 'Object') {
-            $modelName = 'MispObject';
-        } else if ($scope === 'Attribute') {
-            $modelName = 'MispAttribute';
-        } else {
-            $modelName = $scope;
-        }
+        $modelName = $this->_restSearchModelName($scope);
         if (!isset($this->$modelName)) {
             $this->loadModel($modelName);
         }
-        /** @var AppModel $model */
-        $model = $this->$modelName;
 
         $filterData = array(
             'request' => $this->request,
@@ -2048,38 +2040,8 @@ class AppController extends Controller
         unset($filterData);
         $user = $this->_closeSession();
 
-        if (isset($filters['returnFormat'])) {
-            $returnFormat = $filters['returnFormat'];
-            if ($returnFormat === 'download') {
-                $returnFormat = 'json';
-            }
-        } else {
-            $returnFormat = 'json';
-        }
-        $elementCounter = 0;
-        $renderView = false;
-        $responseType = empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0];
-        // halt execution if we were to query for items above the ID. Blocks the endless caching bug
-        if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
-            if ($this->__cachingOverflow($filters, $modelName, $scope)) {
-                $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
-                return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
-                    'X-Result-Count' => 0,
-                    'X-Export-Module-Used' => $returnFormat,
-                    'X-Response-Format' => $responseType
-                ]);
-            }
-        }
-
-        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
-        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
-            $filters['limit'] = $roleLimit;
-        }
-
-        /** @var TmpFileTool $final */
-        $skippedElementsCounter = 0;
         try {
-            $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter, $complexQuery);
+            $run = $this->_runRestSearch($scope, $filters, $complexQuery, $user, $this->name);
         } catch (ComplexQueryException $e) {
             return $this->RestResponse->throwException(
                 400,
@@ -2091,17 +2053,104 @@ class AppController extends Controller
                 ['message' => __n('%s error', '%s errors', count($e->errors), count($e->errors)), 'errors' => $e->errors]
             );
         }
+        return $this->_restSearchResponse($scope, $run);
+    }
+
+    /**
+     * Runs a restSearch as $user, without reading the HTTP request.
+     *
+     * @param string $scope a key of RestSearchComponent::$paramArray
+     * @param array $filters
+     * @param array|null $complexQuery
+     * @param array $user
+     * @param string $limitController the controller name the role's REST
+     *   limit is divided for
+     * @return array filters (as run), result, count, skipped, renderView,
+     *   returnFormat, responseType and overflow
+     * @throws ComplexQueryException
+     */
+    protected function _runRestSearch($scope, array $filters, $complexQuery, array $user, $limitController)
+    {
+        $modelName = $this->_restSearchModelName($scope);
+        if (!isset($this->$modelName)) {
+            $this->loadModel($modelName);
+        }
+        /** @var AppModel $model */
+        $model = $this->$modelName;
+
+        if (isset($filters['returnFormat'])) {
+            $returnFormat = $filters['returnFormat'];
+            if ($returnFormat === 'download') {
+                $returnFormat = 'json';
+            }
+        } else {
+            $returnFormat = 'json';
+        }
+        $run = [
+            'filters' => $filters,
+            'result' => '',
+            'count' => 0,
+            'skipped' => 0,
+            'renderView' => false,
+            'returnFormat' => $returnFormat,
+            'responseType' => empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0],
+            'overflow' => false,
+        ];
+        // halt execution if we were to query for items above the ID. Blocks the endless caching bug
+        if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
+            if ($this->__cachingOverflow($filters, $modelName, $scope)) {
+                $run['overflow'] = true;
+                return $run;
+            }
+        }
+
+        $roleLimit = $this->User->getUserRestLimit($user, $limitController);
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+        $run['filters'] = $filters;
+
+        $elementCounter = 0;
+        $renderView = false;
+        $skippedElementsCounter = 0;
+        $run['result'] = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter, $complexQuery);
+        $run['count'] = $elementCounter;
+        $run['renderView'] = $renderView;
+        $run['skipped'] = $skippedElementsCounter;
+        return $run;
+    }
+
+    /**
+     * @param string $scope
+     * @param array $run the result of _runRestSearch()
+     * @return CakeResponse
+     */
+    protected function _restSearchResponse($scope, array $run)
+    {
+        $filters = $run['filters'];
+        $returnFormat = $run['returnFormat'];
+        $responseType = $run['responseType'];
+        if ($run['overflow']) {
+            $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
+            return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
+                'X-Result-Count' => 0,
+                'X-Export-Module-Used' => $returnFormat,
+                'X-Response-Format' => $responseType
+            ]);
+        }
+        /** @var TmpFileTool $final */
+        $final = $run['result'];
         $responseTypeMapping = [
             'json' => 'application/json',
             'html' => 'text/html',
             'text' => 'text/plain',
             'xml' => 'application/xml'
         ];
-        if ($renderView) {
+        if ($run['renderView']) {
             $this->layout = false;
             $final = JsonTool::decode($final->intoString());
             $this->set($final);
-            $this->render('/Events/module_views/' . $renderView);
+            $this->render('/Events/module_views/' . $run['renderView']);
             if (isset($responseTypeMapping[$responseType])) {
                 $this->response->type($responseTypeMapping[$responseType]);
             }
@@ -2112,14 +2161,28 @@ class AppController extends Controller
             }
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             $headers = [
-                'X-Result-Count' => $elementCounter,
+                'X-Result-Count' => $run['count'],
                 'X-Export-Module-Used' => $returnFormat,
                 'X-Response-Format' => $responseType,
-                'X-Skipped-Elements-Count' => $skippedElementsCounter,
+                'X-Skipped-Elements-Count' => $run['skipped'],
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"'
             ];
             return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
         }
+    }
+
+    /**
+     * @param string $scope
+     * @return string
+     */
+    protected function _restSearchModelName($scope)
+    {
+        if ($scope === 'Object') {
+            return 'MispObject';
+        } else if ($scope === 'Attribute') {
+            return 'MispAttribute';
+        }
+        return $scope;
     }
 
     /**
