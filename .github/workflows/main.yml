@@ -488,6 +488,14 @@ jobs:
       - name: Check requirements.txt
         run: python tests/check_requirements.py
 
+      - name: Audit PHP dependencies
+        if: ${{ !cancelled() }}
+        working-directory: app
+        run: |
+          # Two dependencies are abandoned upstream: list them, don't fail
+          composer config --no-plugins audit.abandoned report
+          composer audit --no-dev
+
       - name: System logs
         if: ${{ always() }}
         # update logs_test.sh when adding more logsources here
