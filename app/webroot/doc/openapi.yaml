@@ -660,6 +660,1908 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /collections/active:
+    get:
+      summary: "Get your active workspace"
+      operationId: getActiveCollectionWorkspace
+      tags:
+        - Collections
+      description: |
+        Returns the collection the calling user works in (their workspace) and the saved graph that lays it out.
+        Both are `null` when no workspace is set, or when the stored one is gone or can no longer be edited by the user.
+
+        Requires perm_modify.
+      responses:
+        "200":
+          description: "The workspace"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionWorkspace"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Set or end your active workspace"
+      operationId: setActiveCollectionWorkspace
+      tags:
+        - Collections
+      description: |
+        Makes a collection the calling user's workspace, or ends the workspace when `collection_uuid` is `null`.
+        Only a collection the user can edit may be a workspace. When `graph_uuid` is left out, the newest saved graph of the user's organisation on that collection lays it out;
+        when it is `null`, no graph does.
+
+        Answers 404 when the collection is not visible to the user, 403 when they cannot edit it and 400 when the graph is not one of their organisation's graphs on that collection.
+
+        Requires perm_modify.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - collection_uuid
+              properties:
+                collection_uuid:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: "UUID of the collection to work in, or `null` to end the workspace"
+                graph_uuid:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: "UUID of the saved graph that lays the workspace out; `null` for none. Omit to use the newest graph of your organisation on the collection"
+      responses:
+        "200":
+          description: "The workspace as it now stands"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionWorkspace"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/editable:
+    get:
+      summary: "List collections you may make your workspace"
+      operationId: getEditableCollections
+      tags:
+        - Collections
+      description: |
+        Lists the collections the calling user can edit and could therefore make their workspace, those they used most recently first.
+        By default these are the collections created by the user's organisation. `active` is the stored workspace choice, if any.
+
+        Requires perm_modify.
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          description: "`mine` keeps only the collections the user created themselves"
+          schema:
+            type: string
+            enum:
+              - mine
+      responses:
+        "200":
+          description: "The editable collections"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Collection:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                        - type: object
+                          properties:
+                            used:
+                              type: integer
+                              nullable: true
+                              description: "When the user last used it as a workspace (Unix time), or null"
+                  active:
+                    type: object
+                    nullable: true
+                    description: "The stored workspace choice"
+                    properties:
+                      collection_uuid:
+                        type: string
+                        format: uuid
+                      graph_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/quickAdd:
+    post:
+      summary: "Create a collection, optionally fill it and make it your workspace"
+      operationId: quickAddCollection
+      tags:
+        - Collections
+      description: |
+        Creates a collection in one request. Without `type` and `distribution` the collection is a `research` collection shared with the user's organisation only.
+
+        * `items` join the collection at once; `report` in the answer says what became of each of them, as `collection_elements/addItems` does. At most 2000 items.
+        * `workspace: true` makes the new collection the user's workspace.
+        * `graph` saves a first graph on the collection, shared as the collection is, and lays the workspace out with it. Needs the right to add analyst data.
+        * `copied_from` names a collection the user can see; the new collection gets a `copied-from` relationship to it. Needs the right to add analyst data.
+
+        Answers 400 for a missing name, invalid items or an invalid graph, 403 when `graph` or `copied_from` is sent without the right to add analyst data,
+        404 when `copied_from` is not visible, and 405 when the sharing group cannot be used.
+
+        Requires perm_modify.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  maxLength: 191
+                  example: "Phishing wave, March"
+                type:
+                  $ref: "#/components/schemas/CollectionType"
+                distribution:
+                  type: integer
+                  enum: [0, 1, 2, 3, 4]
+                  default: 0
+                  description: "0 Your organisation only, 1 This community only, 2 Connected communities, 3 All communities, 4 Sharing group"
+                sharing_group_id:
+                  $ref: "#/components/schemas/SharingGroupId"
+                description:
+                  $ref: "#/components/schemas/CollectionDescription"
+                workspace:
+                  type: boolean
+                  description: "Make the new collection your workspace"
+                items:
+                  type: array
+                  maxItems: 2000
+                  items:
+                    $ref: "#/components/schemas/CollectionItem"
+                graph:
+                  type: object
+                  description: "A first saved graph for the collection"
+                  required:
+                    - name
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    content:
+                      $ref: "#/components/schemas/SavedGraphDocument"
+                copied_from:
+                  type: string
+                  format: uuid
+                  description: "UUID of a visible collection the new one was copied from"
+      responses:
+        "200":
+          description: "The new collection"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Collection:
+                    $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                  Graph:
+                    allOf:
+                      - $ref: "#/components/schemas/SavedGraph"
+                    nullable: true
+                  copied_from:
+                    type: object
+                    nullable: true
+                    properties:
+                      uuid:
+                        type: string
+                        format: uuid
+                      name:
+                        type: string
+                  workspace:
+                    allOf:
+                      - $ref: "#/components/schemas/CollectionWorkspace"
+                    nullable: true
+                    description: "Set when `workspace` was true"
+                  report:
+                    type: object
+                    nullable: true
+                    description: "What became of each item; null when no items were sent"
+                    properties:
+                      added:
+                        type: array
+                        items:
+                          type: string
+                      present:
+                        type: array
+                        items:
+                          type: string
+                      refused:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CollectionItemRefusal"
+                      narrower:
+                        type: array
+                        items:
+                          type: string
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/indexMinimal:
+    post:
+      summary: "List the uuid and modification time of visible collections"
+      operationId: getCollectionsMinimal
+      tags:
+        - Collections
+      description: |
+        Answers `{uuid: modified}` for every collection the caller may see, as a synchronisation pull asks for them.
+        Send no body for every visible collection.
+
+        `published` follows the way events are pulled: `1` keeps the collections that are published or shared with the organisation only, `0` keeps those that are shared
+        and still wait for a publish. `orgc_name` keeps the collections created by the named organisations; prefix a name with `!` to leave that organisation out.
+
+        Open to any authenticated user; what is listed follows the caller's visibility.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orgc_name:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+                  description: "Creator organisation name, or a list of names; `!name` excludes one"
+                published:
+                  type: integer
+                  enum: [0, 1]
+                  description: "1: published or organisation-only collections. 0: shared collections waiting for a publish"
+      responses:
+        "200":
+          description: "Modification time keyed by collection UUID"
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                  description: "The collection's `modified` timestamp"
+                example:
+                  "5f1c2a9e-3b7d-4e0a-9d21-6c8e41a7b0f3": "2026-03-02 10:11:12"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/holding/{type}/{address}:
+    get:
+      summary: "List the collections that hold a record"
+      operationId: getCollectionsHoldingRecord
+      tags:
+        - Collections
+      description: |
+        Lists the collections the caller can see that hold the given record, each with `element.created` (when the record joined it),
+        and `active`, the UUID of the caller's workspace collection when they have the right to keep one.
+
+        The address is the UUID of the record, except for a `Value` where it is the SHA-256 of the value's text.
+        Answers 404 for a type or address that names no record.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - Event
+              - Attribute
+              - Object
+              - GalaxyCluster
+              - StandaloneObject
+              - Value
+        - name: address
+          in: path
+          required: true
+          description: "Record UUID, or the SHA-256 of the text for a `Value`"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The collections holding the record"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Collection:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                        - type: object
+                          properties:
+                            element:
+                              type: object
+                              properties:
+                                created:
+                                  type: string
+                                  nullable: true
+                                  description: "When the record joined the collection"
+                  active:
+                    type: string
+                    format: uuid
+                    nullable: true
+                    description: "UUID of the caller's workspace collection"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/getCollectionsForElement/{type}/{address}:
+    get:
+      summary: "List the collections holding one element"
+      operationId: getCollectionsForElement
+      tags:
+        - Collections
+      description: |
+        Lists the collections that contain one element, as short records. JSON only: a non-REST request is answered with 405.
+        Only the collections' own visibility applies.
+
+        The address is the element's UUID, or for an `AttributeValue` the SHA-256 of its text.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: "The stored element type"
+          schema:
+            $ref: "#/components/schemas/CollectionElementType"
+        - name: address
+          in: path
+          required: true
+          description: "Element UUID, or the SHA-256 for an `AttributeValue`"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The collections holding the element"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollectionShort"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/getCollectionsForElements/{type}:
+    post:
+      summary: "List the collections holding several elements"
+      operationId: getCollectionsForElements
+      tags:
+        - Collections
+      description: |
+        The batch form of `getCollectionsForElement` for elements of one type. The answer is keyed by element address and each entry lists the collections holding that element.
+        JSON only, POST only: anything else is answered with 405.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: "The stored element type"
+          schema:
+            $ref: "#/components/schemas/CollectionElementType"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - uuids
+              properties:
+                uuids:
+                  type: array
+                  description: "Element UUIDs, or SHA-256 hashes for `AttributeValue`"
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: "Collections keyed by element address; empty when no address was sent"
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/CollectionShort"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/publish/{collectionId}:
+    get:
+      summary: "Review what a publish would release"
+      operationId: getCollectionPublishReview
+      tags:
+        - Collections
+      description: |
+        Answers what publishing the collection releases to partners: members added and removed, graphs saved on it and relationships drawn between its members since it was last published.
+        Each list holds `count` and a bounded list of `items`.
+
+        Answers 400 for a collection shared with the organisation only (there is nothing to publish), 403 without the right to publish and edit it, 404 when it is not visible.
+
+        Requires perm_modify and perm_publish.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      responses:
+        "200":
+          description: "The publish review"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Collection:
+                    $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                  review:
+                    $ref: "#/components/schemas/CollectionPublishReview"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Publish a collection"
+      operationId: publishCollection
+      tags:
+        - Collections
+      description: |
+        Releases the collection to partners: they receive it, its members, graphs and links on the next synchronisation.
+        Optionally records how far the investigation went. PUT is accepted as well as POST.
+
+        Answers 400 for a collection shared with the organisation only or for an invalid `analysis`, 403 without the right to publish and edit it, 404 when it is not visible.
+
+        Requires perm_modify and perm_publish.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                analysis:
+                  $ref: "#/components/schemas/CollectionAnalysisLevel"
+      responses:
+        "200":
+          description: "The collection as published"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Collection:
+                    $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/unpublish/{collectionId}:
+    post:
+      summary: "Unpublish a collection"
+      operationId: unpublishCollection
+      tags:
+        - Collections
+      description: |
+        Withdraws the collection from partners until it is published again; partners keep the version they last received. PUT is accepted as well as POST.
+
+        Answers 400 for a collection shared with the organisation only, 403 without the right to publish and edit it, 404 when it is not visible.
+
+        Requires perm_modify and perm_publish.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      responses:
+        "200":
+          description: "The collection as it now stands"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Collection:
+                    $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/analysis/{collectionId}:
+    post:
+      summary: "Set how far the investigation went"
+      operationId: setCollectionAnalysis
+      tags:
+        - Collections
+      description: |
+        Records the analysis level of a collection: 0 Initial, 1 Ongoing, 2 Completed. PUT is accepted as well as POST.
+
+        Answers 400 for a missing or invalid level, 403 when the user cannot edit the collection, 404 when it is not visible.
+
+        Requires perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - analysis
+              properties:
+                analysis:
+                  $ref: "#/components/schemas/CollectionAnalysisLevel"
+      responses:
+        "200":
+          description: "The collection as it now stands"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Collection:
+                    $ref: "#/components/schemas/CollectionWorkspaceSummary"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collections/shareAlong/{collectionId}:
+    get:
+      summary: "Preview what goes along when a collection is shared wider"
+      operationId: getCollectionShareAlong
+      tags:
+        - Collections
+      description: |
+        Lists what would go along with the collection if it were shared as asked: the graphs of its organisation on it and the relationships between its members
+        that currently reach fewer recipients than the collection would.
+
+        Answers 400 for a `distribution` other than 0 to 4, 403 when the user cannot edit the collection, 404 when it is not visible.
+
+        Requires perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+        - name: distribution
+          in: query
+          required: true
+          schema:
+            type: integer
+            enum: [0, 1, 2, 3, 4]
+        - name: sharing_group_id
+          in: query
+          required: false
+          description: "Used when `distribution` is 4"
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "What would go along"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  graphs:
+                    $ref: "#/components/schemas/CollectionCountedList"
+                  relationships:
+                    $ref: "#/components/schemas/CollectionCountedList"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/addItems/{collectionId}:
+    post:
+      summary: "Add records to a collection"
+      operationId: addCollectionItems
+      tags:
+        - Collections
+      description: |
+        Adds up to 2000 records to a collection in one request. Each item is named as described by the `CollectionItem` schema. The answer reports every item by its `Type:address` key as
+        `added`, `present` (already held) or `refused`.
+
+        Answers 400 for a missing or oversized `items` list, 403 when the user cannot edit the collection, 404 when it is not visible.
+
+        Requires perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 2000
+                  items:
+                    $ref: "#/components/schemas/CollectionItem"
+                description:
+                  type: string
+                  description: "Why the records are held"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionItemsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/removeItems/{collectionId}:
+    post:
+      summary: "Take records out of a collection"
+      operationId: removeCollectionItems
+      tags:
+        - Collections
+      description: |
+        Removes up to 2000 records from a collection. Items are named as for `addItems`, or by the `Type:address` keys the answers report.
+        The answer lists the keys `removed` and `absent` (not held) and the items `refused`.
+
+        Requires perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 2000
+                  items:
+                    $ref: "#/components/schemas/CollectionItem"
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionItemsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/describe/{collectionId}:
+    post:
+      summary: "Say why a collection holds a record"
+      operationId: describeCollectionItem
+      tags:
+        - Collections
+      description: |
+        Sets the one-line reason a collection holds a record. Whitespace is collapsed; an empty description clears it.
+
+        Answers 400 for an invalid item or a description over 255 characters, 404 when the collection does not hold the record.
+
+        Requires perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - item
+                - description
+              properties:
+                item:
+                  $ref: "#/components/schemas/CollectionItem"
+                description:
+                  type: string
+                  maxLength: 255
+      responses:
+        "200":
+          $ref: "#/components/responses/CollectionItemsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/contains/{collectionId}:
+    post:
+      summary: "Check which records a collection holds"
+      operationId: checkCollectionContains
+      tags:
+        - Collections
+      description: |
+        Answers which of the given records the collection holds. Changes nothing. A record the user cannot read is answered absent.
+
+        Requires perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 2000
+                  items:
+                    $ref: "#/components/schemas/CollectionItem"
+      responses:
+        "200":
+          description: "The records held and not held"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  collection_uuid:
+                    type: string
+                    format: uuid
+                  present:
+                    type: array
+                    items:
+                      type: string
+                  absent:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/eventPlan/{collectionId}:
+    post:
+      summary: "Plan an event from a selection of a collection"
+      operationId: planCollectionEvent
+      tags:
+        - Collections
+      description: |
+        Answers what a selection of the collection would become in an event, without creating anything. Name an existing event with `event_id` (one the user can modify),
+        or give the `distribution` and `sharing_group_id` of a new event, in which case the answer also carries `form`: the choices and defaults a new event form offers.
+        At most 500 items.
+
+        Answers 400 for an invalid selection or distribution, 403 when the user cannot edit the collection or the event, 404 for an unknown event.
+
+        Requires perm_add and perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items:
+                    $ref: "#/components/schemas/CollectionItem"
+                event_id:
+                  type: string
+                  description: "Id or UUID of an existing event to add to"
+                distribution:
+                  type: integer
+                  enum: [0, 1, 2, 3, 4]
+                  description: "Distribution of a new event; defaults to the instance default"
+                sharing_group_id:
+                  $ref: "#/components/schemas/SharingGroupId"
+      responses:
+        "200":
+          description: "The plan"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionEventPlan"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/toEvent/{collectionId}:
+    post:
+      summary: "Make an event of a selection of a collection"
+      operationId: collectionToEvent
+      tags:
+        - Collections
+      description: |
+        Creates an event from a selection of the collection, or adds the selection to an existing event (`event_id`, one the user can modify). At most 500 items.
+        A value or object MISP does not hold becomes an attribute or object of the event and takes its member's place in the collection and on `graph`;
+        an attribute or object from another event is copied, never shared wider than its source; a cluster tags the event; an event is linked.
+        Each item may carry `attribute_type`, `category`, `to_ids` and `comment` for what it becomes.
+
+        Answers 400 with `{errors: {field: message}}` when the new event's fields are invalid or nothing could be made, 403 when the user cannot edit the collection or the event,
+        404 for an unknown event.
+
+        Requires perm_add and perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items:
+                    $ref: "#/components/schemas/CollectionItem"
+                event_id:
+                  type: string
+                  description: "Id or UUID of an existing event to add to; leave out to create a new event from `event`"
+                event:
+                  type: object
+                  description: "Fields of the new event"
+                  properties:
+                    info:
+                      type: string
+                    date:
+                      type: string
+                      format: date
+                    distribution:
+                      type: integer
+                      enum: [0, 1, 2, 3, 4]
+                    sharing_group_id:
+                      $ref: "#/components/schemas/SharingGroupId"
+                    threat_level_id:
+                      type: integer
+                    analysis:
+                      type: integer
+                graph:
+                  type: string
+                  format: uuid
+                  description: "UUID of the collection's workspace graph on which what is made is drawn"
+      responses:
+        "200":
+          description: "The event and what became of the selection"
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                properties:
+                  collection_uuid:
+                    type: string
+                    format: uuid
+                  element_count:
+                    type: integer
+                  Collection:
+                    $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                  event:
+                    type: object
+                    additionalProperties: true
+                    description: "The event, with its `id` and `url`"
+                  created:
+                    type: object
+                    additionalProperties: true
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  replaced:
+                    type: object
+                    additionalProperties: true
+                  graph:
+                    type: object
+                    nullable: true
+                    additionalProperties: true
+                  counts:
+                    type: object
+                    additionalProperties: true
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/eventChoices/{collectionId}:
+    get:
+      summary: "List events a selection may go into"
+      operationId: getCollectionEventChoices
+      tags:
+        - Collections
+      description: |
+        Lists the events the user may modify that a selection of the collection could go into: `tied`, those the collection holds, then `found`, the newest or those matching `q`.
+
+        Requires perm_add and perm_modify.
+      parameters:
+        - $ref: "#/components/parameters/collectionIdParameter"
+        - name: q
+          in: query
+          required: false
+          description: "An event id, a UUID or words of the info; at most 255 characters"
+          schema:
+            type: string
+            maxLength: 255
+      responses:
+        "200":
+          description: "The candidate events"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  collection_uuid:
+                    type: string
+                    format: uuid
+                  tied:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  found:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/index/{collectionId}:
+    get:
+      summary: "List the elements of a collection"
+      operationId: getCollectionElements
+      tags:
+        - Collections
+      description: |
+        Lists the elements of a collection, paginated. Open to any user who can see the collection; otherwise 404.
+        Use the usual index filters `uuid`, `type` and `name`.
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          description: "Numeric ID of the collection"
+          schema:
+            $ref: "#/components/schemas/CollectionId"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: "The collection's elements"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionElementWrappedList"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/add/{collectionId}:
+    post:
+      summary: "Add one element to a collection"
+      operationId: addCollectionElement
+      tags:
+        - Collections
+      description: |
+        Adds one element to a collection by type and address. For an `AttributeValue`, send `element_sha256`, or `value` with the text.
+        Answers 405 when the user may not modify the collection.
+
+        Requires perm_modify.
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          description: "Numeric ID of the collection"
+          schema:
+            $ref: "#/components/schemas/CollectionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionElement"
+      responses:
+        "200":
+          description: "The element added"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  CollectionElement:
+                    $ref: "#/components/schemas/CollectionElement"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/addElementToCollection/{type}/{address}:
+    post:
+      summary: "Add one record to a collection of your organisation"
+      operationId: addElementToCollection
+      tags:
+        - Collections
+      description: |
+        Adds the record named in the path to a collection created by the user's organisation. For an `AttributeValue` the address is the SHA-256 of the text; for every other type it is the UUID.
+        The address may also be sent in the body, under the type's address field, as a list to add several records at once.
+        Answers 404 for an unknown type, a missing `collection_id` or a collection the user cannot modify.
+
+        Requires perm_modify.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/CollectionElementType"
+        - name: address
+          in: path
+          required: true
+          description: "Record UUID, or the SHA-256 for an `AttributeValue`"
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - collection_id
+              properties:
+                collection_id:
+                  $ref: "#/components/schemas/CollectionId"
+                description:
+                  $ref: "#/components/schemas/CollectionElementDescription"
+      responses:
+        "200":
+          description: "The record was added (or was already in the collection)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved:
+                    type: boolean
+                  success:
+                    type: boolean
+                  name:
+                    type: string
+                  message:
+                    type: string
+                  url:
+                    type: string
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /collection_elements/delete/{elementId}:
+    post:
+      summary: "Delete one collection element"
+      operationId: deleteCollectionElement
+      tags:
+        - Collections
+      description: |
+        Deletes one element from the collection it belongs to. Answers 405 when the user may not modify that collection.
+
+        Requires perm_modify.
+      parameters:
+        - name: elementId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/CollectionElementId"
+      responses:
+        "200":
+          description: "The element was deleted"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved:
+                    type: boolean
+                  success:
+                    type: boolean
+                  name:
+                    type: string
+                  message:
+                    type: string
+                  url:
+                    type: string
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/forTarget/{type}/{uuid}:
+    get:
+      summary: "List the saved graphs kept on a record"
+      operationId: getSavedGraphsForTarget
+      tags:
+        - Analyst Data
+      description: |
+        Lists the saved graphs the user can read that are kept on one record, newest first (at most 100), without their documents.
+        `pick` is the graph a card opens on and `active` is the UUID of the graph laying out the user's workspace.
+        Answers 404 for a type other than Collection, Event or GalaxyCluster, or for a malformed UUID.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphTargetTypeParameter"
+        - name: uuid
+          in: path
+          required: true
+          description: "UUID of the record"
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: "The graphs"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Graph:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SavedGraph"
+                  pick:
+                    type: object
+                    nullable: true
+                    additionalProperties: true
+                  active:
+                    type: string
+                    format: uuid
+                    nullable: true
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/editable:
+    get:
+      summary: "List the saved graphs you may edit"
+      operationId: getEditableSavedGraphs
+      tags:
+        - Analyst Data
+      description: |
+        Lists the graphs of the user's organisation that the user may edit, newest first, without their documents.
+        `active` is the UUID of the graph laying out the user's workspace.
+
+        Requires perm_add and perm_analyst_data.
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          description: "`mine` keeps only the graphs the user authored"
+          schema:
+            type: string
+            enum:
+              - mine
+      responses:
+        "200":
+          description: "The graphs"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Graph:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SavedGraph"
+                  active:
+                    type: string
+                    format: uuid
+                    nullable: true
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/data/{uuid}:
+    get:
+      summary: "Get a saved graph with the records it draws"
+      operationId: getSavedGraphData
+      tags:
+        - Analyst Data
+      description: |
+        Answers a graph as the user sees it: its summary, its document (only the nodes the user may read), the records of those nodes and the edges between them.
+        For a graph kept on a collection, `meta.joined_since` counts the members that joined after the graph was last saved.
+        Answers 404 when the graph does not exist or is not visible.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphUuidParameter"
+      responses:
+        "200":
+          description: "The graph and what it draws"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedGraphData"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/working/{collectionUuid}:
+    get:
+      summary: "Get a collection as the working view draws it"
+      operationId: getCollectionWorkingGraph
+      tags:
+        - Analyst Data
+      description: |
+        Answers a collection as the workspace draws it: the nodes of the graph that lays it out (`graph`), then every member of the collection the graph lacks, shaped as `data` shapes a graph.
+        Without `graph`, `Graph` stands in for one that cannot be saved (`uuid` null). `working` marks each node as a `member` or an `extra` of the collection.
+        Answers 404 when the collection is not visible or the graph is not one on this collection.
+      parameters:
+        - name: collectionUuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: graph
+          in: query
+          required: false
+          description: "UUID of a saved graph on this collection"
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: "The collection as a graph"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SavedGraphData"
+                  - type: object
+                    properties:
+                      Collection:
+                        $ref: "#/components/schemas/CollectionWorkspaceSummary"
+                      working:
+                        type: object
+                        additionalProperties: true
+                        description: "Node key to `{role: member|extra, placed?, missing?, origin?, element?, item?}`"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/edges:
+    post:
+      summary: "Get the edges MISP holds between graph nodes"
+      operationId: getSavedGraphEdges
+      tags:
+        - Analyst Data
+      description: |
+        Answers the edges MISP holds between the nodes of a canvas, as a graph of them would draw them once saved. Read-only.
+        Answers 400 when `nodes` is missing or a node is invalid.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nodes
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/SavedGraphNode"
+      responses:
+        "200":
+          description: "The edges between the nodes"
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/thumbnail/{uuid}:
+    get:
+      summary: "Get what a thumbnail of a saved graph draws"
+      operationId: getSavedGraphThumbnail
+      tags:
+        - Analyst Data
+      description: |
+        Answers the first nodes the user may read, each at its saved position when it has one, and the edges between them. Read-only.
+        Answers 404 when the graph does not exist or is not visible.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphUuidParameter"
+      responses:
+        "200":
+          description: "The thumbnail drawing"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                    format: uuid
+                  revision:
+                    type: integer
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                        type:
+                          type: string
+                        x:
+                          type: number
+                        y:
+                          type: number
+                        pinned:
+                          type: boolean
+                  edges:
+                    type: array
+                    description: "Triples of node index, node index and edge kind"
+                    items:
+                      type: array
+                      items: {}
+                  total:
+                    type: integer
+                    description: "Every node the user may read"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/save/{uuid}:
+    post:
+      summary: "Replace the document of a saved graph"
+      operationId: saveSavedGraph
+      tags:
+        - Analyst Data
+      description: |
+        Replaces the graph's document, unless the graph was saved since the `revision` the client started from, in which case the answer is 409 with the current `revision`.
+        PUT is accepted as well as POST. Only the organisation that created the graph can change it (403 otherwise; fork it instead).
+
+        Requires perm_add and perm_analyst_data.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphUuidParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - revision
+                - content
+              properties:
+                revision:
+                  type: integer
+                  description: "The revision the client loaded"
+                content:
+                  $ref: "#/components/schemas/SavedGraphDocument"
+      responses:
+        "200":
+          $ref: "#/components/responses/SavedGraphWriteResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        "409":
+          $ref: "#/components/responses/SavedGraphConflictResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/addNodes/{uuid}:
+    post:
+      summary: "Add records to a saved graph"
+      operationId: addSavedGraphNodes
+      tags:
+        - Analyst Data
+      description: |
+        Adds records to the stored document without the client loading it. Up to 2000 items. The answer lists the node keys `added` and those skipped.
+
+        Requires perm_add and perm_analyst_data, and that the user's organisation created the graph.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphUuidParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 2000
+                  items:
+                    $ref: "#/components/schemas/SavedGraphNode"
+      responses:
+        "200":
+          $ref: "#/components/responses/SavedGraphWriteResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        "409":
+          $ref: "#/components/responses/SavedGraphConflictResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/hideNodes/{uuid}:
+    post:
+      summary: "Hide or show nodes of a saved graph"
+      operationId: hideSavedGraphNodes
+      tags:
+        - Analyst Data
+      description: |
+        Hides nodes of the graph, or shows them again with `hidden: false`. A hidden node keeps its place in the document. The answer lists the node keys `changed`.
+
+        Requires perm_add and perm_analyst_data, and that the user's organisation created the graph.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphUuidParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 2000
+                  items:
+                    $ref: "#/components/schemas/SavedGraphNode"
+                hidden:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          $ref: "#/components/responses/SavedGraphWriteResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        "409":
+          $ref: "#/components/responses/SavedGraphConflictResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/removeNodes/{uuid}:
+    post:
+      summary: "Remove records from a saved graph"
+      operationId: removeSavedGraphNodes
+      tags:
+        - Analyst Data
+      description: |
+        Removes records from the stored document. The answer lists the node keys `removed`.
+
+        Requires perm_add and perm_analyst_data, and that the user's organisation created the graph.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphUuidParameter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 2000
+                  items:
+                    $ref: "#/components/schemas/SavedGraphNode"
+      responses:
+        "200":
+          $ref: "#/components/responses/SavedGraphWriteResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        "409":
+          $ref: "#/components/responses/SavedGraphConflictResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/fork/{uuid}:
+    post:
+      summary: "Copy a saved graph for your organisation"
+      operationId: forkSavedGraph
+      tags:
+        - Analyst Data
+      description: |
+        Copies a graph the user can read into a new graph owned by the user's organisation, holding the nodes the user can read. By default the copy stays on the original's target;
+        give `target` to fork it onto another record.
+
+        Requires perm_add and perm_analyst_data.
+      parameters:
+        - $ref: "#/components/parameters/savedGraphUuidParameter"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Name of the copy; defaults to the original's name"
+                target:
+                  type: object
+                  description: "Another record to keep the copy on"
+                  properties:
+                    type:
+                      $ref: "#/components/schemas/SavedGraphTargetType"
+                    uuid:
+                      type: string
+                      format: uuid
+      responses:
+        "200":
+          description: "The new graph, with its document"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Graph:
+                    allOf:
+                      - $ref: "#/components/schemas/SavedGraph"
+                      - type: object
+                        properties:
+                          content:
+                            $ref: "#/components/schemas/SavedGraphDocument"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/export/{ref}:
+    get:
+      summary: "Export saved graphs as a file"
+      operationId: exportSavedGraph
+      tags:
+        - Analyst Data
+      description: |
+        Downloads a graph as a JSON file to import elsewhere, holding only the nodes the user may read. Give the UUID of one graph, or a JSON list of graph ids (at most 100)
+        to export several as a list.
+        Answers 400 for something that is neither, 404 when no graph is visible.
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          description: "A graph UUID, or a JSON list of numeric graph ids such as `[12,14]`"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "The exported graph, or a list of them, as a file"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      Graph:
+                        $ref: "#/components/schemas/SavedGraphExport"
+                  - type: array
+                    items:
+                      type: object
+                      properties:
+                        Graph:
+                          $ref: "#/components/schemas/SavedGraphExport"
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /analyst_graphs/import:
+    post:
+      summary: "Import saved graphs from an export"
+      operationId: importSavedGraphs
+      tags:
+        - Analyst Data
+      description: |
+        Imports up to 100 graphs from an export, owned by the user's organisation. Each keeps its UUID; a graph this instance already holds or has blocklisted is reported in `failed`.
+        The body is an export as `export` answers it (one graph, or a list), or `{graphs: [...], target, distribution, sharing_group_id}`.
+        Use `target` to put every graph on another record, and `distribution` (0 to 4) with `sharing_group_id` to set how they are shared.
+        A graph that names no target and is given none is reported in `failed`.
+
+        Answers 400 for something that is not a graph export, an invalid target or an unusable sharing group.
+
+        Requires perm_add and perm_analyst_data.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required:
+                    - graphs
+                  properties:
+                    graphs:
+                      type: array
+                      maxItems: 100
+                      items:
+                        type: object
+                        properties:
+                          Graph:
+                            $ref: "#/components/schemas/SavedGraphExport"
+                    target:
+                      type: object
+                      properties:
+                        type:
+                          $ref: "#/components/schemas/SavedGraphTargetType"
+                        uuid:
+                          type: string
+                          format: uuid
+                    distribution:
+                      type: integer
+                      enum: [0, 1, 2, 3, 4]
+                    sharing_group_id:
+                      $ref: "#/components/schemas/SharingGroupId"
+                - type: object
+                  description: "One exported graph, as `export` answers it"
+                  properties:
+                    Graph:
+                      $ref: "#/components/schemas/SavedGraphExport"
+                - type: array
+                  maxItems: 100
+                  description: "A list of exported graphs"
+                  items:
+                    type: object
+                    properties:
+                      Graph:
+                        $ref: "#/components/schemas/SavedGraphExport"
+      responses:
+        "200":
+          description: "What was imported and what was refused"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SavedGraph"
+                  failed:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                        name:
+                          type: string
+                        errors:
+                          type: object
+                          additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequestApiErrorResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /eventReports/view/{eventReportId}:
     get:
       summary: "Get event report by ID"
@@ -7348,6 +9250,426 @@ components:
       items:
         $ref: "#/components/schemas/CollectionElement"
 
+    CollectionElementWrappedList:
+      type: array
+      items:
+        type: object
+        properties:
+          CollectionElement:
+            $ref: "#/components/schemas/CollectionElement"
+
+    CollectionElementType:
+      type: string
+      description: "The type of a collection element as stored. An `AttributeValue` is addressed by the SHA-256 of its text, every other type by its UUID"
+      enum:
+        - Event
+        - GalaxyCluster
+        - Attribute
+        - Object
+        - AttributeValue
+        - StandaloneObject
+
+    CollectionAnalysisLevel:
+      type: integer
+      enum: [0, 1, 2]
+      description: "How far the investigation went: 0 Initial, 1 Ongoing, 2 Completed"
+
+    CollectionShort:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/CollectionId"
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/CollectionType"
+        description:
+          type: string
+
+    CollectionWorkspaceSummary:
+      type: object
+      description: "A collection as the workspace chooser and the navbar chip show it"
+      properties:
+        id:
+          type: integer
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/CollectionType"
+        distribution:
+          type: integer
+          enum: [0, 1, 2, 3, 4]
+        sharing_group_id:
+          type: integer
+          nullable: true
+        sharing_group:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        modified:
+          type: string
+        Orgc:
+          type: object
+          properties:
+            id:
+              type: integer
+            uuid:
+              type: string
+              nullable: true
+            name:
+              type: string
+              nullable: true
+        element_count:
+          type: integer
+        published:
+          type: boolean
+        last_published:
+          type: string
+          nullable: true
+        analysis:
+          $ref: "#/components/schemas/CollectionAnalysisLevel"
+        withheld:
+          type: boolean
+          description: "Shared, and waiting for a publish"
+        changes:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: "What waits for a publish, as `{added, removed}`; set on a withheld collection only"
+        _canEdit:
+          type: boolean
+        _canPublish:
+          type: boolean
+
+    CollectionWorkspace:
+      type: object
+      properties:
+        Collection:
+          allOf:
+            - $ref: "#/components/schemas/CollectionWorkspaceSummary"
+          nullable: true
+        Graph:
+          allOf:
+            - $ref: "#/components/schemas/SavedGraph"
+          nullable: true
+
+    CollectionItem:
+      description: >
+        A record a collection holds, named in one of these ways:
+        `{type: Event|Attribute|Object|GalaxyCluster|StandaloneObject, uuid}`;
+        `{type: Value, value}` or `{type: Value, sha256}`;
+        `{type: StandaloneObject, module, content}` for an object a module answered;
+        `{type: StandaloneObject, template, attributes, comment}` for an object made from a template;
+        or a `"Type:address"` string key as the answers report them.
+        A value or an answer may add `origin`.
+      oneOf:
+        - type: object
+          required:
+            - type
+          additionalProperties: true
+          properties:
+            type:
+              type: string
+              enum:
+                - Event
+                - Attribute
+                - Object
+                - GalaxyCluster
+                - StandaloneObject
+                - Value
+            uuid:
+              type: string
+              format: uuid
+            value:
+              type: string
+              description: "Text of a `Value`"
+            sha256:
+              type: string
+              description: "SHA-256 of the text of a `Value`"
+            module:
+              type: string
+            content:
+              type: object
+              additionalProperties: true
+            template:
+              type: string
+              description: "UUID or id of an object template"
+            attributes:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            comment:
+              type: string
+            origin:
+              $ref: "#/components/schemas/CollectionItemOrigin"
+        - type: string
+          description: "A `Type:address` key"
+          example: "Event:5f1c2a9e-3b7d-4e0a-9d21-6c8e41a7b0f4"
+
+    CollectionItemOrigin:
+      type: object
+      description: "Where a value or an answer came from"
+      properties:
+        module:
+          type: string
+        type:
+          type: string
+        value:
+          type: string
+        ran_at:
+          type: string
+
+    CollectionItemRefusal:
+      type: object
+      properties:
+        index:
+          type: integer
+        key:
+          type: string
+          nullable: true
+        error:
+          type: string
+
+    CollectionCountedList:
+      type: object
+      properties:
+        count:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    CollectionPublishReview:
+      type: object
+      description: "What a publish releases since the collection was last published"
+      properties:
+        added:
+          $ref: "#/components/schemas/CollectionCountedList"
+        removed:
+          $ref: "#/components/schemas/CollectionCountedList"
+        graphs:
+          $ref: "#/components/schemas/CollectionCountedList"
+        relationships:
+          $ref: "#/components/schemas/CollectionCountedList"
+
+    CollectionEventPlan:
+      type: object
+      additionalProperties: true
+      properties:
+        collection_uuid:
+          type: string
+          format: uuid
+        target:
+          type: object
+          additionalProperties: true
+          description: "The event the selection would go into, or the settings of the new one"
+        rows:
+          type: array
+          description: "What each item would become"
+          items:
+            type: object
+            additionalProperties: true
+        type_info:
+          type: object
+          additionalProperties: true
+        narrower:
+          type: array
+          items:
+            type: string
+        counts:
+          type: object
+          additionalProperties: true
+        form:
+          type: object
+          additionalProperties: true
+          description: "For a new event only: the defaults, distributions, sharing groups, threat levels and analysis levels its form offers"
+
+    SavedGraphTargetType:
+      type: string
+      description: "The kind of record a saved graph is kept on"
+      enum:
+        - Collection
+        - Event
+        - GalaxyCluster
+
+    SavedGraphNode:
+      type: object
+      description: "A record drawn in a graph, as `{type, uuid}` or `{type: Value, value}`; a stored node may also carry layout keys such as `x`, `y`, `pinned`, `collapsed` and `hidden`"
+      required:
+        - type
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+        uuid:
+          type: string
+        value:
+          type: string
+        x:
+          type: number
+        y:
+          type: number
+        pinned:
+          type: boolean
+        collapsed:
+          type: boolean
+        hidden:
+          type: boolean
+
+    SavedGraphDocument:
+      type: object
+      description: "The document of a saved graph. Up to 2000 nodes and 16 MB"
+      additionalProperties: true
+      properties:
+        version:
+          type: integer
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SavedGraphNode"
+        groups:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        hidden_edges:
+          type: array
+          items:
+            type: string
+        view:
+          type: object
+          additionalProperties: true
+
+    SavedGraph:
+      type: object
+      description: "A saved graph as a list shows it, without its document"
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        authors:
+          type: string
+          nullable: true
+        object_type:
+          $ref: "#/components/schemas/SavedGraphTargetType"
+        object_uuid:
+          type: string
+          format: uuid
+        distribution:
+          type: integer
+          enum: [0, 1, 2, 3, 4]
+        sharing_group_id:
+          type: integer
+          nullable: true
+        revision:
+          type: integer
+        node_count:
+          type: integer
+          description: "Nodes the user may read"
+        forked_from_uuid:
+          type: string
+          format: uuid
+          nullable: true
+        created:
+          type: string
+        modified:
+          type: string
+        Orgc:
+          type: object
+          additionalProperties: true
+        target:
+          type: object
+          additionalProperties: true
+          description: "The record the graph is kept on, labelled as the user sees it"
+        _canEdit:
+          type: boolean
+
+    SavedGraphData:
+      type: object
+      additionalProperties: true
+      properties:
+        Graph:
+          $ref: "#/components/schemas/SavedGraph"
+        document:
+          $ref: "#/components/schemas/SavedGraphDocument"
+        events:
+          type: object
+          additionalProperties: true
+          description: "Records of the event nodes the user may read, keyed by event id"
+        edges:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        meta:
+          type: object
+          additionalProperties: true
+          description: "Counts such as `nodes`; `joined_since` for a graph on a collection; `members` and `members_left_out` for a working view"
+        editable_events:
+          type: array
+          items:
+            type: integer
+          description: "Ids of the events the user may modify"
+        known_values:
+          type: object
+          additionalProperties: true
+
+    SavedGraphExport:
+      type: object
+      properties:
+        uuid:
+          $ref: "#/components/schemas/UUID"
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        authors:
+          type: string
+          nullable: true
+        object_type:
+          $ref: "#/components/schemas/SavedGraphTargetType"
+        object_uuid:
+          type: string
+          format: uuid
+        orgc_uuid:
+          type: string
+        Orgc:
+          type: object
+          properties:
+            uuid:
+              type: string
+            name:
+              type: string
+              nullable: true
+        created:
+          type: string
+        modified:
+          type: string
+        forked_from_uuid:
+          type: string
+          nullable: true
+        content:
+          $ref: "#/components/schemas/SavedGraphDocument"
+
   parameters:
     eventIdParameter:
       name: eventId
@@ -7783,6 +10105,22 @@ components:
         oneOf:
           - $ref: "#/components/schemas/CollectionId"
           - $ref: "#/components/schemas/UUID"
+
+    savedGraphUuidParameter:
+      name: uuid
+      in: path
+      description: "UUID of the saved graph"
+      required: true
+      schema:
+        $ref: "#/components/schemas/UUID"
+
+    savedGraphTargetTypeParameter:
+      name: type
+      in: path
+      description: "The kind of record the graphs are kept on"
+      required: true
+      schema:
+        $ref: "#/components/schemas/SavedGraphTargetType"
 
   securitySchemes:
     ApiKeyAuth:
@@ -11215,6 +13553,111 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/NotFoundApiError"
+
+    BadRequestApiErrorResponse:
+      description: "The request is invalid"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    MethodNotAllowedApiErrorResponse:
+      description: "The HTTP method is not allowed here, or the user lacks the privilege for the action"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+    CollectionItemsResponse:
+      description: >
+        What became of the items, with the collection as it now stands. Depending on the action the answer lists the `Type:address` keys
+        `added`, `present`, `removed` or `absent`, and the `refused` items; `narrower` lists values added that every attribute the user can see holding them shares more narrowly than the collection.
+        `describe` answers `key` and `description`.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+            properties:
+              collection_uuid:
+                type: string
+                format: uuid
+              changed:
+                type: boolean
+              element_count:
+                type: integer
+              Collection:
+                $ref: "#/components/schemas/CollectionWorkspaceSummary"
+              added:
+                type: array
+                items:
+                  type: string
+              present:
+                type: array
+                items:
+                  type: string
+              removed:
+                type: array
+                items:
+                  type: string
+              absent:
+                type: array
+                items:
+                  type: string
+              refused:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CollectionItemRefusal"
+              narrower:
+                type: array
+                items:
+                  type: string
+
+    SavedGraphWriteResponse:
+      description: >
+        The graph was written, or nothing needed changing (`changed` false). `node_count` is the nodes the user may read.
+        Node actions add `added`, `changed`, `removed` or `skipped` keys to say what happened to each node.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+            properties:
+              saved:
+                type: boolean
+              changed:
+                type: boolean
+              uuid:
+                type: string
+                format: uuid
+              revision:
+                type: integer
+              node_count:
+                type: integer
+              content_size:
+                type: integer
+              modified:
+                type: string
+
+    SavedGraphConflictResponse:
+      description: "The graph was saved since the client loaded it; reload it and try again"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+                example: false
+              name:
+                type: string
+              message:
+                type: string
+              url:
+                type: string
+              revision:
+                type: integer
+                description: "The graph's current revision"
 
     NotFoundUserTotpDeleteResponse:
       description: "The specified resource was not found"
