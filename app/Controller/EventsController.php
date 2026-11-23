@@ -11,6 +11,7 @@ App::uses('EventMatrixTool', 'Tools/EventOverview');
 App::uses('EventSeenTimelineTool', 'Tools/EventOverview');
 App::uses('GalaxyMatrixLayout', 'Tools');
 App::uses('SyncTool', 'Tools');
+App::uses('StixImportOptions', 'Tools');
 
 /**
  * @property Event $Event
@@ -5853,7 +5854,7 @@ class EventsController extends AppController
         $this->set('title_for_layout', __('Import from MISP Export File'));
     }
 
-    public function upload_stix($stix_version = '1', $publish = false, $force_contextual_data = true, $galaxies_as_tags = false, $debug = false)
+    public function upload_stix($stix_version = '1')
     {
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $initialDistribution = 0;
@@ -5862,71 +5863,23 @@ class EventsController extends AppController
         }
         $distributionLevels = $this->Event->distributionLevels;
         if ($this->request->is('post')) {
+            $importOptions = new StixImportOptions($this->_isSiteAdmin(), array_keys($sgs), (int)$initialDistribution);
             if ($this->_isRest()) {
-                if (isset($this->params['named']['publish'])) {
-                    $publish = $this->params['named']['publish'];
+                try {
+                    list($document, $options) = $importOptions->fromRest(
+                        $this->request->data,
+                        $this->request->input(),
+                        array_slice($this->request->params['pass'], 1),
+                        $this->request->params['named'],
+                        $this->request->query
+                    );
+                } catch (InvalidArgumentException $e) {
+                    throw new BadRequestException($e->getMessage());
                 }
-                if (isset($this->params['named']['distribution'])) {
-                    $distribution = intval($this->params['named']['distribution']);
-                    if (!array_key_exists($distribution, $distributionLevels)) {
-                        throw new BadRequestException(__('Wrong distribution level'));
-                    }
-                } else {
-                    $distribution = $initialDistribution;
-                }
-                $sharingGroupId = null;
-                if ($distribution == 4) {
-                    if (!isset($this->params['named']['sharing_group_id'])) {
-                        throw new BadRequestException(__('The sharing group id is needed when the distribution is set to 4 ("Sharing group").'));
-                    }
-                    $sharingGroupId = intval($this->params['named']['sharing_group_id']);
-                    if (!array_key_exists($sharingGroupId, $sgs)) {
-                        throw new BadRequestException(__('Please select a valid sharing group id.'));
-                    }
-                }
-                if (isset($this->params['named']['force_contextual_data'])) {
-                    $force_contextual_data = $this->params['named']['force_contextual_data'];
-                }
-                $clusterDistribution = $initialDistribution;
-                $clusterSharingGroupId = null;
-                if (isset($this->params['named']['galaxies_as_tags'])) {
-                    $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
-                }
-                // Cluster settings apply when galaxies are not imported as
-                // tags, so they are read whether or not galaxies_as_tags is set
-                if (isset($this->params['named']['cluster_distribution'])) {
-                    $clusterDistribution = intval($this->params['named']['cluster_distribution']);
-                    if (!array_key_exists($clusterDistribution, $distributionLevels)) {
-                        throw new BadRequestException(__('Wrong cluster distribution level'));
-                    }
-                    if ($clusterDistribution == 4) {
-                        if (!isset($this->params['named']['cluster_sharing_group_id'])) {
-                            throw new BadRequestException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
-                        }
-                        $clusterSharingGroupId = intval($this->params['named']['cluster_sharing_group_id']);
-                        if (!array_key_exists($clusterSharingGroupId, $sgs)) {
-                            throw new BadRequestException(__('Please select a valid cluster sharing group id.'));
-                        }
-                    }
-                }
-                if (isset($this->params['named']['debugging'])) {
-                    $debug = $this->params['named']['debugging'];
-                }
-                $filePath = FileAccessTool::writeToTempFile($this->request->input());
-                $result = $this->Event->upload_stix(
-                    $this->Auth->user(),
-                    $filePath,
-                    $stix_version,
-                    'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json'),
-                    $publish,
-                    $distribution,
-                    $sharingGroupId,
-                    $force_contextual_data,
-                    $galaxies_as_tags,
-                    $clusterDistribution,
-                    $clusterSharingGroupId,
-                    $debug
-                );
+                $filePath = FileAccessTool::writeToTempFile($document);
+                unset($document);
+                $originalFile = $options['original_file'] ? 'uploaded_stix_file.' . ($stix_version == '1' ? 'xml' : 'json') : '';
+                $result = $this->__uploadStix($filePath, $stix_version, $originalFile, $options);
                 if (is_numeric($result)) {
                     $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
                     if (!empty($event)) {
@@ -5938,29 +5891,21 @@ class EventsController extends AppController
                     return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, $result, $this->response->type());
                 }
             } else { // not REST request
-                $originalFile = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : '';
                 if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
-                    $filePath = FileAccessTool::createTempFile();
-                    if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $filePath)) {
-                        throw new Exception("Could not move uploaded STIX file.");
+                    try {
+                        $options = $importOptions->fromForm($this->data['Event']);
+                    } catch (InvalidArgumentException $e) {
+                        $options = null;
+                        $result = $e->getMessage();
                     }
-                    if (isset($this->data['Event']['debug'])) {
-                        $debug = $this->data['Event']['debug'];
+                    if ($options !== null) {
+                        $filePath = FileAccessTool::createTempFile();
+                        if (!move_uploaded_file($this->data['Event']['stix']['tmp_name'], $filePath)) {
+                            throw new Exception("Could not move uploaded STIX file.");
+                        }
+                        $originalFile = $options['original_file'] ? $this->data['Event']['stix']['name'] : '';
+                        $result = $this->__uploadStix($filePath, $stix_version, $originalFile, $options);
                     }
-                    $result = $this->Event->upload_stix(
-                        $this->Auth->user(),
-                        $filePath,
-                        $stix_version,
-                        $originalFile,
-                        $this->data['Event']['publish'],
-                        $this->data['Event']['distribution'],
-                        $this->data['Event']['sharing_group_id'] ?? null,
-                        $this->data['Event']['force_contextual_data'] ?? true,
-                        $this->data['Event']['galaxies_handling'] ?? false,
-                        $this->data['Event']['cluster_distribution'] ?? 0,
-                        $this->data['Event']['cluster_sharing_group_id'] ?? null,
-                        $debug
-                    );
                     if (is_numeric($result)) {
                         $this->Flash->success(__('STIX document imported.'));
                         $this->redirect(array('action' => 'view', $result));
@@ -6034,6 +5979,31 @@ class EventsController extends AppController
         }
         $this->set('sharingGroups', $sgs);
         $this->set('fieldDesc', $fieldDesc);
+    }
+
+    /**
+     * @param string $filePath
+     * @param string $stixVersion
+     * @param string $originalFile Attachment name, empty to skip the attachment
+     * @param array $options Import options resolved by StixImportOptions
+     * @return int|string|array Created event id or error
+     */
+    private function __uploadStix($filePath, $stixVersion, $originalFile, array $options)
+    {
+        return $this->Event->upload_stix(
+            $this->Auth->user(),
+            $filePath,
+            $stixVersion,
+            $originalFile,
+            $options['publish'],
+            $options['distribution'],
+            $options['sharing_group_id'],
+            $options['force_contextual_data'],
+            $options['galaxies_as_tags'],
+            $options['cluster_distribution'],
+            $options['cluster_sharing_group_id'],
+            $options['debug']
+        );
     }
 
     public function merge($target_id=null, $source_id=null)
