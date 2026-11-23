@@ -1,0 +1,51 @@
+{
+  "statement": "SELECT * FROM galaxy_clusters WHERE meta.synonyms > 'x' OR meta.`Additional Content Note` = 1 LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "OR": [
+        {
+          "meta.synonyms": {
+            ">": "x"
+          }
+        },
+        {
+          "meta.Additional Content Note": 1
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "2 errors",
+    "url": "/galaxy_clusters/restSearch",
+    "errors": [
+      {
+        "path": "query.OR[0].meta.<key>",
+        "code": "unknown_operator",
+        "message": "operator not allowed for this field"
+      },
+      {
+        "path": "query.OR[1].meta.<key>",
+        "code": "bad_type",
+        "message": "this field expects a non-empty string"
+      }
+    ]
+  },
+  "located": {
+    "query.OR[0].meta.<key>": {
+      "start": 36,
+      "end": 55,
+      "fragment": "meta.synonyms > 'x'"
+    },
+    "query.OR[1].meta.<key>": {
+      "start": 59,
+      "end": 93,
+      "fragment": "meta.`Additional Content Note` = 1"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

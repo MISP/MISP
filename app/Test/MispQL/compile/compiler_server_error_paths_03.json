@@ -1,0 +1,59 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 66,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "OR": [
+            {
+              "id": 1
+            },
+            {
+              "tags": {
+                "NOT LIKE": "tlp:%"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 58,
+          "fragment": "id = 1 OR tags NOT LIKE 'tlp:%'"
+        },
+        "query.OR[0]": {
+          "start": 27,
+          "end": 33,
+          "fragment": "id = 1"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 27,
+          "end": 29,
+          "fragment": "id"
+        },
+        "query.OR[1]": {
+          "start": 37,
+          "end": 58,
+          "fragment": "tags NOT LIKE 'tlp:%'"
+        },
+        "query.OR[1].<unknown>": {
+          "start": 37,
+          "end": 41,
+          "fragment": "tags"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

@@ -1,0 +1,1 @@
+SELECT id, attributes.event_timestamp FROM attributes LIMIT 1

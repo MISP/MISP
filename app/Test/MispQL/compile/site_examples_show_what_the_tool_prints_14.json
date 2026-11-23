@@ -1,0 +1,79 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 128,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 100,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "tags": {
+                "LIKE": "tlp:%"
+              }
+            },
+            {
+              "tags": {
+                "NOT IN": [
+                  "tlp:red",
+                  "tlp:amber+strict"
+                ]
+              }
+            },
+            {
+              "timestamp": {
+                ">=": "1d"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 118,
+          "fragment": "tags LIKE 'tlp:%' AND tags NOT IN ('tlp:red', 'tlp:amber+strict') AND timestamp >= '1d'"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 48,
+          "fragment": "tags LIKE 'tlp:%'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 35,
+          "fragment": "tags"
+        },
+        "query.AND[1]": {
+          "start": 53,
+          "end": 96,
+          "fragment": "tags NOT IN ('tlp:red', 'tlp:amber+strict')"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 53,
+          "end": 57,
+          "fragment": "tags"
+        },
+        "query.AND[2]": {
+          "start": 101,
+          "end": 118,
+          "fragment": "timestamp >= '1d'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 101,
+          "end": 110,
+          "fragment": "timestamp"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

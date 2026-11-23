@@ -1,0 +1,77 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 122,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "csv",
+        "limit": 1000,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "type": {
+                "IN": [
+                  "ip-src",
+                  "ip-dst"
+                ]
+              }
+            },
+            {
+              "to_ids": true
+            },
+            {
+              "timestamp": {
+                ">=": "30d"
+              }
+            }
+          ]
+        }
+      },
+      "output": "verbatim",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 100,
+          "fragment": "type IN ('ip-src', 'ip-dst') AND to_ids = TRUE AND timestamp >= '30d'"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 59,
+          "fragment": "type IN ('ip-src', 'ip-dst')"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 35,
+          "fragment": "type"
+        },
+        "query.AND[1]": {
+          "start": 64,
+          "end": 77,
+          "fragment": "to_ids = TRUE"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 64,
+          "end": 70,
+          "fragment": "to_ids"
+        },
+        "query.AND[2]": {
+          "start": 82,
+          "end": 100,
+          "fragment": "timestamp >= '30d'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 82,
+          "end": 91,
+          "fragment": "timestamp"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

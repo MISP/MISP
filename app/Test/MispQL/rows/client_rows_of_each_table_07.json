@@ -1,0 +1,20 @@
+{
+  "statement": "SELECT * FROM organisations LIMIT 2",
+  "reply": {
+    "response": [
+      {
+        "Organisation": {
+          "id": "1",
+          "user_count": "2"
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "1",
+      "user_count": "2"
+    }
+  ],
+  "source": "test_client.py::test_rows_of_each_table"
+}

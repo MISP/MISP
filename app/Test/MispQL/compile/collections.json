@@ -1,0 +1,95 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 175,
+      "table": "collections",
+      "endpoint": "/collections/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 10,
+        "page": 1,
+        "order": [
+          "modified desc"
+        ],
+        "query": {
+          "OR": [
+            {
+              "element_type": "Event"
+            },
+            {
+              "AND": [
+                {
+                  "name": {
+                    "LIKE": "apt%"
+                  }
+                },
+                {
+                  "distribution": {
+                    "<": 3
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "name",
+        "orgc.name",
+        "element_count"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 65,
+          "end": 130,
+          "fragment": "element_type = 'Event' OR (name LIKE 'apt%' AND distribution < 3)"
+        },
+        "query.OR[0]": {
+          "start": 65,
+          "end": 87,
+          "fragment": "element_type = 'Event'"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 65,
+          "end": 77,
+          "fragment": "element_type"
+        },
+        "query.OR[1]": {
+          "start": 92,
+          "end": 129,
+          "fragment": "name LIKE 'apt%' AND distribution < 3"
+        },
+        "query.OR[1].AND[0]": {
+          "start": 92,
+          "end": 108,
+          "fragment": "name LIKE 'apt%'"
+        },
+        "query.OR[1].AND[0].<unknown>": {
+          "start": 92,
+          "end": 96,
+          "fragment": "name"
+        },
+        "query.OR[1].AND[1]": {
+          "start": 113,
+          "end": 129,
+          "fragment": "distribution < 3"
+        },
+        "query.OR[1].AND[1].<unknown>": {
+          "start": 113,
+          "end": 125,
+          "fragment": "distribution"
+        },
+        "order[0]": {
+          "start": 140,
+          "end": 153,
+          "fragment": "modified DESC"
+        }
+      }
+    }
+  ]
+}

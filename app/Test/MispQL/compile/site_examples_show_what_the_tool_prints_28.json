@@ -1,0 +1,84 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 172,
+      "table": "objects",
+      "endpoint": "/objects/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "object_name": {
+                "IN": [
+                  "domain-ip",
+                  "url"
+                ]
+              }
+            },
+            {
+              "event_timestamp": {
+                ">=": "7d"
+              }
+            },
+            {
+              "value": {
+                "LIKE": "%.example.com"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "event_id",
+        "name",
+        "comment"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 54,
+          "end": 150,
+          "fragment": "object_name IN ('domain-ip', 'url') AND event_timestamp >= '7d'\n  AND value LIKE '%.example.com'"
+        },
+        "query.AND[0]": {
+          "start": 54,
+          "end": 89,
+          "fragment": "object_name IN ('domain-ip', 'url')"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 54,
+          "end": 65,
+          "fragment": "object_name"
+        },
+        "query.AND[1]": {
+          "start": 94,
+          "end": 117,
+          "fragment": "event_timestamp >= '7d'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 94,
+          "end": 109,
+          "fragment": "event_timestamp"
+        },
+        "query.AND[2]": {
+          "start": 124,
+          "end": 150,
+          "fragment": "value LIKE '%.example.com'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 124,
+          "end": 129,
+          "fragment": "value"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

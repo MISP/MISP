@@ -1,0 +1,20 @@
+{
+  "statement": "SELECT * FROM notes LIMIT 2",
+  "reply": {
+    "response": [
+      {
+        "Note": {
+          "id": "5",
+          "note": "n"
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "5",
+      "note": "n"
+    }
+  ],
+  "source": "test_client.py::test_rows_of_each_table"
+}

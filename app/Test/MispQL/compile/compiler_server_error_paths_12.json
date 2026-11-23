@@ -1,0 +1,59 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 90,
+      "table": "relationships",
+      "endpoint": "/analyst_data/restSearch/Relationship",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "related_object": "x"
+            },
+            {
+              "relationship_type": {
+                "!=": ""
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 82,
+          "fragment": "related_object = 'x' AND relationship_type != ''"
+        },
+        "query.AND[0]": {
+          "start": 34,
+          "end": 54,
+          "fragment": "related_object = 'x'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 34,
+          "end": 48,
+          "fragment": "related_object"
+        },
+        "query.AND[1]": {
+          "start": 59,
+          "end": 82,
+          "fragment": "relationship_type != ''"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 59,
+          "end": 76,
+          "fragment": "relationship_type"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

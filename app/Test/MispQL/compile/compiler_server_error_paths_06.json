@@ -1,0 +1,80 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 110,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "order": [
+          "value asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "org": {
+                "LIKE": "MISP%"
+              }
+            },
+            {
+              "nosuch": 1
+            },
+            {
+              "default": "yes"
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 36,
+          "end": 87,
+          "fragment": "org LIKE 'MISP%' AND nosuch = 1 AND default = 'yes'"
+        },
+        "query.AND[0]": {
+          "start": 36,
+          "end": 52,
+          "fragment": "org LIKE 'MISP%'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 36,
+          "end": 39,
+          "fragment": "org"
+        },
+        "query.AND[1]": {
+          "start": 57,
+          "end": 67,
+          "fragment": "nosuch = 1"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 57,
+          "end": 63,
+          "fragment": "nosuch"
+        },
+        "query.AND[2]": {
+          "start": 72,
+          "end": 87,
+          "fragment": "default = 'yes'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 72,
+          "end": 79,
+          "fragment": "default"
+        },
+        "order[0]": {
+          "start": 97,
+          "end": 102,
+          "fragment": "value"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

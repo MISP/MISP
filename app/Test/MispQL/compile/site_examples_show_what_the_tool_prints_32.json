@@ -1,0 +1,67 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 120,
+      "table": "notes",
+      "endpoint": "/analyst_data/restSearch/Note",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 1,
+        "order": [
+          "created desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "object_type": "Event"
+            },
+            {
+              "note": {
+                "LIKE": "%ransomware%"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 26,
+          "end": 76,
+          "fragment": "object_type = 'Event' AND note LIKE '%ransomware%'"
+        },
+        "query.AND[0]": {
+          "start": 26,
+          "end": 47,
+          "fragment": "object_type = 'Event'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 26,
+          "end": 37,
+          "fragment": "object_type"
+        },
+        "query.AND[1]": {
+          "start": 52,
+          "end": 76,
+          "fragment": "note LIKE '%ransomware%'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 52,
+          "end": 56,
+          "fragment": "note"
+        },
+        "order[0]": {
+          "start": 86,
+          "end": 98,
+          "fragment": "created DESC"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

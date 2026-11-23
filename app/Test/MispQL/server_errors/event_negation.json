@@ -1,0 +1,50 @@
+{
+  "statement": "SELECT * FROM events WHERE event_id > 0 AND (eventinfo = 'x' OR type != 'btc') LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "AND": [
+        {
+          "event_id": {
+            ">": 0
+          }
+        },
+        {
+          "OR": [
+            {
+              "eventinfo": "x"
+            },
+            {
+              "type": {
+                "!=": "btc"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "1 error",
+    "url": "/events/restSearch",
+    "errors": [
+      {
+        "path": "query.AND[1].OR[1].type",
+        "code": "unknown_operator",
+        "message": "attribute and object fields cannot be negated when searching events"
+      }
+    ]
+  },
+  "located": {
+    "query.AND[1].OR[1].type": {
+      "start": 64,
+      "end": 77,
+      "fragment": "type != 'btc'"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

@@ -1,0 +1,1 @@
+SELECT * FROM organisations LIMIT 2

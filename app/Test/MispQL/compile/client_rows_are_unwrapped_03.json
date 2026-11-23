@@ -1,0 +1,21 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 37,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_client.py::test_rows_are_unwrapped"
+}

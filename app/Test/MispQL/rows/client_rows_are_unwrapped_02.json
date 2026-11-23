@@ -1,0 +1,18 @@
+{
+  "statement": "SELECT * FROM objects LIMIT 1",
+  "reply": {
+    "response": [
+      {
+        "Object": {
+          "id": "9"
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "9"
+    }
+  ],
+  "source": "test_client.py::test_rows_are_unwrapped"
+}

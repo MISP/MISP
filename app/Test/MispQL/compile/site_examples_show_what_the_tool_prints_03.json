@@ -1,0 +1,55 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 88,
+      "table": "objects",
+      "endpoint": "/objects/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "AND": [
+            {
+              "object_name": "domain-ip"
+            },
+            {
+              "event_timestamp": {
+                ">=": "7d"
+              }
+            }
+          ]
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 35,
+          "end": 88,
+          "fragment": "object_name = 'domain-ip' AND event_timestamp >= '7d'"
+        },
+        "query.AND[0]": {
+          "start": 35,
+          "end": 60,
+          "fragment": "object_name = 'domain-ip'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 35,
+          "end": 46,
+          "fragment": "object_name"
+        },
+        "query.AND[1]": {
+          "start": 65,
+          "end": 88,
+          "fragment": "event_timestamp >= '7d'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 65,
+          "end": 80,
+          "fragment": "event_timestamp"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

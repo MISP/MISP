@@ -1,0 +1,1 @@
+SELECT id, value, Galaxy.name FROM galaxy_clusters WHERE meta.synonyms LIKE '%fancy%' AND NOT meta.`Additional Content Note` = 'x' AND galaxy_clusters.meta.access_privilege.rule_effect IN ('permit', 'deny') ORDER BY value LIMIT 5

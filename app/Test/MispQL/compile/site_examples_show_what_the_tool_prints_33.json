@@ -1,0 +1,69 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 108,
+      "table": "opinions",
+      "endpoint": "/analyst_data/restSearch/Opinion",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 1,
+        "order": [
+          "opinion asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "opinion": {
+                "<": 50
+              }
+            },
+            {
+              "created": {
+                ">=": "2026-11-01"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 29,
+          "end": 69,
+          "fragment": "opinion < 50 AND created >= '2026-11-01'"
+        },
+        "query.AND[0]": {
+          "start": 29,
+          "end": 41,
+          "fragment": "opinion < 50"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 29,
+          "end": 36,
+          "fragment": "opinion"
+        },
+        "query.AND[1]": {
+          "start": 46,
+          "end": 69,
+          "fragment": "created >= '2026-11-01'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 46,
+          "end": 53,
+          "fragment": "created"
+        },
+        "order[0]": {
+          "start": 79,
+          "end": 86,
+          "fragment": "opinion"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

@@ -1,0 +1,4 @@
+SELECT * FROM attributes
+WHERE category = 'Network activity' AND (type = 'domain' OR type IN ('ip-src', 'ip-dst'))
+  AND id > 50000
+LIMIT 100

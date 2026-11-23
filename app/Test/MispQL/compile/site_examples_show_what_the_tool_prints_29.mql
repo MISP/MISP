@@ -1,0 +1,3 @@
+SELECT id, value, Galaxy.name FROM galaxy_clusters
+WHERE org = 'MISP' AND meta.`cfr-suspected-victims` LIKE '%Ukraine%'
+ORDER BY value LIMIT 50 FORMAT table

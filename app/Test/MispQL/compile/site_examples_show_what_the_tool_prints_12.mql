@@ -1,0 +1,3 @@
+SELECT * FROM attributes
+WHERE event_id = 4711 AND NOT (to_ids = TRUE OR comment LIKE '%false positive%')
+LIMIT 100

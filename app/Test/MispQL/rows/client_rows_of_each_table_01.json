@@ -1,0 +1,28 @@
+{
+  "statement": "SELECT * FROM event_reports LIMIT 2",
+  "reply": {
+    "response": [
+      {
+        "EventReport": {
+          "id": "4",
+          "Event": {
+            "id": "1",
+            "info": "Phishing"
+          },
+          "Tag": []
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "4",
+      "Event": {
+        "id": "1",
+        "info": "Phishing"
+      },
+      "Tag": []
+    }
+  ],
+  "source": "test_client.py::test_rows_of_each_table"
+}

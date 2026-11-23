@@ -1,0 +1,67 @@
+{
+  "statement": "SELECT * FROM galaxy_clusters WHERE org LIKE 'MISP%' AND nosuch = 1 AND default = 'yes' ORDER BY value LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "order": [
+      "value asc"
+    ],
+    "query": {
+      "AND": [
+        {
+          "org": {
+            "LIKE": "MISP%"
+          }
+        },
+        {
+          "nosuch": 1
+        },
+        {
+          "default": "yes"
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "3 errors",
+    "url": "/galaxy_clusters/restSearch",
+    "errors": [
+      {
+        "path": "query.AND[0].org",
+        "code": "unknown_operator",
+        "message": "operator not allowed for this field"
+      },
+      {
+        "path": "query.AND[1].<unknown>",
+        "code": "unknown_field",
+        "message": "unknown field"
+      },
+      {
+        "path": "query.AND[2].default",
+        "code": "bad_type",
+        "message": "this field expects true or false"
+      }
+    ]
+  },
+  "located": {
+    "query.AND[0].org": {
+      "start": 36,
+      "end": 52,
+      "fragment": "org LIKE 'MISP%'"
+    },
+    "query.AND[1].<unknown>": {
+      "start": 57,
+      "end": 63,
+      "fragment": "nosuch"
+    },
+    "query.AND[2].default": {
+      "start": 72,
+      "end": 87,
+      "fragment": "default = 'yes'"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

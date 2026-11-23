@@ -1,0 +1,89 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 151,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 3,
+        "page": 1,
+        "order": [
+          "value asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "meta.Ländercode": "LU"
+            },
+            {
+              "value": {
+                "LIKE": "Ä%"
+              }
+            },
+            {
+              "NOT": {
+                "meta.🦠": "x"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": [
+        "value",
+        "meta.Ländercode"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 59,
+          "end": 128,
+          "fragment": "meta.`Ländercode` = 'LU' AND value LIKE 'Ä%' AND NOT (meta.`🦠` = 'x')"
+        },
+        "query.AND[0]": {
+          "start": 59,
+          "end": 83,
+          "fragment": "meta.`Ländercode` = 'LU'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 59,
+          "end": 76,
+          "fragment": "meta.`Ländercode`"
+        },
+        "query.AND[1]": {
+          "start": 88,
+          "end": 103,
+          "fragment": "value LIKE 'Ä%'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 88,
+          "end": 93,
+          "fragment": "value"
+        },
+        "query.AND[2]": {
+          "start": 108,
+          "end": 128,
+          "fragment": "NOT (meta.`🦠` = 'x')"
+        },
+        "query.AND[2].NOT": {
+          "start": 113,
+          "end": 127,
+          "fragment": "meta.`🦠` = 'x'"
+        },
+        "query.AND[2].NOT.<unknown>": {
+          "start": 113,
+          "end": 121,
+          "fragment": "meta.`🦠`"
+        },
+        "order[0]": {
+          "start": 138,
+          "end": 143,
+          "fragment": "value"
+        }
+      }
+    }
+  ]
+}

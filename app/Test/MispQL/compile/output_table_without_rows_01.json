@@ -1,0 +1,23 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 43,
+      "table": "objects",
+      "endpoint": "/objects/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1
+      },
+      "output": "table",
+      "columns": [
+        "id"
+      ],
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_output.py::test_table_without_rows"
+}

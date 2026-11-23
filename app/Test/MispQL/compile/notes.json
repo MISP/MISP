@@ -1,0 +1,66 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 99,
+      "table": "notes",
+      "endpoint": "/analyst_data/restSearch/Note",
+      "body": {
+        "returnFormat": "json",
+        "limit": 10,
+        "page": 1,
+        "order": [
+          "modified desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "object_type": "Event"
+            },
+            {
+              "created": {
+                ">": "30d"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 26,
+          "end": 67,
+          "fragment": "object_type = 'Event' AND created > '30d'"
+        },
+        "query.AND[0]": {
+          "start": 26,
+          "end": 47,
+          "fragment": "object_type = 'Event'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 26,
+          "end": 37,
+          "fragment": "object_type"
+        },
+        "query.AND[1]": {
+          "start": 52,
+          "end": 67,
+          "fragment": "created > '30d'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 52,
+          "end": 59,
+          "fragment": "created"
+        },
+        "order[0]": {
+          "start": 77,
+          "end": 90,
+          "fragment": "modified DESC"
+        }
+      }
+    }
+  ]
+}

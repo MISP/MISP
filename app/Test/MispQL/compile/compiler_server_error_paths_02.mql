@@ -1,0 +1,1 @@
+SELECT * FROM collections WHERE element_type = 1 OR NOT (element_uuid LIKE 'a%b' AND element_count > 1) LIMIT 1

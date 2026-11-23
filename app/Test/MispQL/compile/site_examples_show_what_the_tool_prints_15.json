@@ -1,0 +1,42 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 113,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 1,
+        "query": {
+          "type": "btc"
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "type",
+        "value",
+        "event.info",
+        "event.orgc.name",
+        "tag"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 79,
+          "end": 91,
+          "fragment": "type = 'btc'"
+        },
+        "query.<unknown>": {
+          "start": 79,
+          "end": 83,
+          "fragment": "type"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

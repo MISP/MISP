@@ -1,0 +1,61 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 104,
+      "table": "objects",
+      "endpoint": "/objects/restSearch",
+      "body": {
+        "returnFormat": "stix2",
+        "query": {
+          "AND": [
+            {
+              "object_name": {
+                "IN": [
+                  "domain-ip",
+                  "url"
+                ]
+              }
+            },
+            {
+              "event_timestamp": {
+                ">=": "7d"
+              }
+            }
+          ]
+        }
+      },
+      "output": "verbatim",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 28,
+          "end": 91,
+          "fragment": "object_name IN ('domain-ip', 'url') AND event_timestamp >= '7d'"
+        },
+        "query.AND[0]": {
+          "start": 28,
+          "end": 63,
+          "fragment": "object_name IN ('domain-ip', 'url')"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 28,
+          "end": 39,
+          "fragment": "object_name"
+        },
+        "query.AND[1]": {
+          "start": 68,
+          "end": 91,
+          "fragment": "event_timestamp >= '7d'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 68,
+          "end": 83,
+          "fragment": "event_timestamp"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 140,
+      "table": "organisations",
+      "endpoint": "/organisations/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 25,
+        "page": 2,
+        "order": [
+          "name asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "local": true
+            },
+            {
+              "sector": {
+                "IN": [
+                  "Government",
+                  "Financial"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": [
+        "id",
+        "name",
+        "user_count"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 53,
+          "end": 107,
+          "fragment": "local = TRUE AND sector IN ('Government', 'Financial')"
+        },
+        "query.AND[0]": {
+          "start": 53,
+          "end": 65,
+          "fragment": "local = TRUE"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 53,
+          "end": 58,
+          "fragment": "local"
+        },
+        "query.AND[1]": {
+          "start": 70,
+          "end": 107,
+          "fragment": "sector IN ('Government', 'Financial')"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 70,
+          "end": 76,
+          "fragment": "sector"
+        },
+        "order[0]": {
+          "start": 117,
+          "end": 121,
+          "fragment": "name"
+        }
+      }
+    }
+  ]
+}

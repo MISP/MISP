@@ -1,0 +1,59 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 94,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "AND": [
+            {
+              "galaxy_name": "Threat Actor"
+            },
+            {
+              "NOT": {
+                "deleted": true
+              }
+            }
+          ]
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 43,
+          "end": 94,
+          "fragment": "galaxy_name = 'Threat Actor' AND NOT deleted = TRUE"
+        },
+        "query.AND[0]": {
+          "start": 43,
+          "end": 71,
+          "fragment": "galaxy_name = 'Threat Actor'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 43,
+          "end": 54,
+          "fragment": "galaxy_name"
+        },
+        "query.AND[1]": {
+          "start": 76,
+          "end": 94,
+          "fragment": "NOT deleted = TRUE"
+        },
+        "query.AND[1].NOT": {
+          "start": 80,
+          "end": 94,
+          "fragment": "deleted = TRUE"
+        },
+        "query.AND[1].NOT.<unknown>": {
+          "start": 80,
+          "end": 87,
+          "fragment": "deleted"
+        }
+      }
+    }
+  ]
+}

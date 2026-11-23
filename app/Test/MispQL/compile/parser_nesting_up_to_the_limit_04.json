@@ -1,0 +1,259 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 169,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "NOT": {
+            "NOT": {
+              "NOT": {
+                "NOT": {
+                  "NOT": {
+                    "NOT": {
+                      "NOT": {
+                        "NOT": {
+                          "NOT": {
+                            "NOT": {
+                              "NOT": {
+                                "NOT": {
+                                  "NOT": {
+                                    "NOT": {
+                                      "NOT": {
+                                        "NOT": {
+                                          "NOT": {
+                                            "NOT": {
+                                              "NOT": {
+                                                "NOT": {
+                                                  "NOT": {
+                                                    "NOT": {
+                                                      "NOT": {
+                                                        "NOT": {
+                                                          "NOT": {
+                                                            "NOT": {
+                                                              "NOT": {
+                                                                "NOT": {
+                                                                  "NOT": {
+                                                                    "NOT": {
+                                                                      "NOT": {
+                                                                        "NOT": {
+                                                                          "id": 1
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT": {
+          "start": 31,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT": {
+          "start": 35,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT": {
+          "start": 39,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT": {
+          "start": 43,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT": {
+          "start": 47,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 51,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 55,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 59,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 63,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 67,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 71,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 75,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 79,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 83,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 87,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 91,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 95,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 99,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 103,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 107,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 111,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 115,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 119,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 123,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 127,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 131,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 135,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 139,
+          "end": 161,
+          "fragment": "NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 143,
+          "end": 161,
+          "fragment": "NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 147,
+          "end": 161,
+          "fragment": "NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 151,
+          "end": 161,
+          "fragment": "NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 155,
+          "end": 161,
+          "fragment": "id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.<unknown>": {
+          "start": 155,
+          "end": 157,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_nesting_up_to_the_limit"
+}

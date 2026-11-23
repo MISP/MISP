@@ -1,0 +1,52 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 103,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "order": [
+          "Event.publish_timestamp desc",
+          "type asc",
+          "value asc"
+        ],
+        "query": {
+          "event_id": 5
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 43,
+          "fragment": "event_id = 5"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 39,
+          "fragment": "event_id"
+        },
+        "order[0]": {
+          "start": 53,
+          "end": 75,
+          "fragment": "publish_timestamp DESC"
+        },
+        "order[1]": {
+          "start": 77,
+          "end": 92,
+          "fragment": "attributes.type"
+        },
+        "order[2]": {
+          "start": 94,
+          "end": 103,
+          "fragment": "value ASC"
+        }
+      }
+    }
+  ]
+}

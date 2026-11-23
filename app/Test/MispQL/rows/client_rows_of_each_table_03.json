@@ -1,0 +1,18 @@
+{
+  "statement": "SELECT * FROM opinions LIMIT 2",
+  "reply": {
+    "response": [
+      {
+        "Opinion": {
+          "id": "6"
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "6"
+    }
+  ],
+  "source": "test_client.py::test_rows_of_each_table"
+}

@@ -1,0 +1,31 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 50,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "type": "md5"
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 38,
+          "end": 50,
+          "fragment": "type = 'md5'"
+        },
+        "query.<unknown>": {
+          "start": 38,
+          "end": 42,
+          "fragment": "type"
+        }
+      }
+    }
+  ],
+  "source": "test_output.py::test_count"
+}

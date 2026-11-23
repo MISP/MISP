@@ -1,0 +1,105 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 164,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 3,
+        "order": [
+          "info desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "date": {
+                ">=": "30d"
+              }
+            },
+            {
+              "OR": [
+                {
+                  "type": "btc"
+                },
+                {
+                  "object_name": "bank-account"
+                }
+              ]
+            },
+            {
+              "tags": {
+                "NOT IN": [
+                  "tlp:red"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 121,
+          "fragment": "date >= '30d' AND (type = 'btc' OR object_name = 'bank-account')\n  AND tags NOT IN ('tlp:red')"
+        },
+        "query.AND[0]": {
+          "start": 27,
+          "end": 40,
+          "fragment": "date >= '30d'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 27,
+          "end": 31,
+          "fragment": "date"
+        },
+        "query.AND[1]": {
+          "start": 46,
+          "end": 90,
+          "fragment": "type = 'btc' OR object_name = 'bank-account'"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 46,
+          "end": 58,
+          "fragment": "type = 'btc'"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 46,
+          "end": 50,
+          "fragment": "type"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 62,
+          "end": 90,
+          "fragment": "object_name = 'bank-account'"
+        },
+        "query.AND[1].OR[1].<unknown>": {
+          "start": 62,
+          "end": 73,
+          "fragment": "object_name"
+        },
+        "query.AND[2]": {
+          "start": 98,
+          "end": 121,
+          "fragment": "tags NOT IN ('tlp:red')"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 98,
+          "end": 102,
+          "fragment": "tags"
+        },
+        "order[0]": {
+          "start": 131,
+          "end": 145,
+          "fragment": "eventinfo DESC"
+        }
+      }
+    }
+  ]
+}

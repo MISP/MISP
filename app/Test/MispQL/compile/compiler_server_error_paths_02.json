@@ -1,0 +1,90 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 111,
+      "table": "collections",
+      "endpoint": "/collections/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "OR": [
+            {
+              "element_type": 1
+            },
+            {
+              "NOT": {
+                "AND": [
+                  {
+                    "element_uuid": {
+                      "LIKE": "a%b"
+                    }
+                  },
+                  {
+                    "element_count": {
+                      ">": 1
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 32,
+          "end": 103,
+          "fragment": "element_type = 1 OR NOT (element_uuid LIKE 'a%b' AND element_count > 1)"
+        },
+        "query.OR[0]": {
+          "start": 32,
+          "end": 48,
+          "fragment": "element_type = 1"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 32,
+          "end": 44,
+          "fragment": "element_type"
+        },
+        "query.OR[1]": {
+          "start": 52,
+          "end": 103,
+          "fragment": "NOT (element_uuid LIKE 'a%b' AND element_count > 1)"
+        },
+        "query.OR[1].NOT": {
+          "start": 57,
+          "end": 102,
+          "fragment": "element_uuid LIKE 'a%b' AND element_count > 1"
+        },
+        "query.OR[1].NOT.AND[0]": {
+          "start": 57,
+          "end": 80,
+          "fragment": "element_uuid LIKE 'a%b'"
+        },
+        "query.OR[1].NOT.AND[0].<unknown>": {
+          "start": 57,
+          "end": 69,
+          "fragment": "element_uuid"
+        },
+        "query.OR[1].NOT.AND[1]": {
+          "start": 85,
+          "end": 102,
+          "fragment": "element_count > 1"
+        },
+        "query.OR[1].NOT.AND[1].<unknown>": {
+          "start": 85,
+          "end": 98,
+          "fragment": "element_count"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

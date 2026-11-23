@@ -1,0 +1,2 @@
+SELECT * FROM events WHERE date >= '30d' AND (type = 'btc' OR object_name = 'bank-account')
+  AND tags NOT IN ('tlp:red') ORDER BY eventinfo DESC LIMIT 20 OFFSET 40;

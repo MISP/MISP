@@ -1,0 +1,57 @@
+{
+  "statement": "SELECT * FROM tags LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "1",
+      "name": "tlp:white",
+      "colour": "#ffffff",
+      "exportable": true,
+      "hide_tag": false,
+      "numerical_value": null,
+      "is_galaxy": false,
+      "favourite": false,
+      "count": 3,
+      "attribute_count": 0,
+      "Taxonomy": {
+        "namespace": "tlp"
+      }
+    }
+  ],
+  "flat": [
+    {
+      "id": "1",
+      "name": "tlp:white",
+      "colour": "#ffffff",
+      "exportable": true,
+      "hide_tag": false,
+      "numerical_value": null,
+      "is_galaxy": false,
+      "favourite": false,
+      "count": 3,
+      "attribute_count": 0,
+      "Taxonomy.namespace": "tlp"
+    }
+  ],
+  "columns": [
+    "id",
+    "name",
+    "numerical_value",
+    "hide_tag",
+    "is_galaxy",
+    "count",
+    "attribute_count"
+  ],
+  "cells": [
+    [
+      "1",
+      "tlp:white",
+      null,
+      false,
+      false,
+      3,
+      0
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_default_columns_of_each_table"
+}

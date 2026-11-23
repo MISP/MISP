@@ -1,0 +1,13 @@
+{
+  "statements": [
+    {
+      "kind": "describe",
+      "start": 0,
+      "end": 22,
+      "table": "relationships",
+      "endpoint": "/analyst_data/queryDescribe/Relationship",
+      "spans": {}
+    }
+  ],
+  "source": "test_output.py::test_describe"
+}

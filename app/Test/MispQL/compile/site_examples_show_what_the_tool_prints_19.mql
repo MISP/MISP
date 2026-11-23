@@ -1,0 +1,2 @@
+SELECT * FROM events WHERE published = TRUE
+ORDER BY publish_timestamp DESC, event_id LIMIT 25 FORMAT table

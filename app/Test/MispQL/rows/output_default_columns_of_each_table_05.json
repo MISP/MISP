@@ -1,0 +1,68 @@
+{
+  "statement": "SELECT * FROM collections LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "8",
+      "uuid": "c1",
+      "name": "APT set",
+      "type": "campaign",
+      "created": "2026-10-01 09:00:00",
+      "modified": "2026-11-01 09:00:00",
+      "distribution": "0",
+      "element_count": 2,
+      "RelationshipInbound": [],
+      "Orgc": {
+        "id": "1",
+        "name": "CIRCL"
+      },
+      "SharingGroup": {
+        "id": null
+      },
+      "CollectionElement": [
+        {
+          "element_uuid": "e1"
+        },
+        {
+          "element_uuid": "e2"
+        }
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "id": "8",
+      "uuid": "c1",
+      "name": "APT set",
+      "type": "campaign",
+      "created": "2026-10-01 09:00:00",
+      "modified": "2026-11-01 09:00:00",
+      "distribution": "0",
+      "element_count": 2,
+      "Orgc.id": "1",
+      "Orgc.name": "CIRCL",
+      "SharingGroup.id": null
+    }
+  ],
+  "columns": [
+    "id",
+    "name",
+    "type",
+    "Orgc.name",
+    "distribution",
+    "element_count",
+    "modified"
+  ],
+  "cells": [
+    [
+      "8",
+      "APT set",
+      "campaign",
+      "CIRCL",
+      "0",
+      2,
+      "2026-11-01 09:00:00"
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_default_columns_of_each_table"
+}

@@ -1,0 +1,1 @@
+SELECT id, attributes.value, Event.info, Object.name FROM attributes WHERE event_id = 1 FORMAT flat

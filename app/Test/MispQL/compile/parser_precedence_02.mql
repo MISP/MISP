@@ -1,0 +1,1 @@
+SELECT * FROM attributes WHERE NOT a = 1 AND b = 2

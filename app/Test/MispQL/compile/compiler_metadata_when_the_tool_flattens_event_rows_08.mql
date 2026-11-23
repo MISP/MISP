@@ -1,0 +1,1 @@
+SELECT id, value FROM attributes LIMIT 5

@@ -1,0 +1,1 @@
+SELECT id, eventinfo, org, tags, event_timestamp FROM events WHERE eventinfo LIKE '%phish%' AND org = 'CIRCL' ORDER BY eventinfo DESC LIMIT 5 FORMAT table

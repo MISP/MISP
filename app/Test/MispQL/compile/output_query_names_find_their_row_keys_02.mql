@@ -1,0 +1,1 @@
+SELECT event_id, eventinfo, org, tags FROM events LIMIT 1 FORMAT table

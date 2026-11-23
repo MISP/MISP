@@ -1,0 +1,81 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 53,
+      "end": 99,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "metadata": 1,
+        "query": {
+          "date": {
+            ">=": "7d"
+          }
+        }
+      },
+      "source": "header",
+      "spans": {
+        "query": {
+          "start": 87,
+          "end": 99,
+          "fragment": "date >= '7d'"
+        },
+        "query.<unknown>": {
+          "start": 87,
+          "end": 91,
+          "fragment": "date"
+        }
+      }
+    },
+    {
+      "kind": "search",
+      "start": 101,
+      "end": 198,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 10,
+        "page": 1,
+        "order": [
+          "id desc"
+        ],
+        "query": {
+          "date": {
+            ">=": "7d"
+          }
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "date",
+        "info"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 141,
+          "end": 153,
+          "fragment": "date >= '7d'"
+        },
+        "query.<unknown>": {
+          "start": 141,
+          "end": 145,
+          "fragment": "date"
+        },
+        "order[0]": {
+          "start": 163,
+          "end": 176,
+          "fragment": "event_id DESC"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

@@ -1,0 +1,76 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 99,
+      "table": "organisations",
+      "endpoint": "/organisations/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "OR": [
+            {
+              "user_count": {
+                ">": 1
+              }
+            },
+            {
+              "uuid": {
+                "LIKE": "a%"
+              }
+            },
+            {
+              "date_created": {
+                ">": "soon"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 91,
+          "fragment": "user_count > 1 OR uuid LIKE 'a%' OR date_created > 'soon'"
+        },
+        "query.OR[0]": {
+          "start": 34,
+          "end": 48,
+          "fragment": "user_count > 1"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 34,
+          "end": 44,
+          "fragment": "user_count"
+        },
+        "query.OR[1]": {
+          "start": 52,
+          "end": 66,
+          "fragment": "uuid LIKE 'a%'"
+        },
+        "query.OR[1].<unknown>": {
+          "start": 52,
+          "end": 56,
+          "fragment": "uuid"
+        },
+        "query.OR[2]": {
+          "start": 70,
+          "end": 91,
+          "fragment": "date_created > 'soon'"
+        },
+        "query.OR[2].<unknown>": {
+          "start": 70,
+          "end": 82,
+          "fragment": "date_created"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

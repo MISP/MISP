@@ -1,0 +1,5 @@
+SELECT `Event`.`Orgc`, `a``b`, Type FROM attributes
+WHERE value IN ('it''s', "say ""hi""", "it's", 'C:\Windows\temp\n', '', 'two
+lines')
+  AND `count` = 1 AND `select` = TRUE AND Type <> 'x' -- a comment
+LIMIT 1;

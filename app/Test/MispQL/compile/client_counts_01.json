@@ -1,0 +1,36 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 40,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "metadata": 1,
+        "query": {
+          "id": {
+            ">": 0
+          }
+        }
+      },
+      "source": "header",
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 40,
+          "fragment": "id > 0"
+        },
+        "query.<unknown>": {
+          "start": 34,
+          "end": 36,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_client.py::test_counts"
+}

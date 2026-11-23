@@ -1,0 +1,105 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 125,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "nosuch": 1
+            },
+            {
+              "id": "x"
+            },
+            {
+              "type": {
+                "IN": [
+                  "a",
+                  5
+                ]
+              }
+            },
+            {
+              "value": {
+                "NOT LIKE": "a%b"
+              }
+            },
+            {
+              "id": {
+                "LIKE": "1%"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 117,
+          "fragment": "nosuch = 1 AND id = 'x' AND type IN ('a', 5) AND value NOT LIKE 'a%b' AND id LIKE '1%'"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 41,
+          "fragment": "nosuch = 1"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 37,
+          "fragment": "nosuch"
+        },
+        "query.AND[1]": {
+          "start": 46,
+          "end": 54,
+          "fragment": "id = 'x'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 46,
+          "end": 48,
+          "fragment": "id"
+        },
+        "query.AND[2]": {
+          "start": 59,
+          "end": 75,
+          "fragment": "type IN ('a', 5)"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 59,
+          "end": 63,
+          "fragment": "type"
+        },
+        "query.AND[3]": {
+          "start": 80,
+          "end": 100,
+          "fragment": "value NOT LIKE 'a%b'"
+        },
+        "query.AND[3].<unknown>": {
+          "start": 80,
+          "end": 85,
+          "fragment": "value"
+        },
+        "query.AND[4]": {
+          "start": 105,
+          "end": 117,
+          "fragment": "id LIKE '1%'"
+        },
+        "query.AND[4].<unknown>": {
+          "start": 105,
+          "end": 107,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

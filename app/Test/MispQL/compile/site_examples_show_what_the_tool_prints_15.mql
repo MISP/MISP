@@ -1,0 +1,2 @@
+SELECT id, type, value, Event.info, Event.Orgc.name, Tag FROM attributes
+WHERE type = 'btc' LIMIT 20 FORMAT table

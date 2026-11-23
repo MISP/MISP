@@ -1,0 +1,47 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 98,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 5,
+        "page": 1,
+        "order": [
+          "info asc",
+          "timestamp desc",
+          "id asc",
+          "publish_timestamp asc"
+        ]
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "order[0]": {
+          "start": 30,
+          "end": 39,
+          "fragment": "eventinfo"
+        },
+        "order[1]": {
+          "start": 41,
+          "end": 61,
+          "fragment": "event_timestamp DESC"
+        },
+        "order[2]": {
+          "start": 63,
+          "end": 71,
+          "fragment": "event_id"
+        },
+        "order[3]": {
+          "start": 73,
+          "end": 90,
+          "fragment": "publish_timestamp"
+        }
+      }
+    }
+  ]
+}

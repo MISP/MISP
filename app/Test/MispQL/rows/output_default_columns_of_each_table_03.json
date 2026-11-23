@@ -1,0 +1,55 @@
+{
+  "statement": "SELECT * FROM opinions LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "5",
+      "uuid": "a1",
+      "object_uuid": "e1",
+      "object_type": "Event",
+      "authors": "analyst@circl.lu",
+      "created": "2026-11-01 10:00:00",
+      "modified": "2026-11-02 10:00:00",
+      "distribution": "1",
+      "locked": false,
+      "opinion": "75",
+      "comment": "likely",
+      "note_type_name": "Opinion"
+    }
+  ],
+  "flat": [
+    {
+      "id": "5",
+      "uuid": "a1",
+      "object_uuid": "e1",
+      "object_type": "Event",
+      "authors": "analyst@circl.lu",
+      "created": "2026-11-01 10:00:00",
+      "modified": "2026-11-02 10:00:00",
+      "distribution": "1",
+      "locked": false,
+      "opinion": "75",
+      "comment": "likely",
+      "note_type_name": "Opinion"
+    }
+  ],
+  "columns": [
+    "id",
+    "object_type",
+    "object_uuid",
+    "opinion",
+    "comment",
+    "authors"
+  ],
+  "cells": [
+    [
+      "5",
+      "Event",
+      "e1",
+      "75",
+      "likely",
+      "analyst@circl.lu"
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_default_columns_of_each_table"
+}

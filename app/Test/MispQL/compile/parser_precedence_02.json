@@ -1,0 +1,62 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 50,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "AND": [
+            {
+              "NOT": {
+                "a": 1
+              }
+            },
+            {
+              "b": 2
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 50,
+          "fragment": "NOT a = 1 AND b = 2"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 40,
+          "fragment": "NOT a = 1"
+        },
+        "query.AND[0].NOT": {
+          "start": 35,
+          "end": 40,
+          "fragment": "a = 1"
+        },
+        "query.AND[0].NOT.<unknown>": {
+          "start": 35,
+          "end": 36,
+          "fragment": "a"
+        },
+        "query.AND[1]": {
+          "start": 45,
+          "end": 50,
+          "fragment": "b = 2"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 45,
+          "end": 46,
+          "fragment": "b"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_precedence"
+}

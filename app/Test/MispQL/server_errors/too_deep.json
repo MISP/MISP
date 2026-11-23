@@ -1,0 +1,77 @@
+{
+  "statement": "SELECT * FROM events WHERE ((((id = 1 AND id = 2) OR id = 3) AND id = 4) OR id = 5) AND id = 6 LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "AND": [
+        {
+          "OR": [
+            {
+              "AND": [
+                {
+                  "OR": [
+                    {
+                      "AND": [
+                        {
+                          "id": 1
+                        },
+                        {
+                          "id": 2
+                        }
+                      ]
+                    },
+                    {
+                      "id": 3
+                    }
+                  ]
+                },
+                {
+                  "id": 4
+                }
+              ]
+            },
+            {
+              "id": 5
+            }
+          ]
+        },
+        {
+          "id": 6
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "2 errors",
+    "url": "/events/restSearch",
+    "errors": [
+      {
+        "path": "query.AND[0].OR[0].AND[0].OR[0].AND[0]",
+        "code": "limit_exceeded",
+        "message": "tree too deep"
+      },
+      {
+        "path": "query.AND[0].OR[0].AND[0].OR[0].AND[1]",
+        "code": "limit_exceeded",
+        "message": "tree too deep"
+      }
+    ]
+  },
+  "located": {
+    "query.AND[0].OR[0].AND[0].OR[0].AND[0]": {
+      "start": 31,
+      "end": 37,
+      "fragment": "id = 1"
+    },
+    "query.AND[0].OR[0].AND[0].OR[0].AND[1]": {
+      "start": 42,
+      "end": 48,
+      "fragment": "id = 2"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

@@ -1,0 +1,2 @@
+SELECT * FROM collections WHERE type = 'campaign' AND element_type = 'Event'
+ORDER BY modified DESC LIMIT 20 FORMAT table

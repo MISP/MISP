@@ -1,0 +1,50 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 107,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 25,
+        "page": 1,
+        "order": [
+          "publish_timestamp desc",
+          "id asc"
+        ],
+        "query": {
+          "published": true
+        }
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 43,
+          "fragment": "published = TRUE"
+        },
+        "query.<unknown>": {
+          "start": 27,
+          "end": 36,
+          "fragment": "published"
+        },
+        "order[0]": {
+          "start": 53,
+          "end": 75,
+          "fragment": "publish_timestamp DESC"
+        },
+        "order[1]": {
+          "start": 77,
+          "end": 85,
+          "fragment": "event_id"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

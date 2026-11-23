@@ -1,0 +1,61 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 87,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "date": {
+                ">=": "2026-01-01"
+              }
+            },
+            {
+              "publish_timestamp": {
+                ">=": "12h"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 78,
+          "fragment": "date >= '2026-01-01' AND publish_timestamp >= '12h'"
+        },
+        "query.AND[0]": {
+          "start": 27,
+          "end": 47,
+          "fragment": "date >= '2026-01-01'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 27,
+          "end": 31,
+          "fragment": "date"
+        },
+        "query.AND[1]": {
+          "start": 52,
+          "end": 78,
+          "fragment": "publish_timestamp >= '12h'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 52,
+          "end": 69,
+          "fragment": "publish_timestamp"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

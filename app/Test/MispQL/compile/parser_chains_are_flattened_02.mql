@@ -1,0 +1,1 @@
+SELECT * FROM attributes WHERE (a = 1 AND b = 1) AND c = 1

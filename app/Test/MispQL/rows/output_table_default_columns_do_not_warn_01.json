@@ -1,0 +1,63 @@
+{
+  "statement": "SELECT * FROM attributes LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "13",
+      "event_id": "3",
+      "category": "Other",
+      "type": "text",
+      "value": "line one\nline \"two\"",
+      "to_ids": false,
+      "timestamp": "1700000001",
+      "object_relation": null,
+      "Event": {
+        "id": "3",
+        "info": "Phishing, round 2",
+        "Orgc": {
+          "id": "1",
+          "name": "CIRCL"
+        }
+      }
+    }
+  ],
+  "flat": [
+    {
+      "id": "13",
+      "event_id": "3",
+      "category": "Other",
+      "type": "text",
+      "value": "line one\nline \"two\"",
+      "to_ids": false,
+      "timestamp": "1700000001",
+      "object_relation": null,
+      "Event.id": "3",
+      "Event.info": "Phishing, round 2",
+      "Event.Orgc.id": "1",
+      "Event.Orgc.name": "CIRCL"
+    }
+  ],
+  "columns": [
+    "id",
+    "event_id",
+    "category",
+    "type",
+    "value",
+    "to_ids",
+    "timestamp",
+    "Tag"
+  ],
+  "cells": [
+    [
+      "13",
+      "3",
+      "Other",
+      "text",
+      "line one\nline \"two\"",
+      false,
+      "1700000001",
+      null
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_table_default_columns_do_not_warn"
+}

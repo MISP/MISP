@@ -1,0 +1,1 @@
+SELECT * FROM attributes LIMIT 5 FORMAT csv

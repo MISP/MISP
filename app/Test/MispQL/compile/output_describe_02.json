@@ -1,0 +1,13 @@
+{
+  "statements": [
+    {
+      "kind": "describe",
+      "start": 0,
+      "end": 16,
+      "table": "objects",
+      "endpoint": "/objects/queryDescribe",
+      "spans": {}
+    }
+  ],
+  "source": "test_output.py::test_describe"
+}

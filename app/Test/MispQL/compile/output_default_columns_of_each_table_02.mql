@@ -1,0 +1,1 @@
+SELECT * FROM notes LIMIT 1 FORMAT table

@@ -1,0 +1,1 @@
+SELECT * FROM relationships WHERE relationship_type IN ('related-to', 'derived-from') AND NOT related_object_type = 'Attribute' ORDER BY relationship_type LIMIT 20 FORMAT table

@@ -1,0 +1,21 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 42,
+      "table": "objects",
+      "endpoint": "/objects/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 5,
+        "page": 1
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_compiler.py::test_metadata_when_the_tool_flattens_event_rows"
+}

@@ -1,0 +1,1 @@
+SELECT id, galaxy_clusters.galaxy_namespace FROM galaxy_clusters LIMIT 1

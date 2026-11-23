@@ -1,0 +1,44 @@
+{
+  "statement": "SELECT * FROM collections LIMIT 2",
+  "reply": {
+    "response": [
+      {
+        "Collection": {
+          "id": "8",
+          "element_count": 1
+        },
+        "Orgc": {
+          "id": "1",
+          "name": "CIRCL"
+        },
+        "SharingGroup": {
+          "id": null
+        },
+        "CollectionElement": [
+          {
+            "id": "9"
+          }
+        ]
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "8",
+      "element_count": 1,
+      "Orgc": {
+        "id": "1",
+        "name": "CIRCL"
+      },
+      "SharingGroup": {
+        "id": null
+      },
+      "CollectionElement": [
+        {
+          "id": "9"
+        }
+      ]
+    }
+  ],
+  "source": "test_client.py::test_rows_of_each_table"
+}

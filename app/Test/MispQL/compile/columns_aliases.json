@@ -1,0 +1,73 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 154,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 5,
+        "page": 1,
+        "order": [
+          "info desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "eventinfo": {
+                "LIKE": "%phish%"
+              }
+            },
+            {
+              "org": "CIRCL"
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "info",
+        "Orgc.name",
+        "Tag",
+        "timestamp"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 67,
+          "end": 109,
+          "fragment": "eventinfo LIKE '%phish%' AND org = 'CIRCL'"
+        },
+        "query.AND[0]": {
+          "start": 67,
+          "end": 91,
+          "fragment": "eventinfo LIKE '%phish%'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 67,
+          "end": 76,
+          "fragment": "eventinfo"
+        },
+        "query.AND[1]": {
+          "start": 96,
+          "end": 109,
+          "fragment": "org = 'CIRCL'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 96,
+          "end": 99,
+          "fragment": "org"
+        },
+        "order[0]": {
+          "start": 119,
+          "end": 133,
+          "fragment": "eventinfo DESC"
+        }
+      }
+    }
+  ]
+}

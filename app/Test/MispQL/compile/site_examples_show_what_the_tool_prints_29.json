@@ -1,0 +1,71 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 156,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "order": [
+          "value asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "org": "MISP"
+            },
+            {
+              "meta.cfr-suspected-victims": {
+                "LIKE": "%Ukraine%"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "value",
+        "galaxy.name"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 57,
+          "end": 119,
+          "fragment": "org = 'MISP' AND meta.`cfr-suspected-victims` LIKE '%Ukraine%'"
+        },
+        "query.AND[0]": {
+          "start": 57,
+          "end": 69,
+          "fragment": "org = 'MISP'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 57,
+          "end": 60,
+          "fragment": "org"
+        },
+        "query.AND[1]": {
+          "start": 74,
+          "end": 119,
+          "fragment": "meta.`cfr-suspected-victims` LIKE '%Ukraine%'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 74,
+          "end": 102,
+          "fragment": "meta.`cfr-suspected-victims`"
+        },
+        "order[0]": {
+          "start": 129,
+          "end": 134,
+          "fragment": "value"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

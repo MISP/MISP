@@ -1,0 +1,95 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 229,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 5,
+        "page": 1,
+        "order": [
+          "value asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "meta.synonyms": {
+                "LIKE": "%fancy%"
+              }
+            },
+            {
+              "NOT": {
+                "meta.Additional Content Note": "x"
+              }
+            },
+            {
+              "meta.access_privilege.rule_effect": {
+                "IN": [
+                  "permit",
+                  "deny"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": [
+        "id",
+        "value",
+        "galaxy.name"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 57,
+          "end": 206,
+          "fragment": "meta.synonyms LIKE '%fancy%' AND NOT meta.`Additional Content Note` = 'x' AND galaxy_clusters.meta.access_privilege.rule_effect IN ('permit', 'deny')"
+        },
+        "query.AND[0]": {
+          "start": 57,
+          "end": 85,
+          "fragment": "meta.synonyms LIKE '%fancy%'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 57,
+          "end": 70,
+          "fragment": "meta.synonyms"
+        },
+        "query.AND[1]": {
+          "start": 90,
+          "end": 130,
+          "fragment": "NOT meta.`Additional Content Note` = 'x'"
+        },
+        "query.AND[1].NOT": {
+          "start": 94,
+          "end": 130,
+          "fragment": "meta.`Additional Content Note` = 'x'"
+        },
+        "query.AND[1].NOT.<unknown>": {
+          "start": 94,
+          "end": 124,
+          "fragment": "meta.`Additional Content Note`"
+        },
+        "query.AND[2]": {
+          "start": 135,
+          "end": 206,
+          "fragment": "galaxy_clusters.meta.access_privilege.rule_effect IN ('permit', 'deny')"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 135,
+          "end": 184,
+          "fragment": "galaxy_clusters.meta.access_privilege.rule_effect"
+        },
+        "order[0]": {
+          "start": 216,
+          "end": 221,
+          "fragment": "value"
+        }
+      }
+    }
+  ]
+}

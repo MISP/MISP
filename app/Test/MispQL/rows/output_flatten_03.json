@@ -1,0 +1,21 @@
+{
+  "rows": [
+    {
+      "Tag": [],
+      "list": [
+        "a",
+        1
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "Tag": [],
+      "list": [
+        "a",
+        1
+      ]
+    }
+  ],
+  "source": "test_output.py::test_flatten"
+}

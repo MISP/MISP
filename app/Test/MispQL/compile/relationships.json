@@ -1,0 +1,76 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 176,
+      "table": "relationships",
+      "endpoint": "/analyst_data/restSearch/Relationship",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 1,
+        "order": [
+          "relationship_type asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "relationship_type": {
+                "IN": [
+                  "related-to",
+                  "derived-from"
+                ]
+              }
+            },
+            {
+              "NOT": {
+                "related_object_type": "Attribute"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 127,
+          "fragment": "relationship_type IN ('related-to', 'derived-from') AND NOT related_object_type = 'Attribute'"
+        },
+        "query.AND[0]": {
+          "start": 34,
+          "end": 85,
+          "fragment": "relationship_type IN ('related-to', 'derived-from')"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 34,
+          "end": 51,
+          "fragment": "relationship_type"
+        },
+        "query.AND[1]": {
+          "start": 90,
+          "end": 127,
+          "fragment": "NOT related_object_type = 'Attribute'"
+        },
+        "query.AND[1].NOT": {
+          "start": 94,
+          "end": 127,
+          "fragment": "related_object_type = 'Attribute'"
+        },
+        "query.AND[1].NOT.<unknown>": {
+          "start": 94,
+          "end": 113,
+          "fragment": "related_object_type"
+        },
+        "order[0]": {
+          "start": 137,
+          "end": 154,
+          "fragment": "relationship_type"
+        }
+      }
+    }
+  ]
+}

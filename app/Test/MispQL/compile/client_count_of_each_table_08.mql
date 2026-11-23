@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM objects WHERE id > 0

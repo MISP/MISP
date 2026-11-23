@@ -1,0 +1,104 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 145,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 1,
+        "order": [
+          "id desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "date": {
+                ">=": "30d"
+              }
+            },
+            {
+              "OR": [
+                {
+                  "type": "btc"
+                },
+                {
+                  "object_name": "bank-account"
+                }
+              ]
+            },
+            {
+              "tags": {
+                "!=": "tlp:red"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 113,
+          "fragment": "date >= '30d' AND (type = 'btc' OR object_name = 'bank-account') AND tags != 'tlp:red'"
+        },
+        "query.AND[0]": {
+          "start": 27,
+          "end": 40,
+          "fragment": "date >= '30d'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 27,
+          "end": 31,
+          "fragment": "date"
+        },
+        "query.AND[1]": {
+          "start": 46,
+          "end": 90,
+          "fragment": "type = 'btc' OR object_name = 'bank-account'"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 46,
+          "end": 58,
+          "fragment": "type = 'btc'"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 46,
+          "end": 50,
+          "fragment": "type"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 62,
+          "end": 90,
+          "fragment": "object_name = 'bank-account'"
+        },
+        "query.AND[1].OR[1].<unknown>": {
+          "start": 62,
+          "end": 73,
+          "fragment": "object_name"
+        },
+        "query.AND[2]": {
+          "start": 96,
+          "end": 113,
+          "fragment": "tags != 'tlp:red'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 96,
+          "end": 100,
+          "fragment": "tags"
+        },
+        "order[0]": {
+          "start": 123,
+          "end": 136,
+          "fragment": "event_id DESC"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

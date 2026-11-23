@@ -1,0 +1,38 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 49,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "type": {
+            "IN": [
+              "a",
+              "b"
+            ]
+          }
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 49,
+          "fragment": "type IN ('a', \"b\")"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 35,
+          "fragment": "type"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_comparisons"
+}

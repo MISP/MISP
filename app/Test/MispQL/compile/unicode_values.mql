@@ -1,0 +1,3 @@
+SELECT id, info FROM events
+WHERE info = 'café' AND (info LIKE '%🦠%' OR info IN ('é', '日本語', ''))
+ORDER BY id DESC LIMIT 5

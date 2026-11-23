@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM collections WHERE id > 0

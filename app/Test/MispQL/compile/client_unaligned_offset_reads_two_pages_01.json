@@ -1,0 +1,21 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 41,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 3,
+        "page": 2
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 1,
+      "spans": {}
+    }
+  ],
+  "source": "test_client.py::test_unaligned_offset_reads_two_pages"
+}

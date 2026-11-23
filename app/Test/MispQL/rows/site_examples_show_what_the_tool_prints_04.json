@@ -1,0 +1,146 @@
+{
+  "statement": "SELECT id, date, info, Orgc.name, Tag FROM events\nWHERE tags = 'tlp:clear' AND date >= '7d' ORDER BY event_id DESC LIMIT 3 FORMAT flat",
+  "rows": [
+    {
+      "id": "4720",
+      "date": "2026-11-14",
+      "info": "Credential phishing against webmail users",
+      "Orgc": {
+        "id": "1",
+        "name": "CIRCL"
+      },
+      "threat_level_id": "2",
+      "analysis": "1",
+      "published": true,
+      "attribute_count": "37",
+      "Tag": [
+        {
+          "name": "tlp:clear"
+        }
+      ]
+    },
+    {
+      "id": "4718",
+      "date": "2026-11-13",
+      "info": "Loader infrastructure seen in honeypot logs",
+      "Orgc": {
+        "id": "7",
+        "name": "ORG-B"
+      },
+      "threat_level_id": "3",
+      "analysis": "2",
+      "published": true,
+      "attribute_count": "1204",
+      "Tag": [
+        {
+          "name": "tlp:clear"
+        }
+      ]
+    },
+    {
+      "id": "4711",
+      "date": "2026-11-12",
+      "info": "Command and control domains of a banking trojan",
+      "Orgc": {
+        "id": "1",
+        "name": "CIRCL"
+      },
+      "threat_level_id": "1",
+      "analysis": "2",
+      "published": true,
+      "attribute_count": "58",
+      "Tag": [
+        {
+          "name": "tlp:clear"
+        },
+        {
+          "name": "misp-galaxy:banker=\"Zeus\""
+        }
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "id": "4720",
+      "date": "2026-11-14",
+      "info": "Credential phishing against webmail users",
+      "Orgc.id": "1",
+      "Orgc.name": "CIRCL",
+      "threat_level_id": "2",
+      "analysis": "1",
+      "published": true,
+      "attribute_count": "37",
+      "Tag": [
+        "tlp:clear"
+      ]
+    },
+    {
+      "id": "4718",
+      "date": "2026-11-13",
+      "info": "Loader infrastructure seen in honeypot logs",
+      "Orgc.id": "7",
+      "Orgc.name": "ORG-B",
+      "threat_level_id": "3",
+      "analysis": "2",
+      "published": true,
+      "attribute_count": "1204",
+      "Tag": [
+        "tlp:clear"
+      ]
+    },
+    {
+      "id": "4711",
+      "date": "2026-11-12",
+      "info": "Command and control domains of a banking trojan",
+      "Orgc.id": "1",
+      "Orgc.name": "CIRCL",
+      "threat_level_id": "1",
+      "analysis": "2",
+      "published": true,
+      "attribute_count": "58",
+      "Tag": [
+        "tlp:clear",
+        "misp-galaxy:banker=\"Zeus\""
+      ]
+    }
+  ],
+  "columns": [
+    "id",
+    "date",
+    "info",
+    "Orgc.name",
+    "Tag"
+  ],
+  "cells": [
+    [
+      "4720",
+      "2026-11-14",
+      "Credential phishing against webmail users",
+      "CIRCL",
+      [
+        "tlp:clear"
+      ]
+    ],
+    [
+      "4718",
+      "2026-11-13",
+      "Loader infrastructure seen in honeypot logs",
+      "ORG-B",
+      [
+        "tlp:clear"
+      ]
+    ],
+    [
+      "4711",
+      "2026-11-12",
+      "Command and control domains of a banking trojan",
+      "CIRCL",
+      [
+        "tlp:clear",
+        "misp-galaxy:banker=\"Zeus\""
+      ]
+    ]
+  ],
+  "warnings": [],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

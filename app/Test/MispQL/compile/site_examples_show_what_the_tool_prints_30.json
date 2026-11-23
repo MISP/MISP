@@ -1,0 +1,55 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 112,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "AND": [
+            {
+              "galaxy_namespace": "mitre-attack"
+            },
+            {
+              "description": {
+                "LIKE": "%credential%"
+              }
+            }
+          ]
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 43,
+          "end": 112,
+          "fragment": "galaxy_namespace = 'mitre-attack' AND description LIKE '%credential%'"
+        },
+        "query.AND[0]": {
+          "start": 43,
+          "end": 76,
+          "fragment": "galaxy_namespace = 'mitre-attack'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 43,
+          "end": 59,
+          "fragment": "galaxy_namespace"
+        },
+        "query.AND[1]": {
+          "start": 81,
+          "end": 112,
+          "fragment": "description LIKE '%credential%'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 81,
+          "end": 92,
+          "fragment": "description"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

@@ -1,0 +1,1010 @@
+[
+  {
+    "statement": "a = 'open",
+    "code": "syntax",
+    "start": 4,
+    "end": 9,
+    "fragment": "'open",
+    "mispql_message": "string not closed",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "a = \"open",
+    "code": "syntax",
+    "start": 4,
+    "end": 9,
+    "fragment": "\"open",
+    "mispql_message": "string not closed",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "`open",
+    "code": "syntax",
+    "start": 0,
+    "end": 5,
+    "fragment": "`open",
+    "mispql_message": "name not closed",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "``",
+    "code": "syntax",
+    "start": 0,
+    "end": 2,
+    "fragment": "``",
+    "mispql_message": "empty name",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "a ! b",
+    "code": "syntax",
+    "start": 2,
+    "end": 3,
+    "fragment": "!",
+    "mispql_message": "unexpected character '!': use != or NOT",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "a = {",
+    "code": "syntax",
+    "start": 4,
+    "end": 5,
+    "fragment": "{",
+    "mispql_message": "unexpected character '{'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "ts >= 7d",
+    "code": "syntax",
+    "start": 6,
+    "end": 8,
+    "fragment": "7d",
+    "mispql_message": "7d must be quoted: '7d'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "x = 1.5",
+    "code": "syntax",
+    "start": 4,
+    "end": 6,
+    "fragment": "1.",
+    "mispql_message": "only whole numbers are supported",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "a = 1\n  b # c",
+    "code": "syntax",
+    "start": 10,
+    "end": 11,
+    "fragment": "#",
+    "mispql_message": "unexpected character '#'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "SELECT\u001c*",
+    "code": "syntax",
+    "start": 6,
+    "end": 7,
+    "fragment": "\u001c",
+    "mispql_message": "unexpected character '\u001c'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "SELECT\u001f*",
+    "code": "syntax",
+    "start": 6,
+    "end": 7,
+    "fragment": "\u001f",
+    "mispql_message": "unexpected character '\u001f'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "SELECT\u200b*",
+    "code": "syntax",
+    "start": 6,
+    "end": 7,
+    "fragment": "\u200b",
+    "mispql_message": "unexpected character '\u200b'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "\ufeffSELECT *",
+    "code": "syntax",
+    "start": 0,
+    "end": 1,
+    "fragment": "\ufeff",
+    "mispql_message": "unexpected character '\ufeff'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "info = 'café' AND événement = 1",
+    "code": "syntax",
+    "start": 18,
+    "end": 19,
+    "fragment": "é",
+    "mispql_message": "unexpected character 'é'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "info = 'cafe\u0301' é",
+    "code": "syntax",
+    "start": 15,
+    "end": 16,
+    "fragment": "é",
+    "mispql_message": "unexpected character 'é'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "info = '🦠' 🦠",
+    "code": "syntax",
+    "start": 11,
+    "end": 12,
+    "fragment": "🦠",
+    "mispql_message": "unexpected character '🦠'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "info = '日本語'\n  AND x = ¤",
+    "code": "syntax",
+    "start": 23,
+    "end": 24,
+    "fragment": "¤",
+    "mispql_message": "unexpected character '¤'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "id = 9223372036854775808",
+    "code": "syntax",
+    "start": 5,
+    "end": 24,
+    "fragment": "9223372036854775808",
+    "mispql_message": "number too large: at most 9223372036854775807",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "id = -9223372036854775808",
+    "code": "syntax",
+    "start": 6,
+    "end": 25,
+    "fragment": "9223372036854775808",
+    "mispql_message": "number too large: at most 9223372036854775807",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "id = 18446744073709551616",
+    "code": "syntax",
+    "start": 5,
+    "end": 25,
+    "fragment": "18446744073709551616",
+    "mispql_message": "number too large: at most 9223372036854775807",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "id = 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+    "code": "syntax",
+    "start": 5,
+    "end": 5005,
+    "fragment": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+    "mispql_message": "number too large: at most 9223372036854775807",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "id = 99999999999999999999.5",
+    "code": "syntax",
+    "start": 5,
+    "end": 26,
+    "fragment": "99999999999999999999.",
+    "mispql_message": "only whole numbers are supported",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "id = 99999999999999999999d",
+    "code": "syntax",
+    "start": 5,
+    "end": 26,
+    "fragment": "99999999999999999999d",
+    "mispql_message": "99999999999999999999d must be quoted: '99999999999999999999d'",
+    "source": "test_lexer.py::test_errors"
+  },
+  {
+    "statement": "SHOW TABLES; describe events; DESC `Objects`",
+    "code": "unknown_table",
+    "start": 35,
+    "end": 44,
+    "fragment": "`Objects`",
+    "mispql_message": "unknown table Objects: use attributes, events, objects, galaxy_clusters, event_reports, notes, opinions, relationships, collections, tags or organisations",
+    "source": "test_parser.py::test_show_tables_and_describe"
+  },
+  {
+    "statement": "SELECT * FROM attributes",
+    "code": "missing_clause",
+    "start": 0,
+    "end": 24,
+    "fragment": "SELECT * FROM attributes",
+    "mispql_message": "add a WHERE or a LIMIT: MISP takes no search without either",
+    "source": "test_parser.py::test_select_columns"
+  },
+  {
+    "statement": "select count(*) from Events",
+    "code": "missing_clause",
+    "start": 7,
+    "end": 15,
+    "fragment": "count(*)",
+    "mispql_message": "COUNT(*) needs a WHERE",
+    "source": "test_parser.py::test_select_columns"
+  },
+  {
+    "statement": "SELECT id, attributes.Type FROM attributes",
+    "code": "missing_clause",
+    "start": 0,
+    "end": 42,
+    "fragment": "SELECT id, attributes.Type FROM attributes",
+    "mispql_message": "add a WHERE or a LIMIT: MISP takes no search without either",
+    "source": "test_parser.py::test_select_columns"
+  },
+  {
+    "statement": "SELECT * FROM `attributes`",
+    "code": "missing_clause",
+    "start": 0,
+    "end": 26,
+    "fragment": "SELECT * FROM `attributes`",
+    "mispql_message": "add a WHERE or a LIMIT: MISP takes no search without either",
+    "source": "test_parser.py::test_select_columns"
+  },
+  {
+    "statement": "SELECT Event.Orgc.name, `Event`.`Orgc` FROM attributes",
+    "code": "missing_clause",
+    "start": 0,
+    "end": 54,
+    "fragment": "SELECT Event.Orgc.name, `Event`.`Orgc` FROM attributes",
+    "mispql_message": "add a WHERE or a LIMIT: MISP takes no search without either",
+    "source": "test_parser.py::test_qualified_field"
+  },
+  {
+    "statement": "SELECT * FROM events ORDER BY eventinfo DESC, id asc, date LIMIT 20 OFFSET 40 FORMAT csv",
+    "code": "not_sortable",
+    "start": 54,
+    "end": 58,
+    "fragment": "date",
+    "mispql_message": "cannot sort events by date; use id, event_id, eventinfo, analysis, threat_level_id, distribution, timestamp, event_timestamp, publish_timestamp",
+    "source": "test_parser.py::test_order_limit_offset_format"
+  },
+  {
+    "statement": "SELECT id FROM attributes WHERE id IN (1, -2) ORDER BY id DESC FORMAT stix-json",
+    "code": "bad_clause",
+    "start": 70,
+    "end": 79,
+    "fragment": "stix-json",
+    "mispql_message": "a column list needs FORMAT table, FORMAT flat or no FORMAT: FORMAT stix-json is printed as MISP sends it",
+    "source": "test_parser.py::test_spans"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE type = btc",
+    "code": "syntax",
+    "start": 34,
+    "end": 37,
+    "fragment": "btc",
+    "mispql_message": "expected a value ('string', number, TRUE or FALSE), found btc (strings need quotes)",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM",
+    "code": "syntax",
+    "start": 13,
+    "end": 13,
+    "fragment": "",
+    "mispql_message": "expected a table name, found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE",
+    "code": "syntax",
+    "start": 26,
+    "end": 26,
+    "fragment": "",
+    "mispql_message": "expected a field name, found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE type 'x'",
+    "code": "syntax",
+    "start": 32,
+    "end": 35,
+    "fragment": "'x'",
+    "mispql_message": "expected an operator after type (=, !=, <, >, <=, >=, IN, NOT IN, LIKE, NOT LIKE), found the string 'x'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE type NOT = 1",
+    "code": "syntax",
+    "start": 36,
+    "end": 37,
+    "fragment": "=",
+    "mispql_message": "expected IN or LIKE after NOT, found '='",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE type IN ()",
+    "code": "syntax",
+    "start": 36,
+    "end": 37,
+    "fragment": ")",
+    "mispql_message": "expected at least one value in IN (...), found ')'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE type IN ('a' 'b')",
+    "code": "syntax",
+    "start": 40,
+    "end": 43,
+    "fragment": "'b'",
+    "mispql_message": "expected ',' or ')', found the string 'b'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE type LIKE 5",
+    "code": "syntax",
+    "start": 37,
+    "end": 38,
+    "fragment": "5",
+    "mispql_message": "expected a 'quoted pattern' after LIKE, found 5",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE (a = 1",
+    "code": "syntax",
+    "start": 33,
+    "end": 33,
+    "fragment": "",
+    "mispql_message": "expected ')', found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE a = 1 b = 2",
+    "code": "syntax",
+    "start": 33,
+    "end": 34,
+    "fragment": "b",
+    "mispql_message": "expected AND, OR, ORDER BY, LIMIT, OFFSET, FORMAT or ';', found b",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(id) FROM events",
+    "code": "syntax",
+    "start": 13,
+    "end": 15,
+    "fragment": "id",
+    "mispql_message": "expected '*' (COUNT takes only *), found id",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT FROM events",
+    "code": "syntax",
+    "start": 7,
+    "end": 11,
+    "fragment": "FROM",
+    "mispql_message": "expected *, COUNT(*) or field names, found FROM",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 'x'",
+    "code": "syntax",
+    "start": 27,
+    "end": 30,
+    "fragment": "'x'",
+    "mispql_message": "expected a whole number after LIMIT, found the string 'x'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 10 WHERE a = 1",
+    "code": "syntax",
+    "start": 30,
+    "end": 35,
+    "fragment": "WHERE",
+    "mispql_message": "expected OFFSET, FORMAT or ';', found WHERE",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events ORDER id",
+    "code": "syntax",
+    "start": 27,
+    "end": 29,
+    "fragment": "id",
+    "mispql_message": "expected BY, found id",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM select",
+    "code": "syntax",
+    "start": 14,
+    "end": 20,
+    "fragment": "select",
+    "mispql_message": "expected a table name, found SELECT (quote it with backticks to use it as a name)",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "DELETE FROM events",
+    "code": "syntax",
+    "start": 0,
+    "end": 6,
+    "fragment": "DELETE",
+    "mispql_message": "expected SELECT, DESCRIBE, SHOW, USE or WHOAMI, found delete",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SHOW events",
+    "code": "syntax",
+    "start": 5,
+    "end": 11,
+    "fragment": "events",
+    "mispql_message": "expected TABLES or DATABASES, found events",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "USE select",
+    "code": "syntax",
+    "start": 4,
+    "end": 10,
+    "fragment": "select",
+    "mispql_message": "expected a database name, found SELECT (quote it with backticks to use it as a name)",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "USE 'prod'",
+    "code": "syntax",
+    "start": 4,
+    "end": 10,
+    "fragment": "'prod'",
+    "mispql_message": "expected a database name, found the string 'prod'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "USE",
+    "code": "syntax",
+    "start": 3,
+    "end": 3,
+    "fragment": "",
+    "mispql_message": "expected a database name, found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "DESCRIBE events extra",
+    "code": "syntax",
+    "start": 16,
+    "end": 21,
+    "fragment": "extra",
+    "mispql_message": "expected ';', found extra",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events;\nSELECT *\n  FROM attributes\n  WHERE id = 'x' OR",
+    "code": "syntax",
+    "start": 68,
+    "end": 68,
+    "fragment": "",
+    "mispql_message": "expected a field name, found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE id >= 7d",
+    "code": "syntax",
+    "start": 33,
+    "end": 35,
+    "fragment": "7d",
+    "mispql_message": "7d must be quoted: '7d'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 1 FORMAT stix -json",
+    "code": "syntax",
+    "start": 41,
+    "end": 42,
+    "fragment": "-",
+    "mispql_message": "expected ';', found '-'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 1 FORMAT stix- json",
+    "code": "syntax",
+    "start": 40,
+    "end": 41,
+    "fragment": "-",
+    "mispql_message": "expected ';', found '-'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 1 FORMAT csv-'x'",
+    "code": "syntax",
+    "start": 39,
+    "end": 40,
+    "fragment": "-",
+    "mispql_message": "expected ';', found '-'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "USE prod-`eu`",
+    "code": "syntax",
+    "start": 8,
+    "end": 9,
+    "fragment": "-",
+    "mispql_message": "expected ';', found '-'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 1 FORMAT",
+    "code": "syntax",
+    "start": 35,
+    "end": 35,
+    "fragment": "",
+    "mispql_message": "expected a format name, found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 1 FORMAT 5",
+    "code": "syntax",
+    "start": 36,
+    "end": 37,
+    "fragment": "5",
+    "mispql_message": "expected a format name, found 5",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE a = 1 `b` = 2",
+    "code": "syntax",
+    "start": 33,
+    "end": 36,
+    "fragment": "`b`",
+    "mispql_message": "expected AND, OR, ORDER BY, LIMIT, OFFSET, FORMAT or ';', found `b`",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE info = 'café' AND id = x",
+    "code": "syntax",
+    "start": 50,
+    "end": 51,
+    "fragment": "x",
+    "mispql_message": "expected a value ('string', number, TRUE or FALSE), found x (strings need quotes)",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE info = '🦠🦠' AND id = 1 id = 2",
+    "code": "syntax",
+    "start": 50,
+    "end": 52,
+    "fragment": "id",
+    "mispql_message": "expected AND, OR, ORDER BY, LIMIT, OFFSET, FORMAT or ';', found id",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE info IN ('e\u0301', '日本語') AND",
+    "code": "syntax",
+    "start": 52,
+    "end": 52,
+    "fragment": "",
+    "mispql_message": "expected a field name, found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM galaxy_clusters WHERE meta.`Ländercode` = 'LU' ORDER",
+    "code": "syntax",
+    "start": 66,
+    "end": 66,
+    "fragment": "",
+    "mispql_message": "expected BY, found end of input",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE info = '\u3000' LIMIT\u00a0\u2028'5'",
+    "code": "syntax",
+    "start": 45,
+    "end": 48,
+    "fragment": "'5'",
+    "mispql_message": "expected a whole number after LIMIT, found the string '5'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE id = -9223372036854775807 AND id = - x",
+    "code": "syntax",
+    "start": 62,
+    "end": 63,
+    "fragment": "-",
+    "mispql_message": "expected a value ('string', number, TRUE or FALSE), found '-'",
+    "source": "test_parser.py::test_errors"
+  },
+  {
+    "statement": "SELECT *\nFROM events WHERE type = btc;",
+    "code": "syntax",
+    "start": 34,
+    "end": 37,
+    "fragment": "btc",
+    "mispql_message": "expected a value ('string', number, TRUE or FALSE), found btc (strings need quotes)",
+    "source": "test_parser.py::test_error_rendering"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM events WHERE ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((id IN (1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) LIMIT 1",
+    "code": "bad_clause",
+    "start": 178,
+    "end": 179,
+    "fragment": "1",
+    "mispql_message": "COUNT(*) takes no LIMIT",
+    "source": "test_parser.py::test_nesting_up_to_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((id = 1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) LIMIT 1",
+    "code": "limit_exceeded",
+    "start": 91,
+    "end": 92,
+    "fragment": "(",
+    "mispql_message": "nested too deep: at most 64 levels of parentheses and NOT",
+    "source": "test_parser.py::test_nesting_past_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1 LIMIT 1",
+    "code": "limit_exceeded",
+    "start": 283,
+    "end": 286,
+    "fragment": "NOT",
+    "mispql_message": "nested too deep: at most 64 levels of parentheses and NOT",
+    "source": "test_parser.py::test_nesting_past_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT id = 1)))))))))))))))))))))))))))))))) LIMIT 1",
+    "code": "limit_exceeded",
+    "start": 187,
+    "end": 190,
+    "fragment": "NOT",
+    "mispql_message": "nested too deep: at most 64 levels of parentheses and NOT",
+    "source": "test_parser.py::test_nesting_past_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE ((((((((((((((((((((((((((((((((NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1)))))))))))))))))))))))))))))))) LIMIT 1",
+    "code": "limit_exceeded",
+    "start": 187,
+    "end": 190,
+    "fragment": "NOT",
+    "mispql_message": "nested too deep: at most 64 levels of parentheses and NOT",
+    "source": "test_parser.py::test_nesting_past_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((id = 1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) LIMIT 1",
+    "code": "limit_exceeded",
+    "start": 91,
+    "end": 92,
+    "fragment": "(",
+    "mispql_message": "nested too deep: at most 64 levels of parentheses and NOT",
+    "source": "test_parser.py::test_nesting_past_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((id = x))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) LIMIT 1",
+    "code": "limit_exceeded",
+    "start": 91,
+    "end": 92,
+    "fragment": "(",
+    "mispql_message": "nested too deep: at most 64 levels of parentheses and NOT",
+    "source": "test_parser.py::test_nesting_past_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE info = 'été 🦠' OR (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((id = 1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) LIMIT 1",
+    "code": "limit_exceeded",
+    "start": 109,
+    "end": 110,
+    "fragment": "(",
+    "mispql_message": "nested too deep: at most 64 levels of parentheses and NOT",
+    "source": "test_parser.py::test_nesting_past_the_limit"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE id = x AND (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((id = 1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+    "code": "syntax",
+    "start": 32,
+    "end": 33,
+    "fragment": "x",
+    "mispql_message": "expected a value ('string', number, TRUE or FALSE), found x (strings need quotes)",
+    "source": "test_parser.py::test_an_earlier_error_comes_first"
+  },
+  {
+    "statement": "SELECT * FROM sightings LIMIT 1",
+    "code": "unknown_table",
+    "start": 14,
+    "end": 23,
+    "fragment": "sightings",
+    "mispql_message": "unknown table sightings: use attributes, events, objects, galaxy_clusters, event_reports, notes, opinions, relationships, collections, tags or organisations",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "DESCRIBE `Attributes`",
+    "code": "unknown_table",
+    "start": 9,
+    "end": 21,
+    "fragment": "`Attributes`",
+    "mispql_message": "unknown table Attributes: use attributes, events, objects, galaxy_clusters, event_reports, notes, opinions, relationships, collections, tags or organisations",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM tags ORDER BY colour LIMIT 1",
+    "code": "not_sortable",
+    "start": 28,
+    "end": 34,
+    "fragment": "colour",
+    "mispql_message": "cannot sort tags by colour; use id, name, numerical_value",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM notes ORDER BY note LIMIT 1",
+    "code": "not_sortable",
+    "start": 29,
+    "end": 33,
+    "fragment": "note",
+    "mispql_message": "cannot sort notes by note; use id, created, modified, distribution",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM opinions WHERE notes.id = 1",
+    "code": "wrong_table",
+    "start": 29,
+    "end": 37,
+    "fragment": "notes.id",
+    "mispql_message": "notes is not the table queried here (opinions)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT tags.name FROM event_reports LIMIT 1",
+    "code": "wrong_table",
+    "start": 7,
+    "end": 16,
+    "fragment": "tags.name",
+    "mispql_message": "tags is not the table queried here (event_reports)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM galaxy_clusters ORDER BY description LIMIT 1",
+    "code": "not_sortable",
+    "start": 39,
+    "end": 50,
+    "fragment": "description",
+    "mispql_message": "cannot sort galaxy_clusters by description; use id, version, type, value, distribution, orgc_id, org_id, tag_name, galaxy_id",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM galaxy_clusters WHERE events.id = 1",
+    "code": "wrong_table",
+    "start": 36,
+    "end": 45,
+    "fragment": "events.id",
+    "mispql_message": "events is not the table queried here (galaxy_clusters)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM attributes WHERE events.id = 1",
+    "code": "wrong_table",
+    "start": 31,
+    "end": 40,
+    "fragment": "events.id",
+    "mispql_message": "events is not the table queried here (attributes)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT events.info FROM attributes LIMIT 1",
+    "code": "wrong_table",
+    "start": 7,
+    "end": 18,
+    "fragment": "events.info",
+    "mispql_message": "events is not the table queried here (attributes)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM attributes WHERE events.id = 1 ORDER BY bogus",
+    "code": "wrong_table",
+    "start": 31,
+    "end": 40,
+    "fragment": "events.id",
+    "mispql_message": "events is not the table queried here (attributes)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events",
+    "code": "missing_clause",
+    "start": 0,
+    "end": 20,
+    "fragment": "SELECT * FROM events",
+    "mispql_message": "add a WHERE or a LIMIT: MISP takes no search without either",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT id FROM attributes ORDER BY id;",
+    "code": "missing_clause",
+    "start": 0,
+    "end": 37,
+    "fragment": "SELECT id FROM attributes ORDER BY id",
+    "mispql_message": "add a WHERE or a LIMIT: MISP takes no search without either",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE id = 1 OFFSET 10",
+    "code": "missing_clause",
+    "start": 41,
+    "end": 43,
+    "fragment": "10",
+    "mispql_message": "OFFSET needs a LIMIT",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events LIMIT 0",
+    "code": "bad_clause",
+    "start": 27,
+    "end": 28,
+    "fragment": "0",
+    "mispql_message": "LIMIT must be at least 1",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events ORDER BY info LIMIT 1",
+    "code": "not_sortable",
+    "start": 30,
+    "end": 34,
+    "fragment": "info",
+    "mispql_message": "cannot sort events by info; use id, event_id, eventinfo, analysis, threat_level_id, distribution, timestamp, event_timestamp, publish_timestamp",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM attributes ORDER BY Event.publish_timestamp LIMIT 1",
+    "code": "not_sortable",
+    "start": 34,
+    "end": 57,
+    "fragment": "Event.publish_timestamp",
+    "mispql_message": "cannot sort attributes by event.publish_timestamp; use id, event_id, object_id, type, category, value, distribution, timestamp, object_relation, publish_timestamp",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM attributes ORDER BY attributes.id, events.id LIMIT 1",
+    "code": "wrong_table",
+    "start": 49,
+    "end": 58,
+    "fragment": "events.id",
+    "mispql_message": "events is not the table queried here (attributes)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM objects ORDER BY id DESC LIMIT 1",
+    "code": "not_sortable",
+    "start": 31,
+    "end": 38,
+    "fragment": "id DESC",
+    "mispql_message": "objects cannot be sorted",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM events",
+    "code": "missing_clause",
+    "start": 7,
+    "end": 15,
+    "fragment": "COUNT(*)",
+    "mispql_message": "COUNT(*) needs a WHERE",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM events LIMIT 5",
+    "code": "missing_clause",
+    "start": 7,
+    "end": 15,
+    "fragment": "COUNT(*)",
+    "mispql_message": "COUNT(*) needs a WHERE",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM events WHERE id > 1 ORDER BY id DESC",
+    "code": "bad_clause",
+    "start": 50,
+    "end": 57,
+    "fragment": "id DESC",
+    "mispql_message": "COUNT(*) takes no ORDER BY",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM events WHERE id > 1 LIMIT 5",
+    "code": "bad_clause",
+    "start": 47,
+    "end": 48,
+    "fragment": "5",
+    "mispql_message": "COUNT(*) takes no LIMIT",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM events WHERE id > 1 OFFSET 5",
+    "code": "bad_clause",
+    "start": 48,
+    "end": 49,
+    "fragment": "5",
+    "mispql_message": "COUNT(*) takes no OFFSET",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM attributes WHERE id > 1 FORMAT json",
+    "code": "bad_clause",
+    "start": 52,
+    "end": 56,
+    "fragment": "json",
+    "mispql_message": "COUNT(*) takes no FORMAT",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM attributes WHERE events.id > 1 FORMAT json",
+    "code": "wrong_table",
+    "start": 38,
+    "end": 47,
+    "fragment": "events.id",
+    "mispql_message": "events is not the table queried here (attributes)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT id, value FROM attributes LIMIT 5 FORMAT csv",
+    "code": "bad_clause",
+    "start": 48,
+    "end": 51,
+    "fragment": "csv",
+    "mispql_message": "a column list needs FORMAT table, FORMAT flat or no FORMAT: FORMAT csv is printed as MISP sends it",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM attributes LIMIT 10 OFFSET 15 FORMAT csv",
+    "code": "bad_clause",
+    "start": 41,
+    "end": 43,
+    "fragment": "15",
+    "mispql_message": "OFFSET must be a multiple of LIMIT with FORMAT csv, which is printed as MISP sends it",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM tags LIMIT 1 OFFSET 9223372036854775807",
+    "code": "bad_clause",
+    "start": 34,
+    "end": 53,
+    "fragment": "9223372036854775807",
+    "mispql_message": "OFFSET too large for this LIMIT",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE info = 'café' AND attributes.id = 1",
+    "code": "wrong_table",
+    "start": 45,
+    "end": 58,
+    "fragment": "attributes.id",
+    "mispql_message": "attributes is not the table queried here (events)",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM events WHERE info = '🦠' ORDER BY info LIMIT 1",
+    "code": "not_sortable",
+    "start": 47,
+    "end": 51,
+    "fragment": "info",
+    "mispql_message": "cannot sort events by info; use id, event_id, eventinfo, analysis, threat_level_id, distribution, timestamp, event_timestamp, publish_timestamp",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM `événements` LIMIT 1",
+    "code": "unknown_table",
+    "start": 14,
+    "end": 26,
+    "fragment": "`événements`",
+    "mispql_message": "unknown table événements: use attributes, events, objects, galaxy_clusters, event_reports, notes, opinions, relationships, collections, tags or organisations",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT COUNT(*) FROM tags WHERE name = 'e\u0301日本' LIMIT 5",
+    "code": "bad_clause",
+    "start": 52,
+    "end": 53,
+    "fragment": "5",
+    "mispql_message": "COUNT(*) takes no LIMIT",
+    "source": "test_compiler.py::test_errors"
+  },
+  {
+    "statement": "SELECT * FROM attributes WHERE type = domain LIMIT 10",
+    "code": "syntax",
+    "start": 38,
+    "end": 44,
+    "fragment": "domain",
+    "mispql_message": "expected a value ('string', number, TRUE or FALSE), found domain (strings need quotes)",
+    "source": "test_site.py::test_examples_show_what_the_tool_prints"
+  }
+]

@@ -1,0 +1,2 @@
+SELECT id, date, info, Orgc.name, Tag FROM events
+WHERE tags = 'tlp:clear' AND date >= '7d' ORDER BY event_id DESC LIMIT 3 FORMAT flat

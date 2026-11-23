@@ -1,0 +1,80 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 108,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 10,
+        "page": 1,
+        "order": [
+          "id desc"
+        ],
+        "query": {
+          "NOT": {
+            "OR": [
+              {
+                "id": {
+                  ">": -5
+                }
+              },
+              {
+                "info": {
+                  "LIKE": "a b"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "output": "flat",
+      "columns": [
+        "id",
+        "info"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 35,
+          "end": 70,
+          "fragment": "NOT\u00a0(\u1680id\u2000>\u2001-\u20025\u2003OR\u2004info\u2005LIKE\u2006'a b'\u2007)"
+        },
+        "query.NOT": {
+          "start": 41,
+          "end": 68,
+          "fragment": "id\u2000>\u2001-\u20025\u2003OR\u2004info\u2005LIKE\u2006'a b'"
+        },
+        "query.NOT.OR[0]": {
+          "start": 41,
+          "end": 49,
+          "fragment": "id\u2000>\u2001-\u20025"
+        },
+        "query.NOT.OR[0].<unknown>": {
+          "start": 41,
+          "end": 43,
+          "fragment": "id"
+        },
+        "query.NOT.OR[1]": {
+          "start": 53,
+          "end": 68,
+          "fragment": "info\u2005LIKE\u2006'a b'"
+        },
+        "query.NOT.OR[1].<unknown>": {
+          "start": 53,
+          "end": 57,
+          "fragment": "info"
+        },
+        "order[0]": {
+          "start": 80,
+          "end": 87,
+          "fragment": "id\u2028DESC"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_any_white_space_separates_tokens"
+}

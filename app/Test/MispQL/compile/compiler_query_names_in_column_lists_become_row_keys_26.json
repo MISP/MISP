@@ -1,0 +1,24 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 39,
+      "table": "notes",
+      "endpoint": "/analyst_data/restSearch/Note",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1
+      },
+      "output": "default",
+      "columns": [
+        "id",
+        "Orgc.name"
+      ],
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_compiler.py::test_query_names_in_column_lists_become_row_keys"
+}

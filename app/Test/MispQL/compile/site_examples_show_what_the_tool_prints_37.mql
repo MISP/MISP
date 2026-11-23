@@ -1,0 +1,3 @@
+SELECT * FROM tags
+WHERE is_galaxy = TRUE AND hide_tag = FALSE AND name LIKE 'misp-galaxy:mitre-attack-pattern=%'
+ORDER BY name LIMIT 20 FORMAT table

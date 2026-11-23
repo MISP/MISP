@@ -1,0 +1,88 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 115,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 100,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "event_id": 4711
+            },
+            {
+              "NOT": {
+                "OR": [
+                  {
+                    "to_ids": true
+                  },
+                  {
+                    "comment": {
+                      "LIKE": "%false positive%"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 105,
+          "fragment": "event_id = 4711 AND NOT (to_ids = TRUE OR comment LIKE '%false positive%')"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 46,
+          "fragment": "event_id = 4711"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 39,
+          "fragment": "event_id"
+        },
+        "query.AND[1]": {
+          "start": 51,
+          "end": 105,
+          "fragment": "NOT (to_ids = TRUE OR comment LIKE '%false positive%')"
+        },
+        "query.AND[1].NOT": {
+          "start": 56,
+          "end": 104,
+          "fragment": "to_ids = TRUE OR comment LIKE '%false positive%'"
+        },
+        "query.AND[1].NOT.OR[0]": {
+          "start": 56,
+          "end": 69,
+          "fragment": "to_ids = TRUE"
+        },
+        "query.AND[1].NOT.OR[0].<unknown>": {
+          "start": 56,
+          "end": 62,
+          "fragment": "to_ids"
+        },
+        "query.AND[1].NOT.OR[1]": {
+          "start": 73,
+          "end": 104,
+          "fragment": "comment LIKE '%false positive%'"
+        },
+        "query.AND[1].NOT.OR[1].<unknown>": {
+          "start": 73,
+          "end": 80,
+          "fragment": "comment"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

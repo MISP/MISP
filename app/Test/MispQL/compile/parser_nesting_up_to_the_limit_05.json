@@ -1,0 +1,57 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 180,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "a": 1
+            },
+            {
+              "b": 2
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 90,
+          "end": 109,
+          "fragment": "(a = 1) AND (b = 2)"
+        },
+        "query.AND[0]": {
+          "start": 91,
+          "end": 96,
+          "fragment": "a = 1"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 91,
+          "end": 92,
+          "fragment": "a"
+        },
+        "query.AND[1]": {
+          "start": 103,
+          "end": 108,
+          "fragment": "b = 2"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 103,
+          "end": 104,
+          "fragment": "b"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_nesting_up_to_the_limit"
+}

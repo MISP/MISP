@@ -1,0 +1,25 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 42,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 1,
+        "page": 1
+      },
+      "output": "default",
+      "columns": [
+        "id",
+        "Tag"
+      ],
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_compiler.py::test_query_names_in_column_lists_become_row_keys"
+}

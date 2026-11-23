@@ -637,6 +637,10 @@ class ACLComponent extends Component
             'admin_request' => [],
             'admin_queryLog' => [],
         ],
+        'mispql' => [
+            'explain' => ['perm_complex_query'],
+            'run' => ['perm_complex_query'],
+        ],
         'modules' => array(
             'index' => array('perm_auth'),
             'queryEnrichment' => array('perm_auth'),

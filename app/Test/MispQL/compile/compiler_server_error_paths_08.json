@@ -1,0 +1,77 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 92,
+      "table": "notes",
+      "endpoint": "/analyst_data/restSearch/Note",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "OR": [
+            {
+              "created": {
+                ">": "tomorrow"
+              }
+            },
+            {
+              "note": {
+                "IN": [
+                  "a",
+                  1
+                ]
+              }
+            },
+            {
+              "locked": "yes"
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 26,
+          "end": 84,
+          "fragment": "created > 'tomorrow' OR note IN ('a', 1) OR locked = 'yes'"
+        },
+        "query.OR[0]": {
+          "start": 26,
+          "end": 46,
+          "fragment": "created > 'tomorrow'"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 26,
+          "end": 33,
+          "fragment": "created"
+        },
+        "query.OR[1]": {
+          "start": 50,
+          "end": 66,
+          "fragment": "note IN ('a', 1)"
+        },
+        "query.OR[1].<unknown>": {
+          "start": 50,
+          "end": 54,
+          "fragment": "note"
+        },
+        "query.OR[2]": {
+          "start": 70,
+          "end": 84,
+          "fragment": "locked = 'yes'"
+        },
+        "query.OR[2].<unknown>": {
+          "start": 70,
+          "end": 76,
+          "fragment": "locked"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

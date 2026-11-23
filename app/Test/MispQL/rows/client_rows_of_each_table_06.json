@@ -1,0 +1,34 @@
+{
+  "statement": "SELECT * FROM tags LIMIT 2",
+  "reply": {
+    "response": [
+      {
+        "Tag": {
+          "id": "1",
+          "Taxonomy": {
+            "namespace": "tlp"
+          },
+          "count": 3
+        }
+      },
+      {
+        "Tag": {
+          "id": "2"
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "1",
+      "Taxonomy": {
+        "namespace": "tlp"
+      },
+      "count": 3
+    },
+    {
+      "id": "2"
+    }
+  ],
+  "source": "test_client.py::test_rows_of_each_table"
+}

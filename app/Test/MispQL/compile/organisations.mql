@@ -1,0 +1,1 @@
+SELECT id, name, user_count FROM organisations WHERE local = TRUE AND sector IN ('Government', 'Financial') ORDER BY name LIMIT 25 OFFSET 25

@@ -1,0 +1,30 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 48,
+      "table": "tags",
+      "endpoint": "/tags/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "is_galaxy": true
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 32,
+          "end": 48,
+          "fragment": "is_galaxy = TRUE"
+        },
+        "query.<unknown>": {
+          "start": 32,
+          "end": 41,
+          "fragment": "is_galaxy"
+        }
+      }
+    }
+  ]
+}

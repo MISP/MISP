@@ -1,0 +1,1 @@
+SELECT id, objects.object_name FROM objects LIMIT 1

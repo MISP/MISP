@@ -1,0 +1,3 @@
+SELECT * FROM attributes
+WHERE tags LIKE 'tlp:%' AND tags NOT IN ('tlp:red', 'tlp:amber+strict') AND timestamp >= '1d'
+LIMIT 100

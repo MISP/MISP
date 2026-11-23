@@ -1,0 +1,1 @@
+SELECT id, galaxy_clusters.org FROM galaxy_clusters LIMIT 1

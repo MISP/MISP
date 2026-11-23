@@ -1,0 +1,1 @@
+SELECT id, events.event_id FROM events LIMIT 1

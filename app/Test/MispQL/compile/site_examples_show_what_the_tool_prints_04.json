@@ -1,0 +1,84 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 171,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "order": [
+          "value asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "galaxy_name": "Threat Actor"
+            },
+            {
+              "org": "MISP"
+            },
+            {
+              "meta.synonyms": {
+                "LIKE": "%bear%"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "value",
+        "galaxy.name"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 57,
+          "end": 134,
+          "fragment": "galaxy_name = 'Threat Actor' AND org = 'MISP' AND meta.synonyms LIKE '%bear%'"
+        },
+        "query.AND[0]": {
+          "start": 57,
+          "end": 85,
+          "fragment": "galaxy_name = 'Threat Actor'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 57,
+          "end": 68,
+          "fragment": "galaxy_name"
+        },
+        "query.AND[1]": {
+          "start": 90,
+          "end": 102,
+          "fragment": "org = 'MISP'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 90,
+          "end": 93,
+          "fragment": "org"
+        },
+        "query.AND[2]": {
+          "start": 107,
+          "end": 134,
+          "fragment": "meta.synonyms LIKE '%bear%'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 107,
+          "end": 120,
+          "fragment": "meta.synonyms"
+        },
+        "order[0]": {
+          "start": 144,
+          "end": 149,
+          "fragment": "value"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

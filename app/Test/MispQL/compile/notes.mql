@@ -1,0 +1,1 @@
+SELECT * FROM notes WHERE object_type = 'Event' AND created > '30d' ORDER BY modified DESC LIMIT 10

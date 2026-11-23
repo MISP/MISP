@@ -1,0 +1,69 @@
+{
+  "statement": "SELECT * FROM event_reports LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "4",
+      "uuid": "r1",
+      "event_id": "1",
+      "name": "Report",
+      "content": "# long",
+      "distribution": "5",
+      "timestamp": "1700000000",
+      "deleted": false,
+      "Event": {
+        "id": "1",
+        "info": "Phishing",
+        "Orgc": {
+          "name": "CIRCL"
+        }
+      },
+      "Tag": [
+        {
+          "name": "tlp:white"
+        }
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "id": "4",
+      "uuid": "r1",
+      "event_id": "1",
+      "name": "Report",
+      "content": "# long",
+      "distribution": "5",
+      "timestamp": "1700000000",
+      "deleted": false,
+      "Event.id": "1",
+      "Event.info": "Phishing",
+      "Event.Orgc.name": "CIRCL",
+      "Tag": [
+        "tlp:white"
+      ]
+    }
+  ],
+  "columns": [
+    "id",
+    "event_id",
+    "name",
+    "Event.info",
+    "distribution",
+    "timestamp",
+    "Tag"
+  ],
+  "cells": [
+    [
+      "4",
+      "1",
+      "Report",
+      "Phishing",
+      "5",
+      "1700000000",
+      [
+        "tlp:white"
+      ]
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_default_columns_of_each_table"
+}

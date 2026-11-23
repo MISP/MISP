@@ -1,0 +1,1 @@
+SELECT eventinfo, meta.org FROM events WHERE eventinfo = 'x' LIMIT 1

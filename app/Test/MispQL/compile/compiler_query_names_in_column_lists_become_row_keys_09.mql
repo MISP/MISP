@@ -1,0 +1,1 @@
+SELECT id, events.org FROM events LIMIT 1

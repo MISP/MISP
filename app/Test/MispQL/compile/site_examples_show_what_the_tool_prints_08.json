@@ -1,0 +1,11 @@
+{
+  "statements": [
+    {
+      "kind": "show_databases",
+      "start": 0,
+      "end": 14,
+      "spans": {}
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

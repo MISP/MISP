@@ -1,0 +1,24 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 52,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1
+      },
+      "output": "flat",
+      "columns": [
+        "id",
+        "value"
+      ],
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_output.py::test_flat_without_rows"
+}

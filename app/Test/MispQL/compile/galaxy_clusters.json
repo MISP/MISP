@@ -1,0 +1,98 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 197,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 10,
+        "page": 3,
+        "order": [
+          "value desc",
+          "id asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "galaxy_name": "Threat Actor"
+            },
+            {
+              "OR": [
+                {
+                  "org": "MISP"
+                },
+                {
+                  "value": {
+                    "LIKE": "apt%"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "value",
+        "galaxy.name"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 57,
+          "end": 125,
+          "fragment": "galaxy_name = 'Threat Actor' AND (org = 'MISP' OR value LIKE 'apt%')"
+        },
+        "query.AND[0]": {
+          "start": 57,
+          "end": 85,
+          "fragment": "galaxy_name = 'Threat Actor'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 57,
+          "end": 68,
+          "fragment": "galaxy_name"
+        },
+        "query.AND[1]": {
+          "start": 91,
+          "end": 124,
+          "fragment": "org = 'MISP' OR value LIKE 'apt%'"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 91,
+          "end": 103,
+          "fragment": "org = 'MISP'"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 91,
+          "end": 94,
+          "fragment": "org"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 107,
+          "end": 124,
+          "fragment": "value LIKE 'apt%'"
+        },
+        "query.AND[1].OR[1].<unknown>": {
+          "start": 107,
+          "end": 112,
+          "fragment": "value"
+        },
+        "order[0]": {
+          "start": 135,
+          "end": 145,
+          "fragment": "value DESC"
+        },
+        "order[1]": {
+          "start": 147,
+          "end": 165,
+          "fragment": "galaxy_clusters.id"
+        }
+      }
+    }
+  ]
+}

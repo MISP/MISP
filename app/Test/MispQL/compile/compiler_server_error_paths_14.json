@@ -1,0 +1,145 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 102,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "OR": [
+                {
+                  "AND": [
+                    {
+                      "OR": [
+                        {
+                          "AND": [
+                            {
+                              "id": 1
+                            },
+                            {
+                              "id": 2
+                            }
+                          ]
+                        },
+                        {
+                          "id": 3
+                        }
+                      ]
+                    },
+                    {
+                      "id": 4
+                    }
+                  ]
+                },
+                {
+                  "id": 5
+                }
+              ]
+            },
+            {
+              "id": 6
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 94,
+          "fragment": "((((id = 1 AND id = 2) OR id = 3) AND id = 4) OR id = 5) AND id = 6"
+        },
+        "query.AND[0]": {
+          "start": 28,
+          "end": 82,
+          "fragment": "(((id = 1 AND id = 2) OR id = 3) AND id = 4) OR id = 5"
+        },
+        "query.AND[0].OR[0]": {
+          "start": 29,
+          "end": 71,
+          "fragment": "((id = 1 AND id = 2) OR id = 3) AND id = 4"
+        },
+        "query.AND[0].OR[0].AND[0]": {
+          "start": 30,
+          "end": 59,
+          "fragment": "(id = 1 AND id = 2) OR id = 3"
+        },
+        "query.AND[0].OR[0].AND[0].OR[0]": {
+          "start": 31,
+          "end": 48,
+          "fragment": "id = 1 AND id = 2"
+        },
+        "query.AND[0].OR[0].AND[0].OR[0].AND[0]": {
+          "start": 31,
+          "end": 37,
+          "fragment": "id = 1"
+        },
+        "query.AND[0].OR[0].AND[0].OR[0].AND[0].<unknown>": {
+          "start": 31,
+          "end": 33,
+          "fragment": "id"
+        },
+        "query.AND[0].OR[0].AND[0].OR[0].AND[1]": {
+          "start": 42,
+          "end": 48,
+          "fragment": "id = 2"
+        },
+        "query.AND[0].OR[0].AND[0].OR[0].AND[1].<unknown>": {
+          "start": 42,
+          "end": 44,
+          "fragment": "id"
+        },
+        "query.AND[0].OR[0].AND[0].OR[1]": {
+          "start": 53,
+          "end": 59,
+          "fragment": "id = 3"
+        },
+        "query.AND[0].OR[0].AND[0].OR[1].<unknown>": {
+          "start": 53,
+          "end": 55,
+          "fragment": "id"
+        },
+        "query.AND[0].OR[0].AND[1]": {
+          "start": 65,
+          "end": 71,
+          "fragment": "id = 4"
+        },
+        "query.AND[0].OR[0].AND[1].<unknown>": {
+          "start": 65,
+          "end": 67,
+          "fragment": "id"
+        },
+        "query.AND[0].OR[1]": {
+          "start": 76,
+          "end": 82,
+          "fragment": "id = 5"
+        },
+        "query.AND[0].OR[1].<unknown>": {
+          "start": 76,
+          "end": 78,
+          "fragment": "id"
+        },
+        "query.AND[1]": {
+          "start": 88,
+          "end": 94,
+          "fragment": "id = 6"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 88,
+          "end": 90,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

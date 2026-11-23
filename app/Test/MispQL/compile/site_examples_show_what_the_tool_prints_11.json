@@ -1,0 +1,99 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 141,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 100,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "category": "Network activity"
+            },
+            {
+              "OR": [
+                {
+                  "type": "domain"
+                },
+                {
+                  "type": {
+                    "IN": [
+                      "ip-src",
+                      "ip-dst"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": {
+                ">": 50000
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 131,
+          "fragment": "category = 'Network activity' AND (type = 'domain' OR type IN ('ip-src', 'ip-dst'))\n  AND id > 50000"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 60,
+          "fragment": "category = 'Network activity'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 39,
+          "fragment": "category"
+        },
+        "query.AND[1]": {
+          "start": 66,
+          "end": 113,
+          "fragment": "type = 'domain' OR type IN ('ip-src', 'ip-dst')"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 66,
+          "end": 81,
+          "fragment": "type = 'domain'"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 66,
+          "end": 70,
+          "fragment": "type"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 85,
+          "end": 113,
+          "fragment": "type IN ('ip-src', 'ip-dst')"
+        },
+        "query.AND[1].OR[1].<unknown>": {
+          "start": 85,
+          "end": 89,
+          "fragment": "type"
+        },
+        "query.AND[2]": {
+          "start": 121,
+          "end": 131,
+          "fragment": "id > 50000"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 121,
+          "end": 123,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

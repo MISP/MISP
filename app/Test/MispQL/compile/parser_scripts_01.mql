@@ -1,0 +1,6 @@
+
+    -- leading comment
+    SELECT * FROM attributes LIMIT 1;;
+    SHOW TABLES ;
+    DESCRIBE events  -- no final semicolon
+    

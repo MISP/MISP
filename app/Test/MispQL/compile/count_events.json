@@ -1,0 +1,57 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 77,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "metadata": 1,
+        "query": {
+          "AND": [
+            {
+              "tags": "tlp:white"
+            },
+            {
+              "date": {
+                ">=": "2026-01-01"
+              }
+            }
+          ]
+        }
+      },
+      "source": "header",
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 77,
+          "fragment": "tags = 'tlp:white' AND date >= '2026-01-01'"
+        },
+        "query.AND[0]": {
+          "start": 34,
+          "end": 52,
+          "fragment": "tags = 'tlp:white'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 34,
+          "end": 38,
+          "fragment": "tags"
+        },
+        "query.AND[1]": {
+          "start": 57,
+          "end": 77,
+          "fragment": "date >= '2026-01-01'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 57,
+          "end": 61,
+          "fragment": "date"
+        }
+      }
+    }
+  ]
+}

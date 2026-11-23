@@ -1,0 +1,21 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 40,
+      "table": "notes",
+      "endpoint": "/analyst_data/restSearch/Note",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_output.py::test_default_columns_of_each_table"
+}

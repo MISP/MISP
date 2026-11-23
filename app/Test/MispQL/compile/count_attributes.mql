@@ -1,0 +1,1 @@
+select count(*) from attributes where type in ('ip-src', 'ip-dst')

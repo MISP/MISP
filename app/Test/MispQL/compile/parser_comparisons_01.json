@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 46,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "type": "domain"
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 46,
+          "fragment": "type = 'domain'"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 35,
+          "fragment": "type"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_comparisons"
+}

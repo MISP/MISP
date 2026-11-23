@@ -1,0 +1,56 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 83,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "AND": [
+            {
+              "type": "ip-dst"
+            },
+            {
+              "id": {
+                ">": 50000
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 83,
+          "fragment": "attributes.type = 'ip-dst' AND attributes.id > 50000"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 57,
+          "fragment": "attributes.type = 'ip-dst'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 46,
+          "fragment": "attributes.type"
+        },
+        "query.AND[1]": {
+          "start": 62,
+          "end": 83,
+          "fragment": "attributes.id > 50000"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 62,
+          "end": 75,
+          "fragment": "attributes.id"
+        }
+      }
+    }
+  ]
+}

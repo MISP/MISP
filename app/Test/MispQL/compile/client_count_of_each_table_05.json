@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 45,
+      "table": "collections",
+      "endpoint": "/collections/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "id": {
+            ">": 0
+          }
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 39,
+          "end": 45,
+          "fragment": "id > 0"
+        },
+        "query.<unknown>": {
+          "start": 39,
+          "end": 41,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_client.py::test_count_of_each_table"
+}

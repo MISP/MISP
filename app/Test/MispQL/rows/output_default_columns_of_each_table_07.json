@@ -1,0 +1,52 @@
+{
+  "statement": "SELECT * FROM organisations LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "1",
+      "name": "CIRCL",
+      "type": "CSIRT",
+      "nationality": "Luxembourg",
+      "sector": "Government",
+      "uuid": "o1",
+      "local": true,
+      "restricted_to_domain": [],
+      "landingpage": null,
+      "user_count": "12"
+    }
+  ],
+  "flat": [
+    {
+      "id": "1",
+      "name": "CIRCL",
+      "type": "CSIRT",
+      "nationality": "Luxembourg",
+      "sector": "Government",
+      "uuid": "o1",
+      "local": true,
+      "landingpage": null,
+      "user_count": "12"
+    }
+  ],
+  "columns": [
+    "id",
+    "name",
+    "type",
+    "nationality",
+    "sector",
+    "local",
+    "user_count"
+  ],
+  "cells": [
+    [
+      "1",
+      "CIRCL",
+      "CSIRT",
+      "Luxembourg",
+      "Government",
+      true,
+      "12"
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_default_columns_of_each_table"
+}

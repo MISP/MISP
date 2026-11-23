@@ -1,0 +1,1 @@
+SELECT * FROM relationships LIMIT 1 FORMAT table

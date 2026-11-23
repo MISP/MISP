@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM events WHERE tags = 'tlp:white' AND date >= '2026-01-01'

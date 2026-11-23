@@ -1,0 +1,65 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 103,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 20,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "org": "CIRCL"
+            },
+            {
+              "date": {
+                ">=": "30d"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "info",
+        "Orgc.name",
+        "Tag"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 50,
+          "end": 81,
+          "fragment": "org = 'CIRCL' AND date >= '30d'"
+        },
+        "query.AND[0]": {
+          "start": 50,
+          "end": 63,
+          "fragment": "org = 'CIRCL'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 50,
+          "end": 53,
+          "fragment": "org"
+        },
+        "query.AND[1]": {
+          "start": 68,
+          "end": 81,
+          "fragment": "date >= '30d'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 68,
+          "end": 72,
+          "fragment": "date"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

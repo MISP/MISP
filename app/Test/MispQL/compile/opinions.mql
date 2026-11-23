@@ -1,0 +1,1 @@
+SELECT id, opinion, comment FROM opinions WHERE opinion >= 50 AND authors LIKE '%circl%' ORDER BY opinion DESC LIMIT 3 FORMAT flat

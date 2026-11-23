@@ -1,0 +1,1 @@
+SELECT id, events.tags FROM events LIMIT 1

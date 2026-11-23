@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 39,
+      "table": "notes",
+      "endpoint": "/analyst_data/restSearch/Note",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "id": {
+            ">": 0
+          }
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 33,
+          "end": 39,
+          "fragment": "id > 0"
+        },
+        "query.<unknown>": {
+          "start": 33,
+          "end": 35,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_client.py::test_count_of_each_table"
+}

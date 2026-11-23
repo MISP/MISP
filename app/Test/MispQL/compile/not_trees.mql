@@ -1,0 +1,4 @@
+SELECT * FROM attributes
+WHERE NOT (type = 'domain' OR NOT tags LIKE 'tlp:%')
+  AND (event_id = 1 OR NOT value NOT LIKE '%x')
+LIMIT 5

@@ -1,0 +1,1 @@
+SELECT * FROM galaxy_clusters WHERE id = 2 FORMAT flat
