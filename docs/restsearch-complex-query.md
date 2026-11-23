@@ -25,8 +25,9 @@ and [Organisations](#organisations).
   rejected with HTTP 400. Other endpoints that take restSearch filters, such
   as the `filters` of `/sightings/add`, reject a `query` with HTTP 400 as well.
 - The user's role needs the **Complex query** permission
-  (`perm_complex_query`, off for every role by default), unless the user is
-  a site admin. Without it the request is answered with HTTP 403. On
+  (`perm_complex_query`), unless the user is a site admin. It is on for every
+  role; untick it for accounts, such as a misbehaving integration, that should
+  not send complex queries. Without it the request is answered with HTTP 403. On
   `/event_reports/restSearch`, `/analyst_data/restSearch/<Type>`,
   `/collections/restSearch`, `/tags/restSearch` and
   `/organisations/restSearch` this holds for every request, with or without

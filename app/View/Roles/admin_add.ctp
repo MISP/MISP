@@ -57,13 +57,16 @@ $fields = [
     ]
 ];
 
+$roleData = $this->request->data['Role'] ?? [];
 $counter = 0;
 foreach ($permFlags as $k => $flag) {
     $counter += 1;
     $fields[] = [
         'field' => $k,
         'label' => h($flag['text']),
-        'checked' => false,
+        'checked' => array_key_exists($k, $roleData)
+            ? !empty($roleData[$k])
+            : !empty($flag['default']),
         'type' => 'checkbox',
         'div' => [
             'class' => sprintf(

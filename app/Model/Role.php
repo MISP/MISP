@@ -104,9 +104,9 @@ class Role extends AppModel
                 break;
         }
         if (empty($this->data['Role']['id'])) {
-            foreach (array_keys($this->permFlags) as $permFlag) {
+            foreach ($this->permFlags as $permFlag => $flag) {
                 if (!isset($this->data['Role'][$permFlag])) {
-                    $this->data['Role'][$permFlag] = 0;
+                    $this->data['Role'][$permFlag] = empty($flag['default']) ? 0 : 1;
                 }
             }
             if (!isset($this->data['Role']['max_execution_time'])) {
@@ -379,7 +379,8 @@ class Role extends AppModel
                 'id' => 'RolePermComplexQuery',
                 'text' => 'Complex queries',
                 'readonlyenabled' => true,
-                'title' => __('Users with this permission can send a boolean query tree to the restSearch endpoints. Complex queries can be expensive, so no role has it by default.'),
+                'default' => true,
+                'title' => __('Allows boolean query trees and MispQL statements. On for every role; untick it for accounts, such as a misbehaving integration, that should not send complex queries.'),
             ]
         );
     }
