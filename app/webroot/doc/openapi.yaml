@@ -990,6 +990,76 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /events/upload_stix:
+    post:
+      summary: "Import a STIX 1 package as an event"
+      operationId: uploadStix1
+      description: |
+        Converts a STIX 1 package (XML) into a MISP event.
+
+        Send the package as the raw request body, or as a string in the `stix`
+        member of a JSON envelope that carries the import options beside it.
+        Import options can also be passed in the query string
+        (`?distribution=1`) or as URL named parameters
+        (`/events/upload_stix/distribution:1`). The URL wins over the
+        envelope, and the query string wins over named parameters.
+
+        Unknown keys are ignored; invalid option values are rejected.
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/stixImportOptionsParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/UploadStix1Request"
+      responses:
+        "200":
+          $ref: "#/components/responses/ExtendedEventResponse"
+        "400":
+          description: "Invalid import option, or empty STIX document"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /events/upload_stix/2:
+    post:
+      summary: "Import a STIX 2 bundle as an event"
+      operationId: uploadStix2
+      description: |
+        Converts a STIX 2 bundle into a MISP event.
+
+        Send the bundle as the raw request body, or in the `stix` member of a
+        JSON envelope that carries the import options beside it (as an object,
+        or as JSON text in a string). Import options can also be passed in the
+        query string (`?distribution=1`) or as URL named parameters
+        (`/events/upload_stix/2/distribution:1`). The URL wins over the
+        envelope, and the query string wins over named parameters.
+
+        Unknown keys are ignored; invalid option values are rejected.
+      tags:
+        - Events
+      parameters:
+        - $ref: "#/components/parameters/stixImportOptionsParameter"
+      requestBody:
+        $ref: "#/components/requestBodies/UploadStix2Request"
+      responses:
+        "200":
+          $ref: "#/components/responses/ExtendedEventResponse"
+        "400":
+          description: "Invalid import option, or empty STIX document"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /galaxies:
     get:
       summary: "Get galaxies"
@@ -4126,6 +4196,97 @@ components:
             id:
               $ref: "#/components/schemas/EventId"
         - $ref: "#/components/schemas/EventNoId"
+
+    StixImportOptions:
+      type: object
+      description: >
+        Import options of a STIX upload. Booleans accept `true`, `false`, `1`
+        and `0`, also as strings; integers accept numeric strings.
+      properties:
+        distribution:
+          type: integer
+          enum: [0, 1, 2, 3, 4]
+          description: >
+            Distribution of the created event. Defaults to the instance's
+            default event distribution.
+        sharing_group_id:
+          type: integer
+          description: >
+            Sharing group of the event, required when `distribution` is `4`.
+        publish:
+          type: boolean
+          default: false
+          description: "Publish the event, if the user may publish."
+        original_file:
+          type: boolean
+          default: true
+          description: "Attach the STIX document to the created event."
+        force_contextual_data:
+          type: boolean
+          default: true
+          description: >
+            Convert the STIX objects that could become either a Galaxy Cluster
+            or a MISP object as Galaxy Clusters (and as MISP objects where
+            applicable), instead of letting the conversion library decide.
+        galaxies_as_tags:
+          type: boolean
+          default: false
+          description: >
+            Attach galaxies as tag names only, without creating custom Galaxy
+            Clusters.
+        cluster_distribution:
+          type: integer
+          enum: [0, 1, 2, 3, 4]
+          description: >
+            Distribution of the Galaxy Clusters the import creates. Defaults to
+            the instance's default event distribution.
+        cluster_sharing_group_id:
+          type: integer
+          description: >
+            Sharing group of the created Galaxy Clusters, required when
+            `cluster_distribution` is `4`.
+        debug:
+          type: boolean
+          default: false
+          description: >
+            Log all the conversion errors and warnings, not only the critical
+            errors. Honoured for site admins only, ignored otherwise.
+            `debugging` is accepted as an alias.
+
+    StixImportEnvelope:
+      description: >
+        The STIX document in `stix`, with the import options beside it. The
+        envelope can also be wrapped in a `request` member.
+      allOf:
+        - $ref: "#/components/schemas/StixImportOptions"
+        - type: object
+          required:
+            - stix
+          properties:
+            stix:
+              description: >
+                The STIX document: a STIX 2 bundle object, or the document as a
+                string (STIX 1 XML, or STIX 2 JSON text).
+              oneOf:
+                - $ref: "#/components/schemas/Stix2Bundle"
+                - type: string
+
+    Stix2Bundle:
+      type: object
+      required:
+        - type
+        - id
+      properties:
+        type:
+          type: string
+          enum: ["bundle"]
+        id:
+          type: string
+          example: "bundle--0c6dcb4a-1b04-4c3d-9e2b-9d8f4a7a7f10"
+        objects:
+          type: array
+          items:
+            type: object
 
     ExtendedEvent:
       allOf:
@@ -7359,6 +7520,18 @@ components:
           - $ref: "#/components/schemas/EventId"
           - $ref: "#/components/schemas/UUID"
 
+    stixImportOptionsParameter:
+      name: options
+      in: query
+      required: false
+      style: form
+      explode: true
+      description: >
+        Import options as query string parameters, such as
+        `?distribution=1&publish=1`. They override the envelope.
+      schema:
+        $ref: "#/components/schemas/StixImportOptions"
+
     attributeIdParameter:
       name: attributeId
       in: path
@@ -8085,6 +8258,43 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/EnrichModulesList"
+
+    UploadStix1Request:
+      required: true
+      content:
+        application/xml:
+          schema:
+            type: string
+            description: "The raw STIX 1 package"
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StixImportEnvelope"
+
+    UploadStix2Request:
+      required: true
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/StixImportEnvelope"
+              - $ref: "#/components/schemas/Stix2Bundle"
+          examples:
+            envelope:
+              summary: "Bundle with import options"
+              value:
+                distribution: 1
+                publish: true
+                galaxies_as_tags: false
+                stix:
+                  type: bundle
+                  id: "bundle--0c6dcb4a-1b04-4c3d-9e2b-9d8f4a7a7f10"
+                  objects: []
+            raw:
+              summary: "Raw bundle, options in the query string"
+              value:
+                type: bundle
+                id: "bundle--0c6dcb4a-1b04-4c3d-9e2b-9d8f4a7a7f10"
+                objects: []
 
     EnrichAttributeRequest:
       required: true
