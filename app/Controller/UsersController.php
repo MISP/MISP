@@ -2043,7 +2043,7 @@ class UsersController extends AppController
                 throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
             }
             $secret = $user['totp'];
-            $totp = \OTPHP\TOTP::create($secret);
+            $totp = $this->__createTotp($secret);
             $now = time();
             if ($totp->verify(trim($this->request->data['User']['otp']), $now) && $this->__claimTotpStep($user['id'], $totp, $now)) {
                 // OTP is correct, we login the user with CakePHP
@@ -2076,6 +2076,28 @@ class UsersController extends AppController
         $step = intdiv($timestamp - $totp->getEpoch(), $totp->getPeriod());
         $key = 'misp:otp:totp_used:' . $userId . ':' . $step;
         return (bool)RedisTool::init()->set($key, 1, ['nx', 'ex' => 3 * $totp->getPeriod()]);
+    }
+
+    /**
+     * @param string|null $secret null generates a new secret
+     * @return \OTPHP\TOTP
+     */
+    private function __createTotp($secret = null)
+    {
+        // Instances that have not re-run composer may still be on otphp 10,
+        // which has neither createFromSecret() nor a clock parameter.
+        if (
+            !method_exists('\OTPHP\TOTP', 'createFromSecret') ||
+            !interface_exists('\Psr\Clock\ClockInterface')
+        ) {
+            return \OTPHP\TOTP::create($secret);
+        }
+        App::uses('SystemClock', 'Tools');
+        $clock = new SystemClock();
+        if ($secret === null) {
+            return \OTPHP\TOTP::generate($clock);
+        }
+        return \OTPHP\TOTP::createFromSecret($secret, $clock);
     }
 
     /**
@@ -2163,15 +2185,15 @@ class UsersController extends AppController
         }
 
         if ($this->request->is('get')) {
-            $totp = \OTPHP\TOTP::create();
+            $totp = $this->__createTotp();
             $secret = $totp->getSecret();
             $this->Session->write('otp_secret', $secret);  // Store in session, we want to create a new secret each time the totp_new() function is queried via a GET (this will not impede incorrect confirmation attempt)
         } else {
             $secret = $this->Session->read('otp_secret');  // Reload secret from session.
             if ($secret) {
-                $totp = \OTPHP\TOTP::create($secret);
+                $totp = $this->__createTotp($secret);
             } else {
-                $totp = \OTPHP\TOTP::create();
+                $totp = $this->__createTotp();
                 $secret = $totp->getSecret();
                 $this->Session->write('otp_secret', $secret); // Store in session, we want to keep reusing the same QR code until the user correctly enters the generated key on their authenticator
             }

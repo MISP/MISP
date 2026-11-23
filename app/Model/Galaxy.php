@@ -1197,17 +1197,26 @@ class Galaxy extends AppModel
         $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($targetType), $targetId, $logTitle);
     }
 
-    public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace="mitre")
+    public function getMitreAttackGalaxyId(
+        $type = 'mitre-attack-pattern',
+        $namespace = null
+    )
     {
-        $galaxy = $this->find('first', array(
+        // Bundled galaxies only: misp-galaxy renames namespaces, and a custom
+        // galaxy can reuse the type with a far higher (timestamp) version.
+        $conditions = [
+            'Galaxy.type' => $type,
+            'Galaxy.default' => true,
+        ];
+        if ($namespace !== null) {
+            $conditions['Galaxy.namespace'] = $namespace;
+        }
+        $galaxy = $this->find('first', [
             'recursive' => -1,
-            'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
-            'conditions' => array(
-                'Galaxy.type' => $type,
-                'Galaxy.namespace' => $namespace
-            ),
-            'group' => array('name', 'id')
-        ));
+            'fields' => ['Galaxy.id'],
+            'conditions' => $conditions,
+            'order' => ['Galaxy.version DESC', 'Galaxy.id ASC'],
+        ]);
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
 

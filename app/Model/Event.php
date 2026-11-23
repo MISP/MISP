@@ -9785,10 +9785,9 @@ class Event extends AppModel
             throw new NotFoundException('Invalid event.');
         }
         $modulePayload = array('module' => $module['name']);
-        if (isset($module['meta']['config'])) {
-            foreach ($module['meta']['config'] as $conf) {
-                $modulePayload['config'][$conf] = Configure::read('Plugin.Export_' . $module['name'] . '_' . $conf);
-            }
+        $config = $this->Module->getModuleConfig($module, 'Export', $user);
+        if (!empty($config)) {
+            $modulePayload['config'] = $config;
         }
         $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
@@ -10174,13 +10173,7 @@ class Event extends AppModel
             return true;
         }
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $settings = array();
-                foreach ($temp['meta']['config'] as $conf) {
-                    $settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
-                }
-                $enabledModules['modules'][$k]['config'] = $settings;
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
 
         $attributes_added = 0;
@@ -10212,10 +10205,10 @@ class Event extends AppModel
                         $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                         if ($result === false) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
-                        } else if (!is_array($result)) {
-                            continue 2;
-                        } else if (!isset($result['results'])) {
-                            return 0;
+                        } else if (!is_array($result) || !isset($result['results'])) {
+                            // A module error (e.g. NXDOMAIN) only applies to
+                            // this lookup, not the remaining enrichment batch.
+                            continue;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {

@@ -493,12 +493,13 @@ class OrganisationsController extends AppController
         } else {
             $local = 0;
         }
+        // The caller lists the current members, the user's own org included
+        // when it is one; a site admin may need to add it to another org's SG.
         $idList = json_decode($idList, true);
-        $id_exclusion_list = array_merge($idList, array($this->Auth->user('Organisation')['id']));
         $orgs = $this->Organisation->find('list', array(
             'conditions' => array(
                 'local' => $local,
-                'id !=' => $id_exclusion_list,
+                'id !=' => $idList,
             ),
             'recursive' => -1,
             'fields' => array('id', 'name'),
