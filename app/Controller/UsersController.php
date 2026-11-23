@@ -2092,12 +2092,8 @@ class UsersController extends AppController
         ) {
             return \OTPHP\TOTP::create($secret);
         }
-        $clock = new class implements \Psr\Clock\ClockInterface {
-            public function now(): \DateTimeImmutable
-            {
-                return new \DateTimeImmutable();
-            }
-        };
+        App::uses('SystemClock', 'Tools');
+        $clock = new SystemClock();
         if ($secret === null) {
             return \OTPHP\TOTP::generate($clock);
         }
