@@ -10205,9 +10205,7 @@ class Event extends AppModel
                         $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                         if ($result === false) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
-                        } else if (!is_array($result)) {
-                            continue 2;
-                        } else if (!isset($result['results'])) {
+                        } else if (!is_array($result) || !isset($result['results'])) {
                             // A module error (e.g. NXDOMAIN) only applies to
                             // this lookup, not the remaining enrichment batch.
                             continue;
