@@ -28,20 +28,21 @@ $tone = array('up' => 'd-up', 'down' => 'd-dn', 'sideways' => 'd-0',
  * thing that read as a bug on the live page.
  */
 ?>
-<div class="bench-sec" style="margin-top:1.1rem">
-    <span><?= h(__('Values tested')) ?></span>
-    <span class="num"><?= h(count($comparison)) ?></span>
-</div>
-<?php if (!empty($comparison)): ?>
-    <p class="wb-sub mt-1 mb-1">
-        <?= count($pinned) === 0
-            ? h(__('None of them is pinned. A pinned value stays here on'
-                . ' every profile you open.'))
-            : h(sprintf(__n('%s of them is pinned.',
-                '%s of them are pinned.', count($pinned)),
-                count($pinned))) ?>
-    </p>
-<?php endif; ?>
+<section class="ap-cmp-card">
+<header class="ap-cmp-card-h">
+    <span class="ap-cmp-card-t"><?= h(__('Values tested')) ?></span>
+    <span class="ap-cmp-card-aside">
+        <?php if (empty($comparison)): ?>
+            <?= h(__('none')) ?>
+        <?php elseif (count($pinned) === 0): ?>
+            <?= h(sprintf(__n('%s value, none pinned', '%s values, none pinned',
+                count($comparison)), count($comparison))) ?>
+        <?php else: ?>
+            <?= h(sprintf(__('%1$s values, %2$s pinned'), count($comparison), count($pinned))) ?>
+        <?php endif; ?>
+    </span>
+</header>
+<div class="ap-cmp-card-b">
 <?php if (empty($comparison)): ?>
     <div class="wb-empty">
         <div class="fw-semibold"><?= h(__('Nothing pinned yet')) ?></div>
@@ -55,7 +56,8 @@ $tone = array('up' => 'd-up', 'down' => 'd-dn', 'sideways' => 'd-0',
         <thead>
             <tr>
                 <th><?= h(__('Value')) ?></th>
-                <th class="r"><?= h(__('Signal strength')) ?></th>
+                <th class="r ap-was"><?= h(__('In force')) ?></th>
+                <th class="r ap-now"><?= h(__('Candidate')) ?></th>
                 <th class="wb-wide-only"><?= h(__('Band')) ?></th>
                 <th class="r" style="width:2.5rem"></th>
             </tr>
@@ -76,23 +78,21 @@ $tone = array('up' => 'd-up', 'down' => 'd-dn', 'sideways' => 'd-0',
                     $note = __('band moved');
                 }
                 ?>
-                <tr>
+                <tr class="<?= $row['direction'] === 'none' ? '' : 'is-hot' ?>">
                     <td class="wb-id">
                         <?= h($row['value']) ?>
                         <?php if ($note !== null): ?>
                             <div class="wb-sub"><?= h($note) ?></div>
                         <?php endif; ?>
                     </td>
-                    <td class="r num">
-                        <?= h($axes['signal_strength']['before']) ?> &rarr;
-                        <?= h($axes['signal_strength']['after']) ?>
-                    </td>
-                    <td class="wb-wide-only wb-sub">
+                    <td class="r num ap-was"><?= h($axes['signal_strength']['before']) ?></td>
+                    <td class="r num ap-now"><?= h($axes['signal_strength']['after']) ?></td>
+                    <td class="wb-wide-only">
                         <?php if (!empty($band['changed'])): ?>
-                            <?= h($band['before']) ?> &rarr;
-                            <b><?= h($band['after']) ?></b>
+                            <span class="ap-was"><?= h($band['before']) ?></span> &rarr;
+                            <span class="ap-cmp-flag"><?= h($band['after']) ?></span>
                         <?php else: ?>
-                            <?= h($band['after']) ?>
+                            <span class="wb-sub"><?= h($band['after']) ?></span>
                         <?php endif; ?>
                     </td>
                     <td class="r <?= h($tone[$row['direction']]) ?>">
@@ -107,3 +107,5 @@ $tone = array('up' => 'd-up', 'down' => 'd-dn', 'sideways' => 'd-0',
             . ' move is right.')) ?>
     </p>
 <?php endif; ?>
+</div>
+</section>

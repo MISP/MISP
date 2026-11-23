@@ -46,6 +46,12 @@ if (!class_exists('CakeLog', false)) {
         {
             self::$lines[] = array($level, $message);
         }
+
+        // Other suites loaded after this one log through debug(), warning()…
+        public static function __callStatic($name, $args)
+        {
+            self::$lines[] = array($name, $args[0] ?? '');
+        }
     }
 }
 
@@ -88,6 +94,7 @@ if (!class_exists('AppModel', false)) {
     }
 }
 
+require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Lib/Tools/AnalystGraphDocumentTool.php';
 require_once __DIR__ . '/../Lib/Tools/DistributionLevel.php';
@@ -223,6 +230,7 @@ class WorkspaceTestParent
 /** A CollectionElement with its storage in memory. */
 class WorkspaceTestElement extends CollectionElement
 {
+    public $id = false;
     public $readable = array();
     public $readableAsked = array();
     public $stored = array();

@@ -139,7 +139,9 @@ class SysLogLogableBehavior extends LogableBehavior
 				// TODO Audit, removed 'revision' as well
 				if ($key != 'lastpushedid' && $key!= 'timestamp' && $key != 'revision' && $key != 'modified' && !in_array($key, $this->settings[$Model->alias]['ignore']) && $value != $old && in_array($key, $db_fields)) {
 					$sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
-					if (in_array($key, $sanitiseFields) || $key === 'authkey' && Configure::read('Security.do_not_log_authkeys')) {
+					if (in_array($key, $sanitiseFields) || $key === 'authkey' && Configure::read('Security.do_not_log_authkeys') ||
+                        ($key === 'value' && $Model->alias === 'UserSetting' &&
+                            ($Model->data[$Model->alias]['setting'] ?? $this->old[$Model->alias]['setting'] ?? null) === 'module_api_keys')) {
 						$old = $value = '*****';
 					}
 
@@ -270,9 +272,6 @@ class SysLogLogableBehavior extends LogableBehavior
 				case "Event":
 					$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
 					$logData['Log']['title'] = $title;
-					break;
-				case "Organisation":
-					$title = 'Organisation (' . $Model->data[$Model->alias]['id'] . '): ' . $Model->data[$Model->alias]['name'];
 					break;
 				case "Post":
 					$title = 'Post (' . $Model->data[$Model->alias]['id'] . ')';

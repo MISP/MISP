@@ -1,7 +1,8 @@
 /* Overmind events index — table view: column widths and the narrow-width
    drop order, columns resized by the reader, the column chooser
    (event_index_hide_columns), the markings and lanes fitted to their cells,
-   whole-row click and selection. */
+   and row selection. The ID and the title link to the event, and so does a
+   double click on the row (index_table.ctp); a single click on it does not. */
 (function () {
     'use strict';
 
@@ -22,7 +23,8 @@
         { k: 'state', w: 30 },
         { k: 'id', w: 56 },
         { k: 'title', flex: true, min: 316, nmin: 200 },
-        { k: 'orgc', w: 124, narrow: 84 },
+        { k: 'orgc', w: 136, narrow: 116 },
+        { k: 'props', w: 116 },
         { k: 'owner', w: 120, opt: 'owner_org' },
         { k: 'user', w: 150, opt: 'creator_user' },
         { k: 'mk', w: 122 },
@@ -46,8 +48,6 @@
     var LANES = ['attrib', 'behav', 'classif'];
     // Dropped in this order while the columns do not fit; 'narrow' tightens the rest.
     var STEPS = ['ext', 'date', 'user', 'owner', 'pub', 'narrow', 'extras'];
-    // Graded org names keep about nine characters; the lanes give way.
-    var GRADED = { w: 150, narrow: 136 };
     // Icon-sized columns keep their width.
     var FIXED = { sel: true, state: true, dist: true, act: true };
     var WIDTHS_KEY = 'misp.eventIndex.columnWidths';
@@ -92,14 +92,11 @@
     };
 
     Table.prototype.baseWidth = function (c) {
-        if (c.k === 'orgc' && this.cfg.graded) return this.narrow ? GRADED.narrow : GRADED.w;
         return this.narrow && c.narrow ? c.narrow : c.w;
     };
 
     Table.prototype.minOf = function (c) {
-        var m = this.narrow && c.nmin ? c.nmin : c.min;
-        // A technique id needs the whole of Behaviour's minimum.
-        return this.cfg.graded && c.ctx && this.narrow && c.k !== 'behav' ? m - 8 : m;
+        return this.narrow && c.nmin ? c.nmin : c.min;
     };
 
     // The smallest a column may be dragged to.
@@ -425,22 +422,7 @@
                 self.widths = {};
                 self.fit();
                 self.saveWidths();
-                return;
             }
-            var tr = e.target.closest('#tableView tr.te-row');
-            if (!tr || e.target.closest('a, button, input, label, select, .dropdown, .dropdown-menu, td.te-c-sel, td.te-c-act, .dk-chip[tabindex]')) return;
-            var sel = window.getSelection && window.getSelection();
-            if (sel && String(sel).length) return;
-            var link = $('.te-title', tr);
-            if (!link) return;
-            if (e.ctrlKey || e.metaKey) window.open(link.href, '_blank');
-            else window.location.href = link.href;
-        });
-        root.addEventListener('auxclick', function (e) {
-            if (e.button !== 1 || e.target.closest('a, button, input')) return;
-            var tr = e.target.closest('#tableView tr.te-row');
-            var link = tr && $('.te-title', tr);
-            if (link) window.open(link.href, '_blank');
         });
 
         var results = $('#index-results', root);

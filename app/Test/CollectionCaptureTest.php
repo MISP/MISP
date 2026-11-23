@@ -142,6 +142,7 @@ if (!class_exists('AppModel', false)) {
 }
 
 require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
+require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/Collection.php';
 
 use PHPUnit\Framework\TestCase;

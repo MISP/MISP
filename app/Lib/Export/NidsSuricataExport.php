@@ -33,7 +33,7 @@ class NidsSuricataExport extends NidsExport
             $ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
             $ruleMeta = $this->convertTagsToMeta($tagsArray);
             $ruleMeta[] = 'misp_event_uuid ' . $item['Event']['uuid'];
-            $ruleMeta[] = 'misp_ioc ' . str_replace(' ', '_', $item['Attribute']['value']);
+            $ruleMeta[] = 'misp_ioc ' . $this->metaToken($item['Attribute']['value']);
             // A pulled attribute's own creation is its arrival, after the origin's timestamp.
             $created = (int)($item['Attribute']['created'] ?? 0);
             $timestamp = (int)$item['Attribute']['timestamp'];
@@ -148,18 +148,24 @@ class NidsSuricataExport extends NidsExport
     }
 
 
+    // Metadata entries are comma separated and the option ends at a semicolon
+    protected function metaToken($value)
+    {
+        return preg_replace('/[\s,;"\\\\\x00-\x1F\x7F]/', '_', (string)$value);
+    }
+
     protected function convertTagsToMeta($tagsArray)
     {
         $results = [];
         foreach ($tagsArray as $tag) {
             $temp = explode(':', $tag);
             if (count($temp) == 1) {
-                $result = 'misp-tag ' . str_replace(' ', '_', $tag);
+                $result = 'misp-tag ' . $this->metaToken($tag);
             } else {
                 $namespace = $temp[0];
                 $temp2 = explode('=', $temp[1]);
                 if (count($temp2) == 1) {
-                    $result = $namespace . ' ' . str_replace(' ', '_', $temp[1]);
+                    $result = $this->metaToken($namespace) . ' ' . $this->metaToken($temp[1]);
                 } else {
                     if ($namespace == 'misp-galaxy' && $temp2[0] == 'mitre-attack-pattern') {
                         preg_match('#T[0-9]{1,4}(\.[0-9]{0,3})?#', $temp2[1], $matches);
@@ -167,7 +173,7 @@ class NidsSuricataExport extends NidsExport
                             $results[] = 'mitre_tactic_id ' . $matches[0];
                         }
                     }
-                    $result = $namespace . ':' . $temp2[0] . ' ' . str_replace(' ', '_', trim($temp2[1], '"'));
+                    $result = $this->metaToken($namespace . ':' . $temp2[0]) . ' ' . $this->metaToken(trim($temp2[1], '"'));
                 }
             }
             $results[] = $result;
@@ -187,7 +193,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 '$EXTERNAL_NET',				// dst_ip
                 'any',							// dst_port
-                'Cookie ' . $attribute['value'],		// msg
+                'Cookie ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid
@@ -219,7 +225,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 'any',				// dst_ip
                 'any',							// dst_port
-                $nameLookup['type'] . ' ' . $attribute['value'],		// msg
+                $nameLookup['type'] . ' ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 '',								// tag
                 $sid,							// sid
@@ -239,7 +245,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 'any',				// dst_ip
                 'any',							// dst_port
-                'Pattern in File ' . $attribute['value'],		// msg
+                'Pattern in File ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 '',								// tag
                 $sid,							// sid
@@ -259,7 +265,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 'any',				// dst_ip
                 'any',							// dst_port
-                'Filename Pattern ' . $attribute['value'],		// msg
+                'Filename Pattern ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 '',								// tag
                 $sid,							// sid
@@ -299,7 +305,7 @@ class NidsSuricataExport extends NidsExport
                     '->',							// direction
                     'any',				// dst_ip
                     'any',							// dst_port
-                    'Filename ' . $filenameIoc['value'],		// msg
+                    'Filename ' . self::escapeMsgArg($filenameIoc['value']),		// msg
                     $content,						// rule_content
                     '',								// tag
                     $sid,							// sid
@@ -320,7 +326,7 @@ class NidsSuricataExport extends NidsExport
                     '->',							// direction
                     'any',				// dst_ip
                     'any',							// dst_port
-                    'File Hash ' . $hashIoc['value'],		// msg
+                    'File Hash ' . self::escapeMsgArg($hashIoc['value']),		// msg
                     $content,						// rule_content
                     '',								// tag
                     $sid,							// sid
@@ -343,7 +349,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 'any',							// dst_ip
                 'any',							// dst_port
-                'Hostname ' . $attribute['value'],		// msg
+                'Hostname ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 '',								// tag
                 $sid,							// sid
@@ -360,7 +366,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 '$EXTERNAL_NET',				// dst_ip
                 'any',							// dst_port
-                'Outgoing HTTP Hostname ' . $attribute['value'],		// msg
+                'Outgoing HTTP Hostname ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid
@@ -377,7 +383,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 '$EXTERNAL_NET',				// dst_ip
                 'any',							// dst_port
-                'Outgoing HTTPS Hostname ' . $attribute['value'],		// msg
+                'Outgoing HTTPS Hostname ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid
@@ -397,7 +403,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 'any',							// dst_ip
                 'any',							// dst_port
-                'Domain ' . $attribute['value'],		// msg
+                'Domain ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 '',								// tag
                 $sid,							// sid
@@ -414,7 +420,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 '$EXTERNAL_NET',				// dst_ip
                 'any',							// dst_port
-                'Outgoing HTTP Domain ' . $attribute['value'],		// msg
+                'Outgoing HTTP Domain ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid
@@ -431,7 +437,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 '$EXTERNAL_NET',				// dst_ip
                 'any',							// dst_port
-                'Outgoing HTTPS Domain ' . $attribute['value'],		// msg
+                'Outgoing HTTPS Domain ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid
@@ -464,9 +470,9 @@ class NidsSuricataExport extends NidsExport
                 $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
                 $tag = 'tag:session,600,seconds;';
                 if (!array_key_exists('path', $data)) {
-                    $data['path'] = NidsExport::replaceIllegalChars($data['host']);
                     $content = 'flow:to_server,established; http.header; content:"' . $data['host'] . '"; nocase;';
                 } else {
+                    $data['path'] = NidsExport::replaceIllegalChars($data['path']);
                     $content = 'flow:to_server,established; http.header; content:"' . $data['host'] . '"; fast_pattern; nocase; http.uri; content:"' . $data['path'] . '"; nocase;';
                 }
                 break;
@@ -481,7 +487,6 @@ class NidsSuricataExport extends NidsExport
                 $suricata_dst_ip = '$EXTERNAL_NET';
                 $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
                 if (!array_key_exists('path', $data)) {
-                    $data['path'] = NidsExport::replaceIllegalChars($data['host']);
                     $content = 'tls.sni; content:"' . $data['host'] . '"; nocase;';
                 } else {
                     $createRule = false;
@@ -546,7 +551,7 @@ class NidsSuricataExport extends NidsExport
                 '->',						// direction
                 $suricata_dst_ip,			// dst_ip
                 $suricata_dst_port,			// dst_port
-                'Outgoing URL ' . $attribute['value'],		// msg
+                'Outgoing URL ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,					// rule_content
                 $tag,						// tag
                 $sid,						// sid
@@ -567,7 +572,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 '$EXTERNAL_NET',				// dst_ip
                 'any',							// dst_port
-                'Outgoing User-Agent ' . $attribute['value'],		// msg
+                'Outgoing User-Agent ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid
@@ -587,7 +592,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 'any',				// dst_ip
                 'any',					// dst_port
-                'JA3 Hash: ' . $attribute['value'],		// msg
+                'JA3 Hash: ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid
@@ -608,7 +613,7 @@ class NidsSuricataExport extends NidsExport
                 '->',							// direction
                 'any',				// dst_ip
                 'any',					// dst_port
-                'JA3S Hash: ' . $attribute['value'],		// msg
+                'JA3S Hash: ' . self::escapeMsgArg($attribute['value']),		// msg
                 $content,						// rule_content
                 'tag:session,600,seconds;',		// tag
                 $sid,							// sid

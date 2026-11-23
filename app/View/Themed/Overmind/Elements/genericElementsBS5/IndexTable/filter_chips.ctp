@@ -11,6 +11,8 @@
  * @var array $chips labels: name => label; values: name => [value => label]
  *                   or callable(value) => string; scope: names
  * @var array $searchChild
+ * @var string $swap optional swap key, for a second copy (the Filters panel's)
+ * @var string $empty optional text shown when no filter is on
  */
 $labels = $chips['labels'] ?? [];
 $valueLabels = $chips['values'] ?? [];
@@ -111,7 +113,7 @@ foreach ($state->filters() as $name => $value) {
     ];
 }
 ?>
-<div class="ifp-chips" data-ifp-swap="chips"<?= $items ? '' : ' hidden' ?>>
+<div class="ifp-chips" data-ifp-swap="<?= h($swap ?? 'chips') ?>"<?= $items || isset($empty) ? '' : ' hidden' ?>>
     <?php foreach ($items as $item): ?>
         <span class="ifp-chip" data-ifp-key="<?= h($item['key']) ?>">
             <span class="ifp-chip-label"><?= h($item['label']) ?><?php if ($item['op'] !== ''): ?><span class="ifp-chip-op"><?= h($item['op']) ?></span> <span class="ifp-chip-value"><?= h($item['value']) ?></span><?php endif; ?></span>
@@ -120,5 +122,8 @@ foreach ($state->filters() as $name => $value) {
     <?php endforeach; ?>
     <?php if ($items): ?>
         <a href="<?= h($state->clearUrl($scope)) ?>" class="ifp-clear" data-ifp-nav><?= __('Clear all') ?></a>
+    <?php endif; ?>
+    <?php if (isset($empty)): ?>
+        <span class="ifp-chips-none"<?= $items ? ' hidden' : '' ?>><?= h($empty) ?></span>
     <?php endif; ?>
 </div>

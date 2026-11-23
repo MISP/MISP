@@ -54,6 +54,7 @@ if (!class_exists('Configure', false)) {
 }
 
 require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
+require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Relationship.php';
 require_once __DIR__ . '/../Model/Graph.php';

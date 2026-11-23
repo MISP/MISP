@@ -1022,6 +1022,27 @@ class EventTemplatesImportExportTests(unittest.TestCase):
         self.assertNotEqual(int(body["event_template_id"]), original_id)
         self._templates.append(int(body["event_template_id"]))
 
+    def test_import_drops_foreign_sharing_group(self) -> None:
+        doc = self._build_doc(str(uuid.uuid4()), name="foreign-sg")
+        doc["template"]["definition"]["event_defaults"] = {
+            "distribution": 4,
+            "sharing_group_id": 1,
+        }
+        r = self._import(doc, mode="fail")
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        tid = int(r.json()["event_template_id"])
+        self._templates.append(tid)
+
+        r = requests.get(
+            f"{URL}/event_templates/view/{tid}",
+            headers=_headers(),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200)
+        defaults = r.json()["EventTemplate"]["definition"]["event_defaults"]
+        self.assertEqual(defaults["distribution"], 0)
+        self.assertIsNone(defaults["sharing_group_id"])
+
     def test_roundtrip_export_delete_import_matches_definition(self) -> None:
         # Headline round-trip: export → wipe → import → compare (PRD §13).
         created = self._add("roundtrip")

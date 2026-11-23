@@ -23,7 +23,7 @@ $dayLabel = function ($timestamp, $day) use ($today, $yesterday) {
 $previousDay = null;
 ?>
 <?php if (empty($newsItems) && $page <= 1): ?>
-    <div class="sp-empty">
+    <div class="d-flex flex-column align-items-center sp-empty">
         <i class="fas fa-newspaper" aria-hidden="true"></i>
         <strong><?= __('There is no news yet.') ?></strong>
         <p><?= __('Announcements from the administrators of this instance show up here.') ?></p>

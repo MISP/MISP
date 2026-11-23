@@ -26,11 +26,11 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->Security->unlockedActions = array('revise_object', 'get_row', 'similar_objects');
         }
-        // The delete confirmations post a hand-built body through fetch(), and the
-        // event Timeline posts editField as JSON, so there is no field hash for
-        // _validatePost() to compare and it can only blackhole.
+        // The delete and restore confirmations post a hand-built body through
+        // fetch(), and the event Timeline posts editField as JSON, so there is no
+        // field hash for _validatePost() to compare and it can only blackhole.
         // CSRF is still enforced, through the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection', 'editField']);
+        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection', 'restore', 'editField']);
     }
 
     /**
@@ -108,6 +108,8 @@ class ObjectsController extends AppController
         }
         $this->set('object', $page['Object'][0]);
         $this->set('eventId', $eventId);
+        // A table row opens on a table of the attributes, a card on their cards.
+        $this->set('asTable', $this->request->query('view') === 'table');
         $this->layout = false;
         $this->render('ajax/index_card');
     }
@@ -251,6 +253,7 @@ class ObjectsController extends AppController
 
         if (isset($this->request->data['Attribute'])) {
             foreach ($this->request->data['Attribute'] as &$attribute) {
+                unset($attribute['id'], $attribute['event_id'], $attribute['object_id']);
                 if (empty($attribute['uuid'])) {
                     $attribute['uuid'] = CakeText::uuid();
                 }
@@ -914,7 +917,15 @@ class ObjectsController extends AppController
             ));
         }
         if (empty($template) && !$this->_isRest() && !$update_template_available) {
-            $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
+            $message = 'Object cannot be edited, no valid template found. ';
+            $params = ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')];
+            if ($this->request->is('ajax')) {
+                // Cake replays an ajax redirect internally: the modal gets the toast instead.
+                $this->layout = false;
+                $this->set(compact('message', 'params'));
+                return $this->render('/Elements/Flash/error');
+            }
+            $this->Flash->error($message, ['params' => $params]);
             if($this->theme === "Overmind"){
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id'], '#' => 'tab-objects'));
             } else {
@@ -926,7 +937,8 @@ class ObjectsController extends AppController
             $this->set('updateable_attribute', $templateData['updateable_attribute']);
             $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
             $this->set('original_template_unknown', $templateData['original_template_unknown']);
-            if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
+            // The revision only pre-fills the form: a save must diff against the stored object alone
+            if (!$this->request->is('post') && !$this->request->is('put') && !empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
                 $revisedObjectData = $this->Session->read('object_being_created');
                 if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
                     $revisedObjectData = $revisedObjectData['data'];
@@ -1128,8 +1140,10 @@ class ObjectsController extends AppController
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
             throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
         }
+        $conditions = $this->MispObject->buildConditions($this->Auth->user());
+        $conditions['AND'][] = $this->__objectIdToConditions($id);
         $object = $this->MispObject->find('first', array(
-            'conditions' => $this->__objectIdToConditions($id),
+            'conditions' => $conditions,
             'contain' => 'Event',
             'recursive' => -1
         ));
@@ -1409,10 +1423,12 @@ class ObjectsController extends AppController
         if (!$this->userRole['perm_modify']) {
             throw new ForbiddenException(__('You don\'t have permissions to delete objects.'));
         }
+        $conditions = $this->MispObject->buildConditions($this->Auth->user());
+        $conditions['AND'][] = $this->__objectIdToConditions($id);
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
-            'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id'),
-            'conditions' => $this->__objectIdToConditions($id),
+            'fields' => array('Object.id', 'Object.event_id', 'Object.deleted', 'Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id'),
+            'conditions' => $conditions,
             'contain' => array(
                 'Event'
             )
@@ -1492,6 +1508,9 @@ class ObjectsController extends AppController
                 $this->set('id', $id);
                 $this->set('idArray', [$id]);
                 $this->set('event_id', $eventId);
+                // The event view's Objects tab counts live objects.
+                $this->set('countedIds', empty($object['Object']['deleted'])
+                    ? [(int)$object['Object']['id']] : []);
                 if ($this->theme === 'Overmind') {
                     $this->render('ajax/objectDeleteConfirmationForm');
                 } else {
@@ -1499,6 +1518,60 @@ class ObjectsController extends AppController
                 }
             }
         }
+    }
+
+    /**
+     * Restore a soft-deleted object, with what was deleted along with it (see
+     * MispObject::restoreObject()). GET renders the confirmation, POST does it.
+     *
+     * @param int|string $id
+     * @return CakeResponse|void
+     */
+    public function restore($id)
+    {
+        if (!$this->userRole['perm_modify']) {
+            throw new ForbiddenException(__('You don\'t have permissions to restore objects.'));
+        }
+        $object = $this->MispObject->find('first', [
+            'recursive' => -1,
+            'fields' => ['Object.id', 'Object.name', 'Object.deleted', 'Event.id', 'Event.orgc_id', 'Event.user_id'],
+            'conditions' => $this->__objectIdToConditions($id),
+            'contain' => ['Event'],
+        ]);
+        if (empty($object)) {
+            throw new NotFoundException(__('Invalid object.'));
+        }
+        if (!$this->__canModifyEvent($object)) {
+            throw new ForbiddenException(__('You do not have permission to do that.'));
+        }
+        if (empty($object['Object']['deleted'])) {
+            throw new BadRequestException(__('This object is not deleted.'));
+        }
+        $objectId = $object['Object']['id'];
+        if ($this->request->is('post')) {
+            if (!$this->_isRest()) {
+                $this->MispObject->Event->insertLock($this->Auth->user(), $object['Event']['id']);
+            }
+            $restored = $this->MispObject->restoreObject($objectId);
+            if ($this->request->is('ajax')) {
+                $body = $restored
+                    ? ['saved' => true, 'success' => __('Object restored.')]
+                    : ['saved' => false, 'errors' => __('Object could not be restored.')];
+                return new CakeResponse(['body' => json_encode($body), 'status' => 200, 'type' => 'json']);
+            }
+            if ($this->_isRest()) {
+                return $restored
+                    ? $this->RestResponse->saveSuccessResponse('Objects', 'restore', $objectId, $this->response->type(), __('Object restored.'))
+                    : $this->RestResponse->saveFailResponse('Objects', 'restore', $objectId, __('Object could not be restored.'), $this->response->type());
+            }
+            throw new MethodNotAllowedException(__('This action is only available from the event view.'));
+        }
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(__('This action expects a POST request.'));
+        }
+        $this->layout = false;
+        $this->set('object', $object['Object']);
+        $this->render('ajax/objectRestoreConfirmationForm');
     }
 
     /**
@@ -1538,6 +1611,10 @@ class ObjectsController extends AppController
             $this->layout = false;
             $this->set('idArray', $idList);
             $this->set('hard', (bool)$hard || $alreadyDeleted);
+            // The event view's Objects tab counts live objects.
+            $this->set('countedIds', array_keys(array_filter($deletedFlags, function ($deleted) {
+                return !$deleted;
+            })));
             $this->render('ajax/objectDeleteSelectionForm');
             return;
         }
@@ -1746,6 +1823,19 @@ class ObjectsController extends AppController
             'event' => $cards[$eventId] ?? null,
             'ui_priorities' => $this->MispObject->ObjectTemplate->uiPrioritiesFor(array_values($objects)) ?: new stdClass(),
         ], 'json');
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        App::uses('ComplexObjectQueryTool', 'Tools');
+        $tool = new ComplexObjectQueryTool($this->MispObject->Attribute, $this->Auth->user(), ComplexQueryTool::limitsFromConfig());
+        return $this->RestResponse->viewData(
+            $tool->discovery('objects', '/objects/restSearch', [], 'Object'),
+            'json'
+        );
     }
 
     public function orphanedObjectDiagnostics()

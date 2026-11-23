@@ -431,6 +431,15 @@
                 }
                 active[select.dataset.vpFilterKey] = select.value;
             });
+        // A segmented switch narrows as a select does; its value is the
+        // pressed pill's, empty for "All".
+        list.querySelectorAll('[data-vp-filter-seg]').forEach(function (seg) {
+            var value = seg.dataset.vpValue || '';
+            if (value === '' || !controlNarrows(list, seg)) {
+                return;
+            }
+            active[seg.dataset.vpFilterKey] = value;
+        });
         return active;
     }
 
@@ -699,77 +708,7 @@
         } else {
             paginate(list, filtered);
         }
-        // A span strip draws every row the section holds, not the page,
-        // so it follows the narrowing rather than the pager — and it
-        // runs for any list that has one rather than for a named panel.
-        paintSpanStrips(list, filtered);
         updateListNotes(list, filtered.length, activeCount);
-    }
-
-    /**
-     * Dim the spans of rows a filter has removed.
-     *
-     * **Dimmed and not removed**, which is the strip's whole claim on
-     * the panel: the axis is the period the *section* covers, so a
-     * narrowing that drops the oldest resolution must not shorten the
-     * axis under the reader — the gap it left is the reading. A redrawn
-     * strip would rescale, and the dormant-then-reactivated shape §25.1
-     * is about would silently become continuously-live.
-     *
-     * The lane count goes to what survived, with the total kept beneath
-     * it, because a lane still showing 46 over three visible spans is
-     * the one number on the panel nothing on screen agrees with.
-     *
-     * @param {Element} list
-     * @param {Array<Element>} filtered Rows that survived
-     */
-    function paintSpanStrips(list, filtered) {
-        var strips = ownNodes(list, '[data-vp-span-strip]');
-        if (!strips.length) {
-            return;
-        }
-        var kept = {};
-        filtered.forEach(function (row) {
-            if (row.dataset.vpSpanKey) {
-                kept[row.dataset.vpSpanKey] = true;
-            }
-        });
-        strips.forEach(function (strip) {
-            var lanes = {};
-            strip.querySelectorAll('[data-vp-span-row]').forEach(
-                function (span) {
-                    var on = !!kept[span.dataset.vpSpanRow];
-                    span.classList.toggle('vp-lane-span-off', !on);
-                    var lane = span.closest('[data-vp-span-lane]');
-                    if (!lane) {
-                        return;
-                    }
-                    var key = lane.dataset.vpSpanLane;
-                    if (lanes[key] === undefined) {
-                        lanes[key] = 0;
-                    }
-                    if (on) {
-                        lanes[key]++;
-                    }
-                }
-            );
-            Object.keys(lanes).forEach(function (key) {
-                var cell = strip.querySelector(
-                    '[data-vp-span-count="' + key + '"]'
-                );
-                if (!cell) {
-                    return;
-                }
-                var total = parseInt(cell.dataset.vpSpanTotal || '', 10);
-                cell.textContent = String(lanes[key]);
-                var note = cell.parentNode
-                    ? cell.parentNode.querySelector('[data-vp-span-of]')
-                    : null;
-                if (note) {
-                    note.hidden = isNaN(total) || lanes[key] === total;
-                }
-            });
-        });
     }
 
     /**
@@ -980,14 +919,13 @@
      * @param {number} sign 1 ascending, -1 descending
      */
     /*
-     * The three containers on this page that own a sortable table. The
+     * The two containers on this page that own a sortable table. The
      * occurrence list is faceted and paginated, the sightings list is
-     * driven by the chart's brush, and the standing ledger is neither,
-     * but all three cycle their headings the same way — so every lookup
-     * that has to find a heading's own container knows all three.
+     * driven by the chart's brush, but both cycle their headings the
+     * same way — so every lookup that has to find a heading's own
+     * container knows both.
      */
-    var SORT_LIST_SELECTOR =
-        '[data-vp-list], [data-vp-sight-list], [data-vp-a-ledger]';
+    var SORT_LIST_SELECTOR = '[data-vp-list], [data-vp-sight-list]';
 
     function sortByColumn(list, filtered, column, sign) {
         var key = 'vpSort' + column.replace(
@@ -1018,33 +956,6 @@
     }
 
     /**
-     * Reorder the standing panel's ledger.
-     *
-     * No facets and no pages — the panel is bounded by the number of
-     * organisations on the instance — so this is `sortByColumn` and
-     * nothing else. Its rows are `display: contents` wrappers, so
-     * moving one moves the five cells it owns and the grid re-flows
-     * them; the header cells are never moved, and `appendChild` puts
-     * every row after them.
-     *
-     * @param {Element} list A [data-vp-a-ledger]
-     */
-    function sortLedger(list) {
-        var rows = Array.prototype.slice.call(
-            list.querySelectorAll('.vpa-row')
-        );
-        if (rows.length < 2) {
-            return;
-        }
-        sortByColumn(
-            list,
-            rows,
-            list.dataset.vpSortedCol || 'default',
-            list.dataset.vpSortedDir === 'desc' ? -1 : 1
-        );
-    }
-
-    /**
      * Cycle one column heading: ascending, descending, then back to the
      * order the server sent.
      *
@@ -1072,14 +983,6 @@
             delete list.dataset.vpSortedDir;
         }
         markSortedColumn(list);
-        /*
-         * The standing ledger has neither facets nor pages, so there is
-         * nothing to refresh around the reorder.
-         */
-        if (list.hasAttribute('data-vp-a-ledger')) {
-            sortLedger(list);
-            return;
-        }
         /*
          * The sightings list is not a faceted list: it pages off `load
          * the rest` rather than a page control, and its rows are chosen
@@ -1128,8 +1031,6 @@
         ).filter(function (button) {
             return button.closest(SORT_LIST_SELECTOR) === list;
         }).forEach(function (button) {
-            // A `th` in the two tables; in the ledger, the grid's own
-            // header cell, which has no table row to hang it on.
             var cell = button.closest('th') || button.parentElement;
             if (!cell) {
                 return;
@@ -1584,7 +1485,9 @@
      * @param {Element} button A [data-vp-pill]
      */
     function pickPill(button) {
-        var group = button.closest('[data-vp-sort], [data-vp-group]');
+        var group = button.closest(
+            '[data-vp-sort], [data-vp-group], [data-vp-filter-seg]'
+        );
         if (!group || button.dataset.vpPill === group.dataset.vpValue) {
             return;
         }
@@ -1596,6 +1499,13 @@
         });
         if (group.hasAttribute('data-vp-group')) {
             switchGroup(group);
+            return;
+        }
+        if (group.hasAttribute('data-vp-filter-seg')) {
+            var segList = group.closest('[data-vp-list]');
+            if (segList) {
+                narrowList(segList);
+            }
             return;
         }
         var list = group.closest('[data-vp-list]');
@@ -2103,35 +2013,279 @@
         });
     }
 
-    /* ==============================================================
-     * The Occurrences tab's table
-     * --------------------------------------------------------------
-     * Two controls the faceted list does not own: which columns are
-     * showing, and what the current selection spans.
-     * ============================================================== */
-
     /**
-     * Twelve columns, nine of them shown, and the panel header states
-     * the ratio — so a toggle has to move the heading with the cells
-     * and correct the ratio, or the table quietly stops matching the
-     * number above it.
+     * The tags card's label filter, as the event Context card's. A
+     * namespace or galaxy that matches keeps all its members.
      *
-     * @param {Element} box A [data-vp-col] checkbox
+     * @param {Element} input
      */
-    function toggleColumn(box) {
-        var panel = box.closest('.vp-panel');
-        if (!panel) {
+    function filterContextLabels(input) {
+        var card = input.closest('.vp-context');
+        if (!card) {
             return;
         }
-        panel.querySelectorAll('.' + box.dataset.vpCol)
-            .forEach(function (cell) {
-                cell.classList.toggle('d-none', !box.checked);
+        var needle = input.value.trim().toLowerCase();
+        var hit = function (text) {
+            return needle === ''
+                || String(text || '').toLowerCase().indexOf(needle) !== -1;
+        };
+        card.querySelectorAll('.eo-rows .hg-unit, .eo-rows .eo-absent')
+            .forEach(function (el) {
+                var group = el.closest('.hg-group');
+                var head = group ? group.querySelector('.hg-head') : null;
+                var shown = hit(el.getAttribute('data-tag-name'))
+                    || hit(el.textContent)
+                    || (head !== null && hit(head.textContent));
+                el.classList.toggle('d-none', !shown);
             });
-        setText(panel, '[data-vp-col-shown]',
-            panel.querySelectorAll('[data-vp-col]:checked').length);
+        card.querySelectorAll('.eo-rows .hg-group').forEach(function (group) {
+            group.classList.toggle('d-none',
+                !group.querySelector('.hg-unit:not(.d-none)'));
+        });
+        card.querySelectorAll('.eo-rows .eo-tech-group').forEach(function (group) {
+            var more = group.querySelector('[data-vp-tech-more]');
+            var open = !!more && more.getAttribute('aria-expanded') === 'true';
+            var whole = hit(group.querySelector('.eo-tech-galaxy').textContent);
+            var shown = 0;
+            group.querySelectorAll('.eo-techniques li').forEach(function (li) {
+                var visible = needle === ''
+                    ? !li.classList.contains('vp-tech-extra') || open
+                    : whole || hit(li.textContent) || hit(li.title);
+                li.hidden = !visible;
+                shown += visible ? 1 : 0;
+            });
+            group.classList.toggle('d-none', shown === 0);
+            if (more) {
+                more.classList.toggle('d-none', needle !== '');
+            }
+        });
     }
 
+    /**
+     * The analyst data cards' filter (the Overview's preview and the
+     * Collaboration tab's thread), as the event Assessment card's: the
+     * search box and, where there is one, the kind switch. An entry is a
+     * top-level item with its replies.
+     *
+     * The thread can also be narrowed to one organisation
+     * (`data-vp-ad-org`, set by the standing card's notes badge). Then an
+     * entry stays when it, or one of its replies, is of the picked kind
+     * and by that organisation; those are marked, and the replies holding
+     * one are opened.
+     *
+     * @param {Element} card A [data-vp-analyst-preview], [data-vp-analyst-collab]
+     *                       or [data-vp-analyst-claims]
+     */
+    function filterAnalystCard(card) {
+        var input = card.querySelector('[data-vp-analyst-filter]');
+        var needle = input ? input.value.trim().toLowerCase() : '';
+        var kindButton = card.querySelector('[data-vp-ad-kind].active');
+        var kind = kindButton ? kindButton.dataset.vpAdKind : 'all';
+        var org = card.dataset.vpAdOrg || '';
+        var shown = 0;
+        card.querySelectorAll('.vp-ad-match').forEach(function (el) {
+            el.classList.remove('vp-ad-match');
+        });
+        card.querySelectorAll('[data-ad-entry]').forEach(function (el) {
+            var hit = needle === '' || el.textContent.toLowerCase().indexOf(needle) !== -1;
+            if (org === '') {
+                hit = hit && (kind === 'all' || el.classList.contains('adr-kind-' + kind));
+            } else {
+                var matches = [el].concat(Array.prototype.slice.call(
+                    el.querySelectorAll('.adr-entry')
+                )).filter(function (entry) {
+                    return entry.dataset.adOrg === org
+                        && (kind === 'all' || entry.classList.contains('adr-kind-' + kind));
+                });
+                hit = hit && matches.length > 0;
+                if (hit) {
+                    matches.forEach(function (entry) {
+                        entry.classList.add('vp-ad-match');
+                        openRepliesAbove(entry, el);
+                    });
+                }
+            }
+            el.classList.toggle('d-none', !hit);
+            shown += hit ? 1 : 0;
+        });
+        var none = card.querySelector('[data-vp-analyst-none]');
+        if (none) {
+            none.classList.toggle('d-none', shown > 0);
+        }
+    }
 
+    /**
+     * Unfolds every reply list between a matching entry and its top-level
+     * entry, as the thread's own "N replies" button does.
+     *
+     * @param {Element} entry
+     * @param {Element} top
+     */
+    function openRepliesAbove(entry, top) {
+        var list = entry.parentElement ? entry.parentElement.closest('.adr-replies') : null;
+        while (list && top.contains(list)) {
+            if (list.hidden) {
+                list.hidden = false;
+                var button = list.previousElementSibling;
+                if (button && button.hasAttribute('data-adr-replies')) {
+                    button.setAttribute('aria-expanded', 'true');
+                    var label = button.querySelector('.adr-replies-label');
+                    if (label) {
+                        label.textContent = button.dataset.adrLabelOpen;
+                    }
+                }
+            }
+            list = list.parentElement ? list.parentElement.closest('.adr-replies') : null;
+        }
+    }
+
+    // An organisation picked before Notes and opinions had loaded.
+    var pendingOrgNotes = null;
+
+    /**
+     * Narrows Notes and opinions to one organisation's notes and scrolls
+     * to it: the standing card's notes badge.
+     *
+     * @param {string} org
+     */
+    function showOrgNotes(org) {
+        var card = document.querySelector('[data-vp-analyst-collab]');
+        if (!card || !card.querySelector('[data-vp-ad-orgfilter]')) {
+            pendingOrgNotes = card ? null : org;
+            return;
+        }
+        pendingOrgNotes = null;
+        card.dataset.vpAdOrg = org;
+        var input = card.querySelector('[data-vp-analyst-filter]');
+        if (input) {
+            input.value = '';
+        }
+        setAnalystKind(card, 'note');
+        showOrgFilter(card);
+        filterAnalystCard(card);
+        var still = window.matchMedia
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        card.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    /**
+     * @param {Element} card A [data-vp-analyst-collab]
+     */
+    function clearOrgNotes(card) {
+        delete card.dataset.vpAdOrg;
+        setAnalystKind(card, 'all');
+        showOrgFilter(card);
+        filterAnalystCard(card);
+    }
+
+    /**
+     * The strip under the thread's header naming the organisation.
+     *
+     * @param {Element} card A [data-vp-analyst-collab]
+     */
+    function showOrgFilter(card) {
+        var strip = card.querySelector('[data-vp-ad-orgfilter]');
+        if (!strip) {
+            return;
+        }
+        var org = card.dataset.vpAdOrg || '';
+        var label = strip.querySelector('[data-vp-ad-orgfilter-label]');
+        label.textContent = label.dataset.template.replace('%s', org);
+        strip.classList.toggle('d-none', org === '');
+    }
+
+    /**
+     * @param {Element} card A [data-vp-analyst-collab]
+     * @param {string} kind all, note or opinion
+     */
+    function setAnalystKind(card, kind) {
+        card.querySelectorAll('[data-vp-ad-kind]').forEach(function (b) {
+            var on = b.dataset.vpAdKind === kind;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+    }
+
+    /**
+     * The search line of a Collaboration rail card (comments, reports):
+     * keeps the [data-vp-entry] whose text holds the needle.
+     *
+     * @param {Element} input A [data-vp-entries-filter]
+     */
+    function filterEntries(input) {
+        var card = input.closest('[data-vp-entries]');
+        if (!card) {
+            return;
+        }
+        var needle = input.value.trim().toLowerCase();
+        // A search reads every entry; without one, the fold is back.
+        var unfolded = needle !== '' || card.dataset.vpEntriesOpen === '1';
+        var shown = 0;
+        card.querySelectorAll('[data-vp-entry]').forEach(function (el) {
+            var hit = needle === '' || el.textContent.toLowerCase().indexOf(needle) !== -1;
+            el.classList.toggle('d-none', !hit || (!unfolded && el.hasAttribute('data-vp-entry-fold')));
+            shown += hit ? 1 : 0;
+        });
+        var more = card.querySelector('[data-vp-entries-more]');
+        if (more) {
+            more.classList.toggle('d-none', unfolded);
+        }
+        var none = card.querySelector('[data-vp-entries-none]');
+        if (none) {
+            none.classList.toggle('d-none', shown > 0);
+        }
+    }
+
+    /**
+     * @param {Element} button A [data-vp-entries-more]
+     */
+    function unfoldEntries(button) {
+        var card = button.closest('[data-vp-entries]');
+        if (!card) {
+            return;
+        }
+        card.dataset.vpEntriesOpen = '1';
+        card.querySelectorAll('[data-vp-entry-fold]').forEach(function (el) {
+            el.classList.remove('d-none');
+        });
+        button.classList.add('d-none');
+    }
+
+    /**
+     * @param {Element} button A [data-vp-ad-kind]
+     */
+    function pickAnalystKind(button) {
+        var card = button.closest(
+            '[data-vp-analyst-collab], [data-vp-analyst-claims]'
+        );
+        if (!card) {
+            return;
+        }
+        card.querySelectorAll('[data-vp-ad-kind]').forEach(function (b) {
+            var on = b === button;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        filterAnalystCard(card);
+    }
+
+    /**
+     * Shows or folds a galaxy's techniques past the first few.
+     *
+     * @param {Element} button
+     */
+    function toggleTechniques(button) {
+        var group = button.closest('.eo-tech-group');
+        var open = button.getAttribute('aria-expanded') !== 'true';
+        group.querySelectorAll('.vp-tech-extra').forEach(function (li) {
+            li.hidden = !open;
+        });
+        if (!button.hasAttribute('data-more')) {
+            button.setAttribute('data-more', button.textContent);
+        }
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        button.textContent = button.getAttribute(open ? 'data-less' : 'data-more');
+    }
 
     /* ==================================================================
      * Charts
@@ -3098,7 +3252,6 @@
         brush: null,
         expanded: false,
         main: null,
-        nav: null,
         // The visible span, which the presets and the four buttons both
         // set. Null until the panel has a plan.
         zoom: null,
@@ -3112,16 +3265,7 @@
         rangeAt: null,
     };
 
-    var SIGHT_ORG_COLOURS = 6;
-    var SIGHT_CURVE_COLOURS = 2;
-
-    /*
-     * The three kinds of report, bottom of the stack upwards, and the
-     * only place their order is written down. Every series on the count
-     * axis is one of these for one organisation — a sighting is not
-     * attributed while a false positive is pooled, which is what this
-     * tab used to do.
-     */
+    // The three kinds of report, in the order they are drawn and read.
     var SIGHT_KINDS = ['sighting', 'fp', 'expiration'];
 
     /**
@@ -3281,20 +3425,6 @@
     function sightInvalidate() {
         sight.range = null;
         sight.rangeAt = null;
-    }
-
-    /**
-     * A categorical colour by position, cycling once the palette runs
-     * out. Named variables rather than literals: the canvas resolves
-     * them against the page, so the ramp follows the theme.
-     *
-     * @param {number} index
-     * @param {number} count How many the palette defines
-     * @param {string} name `org` or `curve`
-     * @return {string}
-     */
-    function sightHue(index, count, name) {
-        return 'var(--vp-sight-' + name + '-' + ((index % count) + 1) + ')';
     }
 
     /* ------------------------------------------------------------------
@@ -3515,32 +3645,6 @@
     }
 
     /**
-     * The colour a segment of one kind takes.
-     *
-     * Colour is identity here and direction is meaning, so a sighting
-     * is the organisation's own hue. The two contradicting kinds keep a
-     * colour of their own because the axis can only say `argues
-     * against` and there are two ways of doing that — and below the
-     * line they never touch an organisation hue, which is what retires
-     * the collision that used to matter most: the benign green against
-     * a brown organisation at ΔE 4.1, and the red that replaced it at
-     * 9.3, were both pairs that can no longer meet.
-     *
-     * @param {string} kind One of SIGHT_KINDS
-     * @param {number} i Position in `data.orgs`
-     * @return {string}
-     */
-    function sightKindHue(kind, i) {
-        if (kind === 'fp') {
-            return 'var(--vp-sight-fp)';
-        }
-        if (kind === 'expiration') {
-            return 'var(--vp-sight-exp)';
-        }
-        return sightHue(i, SIGHT_ORG_COLOURS, 'org');
-    }
-
-    /**
      * How far the count axis reaches each way, over the drawn range and
      * over the kinds currently switched on.
      *
@@ -3590,132 +3694,128 @@
     }
 
     /**
-     * The overlay itself: one stacked bar dataset per organisation per
-     * kind of report on the count axis, and the value's remaining shelf
-     * life on the right-hand axis.
+     * The chart: one bar per bucket and kind, summed over the
+     * organisations (sightings above the line, false positives and
+     * expirations below it), and under them, on a stacked scale sharing
+     * the time axis, the lifetime left. The brush lies over the plot area.
      *
-     * Three datasets per organisation rather than one each plus two
-     * pooled ones. Pooling meant a sighting had a reporter and a
-     * contradiction had none — the legend filed `False positive` under
-     * `Reported by` as though it were an organisation, and the readout
-     * listed it beside real ones. Now every count on this axis belongs
-     * to somebody, which is also what makes switching an organisation
-     * off take its contradictions with it.
-     *
-     * The kinds go in whole: every organisation's sightings, then every
-     * organisation's false positives, then the expirations. So the
-     * stack reads as three coloured blocks rather than interleaving red
-     * through the organisation hues.
-     *
-     * The thresholds used to be here too, as a dotted dataset each plus
-     * an inline plugin that chipped their value over the plot. They are
-     * gone twice over: a threshold was a constant drawn per model and
-     * listed again in the readout at every column, and since phase 5
-     * there is no model and no threshold — expiry is the line reaching
-     * the axis.
-     *
-     * An organisation the legend has switched off is skipped rather
-     * than emptied, and the colour still comes from its position in
-     * `data.orgs` — filtering the series must not repaint the ones that
-     * stayed.
-     *
-     * @param {Element} el
-     * @return {Object}
+     * @param {HTMLCanvasElement} el
+     * @return {Chart}
      */
     function buildSightMain(el) {
-        var data = sight.data;
         var range = sightRange();
+        var labels = sight.data.labels || {};
+        var kindLabels = labels.kinds || {};
+        var hues = {
+            sighting: 'var(--vp-sight-yes)',
+            fp: 'var(--vp-sight-fp)',
+            expiration: 'var(--vp-sight-exp)',
+        };
         var datasets = [];
-
-        /*
-         * A hairline of the page's own ground between stacked segments.
-         * Without it a stack of three organisations with counts 1, 1, 1
-         * is one bar in three tones, and the tones are what the reader
-         * is being asked to count. It matters more now that two
-         * organisations' false positives sit on each other in the same
-         * red.
-         *
-         * The hairline goes on the side away from the axis, which is
-         * the top of a bar that grows up and the bottom of one that
-         * grows down.
-         */
-        function segment(sign, extra) {
-            return Object.assign({
-                type: 'bar',
-                stack: 'reports',
-                yAxisID: 'y',
-                order: 3,
-                borderColor: 'var(--bs-body-bg)',
-                borderWidth: sign > 0
-                    ? { top: 1, right: 0, bottom: 0, left: 0 }
-                    : { top: 0, right: 0, bottom: 1, left: 0 },
-                borderSkipped: false,
-            }, extra);
-        }
-
-        /*
-         * Three kinds by however many organisations is a lot of series
-         * that are entirely zero — twenty-three organisations would be
-         * sixty-nine datasets with perhaps twenty carrying anything, and
-         * most organisations never file a contradiction at all. A
-         * series with nothing in the drawn range is left out: it paints
-         * no pixel and, being filtered out of the readout anyway,
-         * contributes nothing but a dataset for Chart.js to walk. The
-         * bar hue is read off `i` rather than off the dataset's
-         * position, so leaving one out never moves a colour.
-         */
         SIGHT_KINDS.forEach(function (kind) {
-            if (!sight.shown[kind]) {
+            var sums = range.labels.map(function (label, at) {
+                return (range.kinds[kind] || []).reduce(function (sum, counts) {
+                    return sum + (counts[at] || 0);
+                }, 0);
+            });
+            if (!sums.some(Boolean)) {
                 return;
             }
             var sign = sightKindSign(kind);
-            range.kinds[kind].forEach(function (counts, i) {
-                if (sight.hiddenOrgs[i] || !counts.some(Boolean)) {
-                    return;
-                }
-                datasets.push(segment(sign, {
-                    label: data.orgs[i],
-                    vpKind: kind,
-                    // Signed for the plot only. `range.kinds` stays
-                    // counts, so the navigator, the legend and the
-                    // readout keep summing magnitudes.
-                    data: sign > 0 ? counts : counts.map(function (n) {
-                        return -n;
-                    }),
-                    backgroundColor: sightKindHue(kind, i),
-                }));
+            datasets.push({
+                type: 'bar',
+                label: kindLabels[kind] || kind,
+                vpKind: kind,
+                stack: 'reports',
+                yAxisID: 'y',
+                // An empty bucket draws nothing rather than a stub.
+                data: sums.map(function (n) { return n === 0 ? null : sign * n; }),
+                backgroundColor: hues[kind],
+                borderRadius: 2,
+                maxBarThickness: 28,
+                minBarLength: 2,
             });
         });
-
-        range.curves.forEach(function (curve, i) {
-            var colour = sightHue(i, SIGHT_CURVE_COLOURS, 'curve');
+        var life = range.curves.length ? range.curves[0] : null;
+        if (life) {
             datasets.push({
                 type: 'line',
-                label: curve.model,
-                data: curve.points,
-                borderColor: colour,
-                backgroundColor: colour,
-                borderWidth: 2,
+                label: labels.score || '',
+                data: life.points,
+                yAxisID: 'life',
+                borderColor: 'var(--vp-sight-curve-1)',
+                backgroundColor: 'var(--vp-sight-life-fill)',
+                borderWidth: 1.5,
                 pointRadius: 0,
                 pointHoverRadius: 3,
-                tension: 0.25,
+                tension: 0.2,
                 spanGaps: false,
-                yAxisID: 'score',
-                order: 1,
+                fill: 'origin',
             });
-        });
-
-        /*
-         * Both axes are pinned rather than left to Chart.js, so that
-         * one pixel row means zero on both of them. The score keeps its
-         * 0–100 over the band above the line and is given the same
-         * negative share below it, where it has nothing to draw — so a
-         * model sitting at 0 rests exactly on the count axis's zero
-         * instead of cutting through the contradictions underneath.
-         */
+        }
         var bounds = sightBounds(range);
-        var scoreFloor = -100 * (bounds.down / bounds.up);
-
+        var zeroLine = window.VP.chart.resolve('var(--bs-secondary-color)', el);
+        var tick = {
+            color: 'var(--bs-secondary-color)',
+            font: { size: 10 },
+        };
+        var scales = {
+            x: {
+                stacked: true,
+                grid: { display: false },
+                border: { color: 'var(--bs-border-color)' },
+                ticks: Object.assign({ maxRotation: 0, autoSkipPadding: 24, align: 'inner' }, tick),
+            },
+            y: {
+                position: 'left',
+                stacked: true,
+                stack: 'sight',
+                stackWeight: 4,
+                min: -bounds.down,
+                max: bounds.up,
+                border: { display: false },
+                grid: {
+                    // The zero line only; the colour is resolved here
+                    // because a callback's answer is not.
+                    color: function (context) {
+                        return context.tick && context.tick.value === 0
+                            ? zeroLine
+                            : 'transparent';
+                    },
+                },
+                ticks: Object.assign({
+                    precision: 0,
+                    // Only the ends and the line: a count, never negative.
+                    callback: function (value) {
+                        return value === bounds.up || value === -bounds.down || value === 0
+                            ? Math.abs(value) : '';
+                    },
+                }, tick),
+            },
+        };
+        if (life) {
+            // Defined first, so Chart.js stacks it under the bars.
+            var bars = scales.y;
+            delete scales.y;
+            scales.life = {
+                axis: 'y',
+                position: 'left',
+                stack: 'sight',
+                stackWeight: 1,
+                offset: true,
+                min: 0,
+                max: 100,
+                border: { display: false },
+                grid: { display: false },
+                ticks: Object.assign({
+                    stepSize: 100,
+                    callback: function (value) {
+                        return value === 100 ? '100%' : '';
+                    },
+                }, tick),
+            };
+            scales.y = bars;
+        }
         var config = window.VP.chart.resolve({
             data: { labels: range.labels, datasets: datasets },
             options: {
@@ -3723,88 +3823,12 @@
                 maintainAspectRatio: false,
                 animation: false,
                 interaction: { mode: 'index', intersect: false },
-                scales: {
-                    x: {
-                        stacked: true,
-                        grid: { display: false },
-                        border: { color: 'var(--bs-border-color)' },
-                        ticks: {
-                            color: 'var(--bs-secondary-color)',
-                            maxRotation: 0,
-                            autoSkipPadding: 24,
-                            font: { size: 10 },
-                        },
-                    },
-                    y: {
-                        stacked: true,
-                        min: -bounds.down,
-                        max: bounds.up,
-                        border: { display: false },
-                        grid: {
-                            color: 'var(--bs-border-color)',
-                            /*
-                             * The zero is the whole encoding, so it is
-                             * drawn as a line and not as another
-                             * gridline. Everything below it argues
-                             * against the value.
-                             */
-                            lineWidth: function (context) {
-                                return context.tick && context.tick.value === 0
-                                    ? 2
-                                    : 1;
-                            },
-                        },
-                        ticks: {
-                            color: 'var(--bs-secondary-color)',
-                            precision: 0,
-                            font: { size: 10 },
-                            // A count, never a negative number: the
-                            // direction is what the sign is saying and
-                            // `-2 reports` is not a quantity.
-                            callback: function (value) {
-                                return Math.abs(value);
-                            },
-                        },
-                    },
-                    score: {
-                        display: range.curves.length > 0,
-                        position: 'right',
-                        min: scoreFloor,
-                        max: 100,
-                        border: { display: false },
-                        grid: { drawOnChartArea: false },
-                        ticks: {
-                            color: 'var(--bs-secondary-color)',
-                            stepSize: 25,
-                            font: { size: 10 },
-                            // The band below zero exists to hold the
-                            // two scales' zeroes together, and a score
-                            // never reaches it. Labelling it would
-                            // claim a scale of negative scores.
-                            callback: function (value) {
-                                return value < 0 ? '' : value;
-                            },
-                        },
-                    },
-                },
+                scales: scales,
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        // A stack of ten one-report bars would otherwise
-                        // list ten organisations reporting zero.
                         filter: function (item) {
-                            return item.parsed.y !== 0
-                                || item.dataset.type === 'line';
-                        },
-                        // The reports first, the scores after, whatever
-                        // order the datasets went in — the readout is
-                        // grouped and the groups have to stay whole.
-                        itemSort: function (a, b) {
-                            var rank = function (item) {
-                                return item.dataset.type === 'line' ? 1 : 0;
-                            };
-                            return rank(a) - rank(b)
-                                || a.datasetIndex - b.datasetIndex;
+                            return item.parsed.y !== 0 || item.dataset.type === 'line';
                         },
                         enabled: false,
                         external: sightTip,
@@ -3812,58 +3836,21 @@
                 },
             },
         }, el);
-
         config.type = 'bar';
-        return new Chart(el, config);
-    }
-
-    /**
-     * The navigator: every report in the range as one bar per bucket,
-     * with no axes, so the brush above it can be positioned as a plain
-     * fraction of the strip's width.
-     *
-     * @param {Element} el
-     * @return {Object}
-     */
-    function buildSightNav(el) {
-        var range = sightRange();
-        // Every report of every kind, whatever the chart above is
-        // currently drawing: the navigator is the range, not the view.
-        var totals = range.labels.map(function (label, i) {
-            var sum = 0;
-            SIGHT_KINDS.forEach(function (kind) {
-                range.kinds[kind].forEach(function (counts) {
-                    sum += counts[i];
-                });
-            });
-            return sum;
-        });
-        var config = window.VP.chart.resolve({
-            type: 'bar',
-            data: {
-                labels: range.labels,
-                datasets: [{
-                    data: totals,
-                    backgroundColor: 'var(--vp-sight-nav)',
-                    barPercentage: 1,
-                    categoryPercentage: 1,
-                }],
+        // The brush covers the plot area, so a drag maps onto the bars.
+        config.plugins = [{
+            id: 'vpSightBrushArea',
+            afterLayout: function (chart) {
+                var brush = chart.canvas.parentNode.querySelector('[data-misp-brush]');
+                if (!brush || !chart.chartArea) {
+                    return;
+                }
+                brush.style.left = chart.chartArea.left + 'px';
+                brush.style.right = (chart.width - chart.chartArea.right) + 'px';
+                brush.style.top = chart.chartArea.top + 'px';
+                brush.style.bottom = (chart.height - chart.chartArea.bottom) + 'px';
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                layout: { padding: 0 },
-                scales: {
-                    x: { display: false },
-                    y: { display: false, beginAtZero: true },
-                },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false },
-                },
-            },
-        }, el);
+        }];
         return new Chart(el, config);
     }
 
@@ -3871,49 +3858,9 @@
      * @param {Element} panel
      */
     function updateSightLegend(panel) {
-        var range = sightRange();
-        var labels = sight.data.labels;
-        panel.querySelectorAll('[data-vp-sight-key-org]')
-            .forEach(function (key) {
-                var i = parseInt(key.dataset.vpSightKeyOrg, 10);
-                setText(key, '[data-vp-sight-key-count]', range.orgCounts[i]);
-                /*
-                 * Every report the organisation filed in the range, of
-                 * any kind — the heading over these keys says `Reported
-                 * by` and a contradiction is a report. The `title`
-                 * carries the split, because the swatch is only the
-                 * colour of the sightings among them.
-                 */
-                var per = range.orgByKind[i];
-                var counted = labels.kindCounted || {};
-                key.title = SIGHT_KINDS.filter(function (kind) {
-                    return per[kind] > 0;
-                }).map(function (kind) {
-                    var forms = counted[kind] || [kind, kind];
-                    return per[kind] + ' '
-                        + forms[per[kind] === 1 ? 0 : 1];
-                }).join(' · ');
-                /*
-                 * The count is the range's and stays put whether or not
-                 * the bars are drawn: switching an organisation off asks
-                 * the chart a question, not the data.
-                 */
-                key.setAttribute(
-                    'aria-pressed',
-                    sight.hiddenOrgs[i] ? 'false' : 'true'
-                );
-                // Nothing left to take out while every kind is switched
-                // off above.
-                key.disabled = !SIGHT_KINDS.some(function (kind) {
-                    return sight.shown[kind];
-                });
-            });
-        setText(panel, '[data-vp-sight-key-fp]', range.kindCounts.fp);
-        setText(panel, '[data-vp-sight-key-exp]', range.kindCounts.expiration);
-
         var axis = panel.querySelector('[data-vp-sight-axis-left]');
         if (axis) {
-            axis.textContent = labels.perUnit[range.unit];
+            axis.textContent = sight.data.labels.perUnit[sightRange().unit];
         }
     }
 
@@ -3944,6 +3891,11 @@
             sight.brush || { from: 0, to: count - 1 },
             count
         );
+        // Over the chart itself, the whole range is no selection to draw.
+        var layer = panel.querySelector('[data-misp-brush]');
+        if (layer) {
+            layer.classList.toggle('is-whole', !sight.brush);
+        }
 
         var window_ = sightWindow();
         var label = panel.querySelector('[data-vp-sight-window]');
@@ -4006,10 +3958,12 @@
         // model happened to send.
         applySightOrder(list);
 
+        // The header's type switch, if any.
+        var kind = list.dataset.vpSightKind || 'all';
         list.querySelectorAll('tbody tr').forEach(function (row) {
             var day = row.dataset.vpSightDate;
-            var keep = !window_
-                || (day >= window_.from && day <= window_.to);
+            var keep = (!window_ || (day >= window_.from && day <= window_.to))
+                && (kind === 'all' || row.dataset.vpSightType === kind);
             if (keep) {
                 matched.push(row);
             }
@@ -4073,9 +4027,6 @@
     function refreshSight(panel) {
         if (sight.main) {
             sight.main.refresh();
-        }
-        if (sight.nav) {
-            sight.nav.refresh();
         }
         paintSightZoom(panel);
         updateSightLegend(panel);
@@ -4145,11 +4096,9 @@
      * @param {Element} panel
      */
     function syncSightPreset(panel) {
-        var select = panel.querySelector('[data-vp-sight-range]');
-        if (!select || !sight.zoom || !sight.data) {
+        if (!sight.zoom || !sight.data) {
             return;
         }
-        var custom = select.querySelector('[data-vp-sight-range-custom]');
         var span = sight.zoom.span();
         var matched = null;
         sight.data.spans.forEach(function (preset) {
@@ -4157,15 +4106,14 @@
                 matched = preset.key;
             }
         });
-        if (custom) {
-            custom.hidden = matched !== null;
-        }
         if (matched !== null) {
-            select.value = matched;
             sight.rangeKey = matched;
-        } else if (custom) {
-            custom.selected = true;
         }
+        panel.querySelectorAll('[data-vp-sight-span]').forEach(function (button) {
+            var on = button.dataset.vpSightSpan === matched;
+            button.classList.toggle('active', on);
+            button.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
     }
 
     /**
@@ -4219,14 +4167,7 @@
             sightToSpan(sight.rangeKey);
             sight.shown = { sighting: true, fp: true, expiration: true };
             sight.hiddenOrgs = {};
-            panel.querySelectorAll('[data-vp-sight-type]')
-                .forEach(function (button) {
-                    if (button.disabled) {
-                        sight.shown[button.dataset.vpSightType] = false;
-                    }
-                });
             sight.main = window.VP.chart.boot('vp-sight-main', buildSightMain);
-            sight.nav = window.VP.chart.boot('vp-sight-nav', buildSightNav);
             wireSightBrush(panel);
             var zoom = panel.querySelector('[data-vp-zoom]');
             if (zoom) {
@@ -4259,30 +4200,15 @@
      */
     function onSightClick(event) {
         var panel = document.querySelector('[data-vp-sight]');
-
-        var toggle = event.target.closest('[data-vp-sight-type]');
-        if (toggle && !toggle.disabled && panel) {
-            var key = toggle.dataset.vpSightType;
-            sight.shown[key] = !sight.shown[key];
-            toggle.setAttribute('aria-pressed', String(sight.shown[key]));
-            refreshSight(panel);
-            return true;
-        }
-
-        /*
-         * The legend as a filter. A stack of a dozen organisations is
-         * a wall at the one bar the reader cares about, and until now
-         * the only way to thin it was the three type toggles, which
-         * cannot say `just this one`.
-         */
-        var org = event.target.closest('[data-vp-sight-key-org]');
-        if (org && !org.disabled && panel) {
-            var at = parseInt(org.dataset.vpSightKeyOrg, 10);
-            if (sight.hiddenOrgs[at]) {
-                delete sight.hiddenOrgs[at];
-            } else {
-                sight.hiddenOrgs[at] = true;
-            }
+        var spanButton = event.target.closest('[data-vp-sight-span]');
+        if (spanButton && panel) {
+            // A wider window is a different set of buckets, so a brush
+            // drawn over the old ones no longer points at anything.
+            sight.rangeKey = spanButton.dataset.vpSightSpan;
+            sight.brush = null;
+            sight.expanded = false;
+            sightToSpan(sight.rangeKey);
+            syncSightPreset(panel);
             refreshSight(panel);
             return true;
         }
@@ -4294,6 +4220,22 @@
                 paintSightBrush(panel);
             }
             refreshSightList();
+            return true;
+        }
+
+        var kindButton = event.target.closest('[data-vp-sight-kind]');
+        if (kindButton) {
+            var list = kindButton.closest('[data-vp-sight-list]');
+            if (list) {
+                list.dataset.vpSightKind = kindButton.dataset.vpSightKind;
+                list.querySelectorAll('[data-vp-sight-kind]').forEach(function (b) {
+                    var on = b === kindButton;
+                    b.classList.toggle('active', on);
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+                sight.expanded = false;
+                refreshSightList();
+            }
             return true;
         }
 
@@ -4351,58 +4293,27 @@
      * that errored and differently again from one nobody asked.
      */
     var ENRICH_STATES = {
-        ok: {dot: 'vp-e-dot-ok', cls: 'vp-e-status-ok',
-            label: 'Answered'},
-        silent: {dot: 'vp-e-dot-none', cls: 'vp-e-status-none',
-            label: 'Nothing back'},
-        error: {dot: 'vp-e-dot-err', cls: 'vp-e-status-timeout',
-            label: 'Module error'},
-        timeout: {dot: 'vp-e-dot-timeout', cls: 'vp-e-status-timeout',
-            label: 'Timed out'},
-        refused: {dot: 'vp-e-dot-err', cls: 'vp-e-status-timeout',
-            label: 'Not sent'},
-        unreachable: {dot: 'vp-e-dot-err', cls: 'vp-e-status-timeout',
-            label: 'No service'},
-        ineligible: {dot: 'vp-e-dot-none', cls: 'vp-e-status-none',
-            label: 'Not offered'},
-        running: {dot: 'vp-e-dot-run', cls: 'vp-e-status-none',
-            label: 'Asking…'},
-        /*
-         * The reader's own declaration, and it was missing: a `never`
-         * module refused at the endpoint painted `Unknown` on its row
-         * while the pane beside it explained the refusal.
-         */
-        profile_refused: {dot: 'vp-e-dot-none', cls: 'vp-e-status-none',
-            label: 'Blocked by you'},
-        /*
-         * Phase 11. Neither is a failure of the module: the instance
-         * declined to run it unasked, or the kept answer has aged out
-         * of the store. Both are worth a second press and neither
-         * deserves a red dot.
-         */
-        auto_not_allowed: {dot: 'vp-e-dot-none', cls: 'vp-e-status-none',
-            label: 'Not run on its own'},
-        expired: {dot: 'vp-e-dot-none', cls: 'vp-e-status-none',
-            label: 'No longer kept'}
+        ok: {dot: 'vp-e-dot-ok', cls: 'is-ok', label: 'answered just now'},
+        silent: {dot: 'vp-e-dot-none', cls: '', label: 'answered with nothing'},
+        error: {dot: 'vp-e-dot-err', cls: 'is-warn', label: 'module error'},
+        timeout: {dot: 'vp-e-dot-timeout', cls: 'is-warn', label: 'timed out'},
+        refused: {dot: 'vp-e-dot-err', cls: 'is-warn', label: 'not sent'},
+        unreachable: {dot: 'vp-e-dot-err', cls: 'is-warn', label: 'no service'},
+        ineligible: {dot: 'vp-e-dot-none', cls: '', label: 'not offered'},
+        running: {dot: 'vp-e-dot-run', cls: '', label: 'asking…'},
+        // The reader's own declaration: a `never` module refused at the endpoint.
+        profile_refused: {dot: 'vp-e-dot-none', cls: '', label: 'blocked by your profile'},
+        // Neither is a failure of the module, and neither deserves a red dot.
+        auto_not_allowed: {dot: 'vp-e-dot-none', cls: '', label: 'not run on its own'},
+        expired: {dot: 'vp-e-dot-none', cls: '', label: 'no longer kept'}
     };
 
-    /*
-     * What a row says about a state this script does not know.
-     *
-     * **Not `ok`.** It was, and that is how a timed-out module came to
-     * paint a green dot and the word *Answered* on its row while the
-     * pane beside it said the module had run out of time — the one
-     * distinction the state list exists to keep. A row that cannot
-     * name what happened must not claim the best of the seven things
-     * it might have been.
-     */
-    var ENRICH_UNKNOWN = {dot: 'vp-e-dot-none', cls: 'vp-e-status-none',
-        label: 'Unknown'};
+    // Never `ok`: a row that cannot name what happened must not claim the best outcome.
+    var ENRICH_UNKNOWN = {dot: 'vp-e-dot-none', cls: '', label: 'unknown'};
 
     var ENRICH_DOTS = 'vp-e-dot-ok vp-e-dot-err vp-e-dot-run '
         + 'vp-e-dot-none vp-e-dot-timeout';
-    var ENRICH_CLS = 'vp-e-status-ok vp-e-status-none '
-        + 'vp-e-status-timeout';
+    var ENRICH_CLS = 'is-ok is-warn';
 
     /**
      * How much a module sent back, said on its own row.
@@ -4459,6 +4370,11 @@
             return;
         }
         var spec = ENRICH_STATES[state] || ENRICH_UNKNOWN;
+        // A kept answer says how old it is, as the answer's own head does.
+        var age = result ? result.querySelector('.vp-e-res-age') : null;
+        if (state === 'ok' && age) {
+            spec = {dot: spec.dot, cls: spec.cls, label: 'answered ' + age.textContent.trim()};
+        }
         setEnrichCount(panel, row, state, result);
 
         var dot = row.querySelector('[data-vp-e-dot]');
@@ -4474,7 +4390,9 @@
             ENRICH_CLS.split(' ').forEach(function (cls) {
                 label.classList.remove(cls);
             });
-            label.classList.add(spec.cls);
+            if (spec.cls) {
+                label.classList.add(spec.cls);
+            }
             label.textContent = spec.label;
         }
     }
@@ -4680,7 +4598,7 @@
                 return enrichAsk(panel, one.name, one.type);
             });
         }, Promise.resolve()).then(function () {
-            done('Run <span data-vp-e-runcount>0</span> selected');
+            done();
             panel.querySelectorAll('[data-vp-e-select]')
                 .forEach(function (box) { box.checked = false; });
             refreshEnrichTray(panel);
@@ -5000,19 +4918,27 @@
     }
 
     /**
-     * Open or shut one object's attribute table.
+     * Open or shut one object's attribute table: an object drawn as the
+     * objects index draws it (`tbody[data-vp-obj]`, its toggle
+     * `[data-vp-obj-disc]` and its attribute row `[data-vp-obj-fold]`),
+     * in an enrichment answer or in the Relationships tab.
      *
      * @param {Element} item An object card
      * @param {boolean} open
      */
-    function setEnrichFold(item, open) {
-        var head = item.querySelector('[data-vp-e-disc]');
-        var fold = item.querySelector('[data-vp-e-fold]');
+    function setObjectFold(item, open) {
+        var head = item.querySelector('[data-vp-obj-disc]');
+        var fold = item.querySelector('[data-vp-obj-fold]');
         if (!head || !fold) {
             return;
         }
         head.setAttribute('aria-expanded', open ? 'true' : 'false');
         fold.classList.toggle('d-none', !open);
+        // An object row frames itself and its attributes, as in the objects index.
+        var row = head.closest('tr');
+        if (row) {
+            row.classList.toggle('oi-open', open);
+        }
     }
 
     /**
@@ -5027,14 +4953,160 @@
      *
      * @param {Element} button
      */
-    function toggleEnrichDisc(button) {
-        var item = button.closest('[data-vp-e-item]');
+    function toggleObjectFold(button) {
+        var item = button.closest('[data-vp-obj]');
         if (!item) {
             return;
         }
         var open = button.getAttribute('aria-expanded') !== 'true';
-        setEnrichFold(item, open);
-        item.dataset.vpEWas = open ? 'true' : 'false';
+        setObjectFold(item, open);
+        item.dataset.vpObjWas = open ? 'true' : 'false';
+    }
+
+    /**
+     * The Labels card: its search, its Clusters / Tags switch and each
+     * family's "+N more", read from the markup every time. A narrowing
+     * shows every match, folded or not; cleared, a family is folded again
+     * unless the reader opened it.
+     *
+     * @param {Element} card [data-vp-lab-card]
+     */
+    function refreshLabels(card) {
+        var input = card.querySelector('[data-vp-lab-filter]');
+        var query = input ? input.value.trim().toLowerCase() : '';
+        var on = card.querySelector('[data-vp-lab-kind-btn].active');
+        var kind = on ? on.dataset.vpLabKindBtn : 'all';
+        var narrowed = query !== '' || kind !== 'all';
+        var any = false;
+        card.querySelectorAll('[data-vp-lab-tier]').forEach(function (tier) {
+            var tierHits = 0;
+            tier.querySelectorAll('[data-vp-lab-fam]').forEach(function (fam) {
+                var open = narrowed || fam.dataset.vpLabOpen === 'true';
+                var hits = 0;
+                var hidden = 0;
+                fam.querySelectorAll('[data-vp-lab]').forEach(function (chip) {
+                    var match = (kind === 'all'
+                            || chip.dataset.vpLabKind === kind)
+                        && (query === ''
+                            || chip.dataset.vpLabText.indexOf(query) !== -1);
+                    var folded = !open && chip.classList.contains('is-folded');
+                    chip.classList.toggle('d-none', !match || folded);
+                    if (match) {
+                        hits++;
+                        if (folded) {
+                            hidden++;
+                        }
+                    }
+                });
+                var more = fam.querySelector('[data-vp-lab-more]');
+                if (more) {
+                    more.classList.toggle('d-none', hidden === 0);
+                    more.textContent = (more.dataset.vpLabMoreLabel || '+%d')
+                        .replace('%d', hidden);
+                }
+                fam.classList.toggle('d-none', hits === 0);
+                tierHits += hits;
+            });
+            tier.classList.toggle('d-none', tierHits === 0);
+            any = any || tierHits > 0;
+        });
+        var empty = card.querySelector('[data-vp-lab-empty]');
+        if (empty) {
+            empty.classList.toggle('d-none', any);
+        }
+    }
+
+    /**
+     * Outside this instance: a source's remote events past the first few.
+     *
+     * @param {Event} event
+     * @return {boolean}
+     */
+    function onExternalClick(event) {
+        var more = event.target.closest('[data-vp-ext-more]');
+        if (!more) {
+            return false;
+        }
+        var host = more.closest('.vp-ext-events');
+        host.querySelectorAll('[data-vp-ext-fold]').forEach(function (link) {
+            link.classList.remove('d-none');
+        });
+        more.classList.add('d-none');
+        return true;
+    }
+
+    /**
+     * @param {Event} event
+     * @return {boolean} Whether the click belonged to the Labels card
+     */
+    function onLabelsClick(event) {
+        var more = event.target.closest('[data-vp-lab-more]');
+        if (more) {
+            var fam = more.closest('[data-vp-lab-fam]');
+            fam.dataset.vpLabOpen = 'true';
+            refreshLabels(more.closest('[data-vp-lab-card]'));
+            return true;
+        }
+        var kind = event.target.closest('[data-vp-lab-kind-btn]');
+        if (kind) {
+            kind.parentNode.querySelectorAll('[data-vp-lab-kind-btn]')
+                .forEach(function (button) {
+                    var active = button === kind;
+                    button.classList.toggle('active', active);
+                    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            refreshLabels(kind.closest('[data-vp-lab-card]'));
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * While a search narrows a list of objects, the objects it kept open
+     * so the match shows; cleared, each goes back to how the reader
+     * left it.
+     *
+     * @param {Element} list
+     */
+    function openObjectHits(list) {
+        var needle = activeText(list);
+        listRows(list).forEach(function (row) {
+            if (!row.hasAttribute('data-vp-obj')) {
+                return;
+            }
+            if (row.dataset.vpObjWas === undefined) {
+                var head = row.querySelector('[data-vp-obj-disc]');
+                row.dataset.vpObjWas = head
+                    && head.getAttribute('aria-expanded') === 'true'
+                    ? 'true'
+                    : 'false';
+            }
+            setObjectFold(row, needle === ''
+                ? row.dataset.vpObjWas === 'true'
+                : true);
+        });
+    }
+
+    /**
+     * The whole object cell opens its object, as in the objects index;
+     * a link or another button inside it keeps its own meaning.
+     *
+     * @param {Event} event
+     * @return {boolean} Whether the click was an object toggle
+     */
+    function onObjectFoldClick(event) {
+        var cell = event.target.closest('[data-vp-obj] td.oi-col-object');
+        var disc = event.target.closest('[data-vp-obj-disc]');
+        if (!disc && cell
+            && !event.target.closest('a, button, [data-bs-toggle]')
+        ) {
+            disc = cell.querySelector('[data-vp-obj-disc]');
+        }
+        if (!disc) {
+            return false;
+        }
+        toggleObjectFold(disc);
+        return true;
     }
 
     /**
@@ -5048,9 +5120,9 @@
             return;
         }
         var open = button.dataset.vpEFoldAll !== 'close';
-        scope.querySelectorAll('[data-vp-e-obj]').forEach(function (obj) {
-            setEnrichFold(obj, open);
-            obj.dataset.vpEWas = open ? 'true' : 'false';
+        scope.querySelectorAll('[data-vp-obj]').forEach(function (obj) {
+            setObjectFold(obj, open);
+            obj.dataset.vpObjWas = open ? 'true' : 'false';
         });
         button.dataset.vpEFoldAll = open ? 'close' : 'open';
 
@@ -5099,17 +5171,17 @@
             if (hit) {
                 shown++;
             }
-            if (item.hasAttribute('data-vp-e-obj')) {
-                if (item.dataset.vpEWas === undefined) {
-                    var head = item.querySelector('[data-vp-e-disc]');
-                    item.dataset.vpEWas = head
+            if (item.hasAttribute('data-vp-obj')) {
+                if (item.dataset.vpObjWas === undefined) {
+                    var head = item.querySelector('[data-vp-obj-disc]');
+                    item.dataset.vpObjWas = head
                         && head.getAttribute('aria-expanded') === 'true'
                         ? 'true'
                         : 'false';
                 }
-                setEnrichFold(
+                setObjectFold(
                     item,
-                    query === '' ? item.dataset.vpEWas === 'true' : hit
+                    query === '' ? item.dataset.vpObjWas === 'true' : hit
                 );
             }
         });
@@ -5851,17 +5923,9 @@
              * before the reader has touched anything.
              */
             rebuildEnrichAll(panel);
-            sizeEnrichPane(panel);
             enrichAutoFire(panel);
             openLinkedEnrichModule(panel);
         });
-        if (panels.length && !window.__vpEnrichSized) {
-            window.__vpEnrichSized = true;
-            window.addEventListener('resize', function () {
-                document.querySelectorAll('[data-vp-enrich]')
-                    .forEach(sizeEnrichPane);
-            });
-        }
     }
 
     /**
@@ -5958,45 +6022,10 @@
         var show = pane.querySelector(
             '[data-vp-e-run][data-vp-e-mode="stored"]'
         );
-        if (show && !show.disabled) {
+        if (show && !show.disabled && !pane.querySelector('[data-vp-e-result]')) {
             runEnrichModule(show);
         }
         return true;
-    }
-
-    /**
-     * Fit the answer to what is left of the screen.
-     *
-     * **So that `Run n selected` is on it.** The rail pins that button
-     * to its own foot and the split stretches both columns to the
-     * taller of them, so an answer of any length used to push the
-     * button a page-scroll below the answer it applies to. The pane
-     * scrolls instead, and what it is capped at is whatever the
-     * viewport has left under it — which is a measurement and not a
-     * constant, because what sits above this tab on the page is a
-     * header, a fact strip and a profile block of no fixed height.
-     *
-     * The stylesheet carries a viewport-relative cap for the moment
-     * before this runs and for the case where it does not. Below the
-     * breakpoint the two columns stack and neither is capped: a
-     * scroller inside a scroller on a phone is two thumbs' worth of
-     * the same gesture.
-     *
-     * @param {Element} panel
-     */
-    function sizeEnrichPane(panel) {
-        var pane = panel.querySelector('.vp-e-pane');
-        if (!pane) {
-            return;
-        }
-        if (window.innerWidth < 992) {
-            pane.style.maxHeight = '';
-            return;
-        }
-        pane.style.maxHeight = '';
-        var top = pane.getBoundingClientRect().top;
-        var room = window.innerHeight - top - 16;
-        pane.style.maxHeight = Math.round(Math.max(416, room)) + 'px';
     }
 
     /**
@@ -6466,17 +6495,15 @@
             return true;
         }
 
-        var disc = event.target.closest('[data-vp-e-disc]');
-        if (disc) {
-            toggleEnrichDisc(disc);
-            return true;
-        }
-
         var pick = event.target.closest('[data-vp-e-pick]');
         if (pick) {
             var panel = pick.closest('[data-vp-enrich]');
             if (panel) {
-                pickEnrichModule(panel, pick.dataset.vpEPick);
+                if (pick.dataset.vpEPick === '__all') {
+                    pickEnrichModule(panel, '__all');
+                } else {
+                    openEnrichModule(panel, pick.dataset.vpEPick);
+                }
             }
             return true;
         }
@@ -6485,139 +6512,9 @@
     }
 
     /**
-     * Analyst data tab
-     * ------------------------------------------------------------
-     * Four behaviours, all client-side against markup the two
-     * endpoints already sent: the order of the thread, which kinds it
-     * shows, whether an item's replies are open, and a strip marker
-     * lighting up the table row it belongs to.
-     *
-     * A reply is never sorted or filtered on its own. The unit is the
-     * top-level item and everything written under it — `.vpa-item` —
-     * because a reply reordered away from what it replies to is no
-     * longer a reply, and a thread that hides the note but keeps the
-     * opinion written on it is showing an answer to a question it has
-     * taken off the page.
-     */
-
-    // Per-panel state, keyed by the element so a panel re-fetched into
-    // the tab starts from its markup rather than from what the last
-    // one was showing.
-    var analystState = new WeakMap();
-
-    /**
-     * @param {Element} panel
-     * @return {Object} The panel's sort and kind, defaulted
-     */
-    function analystStateOf(panel) {
-        if (!analystState.has(panel)) {
-            analystState.set(panel, {sort: 'newest', kind: 'all'});
-        }
-        return analystState.get(panel);
-    }
-
-    /**
-     * Reorder and re-show the thread from the panel's current state.
-     *
-     * @param {Element} panel
-     */
-    function refreshAnalyst(panel) {
-        var thread = panel.querySelector('.vpa-thread');
-        if (!thread) {
-            return;
-        }
-        var state = analystStateOf(panel);
-        var items = Array.prototype.slice.call(
-            thread.querySelectorAll('[data-vp-a-item]')
-        );
-
-        items.sort(function (a, b) {
-            if (state.sort === 'org') {
-                var byOrg = a.dataset.vpAOrg.localeCompare(b.dataset.vpAOrg);
-                if (byOrg !== 0) {
-                    return byOrg;
-                }
-            }
-            var dates = a.dataset.vpADate.localeCompare(b.dataset.vpADate);
-            if (dates !== 0) {
-                // Oldest first only when asked; by organisation keeps
-                // each organisation's own thread in the order it was
-                // written, newest at the top like everything else.
-                return state.sort === 'oldest' ? dates : -dates;
-            }
-            // Same day: the order the endpoint sent, which is the order
-            // the rows came back in.
-            return parseInt(a.dataset.vpAOrder, 10)
-                - parseInt(b.dataset.vpAOrder, 10);
-        });
-
-        var shown = 0;
-        items.forEach(function (item) {
-            thread.appendChild(item);
-            var on = state.kind === 'all'
-                || item.dataset.vpAKind === state.kind;
-            item.classList.toggle('d-none', !on);
-            if (on) {
-                shown++;
-            }
-        });
-
-        var empty = panel.querySelector('[data-vp-a-empty]');
-        if (empty) {
-            empty.classList.toggle('d-none', shown > 0);
-        }
-
-        panel.querySelectorAll('[data-vp-a-sort]').forEach(function (button) {
-            var active = button.dataset.vpASort === state.sort;
-            button.classList.toggle('active', active);
-            button.setAttribute('aria-pressed', active ? 'true' : 'false');
-        });
-        panel
-            .querySelectorAll('[data-vp-a-kind-filter]')
-            .forEach(function (button) {
-                var active = button.dataset.vpAKindFilter === state.kind;
-                button.classList.toggle('active', active);
-                button.setAttribute('aria-pressed', active ? 'true' : 'false');
-            });
-    }
-
-    /**
-     * Open or close one item's replies.
-     *
-     * @param {Element} button
-     */
-    function toggleAnalystReplies(button) {
-        /*
-         * The replies block is the next sibling of the .vp-analyst the
-         * button sits in — never a descendant of it. Walking down from
-         * the item would find the replies of a nested item first, and
-         * open somebody else's sub-thread.
-         */
-        var claim = button.closest('.vp-analyst');
-        var replies = claim ? claim.nextElementSibling : null;
-        if (!replies || !replies.classList.contains('vpa-replies')) {
-            return;
-        }
-        var open = replies.classList.toggle('d-none');
-        button.setAttribute('aria-expanded', open ? 'false' : 'true');
-        var caret = button.querySelector('i');
-        if (caret) {
-            caret.classList.toggle('fa-caret-down', !open);
-            caret.classList.toggle('fa-caret-right', open);
-        }
-    }
-
-    /**
-    /**
      * @param {Element} root
      */
     function initAnalyst(root) {
-        var panels = root.querySelectorAll
-            ? root.querySelectorAll('[data-vp-analyst-thread]')
-            : [];
-        panels.forEach(function (panel) {
-            refreshAnalyst(panel);
-        });
         initAnalystBadge(root);
     }
 
@@ -6642,35 +6539,26 @@
      * @return {boolean} Whether the click belonged to this tab
      */
     function onAnalystClick(event) {
-        var sort = event.target.closest('[data-vp-a-sort]');
-        if (sort) {
-            var sortPanel = sort.closest('[data-vp-analyst-thread]');
-            if (sortPanel) {
-                analystStateOf(sortPanel).sort = sort.dataset.vpASort;
-                refreshAnalyst(sortPanel);
-            }
-            return true;
-        }
-
-        var kind = event.target.closest('[data-vp-a-kind-filter]');
+        var kind = event.target.closest('[data-vp-ad-kind]');
         if (kind) {
-            var kindPanel = kind.closest('[data-vp-analyst-thread]');
-            if (kindPanel) {
-                analystStateOf(kindPanel).kind = kind.dataset.vpAKindFilter;
-                refreshAnalyst(kindPanel);
+            pickAnalystKind(kind);
+            return true;
+        }
+        var notes = event.target.closest('[data-vp-ad-org-notes]');
+        if (notes) {
+            showOrgNotes(notes.dataset.vpAdOrgNotes);
+            return true;
+        }
+        var clear = event.target.closest('[data-vp-ad-orgfilter-clear]');
+        if (clear) {
+            var card = clear.closest('[data-vp-analyst-collab]');
+            if (card) {
+                clearOrgNotes(card);
             }
             return true;
         }
-
-        var replies = event.target.closest('[data-vp-a-replies]');
-        if (replies) {
-            toggleAnalystReplies(replies);
-            return true;
-        }
-
         return false;
     }
-
 
     /* ==================================================================
      * Timeline tab
@@ -9977,6 +9865,12 @@
                 return;
             }
 
+            var techMore = event.target.closest('[data-vp-tech-more]');
+            if (techMore) {
+                toggleTechniques(techMore);
+                return;
+            }
+
             var threatPill = event.target.closest(
                 '[data-vp-threat-filter]'
             );
@@ -10043,6 +9937,18 @@
                 return;
             }
 
+            if (onObjectFoldClick(event)) {
+                return;
+            }
+
+            if (onLabelsClick(event)) {
+                return;
+            }
+
+            if (onExternalClick(event)) {
+                return;
+            }
+
             if (onEnrichClick(event)) {
                 return;
             }
@@ -10104,11 +10010,6 @@
             }
         });
 
-        // The standing panel used to pair a strip marker with the
-        // table rows it stood for. Its ledger fuses the two — the
-        // marker and the row are one object now — so the hover lives
-        // in `.vpa-row:hover` and needs no script.
-
         document.addEventListener('change', function (event) {
             if (event.target.id === 'vp-occ-deleted-toggle') {
                 refreshOccurrences();
@@ -10139,30 +10040,10 @@
                 return;
             }
 
-            if (event.target.matches && event.target.matches('[data-vp-col]')) {
-                toggleColumn(event.target);
-            }
-
             if (event.target.matches
                 && event.target.matches('[data-vp-page-size-pick]')) {
                 changePageSize(event.target);
                 return;
-            }
-
-            if (event.target.matches
-                && event.target.matches('[data-vp-sight-range]')) {
-                // A wider window is a different set of buckets, so a
-                // brush drawn over the old ones no longer points at
-                // anything the reader chose.
-                sight.rangeKey = event.target.value;
-                sight.brush = null;
-                sight.expanded = false;
-                sightToSpan(sight.rangeKey);
-                var sightPanel = document.querySelector('[data-vp-sight]');
-                if (sightPanel) {
-                    syncSightPreset(sightPanel);
-                    refreshSight(sightPanel);
-                }
             }
 
             if (event.target.matches
@@ -10212,6 +10093,14 @@
             }
         });
 
+        document.addEventListener('click', function (event) {
+            var more = event.target.closest
+                ? event.target.closest('[data-vp-entries-more]') : null;
+            if (more) {
+                unfoldEntries(more);
+            }
+        });
+
         document.addEventListener('input', function (event) {
             if (!event.target.matches) {
                 return;
@@ -10220,8 +10109,30 @@
                 filterFacetGroup(event.target);
                 return;
             }
+            if (event.target.matches('[data-vp-label-filter]')) {
+                filterContextLabels(event.target);
+                return;
+            }
+            if (event.target.matches('[data-vp-analyst-filter]')) {
+                var analystCard = event.target.closest(
+                    '[data-vp-analyst-preview], [data-vp-analyst-collab],'
+                    + ' [data-vp-analyst-claims]'
+                );
+                if (analystCard) {
+                    filterAnalystCard(analystCard);
+                }
+                return;
+            }
+            if (event.target.matches('[data-vp-entries-filter]')) {
+                filterEntries(event.target);
+                return;
+            }
             if (event.target.matches('[data-vp-e-filter]')) {
                 filterEnrichResult(event.target);
+                return;
+            }
+            if (event.target.matches('[data-vp-lab-filter]')) {
+                refreshLabels(event.target.closest('[data-vp-lab-card]'));
                 return;
             }
             if (event.target.matches(
@@ -10232,6 +10143,7 @@
                 var typedList = event.target.closest('[data-vp-list]');
                 if (typedList) {
                     narrowList(typedList);
+                    openObjectHits(typedList);
                 }
             }
         });
@@ -10248,9 +10160,21 @@
             initEnrichmentTyping(event.target);
             initEnrichPanel(event.target);
             initAnalyst(event.target);
+            if (pendingOrgNotes !== null
+                && event.target.querySelector
+                && event.target.querySelector('[data-vp-analyst-collab]')) {
+                showOrgNotes(pendingOrgNotes);
+            }
             initTimeline(event.target);
             initHistory(event.target);
             initRelationSummary(event.target);
+            // The shared analyst thread: clamped bodies and the tall fold.
+            if (window.AnalystRail) {
+                window.AnalystRail.refresh(event.target);
+            }
+            if (typeof window.initCollapsibleSections === 'function') {
+                window.initCollapsibleSections(event.target);
+            }
         });
 
         refreshOccurrences();

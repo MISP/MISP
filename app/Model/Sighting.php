@@ -185,7 +185,8 @@ class Sighting extends AppModel
             }
 
             $orgId = 0;
-            if (isset($sighting['Organisation'])) {
+            // Only sync users and site admins record sightings on behalf of other organisations
+            if (isset($sighting['Organisation']) && (!empty($user['Role']['perm_sync']) || !empty($user['Role']['perm_site_admin']))) {
                 if (isset($existingOrganisations[$sighting['Organisation']['uuid']])) {
                     $orgId = $existingOrganisations[$sighting['Organisation']['uuid']];
                 } else {
@@ -1042,6 +1043,9 @@ class Sighting extends AppModel
             'Sighting.' . $context . '_id' => $objectIds
         );
         if ($orgId) {
+            if (!$this->orgFilterAllowed($user, $orgId)) {
+                return [];
+            }
             $conditions[] = array('Sighting.org_id' => $orgId);
         }
         if ($sightingsType !== false) {
@@ -1101,6 +1105,21 @@ class Sighting extends AppModel
             }
         }
         return $sightings;
+    }
+
+    /**
+     * With anonymised sightings, a filter on another organisation would name
+     * the reporter of what it returns.
+     *
+     * @param array $user
+     * @param int|string|null $orgId
+     * @return bool
+     */
+    private function orgFilterAllowed(array $user, $orgId)
+    {
+        return !Configure::read('Plugin.Sightings_anonymise') ||
+            !empty($user['Role']['perm_site_admin']) ||
+            $orgId == $user['org_id'];
     }
 
      /**
@@ -1193,6 +1212,12 @@ class Sighting extends AppModel
                     if (!empty($org)) {
                         $temp = $org['Organisation']['id'];
                     }
+                }
+                if (!$this->orgFilterAllowed($user, $temp ?? null)) {
+                    if ($negation) {
+                        continue;
+                    }
+                    $temp = -1;
                 }
                 if ($negation) {
                     $conditions['Sighting.org_id NOT IN'][] = $temp;
@@ -1333,12 +1358,15 @@ class Sighting extends AppModel
 
         // Fetch attributes IDs and event IDs
         $attributesToTransform = $this->Attribute->fetchAttributesSimple($user, [
-            'conditions' => ['Attribute.uuid' => array_unique(array_column($sightings, 'attribute_uuid'))],
-            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.event_id'],
+            'conditions' => [
+                'Attribute.uuid' => array_unique(array_column($sightings, 'attribute_uuid')),
+                'Attribute.event_id' => $event['Event']['id'],
+            ],
+            'fields' => ['Attribute.id', 'Attribute.uuid'],
         ]);
         $attributes = [];
         foreach ($attributesToTransform as $attribute) {
-            $attributes[$attribute['Attribute']['uuid']] = [$attribute['Attribute']['id'], $attribute['Attribute']['event_id']];
+            $attributes[$attribute['Attribute']['uuid']] = $attribute['Attribute']['id'];
         }
 
         $toSave = [];
@@ -1351,7 +1379,7 @@ class Sighting extends AppModel
             }
             $existingSighting[$s['uuid']] = true; // just to be sure that there are no sightings with duplicated UUID
 
-            list($attributeId, $eventId) = $attributes[$s['attribute_uuid']];
+            $attributeId = $attributes[$s['attribute_uuid']];
 
             if ($s['type'] === '2') {
                 // remove existing expiration by the same org if it exists
@@ -1376,7 +1404,7 @@ class Sighting extends AppModel
 
             $toSave[] = [
                 'attribute_id' => $attributeId,
-                'event_id' => $eventId,
+                'event_id' => $event['Event']['id'],
                 'org_id' => $saveOnBehalfOf === false ? $user['org_id'] : $saveOnBehalfOf,
                 'date_sighting' => $s['date_sighting'],
                 'type' => $s['type'],
@@ -1516,6 +1544,24 @@ class Sighting extends AppModel
             }
         }
         unset($remoteEvents, $localEvents);
+        if (empty($eventUuids)) {
+            return 0;
+        }
+
+        $server = $serverSync->server();
+        if (!isset($server['RemoteOrg'])) {
+            $remoteOrg = $this->Event->Orgc->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Orgc.id' => $server['Server']['remote_org_id']],
+                'fields' => ['Orgc.id', 'Orgc.uuid'],
+            ]);
+            $server['RemoteOrg'] = $remoteOrg ? $remoteOrg['Orgc'] : [];
+        }
+        foreach (array_keys($eventUuids) as $eventUuid) {
+            if (!$this->Event->syncedWithServer($eventUuid, $server, $user)) {
+                unset($eventUuids[$eventUuid]);
+            }
+        }
         if (empty($eventUuids)) {
             return 0;
         }

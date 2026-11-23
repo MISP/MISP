@@ -2,6 +2,14 @@
 $this->set('headerTitle', __('Galaxy Cluster Relationships'));
 $this->set('headerDescription', __('All relationships between galaxy clusters.'));
 $headerActions = [];
+if ($this->Acl->canAccess('galaxy_cluster_blocklists', 'index')) {
+    $headerActions[] = [
+        'type' => 'navigate',
+        'label' => __('List Cluster Blocklists'),
+        'icon' => 'ban',
+        'url' => $baseurl . '/galaxy_cluster_blocklists/index'
+    ];
+}
 if ($this->Acl->canAccess('galaxy_cluster_relations', 'add')) {
     $headerActions[] = [
         'type' => 'modal',

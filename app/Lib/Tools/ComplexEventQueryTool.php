@@ -1,0 +1,243 @@
+<?php
+App::uses('ComplexQueryTool', 'Tools');
+
+/**
+ * The `query` tree of /events/restSearch. It only selects events: event
+ * fields are native conditions, while attribute, object and attribute tag
+ * leaves select an event when it holds at least one matching element that
+ * the user can see. Negated tags also strip the tagged attributes and event
+ * reports from the output (blockedTagIds()).
+ */
+class ComplexEventQueryTool extends ComplexQueryTool
+{
+    const POSITIVE_STRING_OPS = ['=', 'IN', 'LIKE'];
+    const NATIVE_LEVELS = ['event'];
+    const EVENT_KEY = 'Event.id';
+    const NEGATED_ELEMENT_MESSAGE = 'attribute and object fields cannot be negated when searching events';
+    const NOT_ELEMENT_MESSAGE = 'NOT cannot hold attribute, object or tag fields when searching events; use != or NOT LIKE on tags';
+    const NEGATED_TAGS_MESSAGE = 'negated tags are only allowed under AND when searching events';
+
+    /**
+     * A field with a level outside NATIVE_LEVELS is matched against the
+     * event's elements (see isElementField()).
+     */
+    const FIELDS = [
+        'id' => ['kind' => 'int', 'column' => 'Event.id', 'level' => ['event']],
+        'event_id' => ['kind' => 'int', 'column' => 'Event.id', 'level' => ['event']],
+        'uuid' => ['kind' => 'string', 'column' => 'Event.uuid', 'ops' => self::EXACT_STRING_OPS, 'level' => ['event']],
+        'distribution' => ['kind' => 'int', 'column' => 'Event.distribution', 'level' => ['event']],
+        'analysis' => ['kind' => 'int', 'column' => 'Event.analysis', 'level' => ['event']],
+        'threat_level_id' => ['kind' => 'int', 'column' => 'Event.threat_level_id', 'level' => ['event']],
+        'org_id' => ['kind' => 'int', 'column' => 'Event.org_id', 'level' => ['event']],
+        'orgc_id' => ['kind' => 'int', 'column' => 'Event.orgc_id', 'level' => ['event']],
+        'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => self::EXACT_STRING_OPS, 'level' => ['event']],
+        'eventinfo' => ['kind' => 'string', 'handler' => 'set_filter_eventinfo', 'level' => ['event']],
+        'date' => ['kind' => 'date', 'column' => 'Event.date', 'level' => ['event']],
+        'timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp', 'level' => ['event']],
+        'event_timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp', 'level' => ['event']],
+        'publish_timestamp' => ['kind' => 'time', 'column' => 'Event.publish_timestamp', 'level' => ['event']],
+        'published' => ['kind' => 'bool', 'column' => 'Event.published', 'level' => ['event']],
+        'tags' => ['kind' => 'string', 'level' => ['event', 'attribute']],
+        'type' => ['kind' => 'string', 'handler' => 'set_filter_type', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'category' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'object_relation' => ['kind' => 'string', 'handler' => 'set_filter_simple_attribute', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'comment' => ['kind' => 'string', 'handler' => 'set_filter_comment', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'value' => ['kind' => 'string', 'handler' => 'set_filter_value', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['attribute']],
+        'to_ids' => ['kind' => 'bool', 'column' => 'Attribute.to_ids', 'ops' => ['='], 'level' => ['attribute']],
+        'object_name' => ['kind' => 'string', 'column' => 'Object.name', 'ops' => self::POSITIVE_STRING_OPS, 'level' => ['object']],
+        'object_template_uuid' => ['kind' => 'string', 'column' => 'Object.template_uuid', 'ops' => ['=', 'IN'], 'level' => ['object']],
+    ];
+
+    private $user;
+    private $sharingGroupIds;
+    private $blockedTagIds = [];
+
+    /**
+     * @param object $model the Attribute model: set_filter_* handlers, subqueries and associations
+     * @param array $user
+     * @param array $limits
+     */
+    public function __construct($model, array $user, array $limits = [])
+    {
+        parent::__construct($model, $limits, static::FIELDS);
+        $this->user = $user;
+    }
+
+    public function validate($query)
+    {
+        $tree = parent::validate($query);
+        $this->errors = [];
+        $this->checkNegations($tree, 'query', true, false);
+        if (!empty($this->errors)) {
+            throw new ComplexQueryException($this->errors);
+        }
+        return $tree;
+    }
+
+    public function compile(array $tree)
+    {
+        $this->blockedTagIds = [];
+        return parent::compile($tree);
+    }
+
+    /**
+     * @return array ids of the tags a negated tags leaf excludes, set by compile()
+     */
+    public function blockedTagIds()
+    {
+        return $this->blockedTagIds;
+    }
+
+    /**
+     * Element leaves cannot be negated: whether a negated one should exclude
+     * the event or strip the elements is ambiguous. Negated tags do both, so
+     * they are only allowed where the whole tree around them must hold.
+     */
+    private function checkNegations(array $node, $path, $andOnly, $negated)
+    {
+        if ($node[0] === 'AND' || $node[0] === 'OR') {
+            foreach ($node[1] as $i => $child) {
+                $this->checkNegations($child, "{$path}.{$node[0]}[{$i}]", $andOnly && $node[0] === 'AND', $negated);
+            }
+            return;
+        }
+        if ($node[0] === 'NOT') {
+            $this->checkNegations($node[1], "$path.NOT", false, true);
+            return;
+        }
+        if (!static::isElementField($this->fields[$node[1]])) {
+            return;
+        }
+        if ($negated) {
+            $this->fail("$path.{$node[1]}", 'bad_shape', static::NOT_ELEMENT_MESSAGE);
+        } elseif (!$andOnly && isset(self::NEGATED_OPS[$node[2]])) {
+            $this->fail("$path.{$node[1]}", 'bad_shape', static::NEGATED_TAGS_MESSAGE);
+        }
+    }
+
+    protected function operatorMessage(array $def, $op)
+    {
+        if (static::isElementField($def) && isset(self::NEGATED_OPS[$op])) {
+            return static::NEGATED_ELEMENT_MESSAGE;
+        }
+        return parent::operatorMessage($def, $op);
+    }
+
+    protected function buildLeaf($field, $op, array $values, $path, $selectiveSiblings)
+    {
+        $def = $this->fields[$field];
+        if ($field === 'tags') {
+            return $this->tags($op, $values);
+        }
+        $fragment = parent::buildLeaf($field, $op, $values, $path, false);
+        if ($fragment === null || !static::isElementField($def)) {
+            return $fragment;
+        }
+        return $this->elementLeaf($def, $fragment);
+    }
+
+    protected static function isElementField(array $def)
+    {
+        return array_diff($def['level'], static::NATIVE_LEVELS) !== [];
+    }
+
+    /**
+     * Events holding a non-deleted element that matches and that the user
+     * can see. The outer query has already checked that the event itself is
+     * visible.
+     *
+     * @param array $def the field
+     * @param array $fragment the condition on the element
+     * @return array
+     */
+    protected function elementLeaf(array $def, array $fragment)
+    {
+        $model = $def['level'] === ['object'] ? $this->model->Object : $this->model;
+        return $this->subquery($model, 'event_id', $this->visibleElementConditions($model, $fragment), 'Event.id');
+    }
+
+    /**
+     * Positive: the event or a visible attribute of it carries the tag.
+     * Negated: the event does not carry it; the attributes and event reports
+     * carrying it are stripped from the output instead.
+     */
+    private function tags($op, array $values)
+    {
+        $tagIds = $this->model->AttributeTag->Tag->fetchTagIdsSimple($values);
+        $EventTag = $this->model->Event->EventTag;
+        $eventTagged = $this->subquery($EventTag, 'event_id', [$EventTag->alias . '.tag_id' => $tagIds], static::EVENT_KEY);
+        if (isset(self::NEGATED_OPS[$op])) {
+            foreach ($tagIds as $tagId) {
+                if ((int)$tagId !== -1 && !in_array($tagId, $this->blockedTagIds)) {
+                    $this->blockedTagIds[] = $tagId;
+                }
+            }
+            return ['NOT' => $eventTagged];
+        }
+        return ['OR' => [$eventTagged, $this->attributeTagged($tagIds)]];
+    }
+
+    /**
+     * @param array $tagIds
+     * @return array events holding a visible attribute that carries one of the tags
+     */
+    protected function attributeTagged(array $tagIds)
+    {
+        // Driven by the tag rows, one primary key probe each (driven by the attributes, MariaDB
+        // walked every attribute of every visible event); the redundant id correlation keeps it
+        // from materialising every visible attribute
+        $AttributeTag = $this->model->AttributeTag;
+        $attribute = $this->model->alias;
+        $visibleAttribute = $this->subquery($this->model, 'id', $this->visibleElementConditions(
+            $this->model, ["$attribute.id = {$AttributeTag->alias}.attribute_id"]
+        ), $AttributeTag->alias . '.attribute_id');
+        return $this->subquery($AttributeTag, 'event_id', [
+            $AttributeTag->alias . '.tag_id' => $tagIds,
+            $visibleAttribute,
+        ], 'Event.id');
+    }
+
+    /**
+     * The element is not deleted, matches, and the user can see it by the
+     * rules of MispAttribute::buildConditions().
+     *
+     * @param object $model the Attribute or the Object model
+     * @param array $conditions on the element
+     * @param bool $objectRule whether an attribute's object must be visible too
+     * @return array
+     */
+    protected function visibleElementConditions($model, array $conditions, $objectRule = true)
+    {
+        $alias = $model->alias;
+        $conditions = [$alias . '.deleted' => 0, $conditions];
+        if (empty($this->user['Role']['perm_site_admin'])) {
+            $rules = [$this->distributionRules($alias)];
+            if ($objectRule && $alias === $this->model->alias) {
+                $Object = $this->model->Object;
+                $rules[] = ['OR' => [
+                    $alias . '.object_id' => 0,
+                    $this->subquery($Object, 'id', $this->distributionRules($Object->alias), $alias . '.object_id'),
+                ]];
+            }
+            $conditions[] = ['OR' => [
+                $this->subquery($this->model->Event, 'id', ['OwnEvent.org_id' => $this->user['org_id']], $alias . '.event_id', 'OwnEvent'),
+                ['AND' => $rules],
+            ]];
+        }
+        return $conditions;
+    }
+
+    private function distributionRules($alias)
+    {
+        if ($this->sharingGroupIds === null) {
+            $this->sharingGroupIds = $this->model->SharingGroup->authorizedIds($this->user);
+        }
+        return ['OR' => [
+            $alias . '.distribution' => [1, 2, 3, 5],
+            'AND' => [
+                $alias . '.distribution' => 4,
+                $alias . '.sharing_group_id' => $this->sharingGroupIds,
+            ],
+        ]];
+    }
+}

@@ -41,6 +41,7 @@ if (!class_exists('Validation', false)) {
     require_once __DIR__ . '/../Lib/cakephp/lib/Cake/Utility/Validation.php';
 }
 
+require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Relationship.php';
 require_once __DIR__ . '/../Model/CollectionElement.php';

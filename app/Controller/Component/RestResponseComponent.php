@@ -429,6 +429,38 @@ class RestResponseComponent extends Component
             )
         ),
         'Warninglist' => array(
+            'add' => array(
+                'description' => "POST a Warninglist object to create a custom warninglist.",
+                'operationId' => 'addWarninglist',
+                'method' => 'POST',
+                'mandatory' => array('name', 'type', 'entries'),
+                'optional' => array('description', 'category', 'matching_attributes')
+            ),
+            'edit' => array(
+                'description' => "POST an updated Warninglist object to modify an existing custom warninglist.",
+                'operationId' => 'editWarninglist',
+                'method' => 'POST',
+                'optional' => array('name', 'description', 'type', 'category', 'matching_attributes', 'entries'),
+                'params' => array('warninglist_id')
+            ),
+            'delete' => array(
+                'description' => "POST to this endpoint to delete a custom warninglist.",
+                'operationId' => 'deleteWarninglist',
+                'method' => 'POST',
+                'params' => array('warninglist_id')
+            ),
+            'export' => array(
+                'description' => "GET a warninglist in standard MISP JSON export format by its ID.",
+                'operationId' => 'exportWarninglist',
+                'method' => 'GET',
+                'params' => array('warninglist_id')
+            ),
+            'import' => array(
+                'description' => "POST a warninglist JSON export structure to import a custom warninglist.",
+                'operationId' => 'importWarninglist',
+                'method' => 'POST',
+                'mandatory' => array('name', 'type', 'version', 'description', 'matching_attributes', 'list')
+            ),
             'checkValue' => array(
                 'description' => "POST a JSON list with value(s) to check against the warninglists to get a JSON dictionary as a response with any hits, if there are any (with the key being the passed value triggering a warning).",
                 'operationId' => 'checkValueWarninglistsMatches',
@@ -436,7 +468,7 @@ class RestResponseComponent extends Component
                 'mandatory' => array('[]'),
             ),
             'toggleEnable' => array(
-                'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => array('id'),
+                'description' => "POST a json object with a single or a list of warninglist IDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",
                 'operationId' => 'toggleEnableWarninglist',
                 'method' => 'POST',
                 'optional' => array('id', 'name', 'enabled')
@@ -768,7 +800,7 @@ class RestResponseComponent extends Component
             }
             if ($this->signContents) {
                 $data = $response->intoString();
-                $headers['x-pgp-signature'] = $this->sign($data);
+                $headers = array_merge($headers, $this->sign($data));
                 $cakeResponse = new CakeResponse(['body' => $data, 'status' => $code, 'type' => $type]);
             } else {
                 App::uses('CakeResponseFile', 'Tools');
@@ -788,7 +820,7 @@ class RestResponseComponent extends Component
             }
             $cakeResponse = new CakeResponse(['body' => $response, 'status' => $code, 'type' => $type]);
             if ($this->signContents) {
-                $headers['x-pgp-signature'] = $this->sign($response);
+                $headers = array_merge($headers, $this->sign($response));
             }
         }
 
@@ -834,7 +866,7 @@ class RestResponseComponent extends Component
 
     /**
      * @param string $response
-     * @return string Signature as base64 encoded string
+     * @return array Signature headers for the requester's MISP version, base64 encoded
      * @throws Crypt_GPG_BadPassphraseException
      * @throws Crypt_GPG_Exception
      * @throws Crypt_GPG_KeyNotFoundException
@@ -844,11 +876,11 @@ class RestResponseComponent extends Component
     {
         /** @var CryptographicKey $cryptographicKey */
         $cryptographicKey = ClassRegistry::init('CryptographicKey');
-        $signature = $cryptographicKey->signWithInstanceKey($response);
-        if (!$signature) {
+        $headers = $cryptographicKey->signatureHeaders($response, Configure::read('CurrentRequesterMispVersion'));
+        if (!$headers) {
             throw new Exception('Could not sign data.');
         }
-        return base64_encode($signature);
+        return $headers;
     }
 
     /**
@@ -952,13 +984,13 @@ class RestResponseComponent extends Component
         return $this->Controller->response;
     }
 
-    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array())
+    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array(), $extra = array())
     {
-        $message = array(
+        $message = array_merge(array(
             'name' => $message,
             'message' => $message,
             'url' => $url
-        );
+        ), $extra);
         return $this->prepareResponse($message, $code, $format, $raw, false, $headers);
     }
 
@@ -1273,6 +1305,11 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Should the warning list be enforced. Adds `blocked` field for matching attributes')
             ),
+            'entries' => array(
+                'input' => 'textarea',
+                'type' => 'string',
+                'help' => __('List of warninglist entries (newline-separated string or array)')
+            ),
             'event' => array(
                 'input' => 'number',
                 'type' => 'integer',
@@ -1532,6 +1569,11 @@ class RestResponseComponent extends Component
                 'validation' => array('min' => 0, 'step' => 1),
                 'help' => __('Limit on the pagination. Lower bounded by the one set by the admin')
             ),
+            'list' => array(
+                'input' => 'text',
+                'type' => 'array',
+                'help' => __('Array of warninglist entries')
+            ),
             'local' => array(
                 'input' => 'radio',
                 'type' => 'integer',
@@ -1543,6 +1585,11 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('The lookup will not be visible in the feed correlation')
+            ),
+            'matching_attributes' => array(
+                'input' => 'text',
+                'type' => 'array',
+                'help' => __('Array of attribute types to match against')
             ),
             'message' => array(
                 'input' => 'text',
@@ -2227,8 +2274,14 @@ class RestResponseComponent extends Component
     }
     private function __overwriteDecayingModel($scope, &$field) {
         $this->{$scope} = ClassRegistry::init("DecayingModel");
+        $user = $this->Controller->Auth->user();
+        $conditions = array();
+        if (empty($user['Role']['perm_site_admin'])) {
+            $conditions['OR'] = array('org_id' => $user['org_id'], 'all_orgs' => 1);
+        }
         $models = $this->{$scope}->find('list', array(
             'recursive' => -1,
+            'conditions' => $conditions,
             'fields' => array('name')
         ));
         $field['values'] = array();

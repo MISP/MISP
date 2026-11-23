@@ -103,14 +103,6 @@ $isCard = isset($viewMode) && $viewMode === 'card';
         ?>
     </div>
 
-    <!-- Show if it contains a description -->
-    <?php if (!empty($element['description'])): ?>
-        <div class="card card-link-item bg-light">
-            <div class="card-body p-1">
-                <i class="fa fa-comment"></i> 
-                <span><?= h($element['description']) ?></span>
-            </div>
-        </div>
-    <?php endif; ?>
+    <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $element['description'] ?? '']) ?>
 
 </div>

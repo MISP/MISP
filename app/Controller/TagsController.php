@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ComplexQueryTool', 'Tools');
 
 /**
  * @property Tag $Tag
@@ -32,7 +33,8 @@ class TagsController extends AppController
     /**
      * Visible, non-galaxy tags for an index filter picker: GET ?q=<term>.
      * Narrowed with &scope=<namespace> (`-` for none) and &predicate=,
-     * where an empty term lists the scope; &limit= up to 200.
+     * where an empty term lists the scope; &limit= up to 200. &attach=1 for
+     * a picker attaching tags, which offers none of a taxonomy not enabled.
      */
     public function pickerSearch()
     {
@@ -43,6 +45,7 @@ class TagsController extends AppController
                 'scope' => $this->request->query('scope'),
                 'predicate' => $this->request->query('predicate'),
                 'limit' => $this->request->query('limit'),
+                'attach' => !empty($this->request->query('attach')),
             ]),
             'json'
         );
@@ -50,28 +53,48 @@ class TagsController extends AppController
 
     /**
      * What an index's Tag picker can narrow to: taxonomies, namespaces
-     * without one, and the count of tags with no namespace.
+     * without one, and the count of tags with no namespace. ?attach=1 for
+     * a picker attaching tags: enabled taxonomies only.
      */
     public function pickerScopes()
     {
         $this->request->allowMethod(['get']);
         App::uses('IndexPicker', 'Tools');
-        return $this->RestResponse->viewData(IndexPicker::tagScopes($this->Auth->user()), 'json');
+        return $this->RestResponse->viewData(
+            IndexPicker::tagScopes($this->Auth->user(), !empty($this->request->query('attach'))),
+            'json'
+        );
     }
 
     /**
      * One taxonomy's predicates and entries for the Tag picker:
-     * GET ?namespace=<namespace>.
+     * GET ?namespace=<namespace>, &attach=1 for an enabled taxonomy only.
      */
     public function pickerTree()
     {
         $this->request->allowMethod(['get']);
         App::uses('IndexPicker', 'Tools');
-        $tree = IndexPicker::taxonomyTree($this->Auth->user(), (string)$this->request->query('namespace'));
+        $tree = IndexPicker::taxonomyTree(
+            $this->Auth->user(),
+            (string)$this->request->query('namespace'),
+            !empty($this->request->query('attach'))
+        );
         if ($tree === null) {
             throw new NotFoundException(__('Invalid taxonomy.'));
         }
         return $this->RestResponse->viewData($tree, 'json');
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $tool = new ComplexQueryTool($this->Tag, ComplexQueryTool::limitsFromConfig(), Tag::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('tags', '/tags/restSearch', Tag::REST_SEARCH_ORDER_FIELDS, 'Tag'),
+            'json'
+        );
     }
 
     public function index()
@@ -185,7 +208,7 @@ class TagsController extends AppController
         if (!empty($passedArgsArray['exclude_statistics'])) {
             $this->set('exclude_statistics', true);
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('list', $this->viewVars['data']);
         $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
@@ -702,6 +725,8 @@ class TagsController extends AppController
             }
             throw new ForbiddenException($message);
         }
+        // Every caller attaches or removes a tag, local ones included.
+        $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $object);
         return $object;
     }
 

@@ -1,151 +1,131 @@
 <?php
 /**
- * A profile, read-only.
- *
- * The same two panes as the editor with the inputs replaced by what
- * they hold. Not disabled inputs: a disabled input still looks like
- * something you could have changed, and this page is for a profile
- * that is somebody else's.
- *
- * With `?value=` each weight is shown beside the contribution it
- * produced on that value. Without one the column stays empty rather
- * than inventing a number.
+ * A profile on the frame of the server settings page: the list of its
+ * sections, a search over every parameter, and each parameter edited
+ * where it is shown (analyst-profile-settings.js). The writes are in the
+ * header; whom the profile scores and its facts are behind About.
  *
  * @var array $profile
- * @var bool $editable Whether this page is an editor. Always false here.
- * @var bool $may_edit Whether this reader would be allowed to edit it
- * @var bool $may_share A site admin's own profile, which they may share
  * @var array $bench
+ * @var bool $may_edit
+ * @var array|null $standing This profile's row of the index board
  */
+App::uses('ProfileActionsTool', 'Tools/AnalystProfile');
+
 echo $this->element('genericElements/assetLoader', array(
-    'css' => array('value-palette', 'analyst-profile'),
-    'js' => array('analyst-profile', 'analyst-profile-help'),
+    'css' => array('value-palette', 'analyst-profile', 'index-filters'),
+    'js' => array('analyst-profile', 'analyst-profile-help',
+        'analyst-profile-settings'),
 ));
+echo $this->element('AnalystProfiles/profile_header');
 
-$focus = $bench['focus'];
-$query = $focus === null
-    ? array()
-    : array('value' => $focus);
-
-$actions = array(
+/*
+ * One entry per action, typed by what it does; headerSection folds the
+ * actions of one type into a single split button. The writes all ask
+ * first in #mainModal. About is a modal too but read only, so it keeps a
+ * button of its own beside that group; comparing a value is done from the
+ * try bar, under the value it compares.
+ */
+$headerActions = array(
     array(
         'type' => 'navigate',
-        'label' => __('Simulate'),
-        'icon' => 'flask',
-        'url' => $this->Html->url(array(
-            'action' => 'simulate', $profile['id'], '?' => $query)),
-    ),
-    array(
-        'type' => 'navigate',
-        'label' => __('Export'),
+        'label' => __('Export JSON'),
         'icon' => 'file-export',
         'url' => $this->Html->url(array('action' => 'export', $profile['id'])),
     ),
+    array(
+        'type' => 'modal',
+        'label' => __('About'),
+        'icon' => 'circle-info',
+        'url' => $this->Html->url(array('action' => 'view', $profile['id'],
+            '?' => array('fragment' => 'about'))),
+        'size' => 'lg',
+        'class' => 'btn btn-outline-primary',
+        'standalone' => true,
+    ),
 );
-/*
- * `may_edit`, not `editable`. The second is *is this page an editor*,
- * which is false here by construction — so branching on it offered the
- * fork to everybody, and a reader looking at their own profile had the
- * browser's back button as the way to go and change it.
- *
- * The value travels with the link: a reader who arrived here to see
- * what this profile makes of one value wants to edit it against that
- * same value, not against a blank bench.
- */
-if ($may_edit) {
-    $actions[] = array(
-        'type' => 'navigate',
-        'label' => __('Edit'),
-        'icon' => 'pen',
-        'class' => 'btn btn-primary',
-        'url' => $this->Html->url(array(
-            'action' => 'edit', $profile['id'], '?' => $query)),
-    );
-}
-/*
- * Forking stays offered either way, as it is on every index row: it is
- * how a variant of something that already works gets made, and wanting
- * one does not mean you could not have edited the original.
- *
- * It is the primary button only when there is no Edit to be it. For a
- * profile you cannot edit, forking is the one way in — there is no
- * blank form, since an empty `parameters` names no signal and scores
- * nothing.
- */
-$fork = array(
-    'type' => 'action',
-    'label' => __('Fork to me'),
-    'icon' => 'code-branch',
-    'url' => array('action' => 'fork', $profile['id']),
-);
-if (!$may_edit) {
-    /* The key is absent rather than empty: the strip reads it with
-     * `??`, which an empty string satisfies, leaving the button with no
-     * class at all. */
-    $fork['class'] = 'btn btn-primary';
-}
-$actions[] = $fork;
-if (!empty($me['Role']['perm_admin'])
-    || !empty($me['Role']['perm_site_admin'])
-) {
-    $actions[] = array(
-        'type' => 'action',
-        'label' => __('Fork to my organisation'),
-        'icon' => 'users',
-        'url' => array('action' => 'fork', $profile['id'],
-            '?' => array('for_org' => 1)),
-    );
-}
-if (!empty($may_share)) {
-    $actions[] = empty($profile['shared'])
-        ? array(
-            'type' => 'action',
-            'label' => __('Share with everyone'),
-            'icon' => 'share-nodes',
-            'url' => array('action' => 'share', $profile['id']),
-            'confirm' => __('Every user can read, fork and select it, and your edits reach everyone who selected it. It stops being your own profile.'),
-        )
-        : array(
-            'type' => 'action',
-            'label' => __('Stop sharing'),
-            'icon' => 'share-nodes',
-            'url' => array('action' => 'unshare', $profile['id']),
-            'confirm' => __('Readers who selected it fall back to their next profile, and it comes back to you disabled.'),
-        );
-}
-
-$this->set('headerTitle', $profile['name']);
-$this->set('headerBreadcrumb', array(
-    array('label' => __('Analyst Profiles'),
-        'url' => array('action' => 'index')),
-    $profile['name'],
-));
-$this->set('headerCountText', sprintf(__('rev %s'), $profile['revision']));
-$this->set('headerCount', $profile['revision']);
-/*
- * The subtitle is one line and a description need not be: a fork
- * carries its origin line and then everything the source said. Flatten
- * the newlines, keep the opening, and leave the rest to the sections
- * below, which are what the description was describing.
- *
- * `h()` because `headerSection.ctp` echoes this one raw — unlike
- * `headerTitle`, which it escapes and which has a separate
- * `headerTitleHtml` entry for callers with markup to pass.
- *
- * PCRE under `/u` rather than `mb_substr()`, as on the index: the
- * PRD's render harnesses run a CLI PHP without mbstring.
- */
-$summary = trim(preg_replace('/\s+/u', ' ', (string)$profile['description']));
-if (preg_match('/^(.{320})./u', $summary, $m)) {
-    $summary = $m[1];
-    $cut = strrpos($summary, ' ');
-    if ($cut !== false && $cut > 160) {
-        $summary = substr($summary, 0, $cut);
+if ($standing !== null) {
+    $writes = ProfileActionsTool::writes($standing, array(
+        'org' => !empty($me['Role']['perm_admin']),
+        'instance' => !empty($me['Role']['perm_site_admin']),
+        'fork_org' => !empty($me['Role']['perm_admin'])
+            || !empty($me['Role']['perm_site_admin']),
+    ));
+    // The button the group keeps: using the profile, or forking one you cannot use.
+    $hasPrimary = false;
+    foreach (array('use', 'fork', 'share', 'delete') as $kind) {
+        foreach ($writes[$kind] as $write) {
+            if ($write['disabled']) {
+                continue;
+            }
+            $action = array(
+                'type' => 'modal',
+                'label' => $write['label'],
+                'icon' => $write['icon'],
+                'url' => $this->Html->url($write['url']),
+                'size' => 'md',
+            );
+            if ($kind === 'delete') {
+                $action['class'] = 'text-danger';
+            } elseif (!$hasPrimary && $kind !== 'share') {
+                $hasPrimary = true;
+                $action['primary'] = true;
+            }
+            $headerActions[] = $action;
+        }
     }
-    $summary = rtrim($summary, " ,;:") . '…';
 }
-$this->set('headerDescription', h($summary));
-$this->set('headerActions', $actions);
-$this->set('headerActionGroups', array('navigate' => array('mode' => 'none')));
 
-echo $this->element('AnalystProfiles/workbench', array('editable' => false));
+$this->set('headerActions', $headerActions);
+
+$config = array(
+    'editUrl' => $this->Html->url(array('action' => 'edit', $profile['id'])),
+    'viewUrl' => $this->Html->url(array('action' => 'view', $profile['id'])),
+    'mayEdit' => (bool)$may_edit,
+    'labels' => array(
+        'save' => __('Save'),
+        'cancel' => __('Cancel'),
+        'discard' => __('Discard'),
+        'unsaved' => __('Unsaved changes'),
+        'edit' => __('Edit'),
+        'editHint' => __('Click to change it'),
+        'keys' => __('Enter saves, Esc cancels'),
+        'saved' => __('Saved. Revision %s.'),
+        'unchanged' => __('Nothing changed.'),
+        'saveFailed' => __('The change could not be saved.'),
+        'notSaved' => __('Not saved.'),
+        'atLine' => __('Line %s.'),
+        'formFailed' => __('The editor could not be loaded.'),
+        'refreshFailed' => __('Saved, but the page could not be redrawn. Reload it.'),
+        'searchHint' => __('Type to search the name, value and description of'
+            . ' every parameter, in every section.'),
+        'searchEmpty' => __('No parameter matches.'),
+        'searchMore' => __('%s more results, refine the search to see them.'),
+    ),
+);
+?>
+<div class="container-fluid ss-scope ap-page ap-set" id="ap-board" data-ap-settings>
+    <?= $this->element('AnalystProfiles/settings_board') ?>
+</div>
+
+<div class="modal fade" id="ssSearchModal" tabindex="-1" aria-labelledby="apSearchLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable ss-search-dialog">
+        <div class="modal-content">
+            <div class="modal-header gap-2">
+                <i class="fas fa-magnifying-glass text-muted"></i>
+                <label for="apSearchInput" class="visually-hidden" id="apSearchLabel"><?= h(__('Search all parameters')) ?></label>
+                <input type="search" class="form-control border-0 shadow-none ss-search-input" id="apSearchInput"
+                       autocomplete="off" placeholder="<?= h(__('Search all parameters')) ?>">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= h(__('Close')) ?>"></button>
+            </div>
+            <div class="modal-body p-2" id="apSearchResults" role="listbox" aria-label="<?= h(__('Results')) ?>"></div>
+            <div class="modal-footer justify-content-between small text-muted py-2">
+                <span><kbd>↑</kbd> <kbd>↓</kbd> <?= h(__('to move')) ?> · <kbd>Enter</kbd> <?= h(__('to open')) ?></span>
+                <span><?= h(__('Every section, folded parameters included')) ?></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="ap-settings-config"><?= json_encode($config,
+    JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>

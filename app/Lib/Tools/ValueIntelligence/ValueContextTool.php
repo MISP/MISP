@@ -130,6 +130,7 @@ class ValueContextTool
                     ? $row['events']
                     : null,
                 'local' => !empty($row['tag']['local']),
+                'conflict' => isset($conflicted[$name]),
             );
             $groups[$namespace]['total'] += $row['count'];
             if (isset($conflicted[$name])) {
@@ -365,6 +366,12 @@ class ValueContextTool
                     'sub_category' => GalaxyCategory::subCategoryOf(
                         $cluster['type']
                     ) ?? $cluster['type'],
+                    'galaxy_id' => empty($cluster['Galaxy']['id'])
+                        ? null
+                        : (int)$cluster['Galaxy']['id'],
+                    'icon' => empty($cluster['Galaxy']['icon'])
+                        ? null
+                        : $cluster['Galaxy']['icon'],
                     'clusters' => array(),
                 );
             }

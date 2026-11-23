@@ -165,9 +165,14 @@ $renderColumn = function ($cards, $containerClass) use (
  *                          ['ajax' => url] for a lazy fragment, or
  *                          ['row' => [path, path]] for cards side by side
  *                          (stacked below xl, stretched to one height)
+ *     top          array   cards in `left`'s shape, across both columns,
+ *                          above them
  *   $ownership  array  for a record with a creator org and a distribution:
  *                      Cards/ownership_card's parameters; the card opens the
  *                      first tab's left column
+ *   $rail       array  a right column every tab shares, in `right`'s shape,
+ *                      rendered once beside the panes; tabs then leave
+ *                      `right` out
  *
  * Like an action declared with 'tab', the per-tab descriptions are all
  * rendered in the header and toggled by syncHeaderActions() below.
@@ -267,7 +272,7 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
                             <?php if (!empty($tab['badge']['dot'])): ?>
                                 <span class="nav-view-badge-dot"></span>
                             <?php endif; ?>
-                            <?= h($tab['badge']['label']) ?>
+                            <?= h($badgeLabel) ?>
                         </span>
                     <?php endif; ?>
                 </a>
@@ -275,6 +280,10 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
         <?php endforeach; ?>
     </ul>
 
+    <?php if (!empty($rail)): ?>
+    <div class="row">
+    <div class="col-lg-9">
+    <?php endif; ?>
     <div class="tab-content">
         <?php foreach ($tabs as $i => $tab): ?>
             <div class="tab-pane fade <?= $i === $activeTabIndex ? 'show active' : '' ?>"
@@ -284,6 +293,9 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
                         $this->set('headerTitle', $tab['heading']);
                     }
                 ?>
+                <?php if (!empty($tab['top'])): ?>
+                    <?php $renderColumn($tab['top'], 'ajax-tab-content'); ?>
+                <?php endif; ?>
                 <div class="row">
                     <!-- LEFT COLUMN -->
                     <div class="<?= !empty($tab['right']) ? 'col-lg-9' : 'col-12' ?>">
@@ -306,6 +318,13 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
             </div>
         <?php endforeach; ?>
     </div>
+    <?php if (!empty($rail)): ?>
+    </div>
+    <div class="col-lg-3">
+        <?php $renderColumn($rail, 'ajax-card'); ?>
+    </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <script>

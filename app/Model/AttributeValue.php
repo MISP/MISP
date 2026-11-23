@@ -517,6 +517,34 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * The text a value page's address names, for this reader.
+     *
+     * An address carrying the text is taken as it is. An id or a SHA-256
+     * makes the dictionary supply the text, which only a reader who can
+     * see an attribute holding it may learn.
+     *
+     * @param array $user
+     * @param array $address ValueUrlTool::parse()
+     * @return string|null null when unknown or not readable
+     */
+    public function readableAddressed(array $user, array $address)
+    {
+        if (isset($address['value'])) {
+            return (string)$address['value'];
+        }
+        $found = $this->findAddressed($address);
+        if ($found === null) {
+            return null;
+        }
+        if (empty($user['Role']['perm_site_admin'])
+            && empty(ClassRegistry::init('MispAttribute')->visibleValueIds($user, [$found['id']], 1))
+        ) {
+            return null;
+        }
+        return $found['value'];
+    }
+
+    /**
      * @param array $hexes SHA-256s as hex, in any case; anything else is skipped.
      * @return array [lowercase hex => id] for the values the dictionary holds
      */

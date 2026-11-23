@@ -7,6 +7,7 @@ App::uses('Collection', 'Model');
 App::uses('CollectionElement', 'Model');
 App::uses('CollectionRailCards', 'Tools/RailCards');
 App::uses('SyncTool', 'Tools');
+App::uses('ComplexQueryTool', 'Tools');
 
 class CollectionsController extends AppController
 {
@@ -559,7 +560,9 @@ class CollectionsController extends AppController
         $this->set('embedded', $this->request->is('get') && (bool)$this->request->query('embedded'));
         $attachElementDescription = $attachTarget['description'] ?? '';
         $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids', 'attachElementLabels', 'attachElementDescription'));
-        if($this->theme === "Overmind"){
+        // The modal fetches the form bare; a refused save comes back as a page,
+        // where the layout shows its error.
+        if ($this->theme === "Overmind" && $this->request->is('get')) {
             $this->layout = false;
         }
         $this->render('add');
@@ -797,7 +800,9 @@ class CollectionsController extends AppController
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
         $this->set(compact('dropdownData'));
-        if($this->theme === "Overmind"){
+        // The modal fetches the form bare; a refused save comes back as a page,
+        // where the layout shows its error.
+        if ($this->theme === "Overmind" && $this->request->is('get')) {
             $this->layout = false;
         }
         $this->render('add');
@@ -868,12 +873,14 @@ class CollectionsController extends AppController
         }
         $data = $this->viewVars['data'];
         $sharingGroupId = $data['Collection']['SharingGroup']['id'] ?? null;
-        if (!empty($sharingGroupId)) {
+        if ($data['Collection']['distribution'] != 4) {
+            unset($data['Collection']['SharingGroup']);
+        } elseif (!empty($sharingGroupId)) {
             $data['Collection']['SharingGroup']['org_count'] = $this->Collection->SharingGroup->SharingGroupOrg->find('count', [
                 'conditions' => ['SharingGroupOrg.sharing_group_id' => $sharingGroupId],
             ]);
-            $this->set('data', $data);
         }
+        $this->set('data', $data);
         $elements = $data['Collection']['CollectionElement'] ?? [];
 
         $elements = $this->Collection->CollectionElement->attachTargets($user, $elements);
@@ -927,6 +934,9 @@ class CollectionsController extends AppController
             'afterFind' => function($collections) {
                 $user = $this->Auth->user();
                 foreach ($collections as $k => $collection) {
+                    if ($collection['Collection']['distribution'] != 4) {
+                        unset($collections[$k]['SharingGroup']);
+                    }
                     $collections[$k]['Collection']['element_count'] = $this->Collection->CollectionElement->find('count', [
                         'recursive' => -1,
                         'conditions' => ['CollectionElement.collection_id' => $collection['Collection']['id']]
@@ -984,6 +994,18 @@ class CollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $tool = new ComplexQueryTool($this->Collection, ComplexQueryTool::limitsFromConfig(), Collection::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('collections', '/collections/restSearch', Collection::REST_SEARCH_ORDER_FIELDS, 'Collection'),
+            'json'
+        );
     }
 
     /**

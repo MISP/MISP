@@ -162,7 +162,12 @@ class LogsController extends AppController
                 continue;
             }
             if ($key === 'created') {
-                $this->paginate['conditions']['Log.created >='] = $value;
+                // A date, a delta such as 7d, or a from||to range, as on the REST path above.
+                $times = array_map([$this->Log, 'resolveTimeDelta'], (array)$value);
+                $this->paginate['conditions']['Log.created >='] = date('Y-m-d H:i:s', min($times));
+                if (count($times) > 1) {
+                    $this->paginate['conditions']['Log.created <='] = date('Y-m-d H:i:s', max($times));
+                }
                 continue;
             }
             if (in_array($key, $likeFields, true) && is_string($value) && $value !== '') {

@@ -46,8 +46,8 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '240';
-    public $pyMispVersion = '2.5.34.4';
+    private $__queryVersion = '257';
+    public $pyMispVersion = '3.0.0';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -431,6 +431,7 @@ class AppController extends Controller
             if (isset($user['Role']['max_execution_time']) && $user['Role']['max_execution_time'] !== '') {
                 ini_set('max_execution_time', $user['Role']['max_execution_time']);
             }
+            $this->CompressedRequestHandler->decodeRequest($this);
 
             $this->set('mispVersion', "{$versionArray['major']}.{$versionArray['minor']}.0");
             $this->set('mispVersionFull', $this->mispVersion);
@@ -456,6 +457,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
+            $this->CompressedRequestHandler->rejectEncodedRequest($this);
             $this->__preAuthFloodFilter();
             $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
@@ -2015,6 +2017,20 @@ class AppController extends Controller
         if ($filters === false) {
             return $exception;
         }
+        $complexQuery = null;
+        if (isset($filters['query'])) {
+            $role = $this->Auth->user('Role');
+            if (empty($role['perm_complex_query']) && empty($role['perm_site_admin'])) {
+                throw new ForbiddenException(__('You do not have the permission to use complex queries.'));
+            }
+            // _harvestParameters lets the query string and URL params override the body
+            $body = $this->request->data['request'] ?? $this->request->data;
+            if (!$this->request->is('post') || !is_array($body['query'] ?? null) || $filters['query'] !== $body['query']) {
+                throw new BadRequestException(__('The query parameter is only accepted as a JSON object in a POST body.'));
+            }
+            $complexQuery = $filters['query'];
+            unset($filters['query']);
+        }
         if (empty($filters['returnFormat'])) {
             $acceptHeader = $this->request->header('Accept');
 
@@ -2064,7 +2080,19 @@ class AppController extends Controller
 
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
-        $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
+        try {
+            $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter, $complexQuery);
+        } catch (ComplexQueryException $e) {
+            return $this->RestResponse->throwException(
+                400,
+                __('Invalid query'),
+                $this->request->here,
+                false,
+                false,
+                [],
+                ['message' => __n('%s error', '%s errors', count($e->errors), count($e->errors)), 'errors' => $e->errors]
+            );
+        }
         $responseTypeMapping = [
             'json' => 'application/json',
             'html' => 'text/html',

@@ -1,17 +1,17 @@
 <?php
 /**
- * The line inside an object's header button, shared by the list view's
- * accordion and the card view so the two never drift.
+ * An object's header line, shared by the rows and the cards of the objects
+ * index and of the event's Objects tab so they never drift.
  *
- * Left: distribution, then the template name (with its meta-category and
- * version) over the first attribute's value. Right: attribute count, last
- * change.
+ * Left: distribution, then the meta-category, the template name and the
+ * attribute count over the first attribute's value. Right: last change. The
+ * template version is in the open object's foot (Objects/object_foot).
  *
  * Parameters:
  *   object     array  one entry of $objects
- *   ctx        array  see $objContext in Elements/Objects/index.ctp. Only
- *                     count / deleted / firstValue / firstRelation are read, so a
- *                     caller outside the index can build a small one.
+ *   ctx        array  count / deleted / firstValue / firstRelation, and
+ *                     distribution false for an object that has none yet
+ *                     (a module's answer)
  *   asideHtml  string optional raw HTML appended to the right-hand slot, for a
  *                     surface with something of its own to put there (the
  *                     enrichment review's reference count and remove button).
@@ -25,27 +25,23 @@ $firstTitle = ($ctx['firstRelation'] !== '' ? $ctx['firstRelation'] . ': ' : '')
 ?>
 <span class="ov-obj-head">
 
-    <span class="ov-obj-dist"
-          style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
-          title="<?= h(__('Distribution: %s', $dist['label'])) ?>">
-        <i class="<?= h($dist['icon']) ?>"></i>
-    </span>
+    <?php if ($ctx['distribution'] ?? true): ?>
+        <span class="ov-obj-dist"
+              style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
+              title="<?= h(__('Distribution: %s', $dist['label'])) ?>">
+            <i class="<?= h($dist['icon']) ?>"></i>
+        </span>
+    <?php endif; ?>
 
     <span class="ov-obj-title">
         <span class="ov-obj-name">
+            <?= $this->element('Objects/meta_category', ['meta' => $object['meta-category'] ?? '']) ?>
             <span class="text-truncate"><?= h($object['name']) ?></span>
-            <?php if (!empty($object['meta-category']) || !empty($object['template_version'])): ?>
-                <span class="ov-obj-meta"
-                      title="<?= h(__('Meta-category') . (!empty($object['template_version'])
-                          ? ' · ' . __('Template v%s', $object['template_version']) : '')) ?>">
-                    <?php if (!empty($object['meta-category'])): ?>
-                        <?= h($object['meta-category']) ?>
-                    <?php endif; ?>
-                    <?php if (!empty($object['template_version'])): ?>
-                        <span class="ov-obj-meta-version"><?= __('v%s', h($object['template_version'])) ?></span>
-                    <?php endif; ?>
-                </span>
-            <?php endif; ?>
+            <span class="ov-obj-count"
+                  title="<?= h(__n('%s attribute', '%s attributes', $count, $count)) ?>">
+                <span class="misp-icon misp-icon-attribute misp-simple"></span>
+                <?= $count ?>
+            </span>
             <?php if ($ctx['deleted']): ?>
                 <span class="ov-obj-deleted">
                     <i class="fas fa-trash"></i><?= __('Deleted') ?>
@@ -63,11 +59,6 @@ $firstTitle = ($ctx['firstRelation'] !== '' ? $ctx['firstRelation'] . ': ' : '')
     </span>
 
     <span class="ov-obj-aside">
-        <span class="ov-obj-count"
-              title="<?= h(__n('%s attribute', '%s attributes', $count, $count)) ?>">
-            <span class="misp-icon misp-icon-attribute misp-simple"></span>
-            <?= $count ?>
-        </span>
         <?php if ($timestamp > 0): ?>
             <span class="ov-obj-date"
                   title="<?= h(__('Last modified: %s', date('Y-m-d H:i:s', $timestamp))) ?>">

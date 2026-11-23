@@ -23,9 +23,18 @@ class NetfilterExport
         'ip-src|port' => 0
     );
 
+    private const ALLOWED_ACTIONS = array('DROP', 'REJECT', 'ACCEPT', 'LOG');
+
     public function handler($data, $options = array())
     {
-        $action = empty($options['filters']['netfilter_action']) ? 'DROP' : $options['filters']['netfilter_action'];
+        $action = 'DROP';
+        if (
+            !empty($options['filters']['netfilter_action']) &&
+            is_string($options['filters']['netfilter_action']) &&
+            in_array($options['filters']['netfilter_action'], self::ALLOWED_ACTIONS, true)
+        ) {
+            $action = $options['filters']['netfilter_action'];
+        }
         if ($options['scope'] === 'Attribute') {
             if (in_array($data['Attribute']['type'], array_keys($this->__attributeTypeMappings))) {
                 return $this->__convertToRule($data['Attribute'], $action) . "\n";
@@ -36,11 +45,11 @@ class NetfilterExport
         if ($options['scope'] === 'Event') {
             $result = array();
             foreach ($data['Attribute'] as $attribute) {
-                if (in_array($data['Attribute']['type'], array_keys($this->__attributeTypeMappings))) {
-                    $result[] = $this->__convertToRule($data['Attribute'], $action);
+                if (isset($this->__attributeTypeMappings[$attribute['type']])) {
+                    $result[] = $this->__convertToRule($attribute, $action) . "\n";
                 }
             }
-            return implode($this->separator(), $result) . "\n";
+            return implode($this->separator(), $result);
         }
         return '';
     }

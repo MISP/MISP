@@ -4,6 +4,9 @@ App::uses('CollectionElement', 'Model');
 App::uses('DistributionLevel', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SyncTool', 'Tools');
+App::uses('ComplexQueryTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 class Collection extends AppModel
 {
@@ -86,6 +89,64 @@ class Collection extends AppModel
     /** Entries a publish review lists per kind of change. */
     const REVIEW_LIMIT = 50;
 
+    /**
+     * The fields of the restSearch `query` tree (ComplexQueryTool). Elements are
+     * matched by their address only: their targets' ACL is not part of the visible set.
+     */
+    const QUERY_FIELDS = [
+        'id' => ['kind' => 'int', 'column' => 'Collection.id', 'level' => ['collection']],
+        'uuid' => ['kind' => 'string', 'column' => 'Collection.uuid', 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['collection']],
+        'name' => ['kind' => 'string', 'column' => 'Collection.name', 'level' => ['collection']],
+        'type' => ['kind' => 'string', 'column' => 'Collection.type', 'level' => ['collection']],
+        'description' => ['kind' => 'string', 'column' => 'Collection.description', 'nullable' => 'Collection.description', 'level' => ['collection']],
+        'distribution' => ['kind' => 'int', 'column' => 'Collection.distribution', 'level' => ['collection']],
+        'org_id' => ['kind' => 'int', 'column' => 'Collection.org_id', 'level' => ['collection']],
+        'orgc_id' => ['kind' => 'int', 'column' => 'Collection.orgc_id', 'level' => ['collection']],
+        'org' => [
+            'kind' => 'string', 'column' => ['Orgc.name', 'Orgc.uuid'], 'lower' => true, 'via' => ['Orgc', 'Collection.orgc_id'],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['collection'],
+        ],
+        'user_id' => ['kind' => 'int', 'column' => 'Collection.user_id', 'level' => ['collection']],
+        'created' => ['kind' => 'datetime', 'column' => 'Collection.created', 'local' => true, 'level' => ['collection']],
+        'modified' => ['kind' => 'datetime', 'column' => 'Collection.modified', 'local' => true, 'level' => ['collection']],
+        'locked' => ['kind' => 'bool', 'column' => 'Collection.locked', 'level' => ['collection']],
+        'published' => ['kind' => 'bool', 'column' => 'Collection.published', 'level' => ['collection']],
+        'last_published' => [
+            'kind' => 'datetime', 'column' => 'Collection.last_published', 'local' => true,
+            'nullable' => 'Collection.last_published', 'level' => ['collection'],
+        ],
+        'analysis' => ['kind' => 'int', 'column' => 'Collection.analysis', 'level' => ['collection']],
+        'element_type' => [
+            'kind' => 'string', 'column' => 'CollectionElement.element_type', 'via' => ['CollectionElement', 'Collection.id', 'collection_id'],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['collection_element'],
+        ],
+        'element_uuid' => [
+            'kind' => 'string', 'column' => 'CollectionElement.element_uuid', 'via' => ['CollectionElement', 'Collection.id', 'collection_id'],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['collection_element'],
+        ],
+        'element_sha256' => [
+            'kind' => 'string', 'column' => 'CollectionElement.element_sha256', 'lower' => 'value',
+            'via' => ['CollectionElement', 'Collection.id', 'collection_id'],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['collection_element'],
+        ],
+        'element_description' => [
+            'kind' => 'string', 'column' => 'CollectionElement.description', 'via' => ['CollectionElement', 'Collection.id', 'collection_id'],
+            'level' => ['collection_element'],
+        ],
+    ];
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Collection' => ['id', 'name', 'type', 'created', 'modified', 'distribution'],
+    ];
+
+    // each row carries all of its elements
+    const REST_SEARCH_CHUNK = 100;
+
+    public $validFormats = [
+        'json' => ['json', 'JsonExport', 'json'],
+        'count' => ['txt', 'CountExport', 'txt'],
+    ];
+
     public $current_user = null;
 
     /** Set while a publish, or a capture from another instance, writes the published state. */
@@ -149,6 +210,12 @@ class Collection extends AppModel
             // mass assignment (mirrors the perm_sync exemption on orgc_id above).
             if (empty($this->current_user['Role']['perm_sync'])) {
                 $this->data['Collection']['locked'] = 0;
+            }
+        }
+        // A partial update that leaves the distribution alone keeps the group
+        if (isset($this->data['Collection']['distribution']) || empty($this->id)) {
+            if (($this->data['Collection']['distribution'] ?? null) != 4) {
+                $this->data['Collection']['sharing_group_id'] = null;
             }
         }
         return true;
@@ -1191,6 +1258,106 @@ class Collection extends AppModel
     }
 
     /**
+     * Takes only `query`, paging, `order` and `returnFormat` (json or count).
+     *
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
+    {
+        if (!isset($this->validFormats[$returnFormat])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        $tool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig(), self::QUERY_FIELDS);
+        $order = [];
+        if (!empty($filters['order'])) {
+            $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'Collection');
+            $order = $this->findOrder($filters['order'], 'Collection', self::REST_SEARCH_ORDER_FIELDS['Collection']) ?? [];
+        }
+        // a unique last key, or OFFSET paging can repeat or skip rows
+        if (!preg_grep('/^Collection\.id /', $order)) {
+            $order[] = 'Collection.id asc';
+        }
+        $limit = (int)($filters['limit'] ?? 0);
+        if ($limit < 0) {
+            throw new BadRequestException(__('The limit must be a positive integer.'));
+        }
+        $conditions = $this->buildConditions($user['id']);
+        $served = self::servedConditions();
+        if (!empty($served)) {
+            $conditions['AND'][] = $served;
+        }
+        if ($complexQuery !== null) {
+            $conditions['AND'][] = $tool->compile($tool->validate($complexQuery));
+        }
+        $tmpfile = new TmpFileTool();
+        if ($returnFormat === 'count') {
+            $elementCounter = $this->find('count', ['conditions' => $conditions, 'recursive' => -1]);
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
+        $offset = $limit && !empty($filters['page']) ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        $elementCounter = 0;
+        $separator = '';
+        $tmpfile->write('{"response": [');
+        do {
+            $size = $limit ? min(self::REST_SEARCH_CHUNK, $limit - $elementCounter) : self::REST_SEARCH_CHUNK;
+            $collections = $this->find('all', [
+                'conditions' => $conditions,
+                'contain' => ['Orgc', 'SharingGroup', 'CollectionElement' => self::servedElementOptions()],
+                'recursive' => -1,
+                'order' => $order,
+                'limit' => $size,
+                'offset' => $offset + $elementCounter,
+            ]);
+            foreach ($this->restSearchRows($user, $collections) as $row) {
+                $tmpfile->write($separator . JsonTool::encode($row));
+                $separator = ',';
+            }
+            $elementCounter += count($collections);
+        } while (count($collections) === $size && (!$limit || $elementCounter < $limit));
+        $tmpfile->write(']}' . PHP_EOL);
+        return $tmpfile;
+    }
+
+    /**
+     * Rows as the REST index returns them, with the analyst data under Collection only,
+     * and the sharing group only on distribution 4: a stale one may not be the viewer's.
+     */
+    private function restSearchRows(array $user, array $collections)
+    {
+        if (empty($collections)) {
+            return [];
+        }
+        $flat = $this->attachAnalystDataBulk(array_column($collections, 'Collection'));
+        $counts = $this->CollectionElement->find('all', [
+            'conditions' => ['CollectionElement.collection_id' => array_column($flat, 'id')],
+            'fields' => ['CollectionElement.collection_id', 'COUNT(*) AS element_count'],
+            'group' => ['CollectionElement.collection_id'],
+            'recursive' => -1,
+        ]);
+        $counts = Hash::combine($counts, '{n}.CollectionElement.collection_id', '{n}.0.element_count');
+        $rows = [];
+        foreach ($collections as $k => $collection) {
+            $record = $flat[$k] + ['RelationshipInbound' => []];
+            $record['element_count'] = (int)($counts[$record['id']] ?? 0);
+            if ($record['distribution'] != 4) {
+                $collection['SharingGroup'] = array_fill_keys(array_keys($collection['SharingGroup']), null);
+            }
+            $elements = $collection['CollectionElement'];
+            if (!empty($elements) && !self::showsAdders($user, $collection['Collection'])) {
+                $elements = self::withoutAdders($elements);
+            }
+            $rows[] = [
+                'Collection' => $record,
+                'Orgc' => $collection['Orgc'],
+                'SharingGroup' => $collection['SharingGroup'],
+                'CollectionElement' => empty($elements) ? [] : $this->CollectionElement->withRecords($elements),
+            ];
+        }
+        return $rows;
+    }
+
+    /**
      * Minimal index for sync pull: returns [uuid => modified] for every collection the
      * caller may see and distribute (filtered via buildConditions), optionally narrowed
      * by $filters (e.g. the orgc_id OR/NOT pull-rules the controller builds from
@@ -1710,6 +1877,9 @@ class Collection extends AppModel
         $sgStore = [];
         $dataForPush = [];
         foreach ($rows as $row) {
+            if ($row['Collection']['distribution'] != 4) {
+                unset($row['SharingGroup']);
+            }
             // Enrich the dist=4 sharing group with the full org/server structure the remote
             // captureSG needs to create it if missing (mirrors the AnalystData $sgStore cache).
             if (!empty($row['SharingGroup']['id'])) {

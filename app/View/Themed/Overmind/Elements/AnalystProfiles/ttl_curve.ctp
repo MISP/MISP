@@ -53,7 +53,7 @@ if ($ttl <= 0) {
 $speed = 1.0;
 $aging = 0.33;
 foreach ($section['blocks'] as $candidate) {
-    if ($candidate['kind'] !== 'fields' || $candidate['id'] !== 'clock') {
+    if ($candidate['kind'] !== 'fields') {
         continue;
     }
     foreach ($candidate['fields'] as $field) {
@@ -262,11 +262,5 @@ if ($here !== null) {
             $agingDay,
             $ttl
         )) ?>
-        <?= $speed == 1
-            ? h(__('Straight because decay speed is 1. Below 1 it bows up'
-                . ' and falls off a cliff at the end; above 1 it drops at'
-                . ' once and then lingers.'))
-            : h(sprintf(__('Bowed because decay speed is %s. At 1 it is a'
-                . ' straight line.'), $speed)) ?>
     </p>
 </figure>

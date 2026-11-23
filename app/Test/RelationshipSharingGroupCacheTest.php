@@ -42,7 +42,18 @@ if (!class_exists('ModelBehavior', false)) {
     {
     }
 }
+if (!class_exists('Configure', false)) {
+    class Configure
+    {
+        public static function read($key)
+        {
+            return null;
+        }
+    }
+}
 
+require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
+require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Relationship.php';
 require_once __DIR__ . '/../Model/Behavior/AnalystDataBehavior.php';

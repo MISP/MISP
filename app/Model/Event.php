@@ -44,6 +44,10 @@ class Event extends AppModel
     // Objects read per event for the index's object count
     const INDEX_OBJECT_LIMIT = 1000;
 
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Event' => ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp'],
+    ];
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -791,7 +795,7 @@ class Event extends AppModel
             ));
             $objectCounts = Hash::combine($objectCounts, '{n}.Object.event_id', '{n}.0.count');
         } else {
-            $objectCounts = $this->__countObjectsUpTo($eventIds, $limit + 1);
+            $objectCounts = $this->__countUpTo($this->Object, $eventIds, $limit + 1);
         }
         foreach ($events as $key => $event) {
             $count = (int)($objectCounts[$event['Event']['id']] ?? 0);
@@ -805,13 +809,41 @@ class Event extends AppModel
     }
 
     /**
+     * Attaches `attributes_in_objects_only` to each event of an index list:
+     * true when it has attributes but none outside an object, which the
+     * event view's Attributes tab leaves out. One index probe per event that
+     * has objects; the others are not looked at.
+     *
+     * @param array $events with `object_count` attached
+     * @return array
+     */
+    public function attachAttributesInObjectsOnlyToEvents(array $events)
+    {
+        $eventIds = [];
+        foreach ($events as $event) {
+            if (!empty($event['Event']['attribute_count']) && !empty($event['Event']['object_count'])) {
+                $eventIds[] = (int)$event['Event']['id'];
+            }
+        }
+        $loose = empty($eventIds)
+            ? []
+            : $this->__countUpTo($this->Attribute, $eventIds, 1, ['Attribute.object_id' => 0]);
+        foreach ($events as $key => $event) {
+            $events[$key]['Event']['attributes_in_objects_only'] = ($loose[(int)$event['Event']['id']] ?? null) === 0;
+        }
+        return $events;
+    }
+
+    /**
+     * @param Model $model Object or Attribute
      * @param array $eventIds
      * @param int $limit
-     * @return array event id => non-deleted objects, at most $limit
+     * @param array $conditions on top of the event and not deleted
+     * @return array event id => non-deleted rows, at most $limit
      */
-    private function __countObjectsUpTo(array $eventIds, $limit)
+    private function __countUpTo(Model $model, array $eventIds, $limit, array $conditions = [])
     {
-        $db = $this->Object->getDataSource();
+        $db = $model->getDataSource();
         $counts = [];
         foreach (array_chunk($eventIds, 50) as $chunk) {
             $branches = [];
@@ -819,17 +851,17 @@ class Event extends AppModel
                 $counts[$eventId] = 0;
                 $branches[] = '(' . $db->buildStatement([
                     'fields' => [sprintf('%d AS %s', $eventId, $db->name('event_id'))],
-                    'table' => $db->fullTableName($this->Object),
-                    'alias' => 'Object',
+                    'table' => $db->fullTableName($model),
+                    'alias' => $model->alias,
                     'conditions' => [
-                        'Object.event_id' => (int)$eventId,
-                        'Object.deleted' => 0,
-                    ],
+                        $model->alias . '.event_id' => (int)$eventId,
+                        $model->alias . '.deleted' => 0,
+                    ] + $conditions,
                     'order' => null,
                     'group' => null,
                     'limit' => $limit,
                     'offset' => null,
-                ], $this->Object) . ')';
+                ], $model) . ')';
             }
             $rows = $db->fetchAll(
                 sprintf(
@@ -1590,6 +1622,9 @@ class Event extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
 
+        if (empty($event['Event']['published'])) {
+            return 'The event is not published, which blocks it from being pushed.';
+        }
         if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
             return 'The server rules blocks it from being pushed.';
         }
@@ -2156,28 +2191,25 @@ class Event extends AppModel
         );
         foreach ($attributeConditions as $attributeCondition) {
             $subQueryOptions = array(
-                'conditions' => $attributeCondition,
+                'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', $attributeCondition),
                 'fields' => array('event_id')
             );
             $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
         }
-        $tagScopes = array('Event', 'Attribute');
-        $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $tagIds = $this->AttributeTag->Tag->find('column', array(
+        $tagIds = $this->EventTag->Tag->find('column', array(
             'recursive' => -1,
             'conditions' => array('Tag.name LIKE' => $params['wildcard']),
             'fields' => array('Tag.id')
         ));
         if (!empty($tagIds)) {
-            foreach ($tagScopes as $tagScope) {
-                $subQueryOptions = array(
-                    'conditions' => array(
-                        'tag_id' => $tagIds,
-                    ),
-                    'fields' => array('event_id')
-                );
-                $tempConditions[] = $this->subQueryGenerator($this->{$tagScope . 'Tag'}, $subQueryOptions, 'Event.id');
-            }
+            $subQueryOptions = array(
+                'conditions' => array(
+                    'tag_id' => $tagIds,
+                ),
+                'fields' => array('event_id')
+            );
+            $tempConditions[] = $this->subQueryGenerator($this->EventTag, $subQueryOptions, 'Event.id');
+            $tempConditions[] = $this->visibleAttributeTagSubquery($options['user'], $tagIds);
         }
         return $tempConditions;
     }
@@ -2232,18 +2264,23 @@ class Event extends AppModel
      * @param array $user
      * @param array $params
      * @param int $result_count
+     * @param array|null $complexConditions the compiled `query` tree, from restSearch() only
      * @return array Event IDs, when `include_attribute_count` is enabled, then it is Event ID => Attribute count
      */
-    public function filterEventIds($user, &$params = array(), &$result_count = 0)
+    public function filterEventIds($user, &$params = array(), &$result_count = 0, $complexConditions = null)
     {
         $conditions = $this->createEventConditions($user);
+        if ($complexConditions !== null) {
+            $conditions['AND'][] = $complexConditions;
+        }
         if (isset($params['wildcard'])) {
             $temp = array();
             $options = array(
                 'filter' => 'wildcard',
                 'scope' => 'Event',
                 'pop' => false,
-                'context' => 'Event'
+                'context' => 'Event',
+                'user' => $user
             );
             $conditions['AND'][] = array('OR' => $this->set_filter_wildcard($params, $temp, $options));
         } else {
@@ -2296,7 +2333,8 @@ class Event extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Event'
+                            'context' => 'Event',
+                            'user' => $user
                         );
                         if (!empty($simple_param_scoped[$param]['skip_neg'])) {
                             $options['skip_neg'] = true;
@@ -2308,7 +2346,7 @@ class Event extends AppModel
                             $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $options);
                             if (!empty($temp)) {
                                 $subQueryOptions = array(
-                                    'conditions' => $temp,
+                                    'conditions' => $this->visibleElementConditions($user, $this->{$scope}->alias, $temp),
                                     'fields' => array(
                                         'event_id'
                                     )
@@ -2326,7 +2364,8 @@ class Event extends AppModel
                     'filter' => 'value',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Event'
+                    'context' => 'Event',
+                    'user' => $user
                 );
                 $conditions = $this->set_filter_value($params, $conditions, $options);
             }
@@ -2335,7 +2374,8 @@ class Event extends AppModel
                     'filter' => 'value_cidr',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Event'
+                    'context' => 'Event',
+                    'user' => $user
                 );
                 $conditions = $this->set_filter_value_cidr($params, $conditions, $options);
             }
@@ -2344,7 +2384,8 @@ class Event extends AppModel
                     'filter' => 'value_search',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Event'
+                    'context' => 'Event',
+                    'user' => $user
                 );
                 $conditions = $this->set_filter_value_search($params, $conditions, $options);
             }
@@ -2357,7 +2398,7 @@ class Event extends AppModel
             $find_params['order'] = $this->findOrder(
                 $params['order'],
                 'Event',
-                ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
+                self::REST_SEARCH_ORDER_FIELDS['Event']
             );
         }
         if (isset($params['limit'])) {
@@ -4729,6 +4770,9 @@ class Event extends AppModel
         if (!empty($user['Role']['perm_site_admin'])) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if (!empty($user['Role']['perm_modify_org']) && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -4736,6 +4780,46 @@ class Event extends AppModel
             return true;
         }
         return false;
+    }
+
+    /**
+     * A sync user that is neither a site admin nor an internal sync user may
+     * change a protected event only through events/edit with a valid
+     * signature: every other write path refuses it.
+     *
+     * @param array $user
+     * @param array $event with an Event key; `protected` is looked up when missing
+     * @return bool
+     */
+    public function isProtectedFromSyncUser(array $user, array $event)
+    {
+        if (
+            empty($user['Role']['perm_sync']) ||
+            !empty($user['Role']['perm_site_admin']) ||
+            !empty($user['Role']['perm_sync_internal'])
+        ) {
+            return false;
+        }
+        // Many callers load the event with a short field list.
+        if (array_key_exists('protected', $event['Event'])) {
+            return (bool)$event['Event']['protected'];
+        }
+        if (empty($event['Event']['id'])) {
+            return true;
+        }
+        return $this->hasAny(['Event.id' => $event['Event']['id'], 'Event.protected' => 1]);
+    }
+
+    /**
+     * @param array $user
+     * @param array $event with an Event key
+     * @throws ForbiddenException
+     */
+    public function assertNotProtectedFromSyncUser(array $user, array $event)
+    {
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            throw new ForbiddenException(__('This event is protected: a sync user may change it only through events/edit with a valid signature.'));
+        }
     }
 
     /**
@@ -6658,11 +6742,14 @@ class Event extends AppModel
     // accepts an attribute array and a list of blocked tags. Returns the attribute array with the blocked attributes cleaned out.
     private function __filterBlockedAttributesFromContainer($container, $blockedTags)
     {
+        // looked up per attribute tag, and a tag pattern can block thousands of ids
+        $blockedTags = $this->__tagIdSet($blockedTags);
         foreach ($container as $key => $attribute) {
             if (!empty($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
-                    if (in_array($at['tag_id'], $blockedTags)) {
+                    if (isset($blockedTags[$at['tag_id']])) {
                         unset($container[$key]);
+                        break;
                     }
                 }
             }
@@ -6674,17 +6761,35 @@ class Event extends AppModel
     // accepts an event-report array and a list of blocked tags. Returns the event-report array with the blocked reports cleaned out.
     private function __filterBlockedEventReportsFromContainer($container, $blockedTags)
     {
+        $blockedTags = $this->__tagIdSet($blockedTags);
         foreach ($container as $key => $eventReport) {
             if (!empty($eventReport['EventReportTag'])) {
                 foreach ($eventReport['EventReportTag'] as $ev) {
-                    if (in_array($ev['tag_id'], $blockedTags)) {
+                    if (isset($blockedTags[$ev['tag_id']])) {
                         unset($container[$key]);
+                        break;
                     }
                 }
             }
         }
         $container = array_values($container);
         return $container;
+    }
+
+    /**
+     * @param array $tagIds
+     * @return array the numeric ids as keys; anything else never matches a tag id
+     */
+    private function __tagIdSet(array $tagIds)
+    {
+        $set = [];
+        foreach ($tagIds as $tagId) {
+            if (is_numeric($tagId)) {
+                // canonical form, as the database compares it: '08482' is tag 8482
+                $set[(string)($tagId + 0)] = true;
+            }
+        }
+        return $set;
     }
 
     public function set_filter_sharing_group(&$params, $conditions, $options)
@@ -6816,7 +6921,11 @@ class Event extends AppModel
                 $params['uuid'] = $this->convert_filters($params['uuid']);
                 if (!empty($params['uuid']['OR'])) {
                     $subQueryOptions = array(
-                        'conditions' => array('Attribute.uuid' => $params['uuid']['OR']),
+                        'conditions' => $this->visibleElementConditions(
+                            $options['user'],
+                            'Attribute',
+                            array('Attribute.uuid' => $params['uuid']['OR'])
+                        ),
                         'fields' => array('event_id')
                     );
                     $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -6829,7 +6938,11 @@ class Event extends AppModel
                 }
                 if (!empty($params['uuid']['NOT'])) {
                     $subQueryOptions = array(
-                        'conditions' => array('Attribute.uuid' => $params['uuid']['NOT']),
+                        'conditions' => $this->visibleElementConditions(
+                            $options['user'],
+                            'Attribute',
+                            array('Attribute.uuid' => $params['uuid']['NOT'])
+                        ),
                         'fields' => array('event_id')
                     );
                     $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -7292,7 +7405,7 @@ class Event extends AppModel
             case 'OR':
             case 'NOT':
                 $subquery_options = [
-                  'conditions' => $scope + $match($values),
+                  'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', $scope + $match($values)),
                   'fields' => [
                     $field,
                   ],
@@ -7316,7 +7429,7 @@ class Event extends AppModel
             case 'AND':
                 foreach ($values as $v) {
                     $subquery_options = [
-                      'conditions' => $scope + $match([$v]),
+                      'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', $scope + $match([$v])),
                       'fields' => [
                         $field,
                       ],
@@ -7332,6 +7445,114 @@ class Event extends AppModel
         }
 
         return $conditions;
+    }
+
+    /**
+     * Narrows a subquery on attributes or objects to the elements the user can
+     * see, by the rules of MispAttribute::buildConditions(). The outer query
+     * has already checked that the event holding them is visible.
+     *
+     * @param array $user
+     * @param string $alias Attribute or Object
+     * @param array $conditions on the element
+     * @return array
+     */
+    public function visibleElementConditions(array $user, $alias, array $conditions)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return $conditions;
+        }
+        $sgIds = $this->SharingGroup->authorizedIds($user);
+        $rules = [$this->elementDistributionRules($alias, $sgIds)];
+        if ($alias === 'Attribute') {
+            $rules[] = ['OR' => [
+                'Attribute.object_id' => 0,
+                $this->subQueryGenerator($this->Object, [
+                    'fields' => ['Object.id'],
+                    'conditions' => $this->elementDistributionRules('Object', $sgIds),
+                ], 'Attribute.object_id'),
+            ]];
+        }
+        // fetchEvent() hands soft-deleted elements to sync users that ask
+        if (!$user['Role']['perm_sync']) {
+            $rules[] = [$alias . '.deleted' => 0];
+        }
+        $ownEvents = $this->subQueryGenerator($this, [
+            'alias' => 'OwnEvent',
+            'fields' => ['OwnEvent.id'],
+            'conditions' => ['OwnEvent.org_id' => $user['org_id']],
+        ], $alias . '.event_id');
+        return [$conditions, ['OR' => [$ownEvents, ['AND' => $rules]]]];
+    }
+
+    /**
+     * Events holding an attribute that the user can see and that carries one
+     * of the tags.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array
+     */
+    public function visibleAttributeTagSubquery(array $user, array $tagIds)
+    {
+        return $this->subQueryGenerator($this->Attribute->AttributeTag, [
+            'fields' => ['AttributeTag.event_id'],
+            'conditions' => $this->visibleAttributeTagConditions($user, $tagIds),
+        ], 'Event.id');
+    }
+
+    /**
+     * Ids of the events holding an attribute that the user can see and that
+     * carries one of the tags.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array
+     */
+    public function visibleAttributeTagEventIds(array $user, array $tagIds)
+    {
+        return $this->Attribute->AttributeTag->find('column', [
+            'fields' => ['AttributeTag.event_id'],
+            'conditions' => $this->visibleAttributeTagConditions($user, $tagIds),
+            'unique' => true,
+        ]);
+    }
+
+    /**
+     * @param array $user
+     * @param array $tagIds
+     * @return array conditions on AttributeTag
+     */
+    private function visibleAttributeTagConditions(array $user, array $tagIds)
+    {
+        $conditions = ['AttributeTag.tag_id' => $tagIds];
+        if (!$user['Role']['perm_site_admin']) {
+            // Driven by the tag rows, one primary key probe each: driven by the
+            // attributes, MariaDB walked every attribute of every visible event
+            $conditions[] = $this->subQueryGenerator($this->Attribute, [
+                'fields' => ['Attribute.id'],
+                'conditions' => $this->visibleElementConditions(
+                    $user, 'Attribute', ['Attribute.id = AttributeTag.attribute_id']
+                ),
+            ], 'AttributeTag.attribute_id');
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param string $alias
+     * @param array $sgIds
+     * @return array
+     */
+    private function elementDistributionRules($alias, array $sgIds)
+    {
+        return ['OR' => [
+            $alias . '.distribution' => [1, 2, 3, 5],
+            'AND' => [
+                $alias . '.distribution' => 4,
+                $alias . '.sharing_group_id' => $sgIds,
+            ],
+        ]];
     }
 
     /**
@@ -7803,6 +8024,29 @@ class Event extends AppModel
     }
 
     /**
+     * Is the creator organisation that _add() will store the user's own? With $fromXml, __captureObjects()
+     * takes it from `Orgc`, else from `orgc`, and only otherwise keeps `orgc_id`.
+     * @param array $event
+     * @param array $user
+     * @param bool $fromXml
+     * @return bool
+     */
+    private function __isOwnCreatorOrg(array $event, array $user, $fromXml)
+    {
+        if ($fromXml && (isset($event['Orgc']) || isset($event['orgc']))) {
+            $org = $event['Orgc'] ?? $event['orgc'];
+            if (!is_array($org)) {
+                return $org === $user['Organisation']['name'];
+            }
+            if (empty($org['uuid'])) {
+                return ($org['name'] ?? null) === $user['Organisation']['name'];
+            }
+            return strtolower((string)$org['uuid']) === strtolower($user['Organisation']['uuid']);
+        }
+        return !isset($event['orgc_id']) || $event['orgc_id'] == $user['org_id'];
+    }
+
+    /**
      * When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
      * or which we need to update. All of that is controlled in this method.
      * @param array $event
@@ -8152,6 +8396,7 @@ class Event extends AppModel
      * @param int|null $jobId
      * @param int $created_id
      * @param array $validationErrors
+     * @param string|bool $fingerprint Of the key that verified a protected event's signature, or true when the caller trusts the input
      * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
      * @throws Exception
      */
@@ -8185,14 +8430,9 @@ class Event extends AppModel
             if (empty($fingerprint)) {
                 throw new MethodNotAllowedException(__('Cannot add a protected event via the API, without the input being signed properly.'));
             }
-            $found = false;
             // Does any of the event\'s keys match the fingerprint?
-            foreach ($data['Event']['CryptographicKey'] as $key) {
-                if ($key['fingerprint'] === $fingerprint) {
-                    $found = true;
-                }
-            }
-            if (!$found) {
+            $listed = array_column($data['Event']['CryptographicKey'], 'fingerprint');
+            if ($fingerprint !== true && !in_array($fingerprint, $listed, true)) {
                 throw new MethodNotAllowedException(__('Cannot add the protected event, whilst the input was signed, the signing key was not found in the event\'s approved list of fingerprints..'));
             }
         }
@@ -8210,14 +8450,9 @@ class Event extends AppModel
         // Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
         if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
             $data['Event']['orgc_id'] = $data['Event']['org_id'];
-        } else {
-            $orgc_id = $data['Event']['orgc_id'] ?? null;
-            $orgc_uuid = $data['Event']['Orgc']['uuid'] ?? null;
-            if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                if ($orgc_uuid != $user['Organisation']['uuid'] && $orgc_id != $user['org_id']) {
-                    throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
-                }
-            }
+        }
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin'] && !$this->__isOwnCreatorOrg($data['Event'], $user, $fromXml)) {
+            throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
             if (!isset($data['Event']['Orgc']['uuid'])) {
@@ -9040,6 +9275,38 @@ class Event extends AppModel
         $this->Attribute->AttributeTag->create();
         $this->Attribute->AttributeTag->save($attribute_tag);
         return true;
+    }
+
+    /**
+     * The local event that data pulled from $server is for, if that server may hold it: we would push
+     * it there, it is shared with this community (which includes synchronising servers), or the
+     * server's organisation created it (a pull downgrades distribution, so the push check misses those).
+     *
+     * @param string $eventUuid
+     * @param array $server With RemoteOrg
+     * @param array $user
+     * @return array|false
+     */
+    public function syncedWithServer($eventUuid, array $server, array $user)
+    {
+        $event = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.uuid' => $eventUuid],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id'],
+        ]);
+        if (empty($event)) {
+            return false;
+        }
+        if ($event['Event']['orgc_id'] == $server['Server']['remote_org_id'] || $event['Event']['distribution'] == 1) {
+            return $event;
+        }
+        if ($event['Event']['distribution'] == 4) {
+            $event['SharingGroup'] = $this->SharingGroup->fetchSG($event['Event']['sharing_group_id'], $user);
+            if (empty($event['SharingGroup'])) {
+                return false;
+            }
+        }
+        return $this->checkDistributionForPush($event, $server) ? $event : false;
     }
 
     // pass an event or an attribute together with the server id.
@@ -10561,9 +10828,9 @@ class Event extends AppModel
             throw new NotFoundException('Invalid event.');
         }
         $modulePayload = array('module' => $module['name']);
-        $moduleConfig = Module::moduleConfig($module, 'Export');
-        if (!empty($moduleConfig)) {
-            $modulePayload['config'] = $moduleConfig;
+        $config = $this->Module->getModuleConfig($module, 'Export', $user);
+        if (!empty($config)) {
+            $modulePayload['config'] = $config;
         }
         $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
@@ -10737,7 +11004,11 @@ class Event extends AppModel
             }
             $existingEvent = $this->find('first', ['conditions' => ['Event.uuid' => $data['Event']['uuid']], 'recursive' => -1]);
             if (!empty($existingEvent)) {
-                if ($user['Role']['perm_modify_org'] && $existingEvent['Event']['orgc_id'] == $user['org_id']) {
+                if (
+                    $user['Role']['perm_modify_org'] &&
+                    $existingEvent['Event']['orgc_id'] == $user['org_id'] &&
+                    !$this->isProtectedFromSyncUser($user, $existingEvent)
+                ) {
                     $eventid = $existingEvent['Event']['id'];
                     $result = $this->_edit($data, $user, $eventid, null, null, true);
                     if ($result === true) {
@@ -10945,9 +11216,7 @@ class Event extends AppModel
             return true;
         }
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $enabledModules['modules'][$k]['config'] = Module::moduleConfig($temp);
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
 
         $attributes_added = 0;
@@ -10979,10 +11248,10 @@ class Event extends AppModel
                         $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                         if ($result === false) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
-                        } else if (!is_array($result)) {
-                            continue 2;
-                        } else if (!isset($result['results'])) {
-                            return 0;
+                        } else if (!is_array($result) || !isset($result['results'])) {
+                            // A module error (e.g. NXDOMAIN) only applies to
+                            // this lookup, not the remaining enrichment batch.
+                            continue;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
@@ -12750,11 +13019,17 @@ class Event extends AppModel
      * @param int|false $jobId
      * @param int $elementCounter
      * @param bool $renderView
+     * @param int $skippedElementsCounter Not used
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
      * @return TmpFileTool
      * @throws Exception
      */
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
     {
+        // other callers pass filters straight from the request
+        if (isset($filters['query'])) {
+            throw new BadRequestException(__('The query parameter is only accepted by the restSearch endpoints.'));
+        }
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -12777,9 +13052,10 @@ class Event extends AppModel
         $filters = $this->restSearchFilterMassage($filters, $non_restrictive_export, $user);
 
         $filters = $this->addFiltersFromUserSettings($user, $filters);
+        $compiledQuery = $complexQuery === null ? null : $this->compileComplexQuery($user, $complexQuery, $filters);
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
-            $eventid = $this->filterEventIds($user, $filters, $elementCounter);
+            $eventid = $this->filterEventIds($user, $filters, $elementCounter, $compiledQuery['conditions'] ?? null);
             $eventCount = count($eventid);
             $eventids_chunked = $this->clusterEventIds($exportTool, $eventid);
             unset($eventid);
@@ -12817,6 +13093,7 @@ class Event extends AppModel
                 $filters['blockedEventReportTags'] = $filters['tags']['NOT'];
                 unset($filters['tags']['NOT']);
             }
+            $filters = $this->addBlockedTags($filters, $compiledQuery['blockedTagIds'] ?? []);
             $result = $this->fetchEvent($user, $filters, true);
             foreach ($result as $event) {
                 if ($jobId && $i % 10 == 0) {
@@ -12837,6 +13114,49 @@ class Event extends AppModel
 
         $tmpfile->write($footer);
         return $tmpfile;
+    }
+
+    /**
+     * @param array $user
+     * @param mixed $complexQuery
+     * @param array $filters
+     * @return array conditions for filterEventIds() and the ids of the tags to strip
+     * @throws ComplexQueryException
+     */
+    private function compileComplexQuery(array $user, $complexQuery, array $filters)
+    {
+        App::uses('ComplexEventQueryTool', 'Tools');
+        $tool = new ComplexEventQueryTool($this->Attribute, $user, ComplexQueryTool::limitsFromConfig());
+        if (!empty($filters['order'])) {
+            $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'Event');
+        }
+        return [
+            'conditions' => $tool->conditions($complexQuery),
+            'blockedTagIds' => $tool->blockedTagIds(),
+        ];
+    }
+
+    /**
+     * @param array $filters
+     * @param array $tagIds
+     * @return array
+     */
+    private function addBlockedTags(array $filters, array $tagIds)
+    {
+        if (empty($tagIds)) {
+            return $filters;
+        }
+        foreach (['blockedAttributeTags', 'blockedEventReportTags'] as $key) {
+            // the legacy filter of the same name may be a single string
+            $blocked = (array)($filters[$key] ?? []);
+            foreach ($tagIds as $tagId) {
+                if (!in_array($tagId, $blocked)) {
+                    $blocked[] = $tagId;
+                }
+            }
+            $filters[$key] = $blocked;
+        }
+        return $filters;
     }
 
     /*

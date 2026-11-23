@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('TmpFileTool', 'Tools');
+App::uses('ComplexQueryTool', 'Tools');
 
 /**
  * @property Tag $Tag
@@ -12,6 +13,56 @@ App::uses('TmpFileTool', 'Tools');
 class GalaxyCluster extends AppModel
 {
     const GRAPH_RELATION_BUDGET = 500;
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'GalaxyCluster' => ['id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id'],
+    ];
+
+    /**
+     * The fields of the restSearch `query` tree (ComplexQueryTool). As in the
+     * other scopes, sharing_group_id is not one of them.
+     */
+    const QUERY_FIELDS = [
+        'id' => ['kind' => 'int', 'column' => 'GalaxyCluster.id', 'level' => ['galaxy_cluster']],
+        'uuid' => ['kind' => 'string', 'column' => 'GalaxyCluster.uuid', 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster']],
+        'type' => ['kind' => 'string', 'column' => 'GalaxyCluster.type', 'level' => ['galaxy_cluster']],
+        'value' => ['kind' => 'string', 'column' => 'GalaxyCluster.value', 'level' => ['galaxy_cluster']],
+        'tag_name' => ['kind' => 'string', 'column' => 'GalaxyCluster.tag_name', 'level' => ['galaxy_cluster']],
+        'description' => ['kind' => 'string', 'column' => 'GalaxyCluster.description', 'nullable' => 'GalaxyCluster.description', 'level' => ['galaxy_cluster']],
+        'source' => ['kind' => 'string', 'column' => 'GalaxyCluster.source', 'level' => ['galaxy_cluster']],
+        'authors' => ['kind' => 'string', 'column' => 'GalaxyCluster.authors', 'level' => ['galaxy_cluster']],
+        'version' => ['kind' => 'int', 'column' => 'GalaxyCluster.version', 'nullable' => 'GalaxyCluster.version', 'level' => ['galaxy_cluster']],
+        'distribution' => ['kind' => 'int', 'column' => 'GalaxyCluster.distribution', 'level' => ['galaxy_cluster']],
+        'org_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.org_id', 'level' => ['galaxy_cluster']],
+        'orgc_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.orgc_id', 'level' => ['galaxy_cluster']],
+        'org' => [
+            'kind' => 'string', 'column' => ['Orgc.name', 'Orgc.uuid'], 'lower' => true, 'via' => ['Orgc', 'GalaxyCluster.orgc_id'],
+            // MISP's own clusters, creator 0, shown as Organisation::GENERIC_MISP_ORGANISATION
+            'reserved' => [['MISP'], ['GalaxyCluster.orgc_id' => 0]],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster'],
+        ],
+        'galaxy_id' => ['kind' => 'int', 'column' => 'GalaxyCluster.galaxy_id', 'level' => ['galaxy_cluster']],
+        'galaxy_uuid' => [
+            'kind' => 'string', 'column' => 'Galaxy.uuid', 'via' => ['Galaxy', 'GalaxyCluster.galaxy_id'],
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy'],
+        ],
+        'galaxy_name' => ['kind' => 'string', 'column' => 'Galaxy.name', 'via' => ['Galaxy', 'GalaxyCluster.galaxy_id'], 'level' => ['galaxy']],
+        'galaxy_namespace' => ['kind' => 'string', 'column' => 'Galaxy.namespace', 'via' => ['Galaxy', 'GalaxyCluster.galaxy_id'], 'level' => ['galaxy']],
+        'collection_uuid' => ['kind' => 'string', 'column' => 'GalaxyCluster.collection_uuid', 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster']],
+        'extends_uuid' => [
+            'kind' => 'string', 'column' => 'GalaxyCluster.extends_uuid', 'nullable' => 'GalaxyCluster.extends_uuid',
+            'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['galaxy_cluster'],
+        ],
+        'extends_version' => ['kind' => 'int', 'column' => 'GalaxyCluster.extends_version', 'nullable' => 'GalaxyCluster.extends_version', 'level' => ['galaxy_cluster']],
+        'default' => ['kind' => 'bool', 'column' => 'GalaxyCluster.default', 'level' => ['galaxy_cluster']],
+        'locked' => ['kind' => 'bool', 'column' => 'GalaxyCluster.locked', 'level' => ['galaxy_cluster']],
+        'published' => ['kind' => 'bool', 'column' => 'GalaxyCluster.published', 'level' => ['galaxy_cluster']],
+        'deleted' => ['kind' => 'bool', 'column' => 'GalaxyCluster.deleted', 'level' => ['galaxy_cluster']],
+        'meta.*' => [
+            'kind' => 'string', 'column' => 'GalaxyElement.value', 'key_column' => 'GalaxyElement.key',
+            'via' => ['GalaxyElement', 'GalaxyCluster.id', 'galaxy_cluster_id'], 'level' => ['galaxy_element'],
+        ],
+    ];
 
     public $useTable = 'galaxy_clusters';
 
@@ -81,6 +132,13 @@ class GalaxyCluster extends AppModel
         )
     );
 
+    // What captureCluster() may write: never `default`; an update also keeps org_id and orgc_id.
+    private const CAPTURE_FIELDS = [
+        'uuid', 'collection_uuid', 'type', 'value', 'tag_name', 'description', 'galaxy_id',
+        'source', 'authors', 'version', 'distribution', 'sharing_group_id', 'org_id', 'orgc_id',
+        'locked', 'extends_uuid', 'extends_version', 'published', 'deleted',
+    ];
+
     private $__clusterCache = array();
     private $deletedClusterUUID;
     public $bulkEntry = false;
@@ -100,6 +158,7 @@ class GalaxyCluster extends AppModel
 
     public $validFormats = array(
         'json' => array('json', 'JsonExport', 'json'),
+        'count' => array('txt', 'CountExport', 'txt'),
     );
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -808,21 +867,13 @@ class GalaxyCluster extends AppModel
             return $results;
         }
 
-        if (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['Orgc'])) {
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+            // Only sync users and site admins create clusters on behalf of other organisations;
+            // captureOrganisationAndSG() would take the creator from Orgc
+            unset($cluster['Orgc'], $cluster['GalaxyCluster']['Orgc']);
             $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id'];
-        } else {
-            if (!isset($cluster['GalaxyCluster']['Orgc'])) {
-                if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            } else {
-                if ($cluster['GalaxyCluster']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            }
-            if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-            }
+        } elseif (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['GalaxyCluster']['Orgc'])) {
+            $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id'];
         }
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
@@ -845,10 +896,22 @@ class GalaxyCluster extends AppModel
             return $results;
         }
 
-        $cluster = $this->captureOrganisationAndSG($cluster, 'GalaxyCluster', $user);
         $existingGalaxyCluster = $this->find('first', array('conditions' => array(
             'GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid']
         )));
+        if (!empty($existingGalaxyCluster)) {
+            if (!$existingGalaxyCluster['GalaxyCluster']['locked'] && empty($server['Server']['internal'])) {
+                $results['errors'][] = __('Blocked an edit to a cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
+                $results['failed']++;
+                return $results;
+            }
+            if (!$this->__mayUpdateCapturedCluster($user, $existingGalaxyCluster['GalaxyCluster'])) {
+                $results['errors'][] = __('Blocked an update to cluster (%s): only its owner organisation, a sync user that can see it or a site admin may update it.', $cluster['GalaxyCluster']['uuid']);
+                $results['failed']++;
+                return $results;
+            }
+        }
+        $cluster = $this->captureOrganisationAndSG($cluster, 'GalaxyCluster', $user);
         $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $cluster['GalaxyCluster']['type'], $cluster['GalaxyCluster']['uuid']);
         if (!isset($cluster['GalaxyCluster']['distribution'])) {
             $cluster['GalaxyCluster']['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
@@ -867,19 +930,17 @@ class GalaxyCluster extends AppModel
                 return $results;
             }
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
+            // Cake adds the primary key to any fieldList: dropping or forcing the id is what pins the row.
             unset($cluster['GalaxyCluster']['id']);
             $this->create();
-            $saveSuccess = $this->save($cluster);
+            $saveSuccess = $this->save($cluster, ['fieldList' => self::CAPTURE_FIELDS]);
         } else {
-            if (!$existingGalaxyCluster['GalaxyCluster']['locked'] && empty($server['Server']['internal'])) {
-                $results['errors'][] = __('Blocked an edit to a cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
-                $results['failed']++;
-                return $results;
-            }
             if ($cluster['GalaxyCluster']['version'] > $existingGalaxyCluster['GalaxyCluster']['version']) {
                 $cluster['GalaxyCluster']['id'] = $existingGalaxyCluster['GalaxyCluster']['id'];
                 $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxyCluster['GalaxyCluster']['galaxy_id'];
-                $saveSuccess = $this->save($cluster);
+                $saveSuccess = $this->save($cluster, [
+                    'fieldList' => array_values(array_diff(self::CAPTURE_FIELDS, ['org_id', 'orgc_id'])),
+                ]);
             } else {
                 $results['errors'][] = __('Remote version is not newer than local one for cluster (%s)', $cluster['GalaxyCluster']['uuid']);
                 $results['ignored']++;
@@ -915,6 +976,24 @@ class GalaxyCluster extends AppModel
         }
         $results['success'] = $results['imported'] > 0;
         return $results;
+    }
+
+    /**
+     * A captured cluster may replace an existing one only for a site admin, the
+     * cluster's owner organisation or a sync user that can see it.
+     */
+    private function __mayUpdateCapturedCluster(array $user, array $existing)
+    {
+        if ($user['Role']['perm_site_admin'] || $existing['org_id'] == $user['org_id']) {
+            return true;
+        }
+        if (!$user['Role']['perm_sync']) {
+            return false;
+        }
+        return $this->hasAny(array_merge(
+            ['GalaxyCluster.id' => $existing['id']],
+            $this->buildConditions($user)
+        ));
     }
 
     public function captureOrganisationAndSG($element, $model, $user)
@@ -1175,7 +1254,7 @@ class GalaxyCluster extends AppModel
             $params['order'] = $this->findOrder(
                 $options['order'],
                 'GalaxyCluster',
-                ['id', 'event_id', 'version', 'type', 'value', 'distribution', 'orgc_id', 'org_id', 'tag_name', 'galaxy_id']
+                self::REST_SEARCH_ORDER_FIELDS['GalaxyCluster']
             );
         }
         if (isset($options['page'])) {
@@ -1325,19 +1404,39 @@ class GalaxyCluster extends AppModel
         return $clusters;
     }
 
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly=false, $jobId = false, &$elementCounter = 0)
+    /**
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly=false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
+        $conditions = $this->buildFilterConditions($user, $filters);
+        if ($complexQuery !== null) {
+            $tool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig(), self::QUERY_FIELDS);
+            if (!empty($filters['order'])) {
+                $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'GalaxyCluster');
+            }
+            $conditions['AND'][] = $tool->conditions($complexQuery);
+        }
+        if ($returnFormat === 'count' && !$paramsOnly) {
+            // one COUNT rather than CountExport's walk over every cluster
+            $elementCounter = $this->fetchGalaxyClusters($user, ['conditions' => $conditions, 'count' => true]);
+            $tmpfile = new TmpFileTool();
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
-        $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
             'conditions' => $conditions,
             'full' => !empty($filters['full']) ? $filters['full'] : (!empty($filters['minimal']) ? !$filters['minimal'] : true),
             'minimal' => !empty($filters['minimal']) ? $filters['minimal'] : (!empty($filters['full']) ? !$filters['full'] : false),
         );
+        if (!empty($filters['order'])) {
+            $params['order'] = $filters['order'];
+        }
 
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
@@ -1664,7 +1763,7 @@ class GalaxyCluster extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($cluster[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                if ($cluster[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation with publishing capabilities can publish the galaxy cluster');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);

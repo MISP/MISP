@@ -53,10 +53,18 @@
     function card(root) {
         var config = JSON.parse(root.querySelector('[data-ig-card-config]').textContent);
         var body = root.querySelector('[data-ig-card-body]');
+        var head = root.querySelector('[data-ig-card-head]');
         var countEl = root.querySelector('[data-ig-card-count]');
         var target = config.target;
         var noun = config.targetName;
         var last = null;
+
+        // Empty, a saved graphs card has nothing to offer; the investigations card keeps its add control
+        function setEmpty(empty) {
+            if (config.investigations) return;
+            head.classList.toggle('border-bottom', !empty);
+            root.classList.toggle('d-none', empty);
+        }
 
         function getJson(path) {
             return fetch(config.baseurl + path, {
@@ -261,6 +269,7 @@
             var workspace = window.IntelGraph && window.IntelGraph.active ? window.IntelGraph.active() : null;
             say(collections, graphs);
             body.textContent = '';
+            setEmpty(!graphs.length && !collections.length);
             if (!graphs.length && !collections.length) {
                 var empty = el('div', 'd-flex flex-column align-items-center justify-content-center text-muted py-4 px-3 text-center');
                 empty.appendChild(icon((config.investigations ? 'fas fa-folder-tree' : 'misp-icon misp-icon-analyst-graph misp-simple') + ' fa-2x mb-2 opacity-50'));
@@ -311,6 +320,7 @@
             }).catch(function () {
                 countEl.textContent = '';
                 body.textContent = '';
+                setEmpty(false);
                 var err = el('div', 'text-center text-muted py-4 small');
                 err.appendChild(icon('fas fa-exclamation-triangle me-2'));
                 err.appendChild(document.createTextNode(config.investigations

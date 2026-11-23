@@ -8,6 +8,9 @@ class AttachmentTool
     const ZIP_PASSWORD = 'infected';
     const ADVANCED_EXTRACTION_SCRIPT_PATH = APP . 'files/scripts/generate_file_objects.py';
 
+    // GD allocates 4 bytes per pixel outside memory_limit
+    const MAX_IMAGE_PIXELS = 50000000;
+
     /** @var AWSS3Client */
     private $s3client;
 
@@ -325,6 +328,7 @@ class AttachmentTool
      */
     public function deleteAll($eventId)
     {
+        $this->assertId($eventId);
         if ($this->attachmentDirIsS3()) {
             // AWS S3 SDK validates that the Directory (Prefix) to delete is a string.
             // So we need to validate that it can be casted to string
@@ -449,6 +453,26 @@ class AttachmentTool
     }
 
     /**
+     * Decodes an image only when its header reports sane dimensions.
+     *
+     * @param string $data
+     * @return resource|GdImage|false
+     */
+    public static function createImageFromString($data)
+    {
+        $size = is_string($data) ? @getimagesizefromstring($data) : false;
+        if (!$size || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > self::MAX_IMAGE_PIXELS) {
+            return false;
+        }
+        return static::decodeImage($data);
+    }
+
+    protected static function decodeImage($data)
+    {
+        return imagecreatefromstring($data);
+    }
+
+    /**
      * @param string $data
      * @param int $maxWidth
      * @param int $maxHeight
@@ -458,7 +482,7 @@ class AttachmentTool
      */
     public function resizeImage($data, $maxWidth, $maxHeight, $outputFormat = 'png')
     {
-        $image = imagecreatefromstring($data);
+        $image = static::createImageFromString($data);
         if ($image === false) {
             throw new Exception("Image is not valid.");
         }
@@ -563,11 +587,25 @@ class AttachmentTool
      */
     private function getPath($shadow, $eventId, $attributeId, $pathSuffix, $forceNonBucketed = false)
     {
+        $this->assertId($eventId);
+        $this->assertId($attributeId);
         $path = $shadow ? ('shadow' . DS) : '';
         if (Configure::read('MISP.attachments_bucketed') && empty($forceNonBucketed) && !$this->attachmentDirIsS3()) {
             return $path . 'bucket_' . (1000*(floor($eventId / 1000))) . DS . $eventId . DS . $attributeId . $pathSuffix;
         }
         return $path . $eventId . DS . $attributeId . $pathSuffix;
+    }
+
+    /**
+     * Ids become path components, so only a plain non-negative integer is accepted.
+     * @param mixed $id
+     * @throws InvalidArgumentException
+     */
+    private function assertId($id)
+    {
+        if (!is_int($id) && !(is_string($id) && ctype_digit($id))) {
+            throw new InvalidArgumentException('Invalid event or attribute ID for an attachment path.');
+        }
     }
 
     /**

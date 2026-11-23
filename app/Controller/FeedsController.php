@@ -119,7 +119,9 @@ class FeedsController extends AppController
                 }
 
                 foreach ($feeds as &$feed) {
-                    if (!empty($feed['Feed']['headers'])) {
+                    if (!$this->_isSiteAdmin()) {
+                        unset($feed['Feed']['headers']);
+                    } elseif (!empty($feed['Feed']['headers'])) {
                         $feed['Feed']['headers'] = '****';
                     }
                     if (!empty($feed['Feed']['tag_collection_id'])) {
@@ -199,8 +201,7 @@ class FeedsController extends AppController
             'afterFind' => function (array $feed) {
                 if (!$this->_isSiteAdmin()) {
                     unset($feed['Feed']['headers']);
-                }
-                if (!empty($feed['Feed']['headers'])) {
+                } elseif (!empty($feed['Feed']['headers'])) {
                     $feed['Feed']['headers'] = '****';
                 }
                 $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
@@ -392,7 +393,7 @@ class FeedsController extends AppController
                 } else {
                     $feed['Feed']['input_source'] = strtolower($feed['Feed']['input_source']);
                 }
-                if (!in_array($feed['Feed']['input_source'], array('network', 'local'))) {
+                if (!in_array($feed['Feed']['input_source'], array('network', 'local', 'misp-modules'))) {
                     $feed['Feed']['input_source'] = 'network';
                 }
                 if (!isset($feed['Feed']['delete_local_file'])) {
@@ -417,7 +418,7 @@ class FeedsController extends AppController
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
-        $inputSources = array('network' => 'Network');
+        $inputSources = array('network' => 'Network', 'misp-modules' => 'MISP modules');
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
@@ -441,7 +442,8 @@ class FeedsController extends AppController
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
-            'inputSources' => $inputSources
+            'inputSources' => $inputSources,
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set('allAttributeTypes', $allTypes['attribute']);
         $this->set('allObjectTypes', $allTypes['object']);
@@ -454,6 +456,23 @@ class FeedsController extends AppController
             $this->layout = false;
             $this->render('add');
         }
+    }
+
+    /** Discover gathering producers, including future modules, using normal enablement and restrictions. */
+    private function __gatheringModuleOptions()
+    {
+        if (!Configure::read('Plugin.Gathering_services_enable')) {
+            return [];
+        }
+        $module = ClassRegistry::init('Module');
+        $enabled = $module->getEnabledModules($this->Auth->user(), 'gathering', 'Gathering');
+        $options = [];
+        foreach (is_array($enabled) ? ($enabled['modules'] ?? []) : [] as $descriptor) {
+            if (($descriptor['mispattributes']['gathering_version'] ?? null) === 2) {
+                $options[$descriptor['name']] = $descriptor['meta']['name'] ?? $descriptor['name'];
+            }
+        }
+        return $options;
     }
 
     private function __checkRegex($pattern)
@@ -578,7 +597,7 @@ class FeedsController extends AppController
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
-        $inputSources = array('network' => 'Network');
+        $inputSources = array('network' => 'Network', 'misp-modules' => 'MISP modules');
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
@@ -605,7 +624,8 @@ class FeedsController extends AppController
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
-            'inputSources' => $inputSources
+            'inputSources' => $inputSources,
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set(compact('dropdownData'));
         $this->set('menuData', [
@@ -708,11 +728,11 @@ class FeedsController extends AppController
             }
             $message = __('Fetching the feed has successfully completed.');
             if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                if (isset($result['add'])) {
-                    $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                if (isset($result['add']['successes'])) {
+                    $message .= ' Downloaded ' . $result['add']['successes'] . ' new event(s).';
                 }
-                if (isset($result['edit'])) {
-                    $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+                if (isset($result['edit']['successes'])) {
+                    $message .= ' Updated ' . $result['edit']['successes'] . ' event(s).';
                 }
             }
         }
@@ -774,11 +794,11 @@ class FeedsController extends AppController
                 }
                 $message = __('Fetching the feed has successfully completed.');
                 if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                    if (isset($result['add'])) {
-                        $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                    if (isset($result['add']['successes'])) {
+                        $message .= ' Downloaded ' . $result['add']['successes'] . ' new event(s).';
                     }
-                    if (isset($result['edit'])) {
-                        $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
+                    if (isset($result['edit']['successes'])) {
+                        $message .= ' Updated ' . $result['edit']['successes'] . ' event(s).';
                     }
                 }
             }
@@ -1189,12 +1209,36 @@ class FeedsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($events, $this->response->type());
         }
-        $this->set('events', $events);
+        // The rows the events index draws, as far as a manifest describes an
+        // event: no local id, the feed's distribution, tags known only by name.
         App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
-        $this->set('labelPlan', ValueLabelPriority::planFor(
-            ClassRegistry::init('AnalystProfile')
-                ->resolveFor($this->Auth->user())
-        ));
+        App::uses('EventCardBatch', 'Tools/EventOverview');
+        $user = $this->Auth->user();
+        $profile = ClassRegistry::init('AnalystProfile')->resolveFor($user);
+        $plan = ValueLabelPriority::planFor($profile);
+        $rows = [];
+        foreach ($events as $uuid => $manifestEvent) {
+            $rows[$uuid] = [
+                'Event' => ['uuid' => $uuid, 'distribution' => $feed['Feed']['distribution']] + $manifestEvent,
+                'Orgc' => $manifestEvent['Orgc'] ?? [],
+                'EventTag' => array_map(function ($tag) {
+                    return ['Tag' => $tag + ['id' => 0]];
+                }, $manifestEvent['Tag'] ?? []),
+                'GalaxyCluster' => [],
+            ];
+        }
+        foreach (EventCardBatch::cards($rows, $user, $profile, $plan) as $uuid => $card) {
+            $rows[$uuid]['EventCard'] = $card;
+        }
+        // The counts already read; the page asks previewIndexCounts() for the others.
+        $timestamps = array_map(function ($row) {
+            return (int)($row['Event']['timestamp'] ?? 0);
+        }, $rows);
+        foreach ($this->Feed->previewCounts($feed, $timestamps, false) as $uuid => $counts) {
+            $rows[$uuid]['Event'] += (array)$counts;
+        }
+        $this->set('events', $rows);
+        $this->set('labelPlan', $plan);
         $this->loadModel('Event');
         $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -1205,7 +1249,7 @@ class FeedsController extends AppController
         $this->set('id', $feed['Feed']['id']);
         $this->set('feed', $feed);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 
@@ -1334,6 +1378,34 @@ class FeedsController extends AppController
         return !empty($feed['Feed']['lookup_visible']);
     }
 
+    /**
+     * The attribute and object counts of a few events of a MISP feed, for its
+     * preview index to fill in (Feeds/preview_index.ctp). The `events` query
+     * lists uuid:timestamp pairs, the manifest timestamp keying the cache.
+     */
+    public function previewIndexCounts($feedId)
+    {
+        $feed = $this->Feed->find('first', [
+            'conditions' => ['id' => $feedId],
+            'recursive' => -1,
+        ]);
+        if (empty($feed) || !$this->__canViewFeed($feed) || $feed['Feed']['source_format'] !== 'misp') {
+            throw new NotFoundException(__('Invalid feed.'));
+        }
+        // Each event is a download: don't hold the session lock meanwhile.
+        $this->_closeSession();
+        $events = [];
+        foreach (array_slice(explode(',', (string)$this->request->query('events')), 0, 10) as $token) {
+            $parts = explode(':', $token, 2);
+            if (count($parts) === 2 && Validation::uuid($parts[0]) && ctype_digit($parts[1])) {
+                $events[$parts[0]] = (int)$parts[1];
+            }
+        }
+        $this->set('counts', $this->Feed->previewCounts($feed, $events));
+        $this->layout = false;
+        $this->render('ajax/preview_index_counts');
+    }
+
     public function previewEvent($feedId, $eventUuid, $all = false)
     {
         $feed = $this->Feed->find('first', [
@@ -1365,6 +1437,9 @@ class FeedsController extends AppController
 
             if ($this->theme === 'Overmind') {
                 $all = true;
+                // Read before rearrangeEventForView() folds the body into `objects`.
+                App::uses('RemoteEventOverviewTool', 'Tools/EventOverview');
+                $this->set('previewOverview', (new RemoteEventOverviewTool())->overview($this->Auth->user(), $event));
             }
             $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
             // Galaxy clusters are also carried as event tags; drop them so the
@@ -1458,8 +1533,13 @@ class FeedsController extends AppController
         }
 
         $this->loadModel('Event');
-        // The fragment always carries the whole tab, never a 60-row slice.
-        $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, true);
+        // The fragment always carries the whole tab, never a 60-row slice. Its
+        // filters are the tab's own (RemoteEventPreviewFilter), applied after.
+        $params = $this->Event->rearrangeEventForView(
+            $event,
+            array_diff_key($this->passedArgs, $this->request->params['named']),
+            true
+        );
         $this->params->params['paging'] = array('Feed' => $params);
         $this->set('event', $event);
         $this->set('feed', $feed);
@@ -1491,6 +1571,9 @@ class FeedsController extends AppController
             'tagFilterUrl' => $baseurl . '/feeds/previewIndex/' . $feedId . '/searchall:%tag%',
             'tagFilterKey' => 'name',
             'pagingModel' => 'Feed',
+            // What the tabs' filter bars build on.
+            'attributesUrl' => $baseurl . '/feeds/previewEventAttributes/' . $feedId . '/' . $eventUuid,
+            'objectsUrl' => $baseurl . '/feeds/previewEventObjects/' . $feedId . '/' . $eventUuid,
             // The attributes tab caps how many rows it renders; this reloads it uncapped.
             'viewAllUrl' => $baseurl . '/feeds/previewEventAttributes/' . $feedId
                 . '/' . $eventUuid . '/all',
@@ -1747,7 +1830,7 @@ class FeedsController extends AppController
             $customPagination->truncateByPagination($hits, $params);
         }
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 }

@@ -117,7 +117,7 @@ $distFallback = $this->DistributionLevel->fallback();
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white"><i class="fas fa-comment-dots text-muted"></i></span>
                         <input type="text" class="form-control" id="ftAllComments" placeholder="<?= __('Comment…') ?>">
-                        <button type="button" class="btn btn-outline-secondary" id="ftApplyComments"><?= __('Apply') ?></button>
+                        <button type="button" class="btn btn-outline-primary" id="ftApplyComments"><?= __('Apply') ?></button>
                     </div>
                 </div>
 
@@ -133,7 +133,7 @@ $distFallback = $this->DistributionLevel->fallback();
                         </select>
                         <span class="input-group-text bg-white"><i class="fas fa-arrow-right text-muted"></i></span>
                         <select class="form-select" id="ftChangeTo"></select>
-                        <button type="button" class="btn btn-outline-secondary" id="ftChangeApply"><?= __('Change all') ?></button>
+                        <button type="button" class="btn btn-outline-primary" id="ftChangeApply"><?= __('Change all') ?></button>
                     </div>
                 </div>
                 <?php endif; ?>

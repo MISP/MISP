@@ -58,22 +58,10 @@ $cards = $conflicted
         array('element' => 'value_verdict_not_counted'),
     )
     : array(
-        array('element' => 'value_verdict_composition'),
-        /*
-         * *Shelf life*, not *Verdict over time*, since phase 9. There
-         * is no verdict over time to draw — the page computes at render
-         * and stores nothing, so there is no yesterday's score to plot
-         * — and what the card draws now is the relevance runway, which
-         * is reconstructed from dates and therefore has a real history.
-         * `ValueIntelligence::verdictCurves` carries the whole argument.
-         */
-        array(
-            'element' => 'value_verdict_curves',
-            'chart' => 'curves',
-            'title' => __('Shelf life'),
-        ),
-        array('element' => 'value_verdict_not_counted'),
+        // The score breakdown and the shelf life are cards of the main
+        // column; what would change the reading leads here.
         array('element' => 'value_verdict_changers'),
+        array('element' => 'value_verdict_not_counted'),
     );
 
 $noWrites = __(

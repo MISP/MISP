@@ -425,27 +425,23 @@ class Galaxy extends AppModel
             return false;
         }
 
+        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_galaxy_editor']) {
+            return false; // user has no permission to modify galaxy
+        }
+
         if ($fromPull) {
             $galaxy['org_id'] = $orgId;
         } else {
             $galaxy['org_id'] = $user['Organisation']['id'];
         }
 
-        if (!isset($galaxy['orgc_id']) && !isset($galaxy['Orgc'])) {
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+            // Only sync users and site admins create galaxies on behalf of other organisations;
+            // captureOrganisationAndSG() would take the creator from Orgc
+            unset($galaxy['Orgc']);
             $galaxy['orgc_id'] = $galaxy['org_id'];
-        } else {
-            if (!isset($galaxy['Orgc'])) {
-                if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            } else {
-                if ($galaxy['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            }
-            if (isset($galaxy['orgc_id']) && $galaxy['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $galaxy['orgc_id'] = $galaxy['org_id']; // Only sync user can create cluster on behalf of other users
-            }
+        } elseif (!isset($galaxy['orgc_id']) && !isset($galaxy['Orgc'])) {
+            $galaxy['orgc_id'] = $galaxy['org_id'];
         }
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
@@ -460,16 +456,21 @@ class Galaxy extends AppModel
             }
         }
 
+        $existingGalaxy = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
+        ]);
+        if (!empty($existingGalaxy) && !$this->__mayUpdateCapturedGalaxy($user, $existingGalaxy['Galaxy'])) {
+            // Refusing the update must not refuse the clusters: they still go into the galaxy as it is.
+            return $existingGalaxy;
+        }
+
         $galaxy = $this->GalaxyCluster->captureOrganisationAndSG(['Galaxy' => $galaxy], 'Galaxy', $user);
         $galaxy = $galaxy['Galaxy'];
         if (isset($galaxy['icon']) && !self::isValidIconName($galaxy['icon'])) {
             // A peer's icon that is not an icon name is never stored
             $galaxy['icon'] = '';
         }
-        $existingGalaxy = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
-        ]);
 
         unset($galaxy['id']);
         $galaxy['default'] = false;
@@ -483,6 +484,7 @@ class Galaxy extends AppModel
             $fieldsToSave['Galaxy']['created'] = $existingGalaxy['Galaxy']['created'];
             // Unset these so they don't get updated
             unset($existingGalaxy['Galaxy']['id'], $existingGalaxy['Galaxy']['uuid'], $existingGalaxy['Galaxy']['type'], $existingGalaxy['Galaxy']['created']);
+            unset($existingGalaxy['Galaxy']['org_id'], $existingGalaxy['Galaxy']['orgc_id'], $existingGalaxy['Galaxy']['default']);
             foreach (array_keys(array_intersect_key($existingGalaxy['Galaxy'], $galaxy)) as $key) {
                 if ($existingGalaxy['Galaxy'][$key] != $galaxy[$key]) {
                     $fieldsToSave['Galaxy'][$key] = $galaxy[$key];
@@ -496,10 +498,6 @@ class Galaxy extends AppModel
             return $existingGalaxy; // galaxy already exists and galaxy fields are the same
         }
 
-        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_galaxy_editor']) {
-            return false; // user has no permission to modify galaxy
-        }
-
         if (empty($existingGalaxy)) {
             $this->create();
         }
@@ -509,6 +507,25 @@ class Galaxy extends AppModel
             'recursive' => -1,
             'conditions' => ['Galaxy.id' => $this->id],
         ]);
+    }
+
+    /**
+     * A captured galaxy may change an existing one only if that is not a default
+     * galaxy (those change only through the misp-galaxy update), and only for a
+     * site admin, its owner organisation or a sync user that can see it.
+     */
+    private function __mayUpdateCapturedGalaxy(array $user, array $existing)
+    {
+        if ($existing['default']) {
+            return false;
+        }
+        if ($user['Role']['perm_site_admin'] || $existing['org_id'] == $user['org_id']) {
+            return true;
+        }
+        if (!$user['Role']['perm_sync']) {
+            return false;
+        }
+        return $this->hasAny(array_merge(['Galaxy.id' => $existing['id']], $this->buildConditions($user)));
     }
 
     /**
@@ -676,7 +693,7 @@ class Galaxy extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                if ($galaxy[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation with publishing capabilities can publish the galaxy');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);
@@ -1016,7 +1033,8 @@ class Galaxy extends AppModel
             $orgc_id = $org_id;
         }
 
-        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+        // No sync exemption: replication never detaches through here
+        if (!$user['Role']['perm_site_admin']) {
             if (
                 ($target_type === 'tag_collection' && !$user['Role']['perm_tag_editor']) ||
                 ($target_type !== 'tag_collection' && !$user['Role']['perm_tagger']) ||
@@ -1024,6 +1042,9 @@ class Galaxy extends AppModel
             ) {
                 throw new MethodNotAllowedException('Invalid ' . Inflector::humanize($target_type) . '.');
             }
+        }
+        if ($target_type !== 'tag_collection') {
+            $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
         }
 
         $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
@@ -1128,11 +1149,13 @@ class Galaxy extends AppModel
             if (empty($event)) {
                 throw new NotFoundException('Invalid Event.');
             }
-            if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+            // No sync exemption: replication never detaches through here
+            if (!$user['Role']['perm_site_admin']) {
                 if (!$user['Role']['perm_tagger'] || ($user['org_id'] !== $event['Event']['org_id'] && $user['org_id'] !== $event['Event']['orgc_id'])) {
                     throw new NotFoundException('Invalid Event.');
                 }
             }
+            $this->GalaxyCluster->Tag->EventTag->Event->assertNotProtectedFromSyncUser($user, $event);
         }
         $connectorModel = Inflector::camelize($targetType) . 'Tag';
         if ($targetType === 'attribute') {
@@ -1191,23 +1214,26 @@ class Galaxy extends AppModel
         $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($targetType), $targetId, $logTitle);
     }
 
-    /**
-     * @param string $type
-     * @param string|array $namespace misp-galaxy renamed ATT&CK's namespace
-     *        from mitre-attack to mitre, so both are accepted by default
-     * @return int 0 when absent
-     */
-    public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace=['mitre-attack', 'mitre'])
+    public function getMitreAttackGalaxyId(
+        $type = 'mitre-attack-pattern',
+        $namespace = null
+    )
     {
-        $galaxy = $this->find('first', array(
+        // Bundled galaxies only: misp-galaxy renames namespaces, and a custom
+        // galaxy can reuse the type with a far higher (timestamp) version.
+        $conditions = [
+            'Galaxy.type' => $type,
+            'Galaxy.default' => true,
+        ];
+        if ($namespace !== null) {
+            $conditions['Galaxy.namespace'] = $namespace;
+        }
+        $galaxy = $this->find('first', [
             'recursive' => -1,
-            'fields' => array('Galaxy.id'),
-            'conditions' => array(
-                'Galaxy.type' => $type,
-                'Galaxy.namespace' => $namespace
-            ),
-            'order' => array('Galaxy.version' => 'DESC', 'Galaxy.id' => 'DESC'),
-        ));
+            'fields' => ['Galaxy.id'],
+            'conditions' => $conditions,
+            'order' => ['Galaxy.version DESC', 'Galaxy.id ASC'],
+        ]);
         return empty($galaxy) ? 0 : (int)$galaxy['Galaxy']['id'];
     }
 

@@ -621,14 +621,14 @@ a.misp-dashboard-btn-primary:visited {
  * `<a href>` in their data's `html` field — Phase 2's $schema
  * backfill migrates those to DD-03 `drilldown` keys which the
  * SimpleList renderer wraps in `.misp-list-link`. */
-.misp-widget-body a,
-.misp-widget-body a:visited {
+.misp-widget-body a:not(.misp-button),
+.misp-widget-body a:not(.misp-button):visited {
   color: var(--misp-dash-accent);
   text-decoration: none;
   border-bottom: 1px dashed transparent;
   transition: border-color var(--misp-dash-transition-fast);
 }
-.misp-widget-body a:hover {
+.misp-widget-body a:not(.misp-button):hover {
   border-bottom-color: currentColor;
 }
 .misp-widget-loading {

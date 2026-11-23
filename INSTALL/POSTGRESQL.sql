@@ -709,7 +709,7 @@ CREATE TABLE "galaxies" (
     "orgc_id" bigint NOT NULL,
     "created" timestamp NOT NULL,
     "modified" timestamp NOT NULL,
-    "distribution" smallint NOT NULL,
+    "distribution" smallint DEFAULT 0 NOT NULL,
     PRIMARY KEY ("id")
 );
 CREATE INDEX "idx_galaxies_name" ON "galaxies" ("name");
@@ -1927,7 +1927,8 @@ INSERT INTO "schema_migrations" ("id", "migration_id", "applied_at", "duration_m
 (127, '20261018_174227_analyst_profiles_shipped_revision', NOW(), 127, 'applied', NULL),
 (128, '20261021_090840_repair_galaxy_relation_targets', NOW(), 10, 'applied', NULL),
 (129, '20261021_091751_index_relation_referenced_uuid', NOW(), 113, 'applied', NULL),
-(130, '20261022_123413_early_access_workspace_names', NOW(), 26, 'applied', NULL)
+(130, '20261022_123413_early_access_workspace_names', NOW(), 26, 'applied', NULL),
+(131, '20261028_131434_galaxies_distribution_default', NOW(), 123, 'applied', NULL)
 ON CONFLICT DO NOTHING;
 
 -- The rows above carry explicit ids; bring each sequence past them.

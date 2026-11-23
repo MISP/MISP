@@ -3,20 +3,17 @@
  * The stance: how many organisations take each side, and where the
  * voices sit against the supermajority on either side.
  *
- * One element for both surfaces that draw it — a cell of the Overview
- * card's axes grid, and the Assessment tab's lean band (`stanceWide`) —
- * so the two cannot draw one stance two ways.
+ * A cell of value_verdict_axes (the Overview card, the analyst profile's
+ * value bar).
  *
  * The figure is a headcount; the bar is the threat share of the voices,
  * which reliability grades, an organisation's own false-positive warning
  * and enrichment modules all weight. The notes say so when they differ.
  *
  * @var array $verdict
- * @var bool $stanceWide The tab's band: figure beside the bar
  */
 App::uses('ValueLeanReasonTool', 'Tools/ValueIntelligence');
 
-$stanceWide = !empty($stanceWide);
 $stances = isset($verdict['stances']) && is_array($verdict['stances'])
     ? $verdict['stances']
     : array();
@@ -49,9 +46,6 @@ $decidedElsewhere = array(
 $elsewhere = $decidedElsewhere[$verdict['decided_by'] ?? ''] ?? null;
 
 $classes = array('vp-ax-cell', 'vp-ax-stance');
-if ($stanceWide) {
-    $classes[] = 'vp-ax-stance-wide';
-}
 if ($elsewhere !== null) {
     $classes[] = 'vp-ax-overruled';
 }
@@ -136,7 +130,6 @@ if ($orgs > 0) {
     }
 }
 ?>
-<?php if ($stanceWide): ?><div class="vp-ax vp-ax-solo"><?php endif; ?>
 <div class="<?= h(implode(' ', $classes)) ?>">
     <div class="vp-ax-name"><?= h(__('Stance')) ?></div>
     <?php if ($orgs === 0): ?>
@@ -192,4 +185,3 @@ if ($orgs > 0) {
         <?php endif; ?>
     </div>
 </div>
-<?php if ($stanceWide): ?></div><?php endif; ?>

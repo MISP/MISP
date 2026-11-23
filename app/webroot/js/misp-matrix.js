@@ -579,8 +579,11 @@
 
     function mountInline(host) {
         texts = readJson(host.getAttribute('data-mx-text'), {});
-        hideUnused(host, savedHideUnused(HIDE_UNUSED_INLINE, false));
+        if (host.querySelector('[data-mx-hide-unused]')) {
+            hideUnused(host, savedHideUnused(HIDE_UNUSED_INLINE, false));
+        }
         wire();
+        fitColumns();
         if (host.hasAttribute('data-mx-cap-store')) {
             var saved = null;
             try {
@@ -605,6 +608,7 @@
         window.addEventListener('resize', function () {
             closePop();
             fitPane();
+            fitColumns();
         });
         document.addEventListener('misp:attributes-changed', reload);
         document.addEventListener('misp:overview-rolled-up', function (e) {
@@ -612,9 +616,54 @@
         });
         // A card that arrived in a hidden tab measured nothing
         document.addEventListener('shown.bs.tab', fitPane);
+        document.addEventListener('shown.bs.tab', fitColumns);
+    }
+
+    var FIT_MIN = 160;
+
+    // An .mx-fit matrix narrows its columns down to FIT_MIN when that fits
+    // them all in its card, instead of scrolling sideways
+    function fitColumns() {
+        document.querySelectorAll('.mx-fit .mx-full-grid').forEach(function (grid) {
+            var scroll = grid.parentNode;
+            var style = getComputedStyle(scroll);
+            var room = scroll.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            if (room <= 0) return;
+            var cols = Array.prototype.filter.call(grid.children, function (col) {
+                return getComputedStyle(col).display !== 'none';
+            }).length;
+            var gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+            grid.classList.toggle('is-fit', cols * FIT_MIN + (cols - 1) * gap <= room);
+        });
+    }
+
+    // The galaxy page's kill chain strip shows one chain at a time
+    function pickChain(button) {
+        var set = button.closest('.gx-kc-set');
+        var key = button.getAttribute('data-kc-pick');
+        set.querySelectorAll('[data-kc-chain]').forEach(function (pane) {
+            pane.hidden = pane.getAttribute('data-kc-chain') !== key;
+        });
+        set.querySelectorAll('[data-kc-pick]').forEach(function (pick) {
+            if (pick.classList.contains('dropdown-item')) {
+                pick.classList.toggle('active', pick === button);
+            } else {
+                pick.setAttribute('aria-selected', pick === button ? 'true' : 'false');
+            }
+        });
+        var more = set.querySelector('[data-kc-more]');
+        if (more) {
+            var inMore = !!button.closest('.dropdown-menu');
+            more.setAttribute('aria-selected', inMore ? 'true' : 'false');
+            more.textContent = inMore ? button.getAttribute('data-kc-name') : more.getAttribute('data-kc-more');
+        }
     }
 
     function boot() {
+        document.addEventListener('click', function (e) {
+            var pick = e.target.closest && e.target.closest('[data-kc-pick]');
+            if (pick) pickChain(pick);
+        });
         var target = document.querySelector('[data-mx-slot]');
         if (target) mount(target);
         var inline = document.querySelector('[data-mx-inline]');

@@ -2,6 +2,9 @@
 App::uses('AppModel', 'Model');
 App::uses('SyncTool', 'Tools');
 App::uses('MISPElementHTMLFormatterTool', 'Tools');
+App::uses('ComplexQueryTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 App::uses('Folder', 'Utility');
 
 /**
@@ -59,6 +62,49 @@ class EventReport extends AppModel
             'Org' => array('fields' => array('Org.id', 'Org.name'))
         )
     );
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'EventReport' => ['id', 'event_id', 'name', 'timestamp', 'distribution'],
+    ];
+
+    const REST_SEARCH_CHUNK = 1000;
+
+    // DEFAULT_CONTAIN without the event's organisations, which Cake would fetch once per row
+    const REST_SEARCH_CONTAIN = [
+        'SharingGroup' => ['fields' => ['id', 'name', 'uuid']],
+        'Event' => ['fields' => ['Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date']],
+    ];
+
+    /**
+     * The fields of the restSearch `query` tree (ComplexQueryTool). Reports are
+     * searched as children of their event, whose fields keep the other scopes' names.
+     */
+    const QUERY_FIELDS = [
+        'id' => ['kind' => 'int', 'column' => 'EventReport.id', 'level' => ['event_report']],
+        'uuid' => ['kind' => 'string', 'column' => 'EventReport.uuid', 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['event_report']],
+        'event_id' => ['kind' => 'int', 'column' => 'EventReport.event_id', 'level' => ['event_report']],
+        'name' => ['kind' => 'string', 'column' => 'EventReport.name', 'level' => ['event_report']],
+        'content' => ['kind' => 'string', 'column' => 'EventReport.content', 'nullable' => 'EventReport.content', 'level' => ['event_report']],
+        'distribution' => ['kind' => 'int', 'column' => 'EventReport.distribution', 'level' => ['event_report']],
+        'timestamp' => ['kind' => 'time', 'column' => 'EventReport.timestamp', 'level' => ['event_report']],
+        'deleted' => ['kind' => 'bool', 'column' => 'EventReport.deleted', 'level' => ['event_report']],
+        'tags' => ['kind' => 'string', 'handler' => 'set_filter_tags', 'level' => ['event_report', 'event']],
+        'org_id' => ['kind' => 'int', 'column' => 'Event.org_id', 'level' => ['event']],
+        'orgc_id' => ['kind' => 'int', 'column' => 'Event.orgc_id', 'level' => ['event']],
+        'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['event']],
+        'eventinfo' => ['kind' => 'string', 'handler' => 'set_filter_eventinfo', 'level' => ['event']],
+        'threat_level_id' => ['kind' => 'int', 'column' => 'Event.threat_level_id', 'level' => ['event']],
+        'analysis' => ['kind' => 'int', 'column' => 'Event.analysis', 'level' => ['event']],
+        'date' => ['kind' => 'date', 'column' => 'Event.date', 'level' => ['event']],
+        'event_timestamp' => ['kind' => 'time', 'column' => 'Event.timestamp', 'level' => ['event']],
+        'publish_timestamp' => ['kind' => 'time', 'column' => 'Event.publish_timestamp', 'level' => ['event']],
+        'published' => ['kind' => 'bool', 'column' => 'Event.published', 'level' => ['event']],
+    ];
+
+    public $validFormats = [
+        'json' => ['json', 'JsonExport', 'json'],
+        'count' => ['txt', 'CountExport', 'txt'],
+    ];
 
     public $belongsTo = array(
         'Event' => array(
@@ -838,6 +884,126 @@ class EventReport extends AppModel
     }
 
     /**
+     * Takes only `query`, paging, `order` and `returnFormat` (json or count).
+     *
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
+    {
+        if (!isset($this->validFormats[$returnFormat])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        $tool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig(), self::QUERY_FIELDS);
+        $order = [];
+        if (!empty($filters['order'])) {
+            $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'EventReport');
+            $order = $this->findOrder($filters['order'], 'EventReport', self::REST_SEARCH_ORDER_FIELDS['EventReport']) ?? [];
+        }
+        // a unique last key, or OFFSET paging can repeat or skip rows
+        if (!preg_grep('/^EventReport\.id /', $order)) {
+            $order[] = 'EventReport.id asc';
+        }
+        $limit = (int)($filters['limit'] ?? 0);
+        if ($limit < 0) {
+            throw new BadRequestException(__('The limit must be a positive integer.'));
+        }
+        $conditions = $this->buildACLConditions($user);
+        $tree = $complexQuery === null ? null : $tool->validate($complexQuery);
+        if ($tree === null || !ComplexQueryTool::mentions($tree, 'deleted')) {
+            $conditions['AND'][] = ['EventReport.deleted' => 0];
+        }
+        if ($tree !== null) {
+            $conditions['AND'][] = $tool->compile($tree);
+        }
+        $tmpfile = new TmpFileTool();
+        if ($returnFormat === 'count') {
+            $elementCounter = $this->find('count', ['conditions' => $conditions, 'contain' => ['Event'], 'recursive' => -1]);
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
+        $offset = $limit && !empty($filters['page']) ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        $elementCounter = 0;
+        $separator = '';
+        $tmpfile->write('{"response": [');
+        do {
+            $size = $limit ? min(self::REST_SEARCH_CHUNK, $limit - $elementCounter) : self::REST_SEARCH_CHUNK;
+            $reports = $this->find('all', [
+                'conditions' => $conditions,
+                'contain' => self::REST_SEARCH_CONTAIN,
+                'recursive' => -1,
+                'order' => $order,
+                'limit' => $size,
+                'offset' => $offset + $elementCounter,
+            ]);
+            foreach ($this->restSearchRows($reports) as $row) {
+                $tmpfile->write($separator . JsonTool::encode($row));
+                $separator = ',';
+            }
+            $elementCounter += count($reports);
+        } while (count($reports) === $size && (!$limit || $elementCounter < $limit));
+        $tmpfile->write(']}' . PHP_EOL);
+        return $tmpfile;
+    }
+
+    /**
+     * Rows as the REST index returns them, nested under EventReport, with the report's own tags.
+     */
+    private function restSearchRows(array $reports)
+    {
+        if (empty($reports)) {
+            return [];
+        }
+        $flat = $this->attachAnalystDataBulk(array_column($reports, 'EventReport'));
+        $tags = [];
+        $reportTags = $this->EventReportTag->find('all', [
+            'conditions' => ['EventReportTag.event_report_id' => array_column($flat, 'id')],
+            'fields' => ['EventReportTag.event_report_id', 'EventReportTag.local', 'Tag.id', 'Tag.name', 'Tag.colour'],
+            'contain' => ['Tag'],
+            'recursive' => -1,
+        ]);
+        foreach ($reportTags as $reportTag) {
+            $tags[$reportTag['EventReportTag']['event_report_id']][] = $reportTag['Tag'] + ['local' => (bool)$reportTag['EventReportTag']['local']];
+        }
+        $events = array_column($reports, 'Event');
+        $orgs = $this->Event->Orgc->find('list', [
+            'conditions' => ['Orgc.id' => array_unique(array_merge(array_column($events, 'orgc_id'), array_column($events, 'org_id')))],
+            'fields' => ['Orgc.id', 'Orgc.name'],
+        ]);
+        $rows = [];
+        foreach ($reports as $k => $report) {
+            foreach (['Orgc' => 'orgc_id', 'Org' => 'org_id'] as $alias => $key) {
+                $orgId = $report['Event'][$key];
+                $report['Event'][$alias] = isset($orgs[$orgId]) ? ['id' => $orgId, 'name' => $orgs[$orgId]] : ['id' => null, 'name' => null];
+            }
+            $report['EventReport'] = $flat[$k];
+            $report = $this->reArrangeReport($report);
+            $report['EventReport']['Tag'] = $tags[$report['EventReport']['id']] ?? [];
+            $rows[] = $report;
+        }
+        return $rows;
+    }
+
+    /**
+     * The `tags` field of the restSearch query (ComplexQueryTool): the report or its
+     * event carries one of the tags, matched as the legacy tag filter matches them.
+     */
+    public function set_filter_tags(&$params, $conditions, $options)
+    {
+        $tagIds = $this->EventReportTag->Tag->fetchTagIdsSimple($params['tags']['OR']);
+        $EventTag = $this->Event->EventTag;
+        return ['OR' => [
+            $this->subQueryGenerator($this->EventReportTag, [
+                'fields' => [$this->EventReportTag->alias . '.event_report_id'],
+                'conditions' => [$this->EventReportTag->alias . '.tag_id' => $tagIds],
+            ], 'EventReport.id'),
+            $this->subQueryGenerator($EventTag, [
+                'fields' => [$EventTag->alias . '.event_id'],
+                'conditions' => [$EventTag->alias . '.tag_id' => $tagIds],
+            ], 'EventReport.event_id'),
+        ]];
+    }
+
+    /**
      * fetchIfAuthorized Fetches a report and checks if the user has the authorization to perform the requested operation
      *
      * @param  array $user
@@ -872,7 +1038,10 @@ class EventReport extends AppModel
             return $report;
         } else {
             if (in_array('edit', $authorizations) || in_array('delete', $authorizations)) {
-                $checkResult = $user['Role']['perm_site_admin'] || ($report['Event']['orgc_id'] === $user['org_id']);
+                $checkResult = $user['Role']['perm_site_admin'] || (
+                    $report['Event']['orgc_id'] === $user['org_id'] &&
+                    !$this->Event->isProtectedFromSyncUser($user, $report)
+                );
                 if ($checkResult !== true) {
                     if ($throwErrors) {
                         throw new UnauthorizedException($checkResult);
@@ -1271,9 +1440,9 @@ class EventReport extends AppModel
         if (!is_array($module)) {
             throw new MethodNotAllowedException('The requested module is not available.');
         }
-        $moduleConfig = Module::moduleConfig($module);
-        if (!empty($moduleConfig)) {
-            $postData['config'] = $moduleConfig;
+        $config = $mispModule->getModuleConfig($module, 'Enrichment', $user);
+        if (!empty($config)) {
+            $postData['config'] = $config;
         }
 
         $result = $mispModule->queryModuleServer($postData, false, 'Enrichment', false, [], true);

@@ -56,7 +56,7 @@ class IndexFilterComponent extends Component
 
         $data = $this->__massageData($data, $request, $paramArray, !empty($options['fromQuery']));
 
-        $this->Controller->set('passedArgs', json_encode($this->Controller->passedArgs));
+        $this->Controller->set('passedArgs', JsonTool::encodeForScript($this->Controller->passedArgs));
         return $data;
     }
 

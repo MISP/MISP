@@ -62,6 +62,7 @@ $fields = [
         'name' => __('Comment'),
         'sort' => 'GalaxyClusterBlocklist.comment',
         'data_path' => 'GalaxyClusterBlocklist.comment',
+        'element' => 'comment',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],

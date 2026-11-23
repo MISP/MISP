@@ -340,6 +340,7 @@ class ServerSettingGroups
                 'settings' => array(
                     'MISP.log_client_ip',
                     'MISP.log_client_ip_header',
+                    'MISP.trusted_proxies',
                     'MISP.store_api_access_time',
                     'MISP.log_auth',
                     'MISP.log_skip_db_logs_completely',
@@ -467,6 +468,7 @@ class ServerSettingGroups
                     'Security.workflow_enable_arbitrary_urls',
                     'Security.eventreport_enable_arbitrary_urls',
                     'Security.eventreport_max_fetch_size',
+                    'Security.max_decompressed_size',
                 ),
             ),
             array(
@@ -627,7 +629,7 @@ class ServerSettingGroups
      */
     private static $subGroupTabs = array(
         'Plugin' => array(
-            'Enrichment', 'Import', 'Export', 'Cortex', 'Action', 'Workflow',
+            'Enrichment', 'Import', 'Export', 'Cortex', 'Action', 'Gathering', 'Workflow',
             'ZeroMQ', 'Kafka', 'ElasticSearch', 'S3', 'RPZ', 'Sightings',
             'CustomAuth', 'Geolocation', 'Benchmarking',
         ),
@@ -669,6 +671,12 @@ class ServerSettingGroups
             'description' => 'Modules a workflow can trigger to act on external systems',
             'icon' => 'bolt',
             'accent' => '#fd7e14',
+        ),
+        'Gathering' => array(
+            'title' => 'Gathering modules',
+            'description' => 'Modules collecting source data as standard MISP feeds',
+            'icon' => 'download',
+            'accent' => '#198754',
         ),
         'Workflow' => array(
             'title' => 'Workflows',
@@ -747,7 +755,7 @@ class ServerSettingGroups
      *
      * @var array
      */
-    private static $moduleFamilies = array('Enrichment', 'Import', 'Export', 'Action');
+    private static $moduleFamilies = array('Enrichment', 'Import', 'Export', 'Action', 'Gathering');
 
     /**
      * The settings the Overview lists as Essentials, with the label shown

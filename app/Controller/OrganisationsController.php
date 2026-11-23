@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('OrganisationRailCards', 'Tools/RailCards');
+App::uses('ComplexQueryTool', 'Tools');
 
 /**
  * @property Organisation $Organisation
@@ -76,12 +77,24 @@ class OrganisationsController extends AppController
         $this->set('named', $this->params['named']);
         $this->set('scope', $scope);
         $this->set('orgs', $this->viewVars['data']);
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('viewall', isset($this->params['named']['viewall']) && $this->params['named']['viewall']);
         if ($this->theme === 'Overmind') {
             $this->loadModel('AnalystProfile');
             $this->set('orgGrading', $this->AnalystProfile->gradingFor($this->Auth->user()));
         }
+    }
+
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        $tool = new ComplexQueryTool($this->Organisation, ComplexQueryTool::limitsFromConfig(), Organisation::QUERY_FIELDS);
+        return $this->RestResponse->viewData(
+            $tool->discovery('organisations', '/organisations/restSearch', Organisation::REST_SEARCH_ORDER_FIELDS, 'Organisation'),
+            'json'
+        );
     }
 
     public function admin_add()
@@ -539,12 +552,13 @@ class OrganisationsController extends AppController
         } else {
             $local = 0;
         }
+        // The caller lists the current members, the user's own org included
+        // when it is one; a site admin may need to add it to another org's SG.
         $idList = json_decode($idList, true);
-        $id_exclusion_list = array_merge($idList, array($this->Auth->user('Organisation')['id']));
         $orgs = $this->Organisation->find('list', array(
             'conditions' => array(
                 'local' => $local,
-                'id !=' => $id_exclusion_list,
+                'id !=' => $idList,
             ),
             'recursive' => -1,
             'fields' => array('id', 'name'),
@@ -733,7 +747,7 @@ class OrganisationsController extends AppController
             'conditions' => array('Organisation.id' => intval($id)),
             'recursive' => -1
         ));
-        if (empty($org)) {
+        if (empty($org) || !$this->Organisation->canSee($this->Auth->user(), $org['Organisation']['id'])) {
             throw new NotFoundException(__('Invalid organisation'));
         }
         $path = APP . 'files/img/orgs/';

@@ -36,6 +36,16 @@ class GalaxyColourHelper extends AppHelper
     }
 
     /**
+     * @param int $index 0-based
+     * @param int $count
+     * @return array see GalaxyColour::palette()
+     */
+    public function stepPalette($index, $count)
+    {
+        return GalaxyColour::paletteFromHue(GalaxyColour::stepHue($index, $count));
+    }
+
+    /**
      * Palette for one member of a small, fixed set of values
      *
      * @param string $value

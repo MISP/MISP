@@ -27,8 +27,8 @@
  *      only carries the choice to the next page load.
  *   6. Clear puts the box and the region back to how the page
  *      arrived, which without it is a reload — and a reload also
- *      re-reads the tiles, the strip and the carried-over line, none
- *      of which the reader's paste changed. The control is hidden in
+ *      re-reads the figures and the carried-over list, none of which the
+ *      reader's paste changed. The control is hidden in
  *      the markup and shown from here, so a page whose script never
  *      boots does not offer it.
  */
@@ -259,7 +259,6 @@
         this.url = root.getAttribute('data-vi-assess');
         this.wrap = root.querySelector('.vi-listwrap');
         this.list = root.querySelector('[data-vi-rows]');
-        this.tape = root.querySelector('[data-vi-tape]');
         this.progress = root.querySelector('[data-vi-progress]');
         this.note = root.querySelector('[data-vi-sortnote]');
         this.blank = root.querySelector('[data-vi-empty]');
@@ -286,7 +285,6 @@
                     toggled: false,
                     lean: null,
                     signalStrength: null,
-                    cell: null,
                     i: i
                 });
             }
@@ -297,42 +295,12 @@
         this.sort = 'paste';
         this.flying = 0;
         this.stopped = false;
-        this.buildTape();
         this.bind();
         root.classList.add('is-live');
         this.paint();
         this.pump();
     }
 
-    Work.prototype.buildTape = function () {
-        if (!this.tape) {
-            return;
-        }
-        var self = this;
-        var fragment = document.createDocumentFragment();
-        this.rows.forEach(function (row, i) {
-            var cell = document.createElement('button');
-            cell.type = 'button';
-            cell.className = 'vi-cell';
-            cell.setAttribute('data-s', 'queued');
-            cell.setAttribute('data-vi-jump', String(i));
-            cell.setAttribute('aria-label', String(i + 1));
-            row.cell = cell;
-            fragment.appendChild(cell);
-        });
-        this.tape.appendChild(fragment);
-        this.tape.addEventListener('click', function (event) {
-            var cell = event.target.closest('[data-vi-jump]');
-            if (!cell) {
-                return;
-            }
-            self.cur = self.rows[parseInt(
-                cell.getAttribute('data-vi-jump'), 10
-            )] || self.cur;
-            self.paint();
-            self.reveal();
-        });
-    };
 
     Work.prototype.bind = function () {
         var self = this;
@@ -743,10 +711,6 @@
                     + ' viewBox="0 0 12 12" aria-hidden="true">'
                     + (RAIL[row.state] || RAIL.todo) + '</svg>';
             }
-            if (row.cell) {
-                row.cell.setAttribute('data-s', row.state);
-                row.cell.classList.toggle('is-cursor', isCursor);
-            }
         });
 
         this.reorder(order);
@@ -875,11 +839,12 @@
             return;
         }
         var lead = this.done.querySelector('[data-vi-done-lead]');
-        var tally = this.done.querySelector('[data-vi-done-counts]');
+        var openedSay = this.done.querySelector('[data-vi-done-opened]');
+        var clearedSay = this.done.querySelector('[data-vi-done-cleared]');
         var copy = this.done.querySelector('[data-vi-copy]');
         lead.innerHTML = fill(lead.getAttribute('data-vi-tpl'), [total]);
-        tally.innerHTML = fill(tally.getAttribute('data-vi-tpl'),
-            [opened, cleared]);
+        openedSay.innerHTML = fill(openedSay.getAttribute('data-vi-tpl'), [opened]);
+        clearedSay.innerHTML = fill(clearedSay.getAttribute('data-vi-tpl'), [cleared]);
         /*
          * *Copy the 0 you opened* is an offer with nothing behind it.
          * A reader who cleared the whole batch has no shortlist to
@@ -887,7 +852,9 @@
          * not there.
          */
         copy.hidden = opened === 0;
-        copy.innerHTML = fill(copy.getAttribute('data-vi-tpl'), [opened]);
+        copy.querySelector('[data-vi-copy-label]').innerHTML = opened === 1
+            ? esc(copy.getAttribute('data-vi-tpl-one'))
+            : fill(copy.getAttribute('data-vi-tpl'), [opened]);
     };
 
     Work.prototype.copy = function () {
@@ -908,13 +875,32 @@
         try {
             if (navigator.clipboard) {
                 var promise = navigator.clipboard.writeText(box.value);
-                if (promise && promise.catch) {
-                    promise.catch(function () {});
+                if (promise && promise.then) {
+                    promise.then(this.copied.bind(this), function () {});
                 }
             }
         } catch (error) {
             /* refused: the selection above is still the answer */
         }
+    };
+
+    // Said on the button for a moment, then the offer comes back.
+    Work.prototype.copied = function () {
+        var copy = this.done.querySelector('[data-vi-copy]');
+        if (copy.classList.contains('is-copied')) {
+            return;
+        }
+        var label = copy.querySelector('[data-vi-copy-label]');
+        var icon = copy.querySelector('i');
+        var said = label.innerHTML;
+        label.textContent = copy.getAttribute('data-vi-copied');
+        icon.className = 'fas fa-check';
+        copy.classList.add('is-copied');
+        window.setTimeout(function () {
+            label.innerHTML = said;
+            icon.className = 'fas fa-copy';
+            copy.classList.remove('is-copied');
+        }, 2500);
     };
 
     /* ---------------------------------------------------------------
@@ -1113,6 +1099,7 @@
             return;
         }
         var counter = form.querySelector('[data-vi-count]');
+        var field = box.closest('.ifp-query');
         var verb = form.querySelector('[data-vi-verb]');
         var out = document.querySelector('[data-vi-out]');
         var wipe = form.querySelector('[data-vi-clear]');
@@ -1179,9 +1166,8 @@
         /*
          * Clear. The state a reload would reach, minus the reload:
          * the box empty, the region back to its invitation and the
-         * batch abandoned. The tiles, the conditions strip and the
-         * carried-over line are untouched, because none of them came
-         * from what the reader pasted.
+         * batch abandoned. The figures and the carried-over list are
+         * untouched, because neither came from what the reader pasted.
          */
         function clear() {
             ask(false);
@@ -1250,6 +1236,11 @@
                 }
             }
             go.disabled = busy || box.value.trim() === '';
+            if (field) {
+                field.classList.toggle('has-value', box.value !== '');
+                field.classList.toggle('is-dirty', box.value.trim() !== '');
+            }
+            grow();
             if (wipe) {
                 wipe.hidden = !dirty();
                 if (wipe.hidden && asking) {
@@ -1257,6 +1248,39 @@
                 }
             }
         }
+
+        /*
+         * One line, as the other index pages' search boxes, until a list
+         * is pasted: then as tall as the list, up to a scroll.
+         */
+        function grow() {
+            box.style.height = 'auto';
+            box.style.height = Math.min(box.scrollHeight, 168) + 'px';
+        }
+
+        /*
+         * `/` puts the cursor in the box, as it does in the search of
+         * every other index page; on the Search door, in its field.
+         */
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== '/' || event.defaultPrevented
+                || event.ctrlKey || event.metaKey || event.altKey) {
+                return;
+            }
+            var t = event.target;
+            if (t.isContentEditable || (t.closest && t.closest('input, textarea, select'))
+                || document.querySelector('.modal.show')) {
+                return;
+            }
+            var target = form.classList.contains('vsr-on-search')
+                ? form.querySelector('#vsr-q')
+                : box;
+            if (!target) {
+                return;
+            }
+            event.preventDefault();
+            target.focus();
+        });
 
         /*
          * Enter submits and Shift+Enter makes a line, which is the
@@ -1350,6 +1374,10 @@
             busy = true;
             say();
             out.setAttribute('aria-busy', 'true');
+            if (work) {
+                work.stop();
+                work = null;
+            }
             fetch(form.getAttribute('data-vi-triage'), {
                 method: 'POST',
                 body: new FormData(form),

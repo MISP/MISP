@@ -33,6 +33,11 @@
  * itself (Events/index_card) and shares only the checkbox and the actions.
  */
 
+// The action serving the list: the events index, or the proposal index,
+// which adds a column with each event's proposals.
+$indexAction = $indexAction ?? 'index';
+$withProposals = $indexAction === 'proposalEventIndex';
+
 $possible = $possibleColumns ?? [];
 $offered = function ($column) use ($possible) {
     return in_array($column, $possible, true);
@@ -113,6 +118,7 @@ $count = function ($key, $count, $setting, $iconHtml, $title) use ($col, $icon, 
     return $col($key, [
         'element' => 'event_count',
         'count' => $count,
+        'link' => true,
         'header_html' => $icon($iconHtml),
         'header_title' => $title,
         'requirement' => $offered($setting),
@@ -146,7 +152,7 @@ $fields = [
         'url' => $baseurl . '/events/view/%id%',
     ]),
     $col('title', [
-        'name' => __('Title'),
+        'name' => __('Info'),
         'sort' => 'Event.info',
         'element' => 'event_title',
     ]),
@@ -154,6 +160,12 @@ $fields = [
         'header_html' => '<span class="te-long">' . h(__('Creator org')) . '</span><span class="te-short">' . h(__('Creator')) . '</span>',
         'sort' => 'Orgc.name',
         'element' => 'event_orgc',
+    ]),
+    $col('props', [
+        'name' => __('Proposals'),
+        'header_title' => __('Open proposals, and the organisations that made them'),
+        'element' => 'event_proposals',
+        'requirement' => $withProposals,
     ]),
     $col('owner', [
         'name' => __('Owner org'),
@@ -171,7 +183,7 @@ $fields = [
         'element' => 'event_markings',
     ]),
     $lane('attrib', 'attribution'),
-    $lane('behav', 'behaviour', __('ATT&CK techniques (count, then ids), then mitigations')),
+    $lane('behav', 'behaviour', __('ATT&CK techniques, then mitigations')),
     $lane('classif', 'classification', __('Other clusters, then tags')),
     $count('attrs', 'attributes', 'attribute_count', '<i class="misp-icon misp-icon-attribute misp-simple text-attribute"></i>', __('Attributes')),
     $count('objs', 'objects', 'attribute_count', '<i class="misp-icon misp-icon-object misp-simple text-object"></i>', __('Objects')),
@@ -293,9 +305,6 @@ $tableConfig = [
     'hidden' => $hiddenColumns,
     'saved' => $savedHiddenColumns ?? null,
     'defaults' => array_values(array_intersect(['is_extension', 'publish_timestamp', 'owner_org', 'creator_user'], $possible)),
-    'graded' => $this->OrgGrade->enabled($orgGrading ?? null) || !empty(array_filter(array_map(function ($event) {
-        return $event['EventCard']['grade'] ?? null;
-    }, $events))),
 ];
 
 $children = [];
@@ -312,7 +321,7 @@ $children[] = [
 App::uses('IndexFilterState', 'Tools');
 App::uses('IndexPicker', 'Tools');
 App::uses('EventCardTool', 'Tools/EventOverview');
-$filterState = new IndexFilterState($baseurl . '/events/index', $this->request->params['named'] ?? [], 'search');
+$filterState = new IndexFilterState($baseurl . '/events/' . $indexAction, $this->request->params['named'] ?? [], 'search');
 $canPickOrgs = IndexPicker::canPickOrgs($me);
 $filterLabels = $filterLabels ?? ['org' => [], 'tag' => [], 'galaxy' => []];
 
@@ -478,9 +487,10 @@ $timeLabel = function ($value) use ($timeTitles, $timeDay) {
     return $value;
 };
 $threatLevels = null;
+// My events and Org events sit in the Filters panel, so their filters get a chip too.
 $chips = [
-    'scope' => ['email'],
     'labels' => [
+        'email' => __('Creator'),
         'org' => __('Creator org'),
         'all' => __('Anything'),
         'attribute' => __('Attribute'),
@@ -502,6 +512,14 @@ $chips = [
         'minimal' => __('Minimal'),
     ],
     'values' => [
+        'email' => function ($value) use ($me) {
+            return strtolower($value) === strtolower($me['email']) ? __('me') : $value;
+        },
+        // Only read without the org picker, which names the orgs itself.
+        'org' => function ($value) use ($me) {
+            return $value === (string)$me['org_id'] && !empty($me['Organisation']['name'])
+                ? $me['Organisation']['name'] : $value;
+        },
         'analysis' => array_map('strval', $analysisLevels ?? []),
         'threatlevel' => function ($value) use (&$threatLevels) {
             if ($threatLevels === null) {
@@ -543,15 +561,16 @@ $statsHtml = isset($indexStats) ? $this->element('Events/index_stats', [
  */
 
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['org-tile', 'events-index-cards', 'events-index-table', 'intel-graph-thumbs'],
+    'css' => ['events-index-cards', 'events-index-table', 'intel-graph-thumbs'],
     'js' => ['events-index-cards', 'events-index-table', 'intel-graph-thumb', 'intel-graph-thumbs'],
 ]);
 
 echo $this->OrgGrade->config($orgGrading ?? null);
 
 printf(
-    '<style class="te-colstyle">%s</style><div class="dk-index te-index" data-te="%s">',
+    '<style class="te-colstyle">%s</style><div class="dk-index te-index%s" data-te="%s">',
     $hiddenRules ? implode(',', $hiddenRules) . '{display:none}' : '',
+    $withProposals ? ' is-proposals' : '',
     h(json_encode($tableConfig))
 );
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
@@ -563,6 +582,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'card_element' => 'Events/index_card',
             'before_filter_bar' => $statsHtml,
             'filter_bar' => [
+                'action' => $indexAction,
                 'pull' => 'right',
                 'children' => $children,
                 'chips' => $chips,

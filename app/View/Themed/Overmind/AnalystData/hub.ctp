@@ -62,6 +62,16 @@ if (!empty($selectedType) && $selectedType !== 'Graph' && !empty($me['Role']['pe
         ],
     ]);
 }
+if ($this->Acl->canAccess('analyst_data_blocklists', 'index')) {
+    $this->set('headerActions', array_merge($this->viewVars['headerActions'] ?? [], [
+        [
+            'type'  => 'navigate',
+            'label' => __('List Analyst-Data Blocklists'),
+            'icon'  => 'ban',
+            'url'   => $baseurl . '/analyst_data_blocklists/index',
+        ],
+    ]));
+}
 ?>
 
 <div class="container-fluid">

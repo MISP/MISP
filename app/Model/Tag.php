@@ -1,5 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ComplexQueryTool', 'Tools');
+App::uses('TmpFileTool', 'Tools');
+App::uses('JsonTool', 'Tools');
 
 /**
  * @property EventTag $EventTag
@@ -88,6 +91,36 @@ class Tag extends AppModel
     const RE_GALAXY = '/misp-galaxy:[^:="]+="[^"]+"/i';
     const RE_CUSTOM_GALAXY = '/misp-galaxy:[^:="]+="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"/i';
     const RE_CUSTOM_CLUSTER_FROM_DEFAULT_GALAXY = '/misp-galaxy:(?:(?![a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}).)+="[^"]+"/i';
+
+    /**
+     * The fields of the restSearch `query` tree (ComplexQueryTool); every tag is visible,
+     * as on the index. numerical_value is the stored one, not the user's override.
+     */
+    const QUERY_FIELDS = [
+        'id' => ['kind' => 'int', 'column' => 'Tag.id', 'level' => ['tag']],
+        'name' => ['kind' => 'string', 'column' => 'Tag.name', 'level' => ['tag']],
+        'colour' => ['kind' => 'string', 'column' => 'Tag.colour', 'lower' => true, 'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['tag']],
+        'exportable' => ['kind' => 'bool', 'column' => 'Tag.exportable', 'level' => ['tag']],
+        'org_id' => ['kind' => 'int', 'column' => 'Tag.org_id', 'level' => ['tag']],
+        'user_id' => ['kind' => 'int', 'column' => 'Tag.user_id', 'level' => ['tag']],
+        'hide_tag' => ['kind' => 'bool', 'column' => 'Tag.hide_tag', 'level' => ['tag']],
+        'numerical_value' => ['kind' => 'int', 'column' => 'Tag.numerical_value', 'nullable' => 'Tag.numerical_value', 'level' => ['tag']],
+        'is_galaxy' => ['kind' => 'bool', 'column' => 'Tag.is_galaxy', 'level' => ['tag']],
+        'is_custom_galaxy' => ['kind' => 'bool', 'column' => 'Tag.is_custom_galaxy', 'level' => ['tag']],
+        'local_only' => ['kind' => 'bool', 'column' => 'Tag.local_only', 'level' => ['tag']],
+    ];
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Tag' => ['id', 'name', 'numerical_value'],
+    ];
+
+    const REST_SEARCH_CHUNK = 1000;
+
+    public $validFormats = [
+        'json' => ['json', 'JsonExport', 'json'],
+        'count' => ['txt', 'CountExport', 'txt'],
+    ];
+
     private $tagOverrides = false;
 
     private $cachedTagsByName = [];
@@ -225,6 +258,33 @@ class Tag extends AppModel
             return null;
         }
         return $tagId['Tag']['id'];
+    }
+
+    /**
+     * Tags among $tagIds that $user may attach, restricted tags included only for their org/user.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array Tag.id => local_only flag
+     */
+    public function attachableTagIdsForUser(array $user, array $tagIds)
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+        $conditions = $this->createConditions($user);
+        $conditions['Tag.id'] = $tagIds;
+        $tags = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.local_only'],
+            'callbacks' => false,
+        ]);
+        $result = [];
+        foreach ($tags as $tag) {
+            $result[(int)$tag['Tag']['id']] = !empty($tag['Tag']['local_only']);
+        }
+        return $result;
     }
 
     /**
@@ -791,9 +851,10 @@ class Tag extends AppModel
     }
 
     /**
-     * The "All Tags" category of the BS5 tag picker: the same universe as
-     * getAllTagsForSelect(), but shaped as a list carrying the colour, which
-     * the picker needs to draw a tag exactly like Badges/tag.ctp does.
+     * The "All Tags" category of the BS5 tag picker: the tags of
+     * getAllTagsForSelect() less those of the taxonomies not enabled, shaped
+     * as a list carrying the colour, which the picker needs to draw a tag
+     * exactly like Badges/tag.ctp does.
      *
      * @param array $user
      * @return array [['id' => int, 'name' => string, 'colour' => string], ...]
@@ -804,6 +865,10 @@ class Tag extends AppModel
         $conditions['Tag.is_galaxy'] = 0;
         $conditions['Tag.hide_tag'] = 0;
         $conditions['Tag.local_only'] = 0;
+        $enabled = $this->enabledTaxonomyCondition();
+        if (!empty($enabled)) {
+            $conditions[] = $enabled;
+        }
 
         $tags = $this->find('all', [
             'conditions' => $conditions,
@@ -815,6 +880,29 @@ class Tag extends AppModel
         return array_map(function (array $tag) {
             return $this->pickerTagEntry($tag['Tag']);
         }, $tags);
+    }
+
+    /**
+     * Leaves out the tags of the taxonomies not enabled, which the tag
+     * pickers do not offer to attach.
+     *
+     * @return array a find() condition, empty when every taxonomy is enabled
+     */
+    public function enabledTaxonomyCondition()
+    {
+        $namespaces = ClassRegistry::init('Taxonomy')->disabledNamespaces();
+        if (empty($namespaces)) {
+            return [];
+        }
+        // Raw: CakePHP reads a ':' in a condition key as a placeholder.
+        $db = $this->getDataSource();
+        $list = implode(', ', array_map(function ($namespace) use ($db) {
+            return $db->value($namespace, 'string');
+        }, $namespaces));
+        return ['OR' => [
+            'Tag.name NOT LIKE' => '_%:%',
+            "LOWER(TRIM(SUBSTRING_INDEX(Tag.name, ':', 1))) NOT IN ($list)",
+        ]];
     }
 
     /**
@@ -841,67 +929,6 @@ class Tag extends AppModel
     }
 
     /**
-     * The per-taxonomy categories of the tag picker: the enabled
-     * taxonomies, each with those of its tags present in $pickerTags. A
-     * taxonomy tag is enabled once its Tag row exists and is not hidden, which
-     * getAllTagsForPicker() has already filtered for.
-     *
-     * @param array $pickerTags output of getAllTagsForPicker()
-     * @return array [['id', 'namespace', 'description', 'tags' => [...]], ...]
-     */
-    public function getTaxonomiesForPicker(array $pickerTags)
-    {
-        $taxonomies = ClassRegistry::init('Taxonomy')->find('all', [
-            'fields' => ['id', 'namespace', 'description'],
-            'conditions' => ['Taxonomy.enabled' => 1],
-            'recursive' => -1,
-            'contain' => ['TaxonomyPredicate' => [
-                'fields' => ['value'],
-                'TaxonomyEntry' => ['fields' => ['value']],
-            ]],
-            'order' => ['Taxonomy.namespace ASC'],
-        ]);
-
-        $owner = [];
-        foreach ($taxonomies as $index => $taxonomy) {
-            $namespace = $taxonomy['Taxonomy']['namespace'];
-            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
-                $prefix = $namespace . ':' . $predicate['value'];
-                if (empty($predicate['TaxonomyEntry'])) {
-                    $owner[mb_strtolower($prefix)] = $index;
-                    continue;
-                }
-                foreach ($predicate['TaxonomyEntry'] as $entry) {
-                    $name = $prefix . '="' . $entry['value'] . '"';
-                    $owner[mb_strtolower($name)] = $index;
-                }
-            }
-        }
-
-        $grouped = [];
-        foreach ($pickerTags as $tag) {
-            $key = mb_strtolower($tag['name']);
-            if (isset($owner[$key])) {
-                $grouped[$owner[$key]][] = $tag;
-            }
-        }
-
-        $result = [];
-        foreach ($taxonomies as $index => $taxonomy) {
-            if (empty($grouped[$index])) {
-                continue;
-            }
-            $result[] = [
-                'id' => (int)$taxonomy['Taxonomy']['id'],
-                'namespace' => $taxonomy['Taxonomy']['namespace'],
-                'description' => $taxonomy['Taxonomy']['description'],
-                'tags' => $grouped[$index],
-            ];
-        }
-        return $result;
-    }
-
-    /**
      * One picker entry, with the colour fallback the picker and
      * Badges/tag.ctp both use for a tag whose colour was never set.
      *
@@ -915,5 +942,109 @@ class Tag extends AppModel
             'name' => $tag['name'],
             'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
         ];
+    }
+
+    /**
+     * Takes only `query`, paging, `order` and `returnFormat` (json or count).
+     *
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
+    {
+        if (!isset($this->validFormats[$returnFormat])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        $tool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig(), self::QUERY_FIELDS);
+        $order = [];
+        if (!empty($filters['order'])) {
+            $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'Tag');
+            $order = $this->findOrder($filters['order'], 'Tag', self::REST_SEARCH_ORDER_FIELDS['Tag']) ?? [];
+        }
+        // a unique last key, or OFFSET paging can repeat or skip rows
+        if (!preg_grep('/^Tag\.id /', $order)) {
+            $order[] = 'Tag.id asc';
+        }
+        $limit = (int)($filters['limit'] ?? 0);
+        if ($limit < 0) {
+            throw new BadRequestException(__('The limit must be a positive integer.'));
+        }
+        $conditions = [];
+        if ($complexQuery !== null) {
+            $conditions['AND'][] = $tool->compile($tool->validate($complexQuery));
+        }
+        $tmpfile = new TmpFileTool();
+        if ($returnFormat === 'count') {
+            $elementCounter = $this->find('count', ['conditions' => $conditions, 'recursive' => -1]);
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
+        }
+        $namespaces = [];
+        foreach (ClassRegistry::init('Taxonomy')->listTaxonomies(['full' => false, 'enabled' => true]) as $namespace => $taxonomy) {
+            $namespaces[mb_strtolower($namespace)] = $taxonomy;
+        }
+        $entries = [];
+        $offset = $limit && !empty($filters['page']) ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        $elementCounter = 0;
+        $separator = '';
+        $tmpfile->write('{"response": [');
+        do {
+            $size = $limit ? min(self::REST_SEARCH_CHUNK, $limit - $elementCounter) : self::REST_SEARCH_CHUNK;
+            $tags = $this->find('all', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'order' => $order,
+                'limit' => $size,
+                'offset' => $offset + $elementCounter,
+            ]);
+            foreach ($this->restSearchRows($tags, $user, $namespaces, $entries) as $row) {
+                $tmpfile->write($separator . JsonTool::encode($row));
+                $separator = ',';
+            }
+            $elementCounter += count($tags);
+        } while (count($tags) === $size && (!$limit || $elementCounter < $limit));
+        $tmpfile->write(']}' . PHP_EOL);
+        return $tmpfile;
+    }
+
+    /**
+     * Rows as the REST index returns its tags, statistics included.
+     *
+     * @param array $namespaces the enabled taxonomies by lowercased namespace
+     * @param array $entries their entries' expansions by namespace, filled as needed
+     */
+    private function restSearchRows(array $tags, array $user, array $namespaces, array &$entries)
+    {
+        if (empty($tags)) {
+            return [];
+        }
+        $ids = array_column(array_column($tags, 'Tag'), 'id');
+        $favourites = array_flip($this->FavouriteTag->find('column', [
+            'conditions' => ['FavouriteTag.user_id' => $user['id'], 'FavouriteTag.tag_id' => $ids],
+            'fields' => ['FavouriteTag.tag_id'],
+        ]));
+        $eventCounts = $this->EventTag->countForTags($ids, $user);
+        $attributeCounts = $this->AttributeTag->countForTags($ids, $user);
+        $rows = [];
+        foreach ($tags as $tag) {
+            $record = $tag['Tag'];
+            $record['favourite'] = isset($favourites[$record['id']]);
+            // the taxonomy only if the tag really is one of its entries
+            $colonPos = strpos($record['name'], ':');
+            $namespace = $colonPos > 0 ? mb_strtolower(substr($record['name'], 0, $colonPos)) : null;
+            if ($namespace !== null && isset($namespaces[$namespace])) {
+                if (!isset($entries[$namespace])) {
+                    $entries[$namespace] = ClassRegistry::init('Taxonomy')->getTaxonomyTags($namespaces[$namespace]['id'], true);
+                }
+                $upperName = strtoupper($record['name']);
+                if (isset($entries[$namespace][$upperName])) {
+                    $record['Taxonomy'] = $namespaces[$namespace];
+                    $record['Taxonomy']['expanded'] = $entries[$namespace][$upperName];
+                }
+            }
+            $record['count'] = (int)($eventCounts[$record['id']] ?? 0);
+            $record['attribute_count'] = (int)($attributeCounts[$record['id']] ?? 0);
+            $rows[] = ['Tag' => $record];
+        }
+        return $rows;
     }
 }

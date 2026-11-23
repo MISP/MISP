@@ -596,6 +596,18 @@ class Taxonomy extends AppModel
         return $taxonomies;
     }
 
+    /**
+     * @return array lowercased namespaces of the taxonomies not enabled
+     */
+    public function disabledNamespaces()
+    {
+        $namespaces = $this->find('column', [
+            'conditions' => ['Taxonomy.enabled' => 0],
+            'fields' => ['Taxonomy.namespace'],
+        ]);
+        return array_values(array_unique(array_map('mb_strtolower', $namespaces)));
+    }
+
     private function cleanupCache()
     {
         RedisTool::deleteKeysByPattern(RedisTool::init(), "misp:taxonomies_cache:*");

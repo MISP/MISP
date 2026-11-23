@@ -106,9 +106,9 @@ class AuditLogBehavior extends ModelBehavior
                 }
             }
 
-            // For objects, that are assigned to event, we need to know event ID. So if data to save doesn't contain
-            // that ID, we need to fetch it from database.
-            if (isset($model->schema()['event_id']) && empty($model->data[$model->alias]['event_id']) && !in_array('event_id', $fieldToFetch, true)) {
+            // For objects, that are assigned to event, we need to know event ID. Always take it from the database:
+            // an event_id in the data to save may be one the save does not write.
+            if (isset($model->schema()['event_id']) && !in_array('event_id', $fieldToFetch, true)) {
                 $fieldToFetch[] = 'event_id';
             }
 
@@ -163,10 +163,10 @@ class AuditLogBehavior extends ModelBehavior
 
         if ($model->name === 'Event') {
             $eventId = $id;
-        } else if (isset($data['event_id'])) {
-            $eventId = $data['event_id'];
         } else if (isset($this->beforeSave[$model->alias]['event_id'])) {
             $eventId = $this->beforeSave[$model->alias]['event_id'];
+        } else if (isset($data['event_id'])) {
+            $eventId = $data['event_id'];
         } else {
             $eventId = null;
         }
@@ -421,7 +421,10 @@ class AuditLogBehavior extends ModelBehavior
                 }
             }
             $sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
-            if (in_array($key, $sanitiseFields) || ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting']))) {
+            if (in_array($key, $sanitiseFields) ||
+                ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting'])) ||
+                ($key === 'value' && $model->name === 'UserSetting' &&
+                    ($model->data[$model->alias]['setting'] ?? $oldData[$model->alias]['setting'] ?? null) === 'module_api_keys')) {
                 $value = '*****';
                 if ($old !== null) {
                     $old = $value;

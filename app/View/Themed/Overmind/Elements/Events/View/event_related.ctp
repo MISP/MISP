@@ -1,4 +1,8 @@
 <?php
+// The view counts the related events with the query the card would run.
+if (isset($correlation_count) && (int)$correlation_count === 0) {
+    return;
+}
 $eventId  = h($data['Event']['id'] ?? '');
 $uid      = 'evt-related-' . $eventId;
 $fetchUrl = h($baseurl . '/events/viewRelatedEvents/' . $eventId);

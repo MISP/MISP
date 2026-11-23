@@ -6,7 +6,6 @@
  * Variables come from EventsController::editEventGalaxies:
  * - $currentGlobalClusters
  * - $currentLocalClusters
- * - $galaxyList
  * - $eventId
  * - $mayModify
  */
@@ -15,7 +14,6 @@ echo $this->element('genericElementsBS5/Modals/galaxy_picker', [
     'uid'                   => 'evt-galaxies-' . $eventId,
     'headerEyebrow'         => __('Galaxies'),
     'reloadHook'            => 'reloadGalaxiesCard_',
-    'galaxyList'            => $galaxyList,
     'currentGlobalClusters' => $currentGlobalClusters,
     'currentLocalClusters'  => $currentLocalClusters,
     'mayModify'             => $mayModify,

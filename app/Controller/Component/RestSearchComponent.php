@@ -78,7 +78,8 @@ class RestSearchComponent extends Component
             'ttl',
             'hash_type',
             'escape_formulas_literal',
-            'attribute_created'
+            'attribute_created',
+            'query'
         ],
         'Event' => [
             'returnFormat',
@@ -165,7 +166,8 @@ class RestSearchComponent extends Component
             'galaxy.*',
             'attackGalaxy',
             'hash_type',
-            'escape_formulas_literal'
+            'escape_formulas_literal',
+            'query'
         ],
         'Object' => [
             'returnFormat',
@@ -201,7 +203,9 @@ class RestSearchComponent extends Component
             'includeSightingdb',
             'object_name',
             'object_template_uuid',
-            'object_template_version'
+            'object_template_version',
+            'order',
+            'query'
         ],
         'Sighting' => [
             'context',
@@ -240,7 +244,58 @@ class RestSearchComponent extends Component
             'order',
             'elements',
             'value',
-            'type'
+            'type',
+            'returnFormat',
+            'query'
+        ],
+        'EventReport' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Note' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Opinion' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Relationship' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Collection' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Tag' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
+        ],
+        'Organisation' => [
+            'page',
+            'limit',
+            'order',
+            'returnFormat',
+            'query'
         ],
     );
 

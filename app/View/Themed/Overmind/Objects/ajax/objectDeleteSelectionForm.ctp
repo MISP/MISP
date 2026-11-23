@@ -5,7 +5,8 @@
  * soft-deleted. Forms/delete_mode makes it post in place and refresh the index
  * behind it.
  *
- * Expected: $idArray (int[]), $hard (bool)
+ * Expected: $idArray (int[]), $hard (bool); $countedIds (int[], the live
+ * objects the Objects tab counts)
  */
 $ids = array_values(array_map('intval', $idArray));
 $count = count($ids);
@@ -38,6 +39,8 @@ echo $this->element('genericElementsBS5/Modals/confirmation_form', [
         'model' => 'Object',
         'ids' => $ids,
         'hard' => $hard,
+        'countTab' => 'objects',
+        'counted' => $countedIds ?? [],
     ]),
     'submitLabel' => $hard ? __('Delete permanently') : __('Delete'),
     'submitIcon' => 'trash',

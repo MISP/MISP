@@ -68,7 +68,10 @@ if (empty($events)) {
     return;
 }
 
-$maxVisible = 4;
+// `max_visible`: a table row's budget, kept to one line: the "+N" names the
+// rest in its title instead of unfolding them. A card keeps room for four.
+$folds      = $isCard || !isset($field['max_visible']);
+$maxVisible = $folds ? 4 : (int)$field['max_visible'];
 $total      = count($events);
 $overflow   = $total - $maxVisible;
 ?>
@@ -77,6 +80,9 @@ $overflow   = $total - $maxVisible;
     <?php foreach ($events as $i => $ev): ?>
         <?php
             $hidden = ($i >= $maxVisible && $overflow > 0);
+            if ($hidden && !$folds) {
+                continue;
+            }
             $isOwn = !empty($ev['org']) && isset($me['org_id']) && (int)$ev['org'] === (int)$me['org_id'];
             $facts = [
                 __('Creator org') => $ev['org_name'] ?: null,
@@ -104,7 +110,12 @@ $overflow   = $total - $maxVisible;
         </a>
     <?php endforeach; ?>
 
-    <?php if ($overflow > 0): ?>
+    <?php if ($overflow > 0 && !$folds): ?>
+        <span class="badge bg-secondary text-white"
+              title="<?= h(implode(', ', array_map(function ($ev) { return '#' . $ev['id']; }, array_slice($events, $maxVisible)))) ?>">
+            +<?= $overflow ?>
+        </span>
+    <?php elseif ($overflow > 0): ?>
         <span class="badge bg-secondary text-white related-event-toggle"
               style="cursor:pointer;"
               title="<?= __('Show %d more', $overflow) ?>"

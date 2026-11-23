@@ -55,7 +55,6 @@ $fields = [
         'data_path' => 'Organisation',
         'element' => 'organisation',
         'show_description' => true,
-        'grading' => $orgGrading ?? null,
         'card_section' => 'title',
         'display_in' => ['table', 'card'],
     ],

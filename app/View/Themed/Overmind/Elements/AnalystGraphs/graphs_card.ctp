@@ -49,7 +49,7 @@ echo $this->element('genericElements/assetLoader', [
 ?>
 <div class="card shadow-sm mb-3 ig-card" data-ig-graphs-card<?= $investigations ? ' data-ig-investigations' : '' ?>>
     <script type="application/json" data-ig-card-config><?= json_encode($config, $jsonFlags) ?></script>
-    <div class="p-3 border-bottom">
+    <div class="p-3 border-bottom" data-ig-card-head>
         <div class="d-flex align-items-center gap-2">
             <?php if ($investigations): ?>
                 <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"

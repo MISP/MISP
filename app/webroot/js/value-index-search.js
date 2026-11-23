@@ -98,53 +98,54 @@
          * --------------------------------------------------------------- */
         var doors = el(
             '<div class="vsr-doors">'
-            + '<div class="vsr-seg" role="tablist" aria-label="' + esc(L.doors) + '">'
-            + '<button type="button" class="vsr-tab" role="tab" id="vsr-tab-lookup"'
-            + ' data-vsr-door="lookup" aria-selected="true">'
+            + '<div class="vsr-seg ifp-segv" role="tablist" aria-label="' + esc(L.doors) + '">'
+            + '<button type="button" class="vsr-tab ifp-segv-btn" role="tab" id="vsr-tab-lookup"'
+            + ' data-vsr-door="lookup" aria-selected="true" title="' + esc(L.tabLookupFull) + '">'
             + '<i class="fas fa-arrow-right-to-bracket" aria-hidden="true"></i>' + esc(L.tabLookup) + '</button>'
-            + '<button type="button" class="vsr-tab" role="tab" id="vsr-tab-search"'
-            + ' data-vsr-door="search" aria-selected="false" tabindex="-1">'
+            + '<button type="button" class="vsr-tab ifp-segv-btn" role="tab" id="vsr-tab-search"'
+            + ' data-vsr-door="search" aria-selected="false" tabindex="-1" title="' + esc(L.tabSearchFull) + '">'
             + '<i class="fas fa-magnifying-glass" aria-hidden="true"></i>' + esc(L.tabSearch) + '</button>'
             + '</div>'
-            + '<p class="vsr-doorsay" data-vsr-say aria-live="polite"></p>'
+            + '<p class="vsr-doorsay" data-vsr-say aria-live="polite" hidden></p>'
             + '</div>'
         );
+        // The filter bar's search box, as the Look up box is
         var field = el(
             '<div class="vsr-field">'
-            + '<div class="vsr-box">'
-            + '<i class="fas fa-magnifying-glass vsr-box__icon" aria-hidden="true"></i>'
+            + '<div class="vsr-box ifp-query">'
+            + '<i class="fas fa-magnifying-glass ifp-q-icon" aria-hidden="true"></i>'
             + '<input type="text" id="vsr-q" class="vsr-q" autocomplete="off"'
             + ' autocapitalize="off" spellcheck="false" enterkeyhint="search"'
+            + ' aria-keyshortcuts="/"'
             + ' aria-label="' + esc(L.field) + '" aria-describedby="vsr-reading"'
             + ' placeholder="' + esc(L.placeholder) + '">'
+            + '<span class="ifp-q-end">'
             + '<button type="button" class="vsr-anywhere" data-vsr-anywhere aria-pressed="false"'
             + ' title="' + esc(L.anywhereTitle) + '">'
             + '<span class="vsr-anywhere__dot" aria-hidden="true"></span>' + esc(L.anywhere)
             + ' <span class="vsr-anywhere__slow">' + esc(L.anywhereSlow) + '</span></button>'
-            + '<button type="button" class="vsr-x" data-vsr-x hidden'
+            + '<button type="button" class="vsr-x ifp-q-clear" data-vsr-x hidden'
             + ' aria-label="' + esc(L.clear) + '" title="' + esc(L.clearTitle) + '">'
             + '<i class="fas fa-xmark" aria-hidden="true"></i></button>'
+            + '<button type="button" class="vsr-go ifp-q-go" data-vsr-go disabled>'
+            + '<span aria-hidden="true">↵</span><span data-vsr-goword>' + esc(L.go) + '</span></button>'
+            + '<kbd class="ifp-q-kbd" title="' + esc(L.slash) + '">/</kbd>'
+            + '</span>'
             + '</div>'
             + '<p class="vsr-reading" id="vsr-reading" data-vsr-reading></p>'
             + '</div>'
         );
-        var side = el(
-            '<div class="vsr-side">'
-            + '<button type="button" class="vsr-go" data-vsr-go disabled>'
-            + '<span data-vsr-goword>' + esc(L.go) + '</span><span class="vsr-kbd">Enter</span>'
-            + '</button></div>'
-        );
         form.insertBefore(doors, form.querySelector('.vi-prompt__field'));
         var lookSide = form.querySelector('.vi-prompt__side');
         lookSide.parentNode.insertBefore(field, lookSide.nextSibling);
-        field.parentNode.insertBefore(side, field.nextSibling);
+        var qBox = field.querySelector('.vsr-box');
 
         var q = field.querySelector('#vsr-q');
         var x = field.querySelector('[data-vsr-x]');
         var anywhere = field.querySelector('[data-vsr-anywhere]');
         var reading = field.querySelector('[data-vsr-reading]');
-        var go = side.querySelector('[data-vsr-go]');
-        var goWord = side.querySelector('[data-vsr-goword]');
+        var go = field.querySelector('[data-vsr-go]');
+        var goWord = field.querySelector('[data-vsr-goword]');
         var say = doors.querySelector('[data-vsr-say]');
         var tabs = Array.prototype.slice.call(doors.querySelectorAll('[data-vsr-door]'));
 
@@ -170,14 +171,10 @@
             return '<button type="button" class="vsr-link" data-vsr-to="' + to + '">' + esc(text) + '</button>';
         }
 
+        // The tabs name their doors; the line under them is only for a notice
         function paintSay() {
-            if (notice) {
-                say.innerHTML = notice;
-            } else if (door === 'lookup') {
-                say.innerHTML = T(L.sayLookup, '<b>' + esc(L.tabLookup) + '</b>', link('search', L.sayLookupLink));
-            } else {
-                say.innerHTML = T(L.saySearch, '<b>' + esc(L.tabSearch) + '</b>', link('lookup', L.saySearchLink));
-            }
+            say.innerHTML = notice || '';
+            say.hidden = !notice;
         }
 
         /* The door and the question go into the history entry, never the URL. */
@@ -278,6 +275,8 @@
             var mode = guess(text);
             x.hidden = text === '';
             go.disabled = S.busy || text.trim() === '';
+            qBox.classList.toggle('has-value', text !== '');
+            qBox.classList.toggle('is-dirty', text.trim() !== '');
             goWord.textContent = S.busy ? L.going : L.go;
             var t = code(text.trim());
             reading.hidden = S.answered !== null && text.trim() === S.answered.trim()
@@ -370,32 +369,41 @@
             q.focus();
         }
 
-        function way(mode, example, lead, body, onAnywhere) {
-            return '<li class="vsr-way">' + badge(mode)
-                + '<span class="vsr-way__lead">' + esc(lead) + '</span>'
-                + '<span class="vsr-way__body">' + body + '</span>'
-                + '<button type="button" class="vsr-try" data-vsr-try="' + esc(example) + '"'
+        function tryOne(mode, example, onAnywhere) {
+            return '<button type="button" class="vsr-try" data-vsr-try="' + esc(example) + '"'
                 + (onAnywhere ? ' data-vsr-try-anywhere' : '') + '>'
-                + T(L.try, code(example)) + '</button></li>';
+                + code(example) + badge(mode) + '</button>';
         }
 
+        function way(mode, lead, body) {
+            return '<li class="vsr-way">' + badge(mode)
+                + '<span class="vsr-way__text"><b>' + esc(lead) + '.</b> ' + body + '</span></li>';
+        }
+
+        // Examples first; how the matching works only for whoever asks
         function searchInvite() {
             return el(
                 '<div class="vsr-invite">'
-                + '<h2 class="vsr-invite__title">' + esc(L.inviteTitle) + '</h2>'
-                + '<p class="vsr-invite__lead">' + esc(L.inviteLead) + '</p>'
+                + '<div class="vsr-tries"><span class="vsr-tries__lead">' + esc(L.tryLead) + '</span>'
+                + tryOne('words', 'github')
+                + tryOne('prefix', '8.8')
+                + tryOne('block', '8.8.8.0/24')
+                + tryOne('anywhere', 'verifypaypal', true)
+                + '</div>'
+                + '<details class="vsr-how"><summary>' + esc(L.how) + '</summary>'
                 + '<ul class="vsr-ways">'
-                + way('words', 'github', L.wayWordsLead,
+                + way('words', L.wayWordsLead,
                     T(L.wayWordsBody, code('github.com'), code('api.github.com'), code('mygithub.com')))
-                + way('prefix', '8.8', L.wayPrefixLead,
+                + way('prefix', L.wayPrefixLead,
                     T(L.wayPrefixBody, code('8.8.8.8'), code('8.8.4.4')))
-                + way('block', '8.8.8.0/24', L.wayBlockLead, esc(L.wayBlockBody))
-                + way('anywhere', 'verifypaypal', L.wayAnywhereLead,
+                + way('block', L.wayBlockLead, esc(L.wayBlockBody))
+                + way('anywhere', L.wayAnywhereLead,
                     T(L.wayAnywhereBody, '<b>' + esc(L.anywhere) + '</b>', code('verifypaypal'),
-                        code('theverifypaypal.com')), true)
+                        code('theverifypaypal.com')))
                 + '</ul>'
                 + '<p class="vsr-invite__foot">'
                 + T(L.inviteFoot, code('hxxp://'), code('1.2.3[.]4')) + '</p>'
+                + '</details>'
                 + '</div>'
             );
         }

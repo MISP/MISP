@@ -23,6 +23,7 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('RandomTool', 'Tools');
+App::uses('ClientIpTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('ColumnLimits', 'Tools');
@@ -1189,7 +1190,7 @@ class AppModel extends Model
         return $conditions;
     }
 
-    protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
+    public function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
         $defaults = array(
             'fields' => array('*'),
@@ -1870,6 +1871,8 @@ class AppModel extends Model
             $orderRules = explode(',', $order);
         } elseif (is_array($order)) {
             $orderRules = $order; // to support multiple column order
+        } else {
+            return null;
         }
 
         $order = array();
@@ -1894,9 +1897,11 @@ class AppModel extends Model
             } else {
                 return null;
             }
+            // A list of fields has numeric keys: "0.id" must not pick one of them
+            $modelFields = $validOrderFields[$model] ?? null;
             if (
                     (in_array($field, $validOrderFields) && $model === $orderModel) ||
-                    (array_key_exists($model, $validOrderFields) && in_array($field, $validOrderFields[$model]))
+                    (is_array($modelFields) && in_array($field, $modelFields))
             ) {
                 $order[] = $model . '.' . $field . ' ' . $direction;
             } else {
@@ -1920,17 +1925,11 @@ class AppModel extends Model
             return $remoteIp;
         }
 
-        $clientIpHeader = Configure::read('MISP.log_client_ip_header');
-        if ($clientIpHeader && isset($_SERVER[$clientIpHeader])) {
-            $headerValue = $_SERVER[$clientIpHeader];
-            // X-Forwarded-For can contain multiple IPs, see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
-            if (($commaPos = strpos($headerValue, ',')) !== false) {
-                $headerValue = substr($headerValue, 0, $commaPos);
-            }
-            $remoteIp = trim($headerValue);
-        } else {
-            $remoteIp = $_SERVER['REMOTE_ADDR'] ?? null;
-        }
+        $remoteIp = ClientIpTool::resolve(
+            $_SERVER,
+            Configure::read('MISP.log_client_ip_header'),
+            Configure::read('MISP.trusted_proxies')
+        );
 
         return $remoteIp;
     }

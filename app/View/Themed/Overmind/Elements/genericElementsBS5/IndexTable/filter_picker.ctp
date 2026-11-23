@@ -23,6 +23,9 @@
  *              a list: {kind: 'tag'|'galaxy', scopes: URL, tree: URL (tags)}
  * - disabled : why the picker cannot be used yet; drawn but not openable, so
  *              the swap after another filter applies can bring it to life
+ * - top      : the values most rows carry, listed under the button with
+ *              their counts (filter_list): [{value, label, html, count}];
+ *              `top_total` is what their bars are a share of
  *
  * @var array $child
  * @var IndexFilterState $state
@@ -98,16 +101,31 @@ $config = [
     'browser' => $child['browser'] ?? null,
 ];
 ?>
+<?php if (!empty($child['top'])): ?><div class="ifp-picktop"><?php endif; ?>
 <div class="ifp-picker flex-shrink-0" data-ifp-swap="picker-<?= h($name) ?>" data-ifp-picker="<?= h(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>"<?= empty($child['disabled']) ? '' : ' title="' . h($child['disabled']) . '"' ?>>
     <button type="button" class="btn btn-sm btn-outline-secondary ifp-btn<?= $count ? ' is-set' : '' ?>" aria-expanded="false" aria-haspopup="dialog" data-tour="index-picker-<?= h($name) ?>"<?= empty($child['disabled']) ? '' : ' disabled' ?>>
         <?php if (!empty($child['icon'])): ?>
             <i class="<?= h($child['icon']) ?>" aria-hidden="true"></i>
         <?php endif; ?>
-        <span><?= h($child['label']) ?></span>
+        <span class="ifp-btn-label"><?= h($child['label']) ?></span>
         <?php if ($count): ?>
-            <span class="badge rounded-pill text-bg-primary" aria-label="<?= h(__n('%s selected', '%s selected', $count, $count)) ?>"><?= h($count) ?></span>
+            <span class="badge rounded-pill bg-primary" aria-label="<?= h(__n('%s selected', '%s selected', $count, $count)) ?>"><?= h($count) ?></span>
         <?php endif; ?>
         <i class="fas fa-chevron-down ifp-caret" aria-hidden="true"></i>
     </button>
     <div class="ifp-pop" role="dialog" tabindex="-1" aria-label="<?= h($child['label']) ?>" hidden></div>
 </div>
+<?php if (!empty($child['top'])): ?>
+    <?= $this->element('genericElementsBS5/IndexTable/filter_list', [
+        'child' => [
+            'name' => $name,
+            'options' => $child['top'],
+            'total' => $child['top_total'] ?? null,
+            'fold' => $child['top_fold'] ?? 4,
+            'separator' => $child['separator'] ?? '|',
+            'swap' => 'top-' . $name,
+        ],
+        'state' => $state,
+    ]) ?>
+</div>
+<?php endif; ?>

@@ -66,7 +66,8 @@ class MispObject extends AppModel
 
     public $validFormats = array(
         'json' => ['json', 'JsonExport', 'json'],
-        'stix2' => ['json', 'Stix2Export', 'json']
+        'stix2' => ['json', 'Stix2Export', 'json'],
+        'count' => ['txt', 'CountExport', 'txt']
     );
 
     public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
@@ -169,7 +170,7 @@ class MispObject extends AppModel
         return self::$hasLiveObjectIndex ? 'idx_event_deleted_name' : null;
     }
 
-    public function buildFilterConditions(&$params)
+    public function buildFilterConditions(array $user, &$params)
     {
         $conditions = [];
         if (isset($params['wildcard'])) {
@@ -177,10 +178,10 @@ class MispObject extends AppModel
             $subQueryOptions = array(
                 'fields' => ['Attribute.object_id'],
                 'recursive' => -1,
-                'conditions' => array(
+                'conditions' => $this->Event->visibleElementConditions($user, 'Attribute', array(
                     'Attribute.object_id NOT' => 0,
                     'OR' => $this->Event->wildcardAttributeConditions($params['wildcard'])
-                )
+                ))
             );
             $conditions['AND'][] = array('OR' => array(
                 array('Event.info LIKE' => $params['wildcard']),
@@ -239,17 +240,18 @@ class MispObject extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Object'
+                            'context' => 'Object',
+                            'user' => $user
                         );
                         if ($scope === 'Attribute') {
                             $subQueryOptions = array(
                                 'fields' => ['Attribute.object_id'],
                                 'group' => 'Attribute.object_id',
                                 'recursive' => -1,
-                                'conditions' => array(
+                                'conditions' => $this->Event->visibleElementConditions($user, 'Attribute', array(
                                     'Attribute.object_id NOT' => 0,
                                     $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options)
-                                )
+                                ))
                             );
                             $conditions['AND'][] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id');
                         } else {
@@ -265,7 +267,8 @@ class MispObject extends AppModel
                     'filter' => 'value',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Object'
+                    'context' => 'Object',
+                    'user' => $user
                 );
                 $conditions = $this->Event->set_filter_value($params, $conditions, $options);
             }
@@ -274,7 +277,8 @@ class MispObject extends AppModel
                     'filter' => 'value_cidr',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Object'
+                    'context' => 'Object',
+                    'user' => $user
                 );
                 $conditions = $this->Event->set_filter_value_cidr($params, $conditions, $options);
             }
@@ -283,7 +287,8 @@ class MispObject extends AppModel
                     'filter' => 'value_search',
                     'scope' => 'Attribute',
                     'pop' => false,
-                    'context' => 'Object'
+                    'context' => 'Object',
+                    'user' => $user
                 );
                 $conditions = $this->Event->set_filter_value_search($params, $conditions, $options);
             }
@@ -651,6 +656,26 @@ class MispObject extends AppModel
         ];
     }
 
+    /**
+     * buildConditions() for the objects of one event the user can already see:
+     * the event's owner org and site admins see all of them.
+     */
+    public function buildConditionsInEvent(array $user, $eventOrgId)
+    {
+        if ($user['Role']['perm_site_admin'] || $eventOrgId == $user['org_id']) {
+            return [];
+        }
+        return [
+            'OR' => [
+                'Object.distribution' => [1, 2, 3, 5],
+                'AND' => [
+                    'Object.distribution' => 4,
+                    'Object.sharing_group_id' => $this->SharingGroup->authorizedIds($user),
+                ],
+            ],
+        ];
+    }
+
     public function fetchObjectSimple(array $user, $options = array())
     {
         $params = array(
@@ -845,8 +870,8 @@ class MispObject extends AppModel
         }
 
         $ids = array_map('intval', Hash::extract($rows, '{n}.Object.id'));
-        $headlines = $this->__indexHeadlines($user, $rows, $ids);
-        list($out, $in) = $this->__indexReferenceCounts($user, $ids);
+        $headlines = $this->indexHeadlines($user, $rows, $ids);
+        list($out, $in) = $this->indexReferenceCounts($user, $ids);
 
         $orgIds = array_unique(Hash::extract($rows, '{n}.Event.orgc_id'));
         $orgs = $this->Event->Orgc->find('all', [
@@ -895,7 +920,7 @@ class MispObject extends AppModel
      * @param int[] $ids
      * @return array object id => ['count' => int, 'headline' => array|null]
      */
-    private function __indexHeadlines(array $user, array $rows, array $ids)
+    public function indexHeadlines(array $user, array $rows, array $ids)
     {
         $attributes = $this->Attribute->fetchAttributesSimple($user, [
             'conditions' => [
@@ -942,7 +967,7 @@ class MispObject extends AppModel
      * @param int[] $ids
      * @return array [object id => outgoing, object id => incoming]
      */
-    private function __indexReferenceCounts(array $user, array $ids)
+    public function indexReferenceCounts(array $user, array $ids)
     {
         $outgoing = $this->ObjectReference->find('all', [
             'conditions' => [
@@ -1153,6 +1178,10 @@ class MispObject extends AppModel
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
         }
+        if (!empty($options['count'])) {
+            unset($params['contain']['Attribute'], $params['fields']);
+            return $this->find('count', $params);
+        }
         if (isset($options['order'])) {
             $params['order'] = $options['order'];
         }
@@ -1184,8 +1213,15 @@ class MispObject extends AppModel
             }
         }
         if (empty($options['metadata'])) {
+            $blockedTags = array_flip(array_filter($options['blockedAttributeTags'] ?? [], function ($tagId) {
+                return is_int($tagId) || is_string($tagId);
+            }));
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
+                    if ($blockedTags && array_intersect_key(array_flip(array_column($attribute['AttributeTag'] ?? [], 'tag_id')), $blockedTags)) {
+                        unset($results[$key]['Attribute'][$key2]);
+                        continue;
+                    }
                     if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute)) {
                         unset($results[$key]['Attribute'][$key2]);
                         continue;
@@ -2081,14 +2117,86 @@ class MispObject extends AppModel
                 'conditions' => array(
                     'ObjectReference.referenced_type' => 1,
                     'ObjectReference.referenced_id' => $id,
+                    'ObjectReference.deleted' => 0,
                 ),
                 'recursive' => -1
             ));
             foreach ($object_refs as $ref) {
                 $ref['ObjectReference']['deleted'] = 1;
+                // Stamped as the object is, so restoreObject() brings them back with it.
+                $ref['ObjectReference']['timestamp'] = $date->getTimestamp();
                 $this->ObjectReference->save($ref);
             }
         }
+        return true;
+    }
+
+    /**
+     * Undo a soft deletion: the object comes back with the attributes and the
+     * references to it that deleteObject() removed with it, all stamped with
+     * the object's own timestamp. What was deleted earlier on its own carries
+     * an older one and stays deleted.
+     *
+     * @param int $id
+     * @return bool
+     * @throws Exception
+     */
+    public function restoreObject($id)
+    {
+        $object = $this->find('first', [
+            'conditions' => ['Object.id' => $id, 'Object.deleted' => 1],
+            'recursive' => -1,
+        ]);
+        if (empty($object)) {
+            return false;
+        }
+        $deletedAt = (int)$object['Object']['timestamp'];
+        $now = time();
+        $object['Object']['deleted'] = 0;
+        $object['Object']['timestamp'] = $now;
+        if (!$this->save($object)) {
+            return false;
+        }
+
+        $attributes = $this->Attribute->find('all', [
+            'conditions' => [
+                'Attribute.object_id' => $id,
+                'Attribute.deleted' => 1,
+                'Attribute.timestamp >=' => $deletedAt,
+            ],
+            'recursive' => -1,
+        ]);
+        $restored = 0;
+        foreach ($attributes as $attribute) {
+            $attribute['Attribute']['deleted'] = 0;
+            $attribute['Attribute']['timestamp'] = $now;
+            if ($this->Attribute->save($attribute)) {
+                $restored++;
+            }
+        }
+        if ($restored > 0) {
+            $this->Event->updateAll(
+                ['Event.attribute_count' => 'Event.attribute_count + ' . $restored],
+                ['Event.id' => $object['Object']['event_id']]
+            );
+        }
+
+        $references = $this->ObjectReference->find('all', [
+            'conditions' => [
+                'ObjectReference.referenced_type' => 1,
+                'ObjectReference.referenced_id' => $id,
+                'ObjectReference.deleted' => 1,
+                'ObjectReference.timestamp >=' => $deletedAt,
+            ],
+            'recursive' => -1,
+        ]);
+        foreach ($references as $reference) {
+            $reference['ObjectReference']['deleted'] = 0;
+            $reference['ObjectReference']['timestamp'] = $now;
+            $this->ObjectReference->save($reference);
+        }
+
+        $this->Event->unpublishEvent($object['Object']['event_id']);
         return true;
     }
 
@@ -2357,8 +2465,15 @@ class MispObject extends AppModel
         );
     }
 
-    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    /**
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
+     */
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
     {
+        // other callers pass filters straight from the request
+        if (isset($filters['query'])) {
+            throw new BadRequestException(__('The query parameter is only accepted by the restSearch endpoints.'));
+        }
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -2396,7 +2511,18 @@ class MispObject extends AppModel
         $subqueryElements = $this->Event->harvestSubqueryElements($filters);
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
-        $conditions = $this->buildFilterConditions($filters);
+        $conditions = $this->buildFilterConditions($user, $filters);
+        $blockedTagIds = [];
+        if ($complexQuery !== null) {
+            App::uses('ComplexObjectQueryTool', 'Tools');
+            $tool = new ComplexObjectQueryTool($this->Attribute, $user, ComplexQueryTool::limitsFromConfig());
+            if (!empty($filters['order'])) {
+                // objects cannot be sorted
+                $tool->validateOrder($filters['order'], []);
+            }
+            $conditions['AND'][] = $tool->conditions($complexQuery);
+            $blockedTagIds = $tool->blockedTagIds();
+        }
         // Same rules as fetchAttributes(); fetchObjects() itself keeps
         // returning soft-deleted objects to its other callers
         if (isset($filters['deleted']) && $filters['deleted'] === 'only') {
@@ -2406,6 +2532,13 @@ class MispObject extends AppModel
             }
         } elseif (!$user['Role']['perm_sync'] || empty($filters['deleted'])) {
             $conditions['AND'][] = ['Object.deleted' => 0];
+        }
+        if ($returnFormat === 'count' && !$paramsOnly) {
+            // counted in the database: CountExport only counts attributes and events
+            $elementCounter = $this->fetchObjects($user, ['conditions' => $conditions, 'count' => true]);
+            $tmpfile = new TmpFileTool();
+            $tmpfile->write((string)$elementCounter);
+            return $tmpfile;
         }
         $params = array(
             'conditions' => $conditions,
@@ -2453,6 +2586,9 @@ class MispObject extends AppModel
         }
         if (!empty($filters['metadata'])) {
             $params['metadata'] = $filters['metadata'];
+        }
+        if (!empty($blockedTagIds)) {
+            $params['blockedAttributeTags'] = $blockedTagIds;
         }
         if ($paramsOnly) {
             return $params;

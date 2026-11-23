@@ -23,6 +23,15 @@ class Note extends AnalystData
         'note',
     ];
 
+    const QUERY_FIELDS = [
+        'note' => ['kind' => 'string', 'column' => 'Note.note', 'nullable' => 'Note.note'],
+        'language' => ['kind' => 'string', 'column' => 'Note.language', 'nullable' => 'Note.language'],
+    ];
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Note' => ['id', 'created', 'modified', 'distribution'],
+    ];
+
     public $childValidate = [];
 
     public function beforeValidate($options = array())

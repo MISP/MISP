@@ -24,6 +24,15 @@ class Opinion extends AnalystData
         'comment',
     ];
 
+    const QUERY_FIELDS = [
+        'opinion' => ['kind' => 'int', 'column' => 'Opinion.opinion', 'nullable' => 'Opinion.opinion'],
+        'comment' => ['kind' => 'string', 'column' => 'Opinion.comment', 'nullable' => 'Opinion.comment'],
+    ];
+
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Opinion' => ['id', 'created', 'modified', 'distribution', 'opinion'],
+    ];
+
     public $childValidate = [];
 
     public function beforeValidate($options = array())

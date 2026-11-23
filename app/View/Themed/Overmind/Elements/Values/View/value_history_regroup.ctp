@@ -1,13 +1,14 @@
 <?php
 /**
- * One alternative grouping of the History tab's rows: the section
- * headers and empty bodies the script moves rows into when the reader
- * picks it. Hidden until then.
+ * The History tab's sections by organisation or by field. They are drawn
+ * empty: value-intelligence.js moves the entries into them when the grouping
+ * switches, by the body id each entry names (`data-vp-audit-org` / `-field`).
  *
- * @var string $grouping `org` or `field`
- * @var array $sections From `ValueIntelligence::historyRegroups()`
- * @var callable $bodyId Section key => body element id
+ * @var string $grouping org or field
+ * @var array $sections
+ * @var callable $bodyId section key => body id
  * @var callable $renderMix
+ * @var callable $renderCount
  * @var callable $fmt
  * @var int $pageSize
  * @var int $sectionSize
@@ -22,76 +23,48 @@
             $sub = $section['own']
                 ? __('your organisation')
                 : ($section['actors'] > 0
-                    ? sprintf(
-                        __n('%d named user', '%d named users',
-                            $section['actors']),
-                        $section['actors']
-                    )
+                    ? sprintf(__n('%d named user', '%d named users', $section['actors']), $section['actors'])
                     : __('its users are not named to you'));
         } else {
-            $sub = strpos($section['key'], ',') !== false
-                ? __('changed together by one edit')
-                : '';
+            $sub = strpos($section['key'], ',') !== false ? __('changed together by one edit') : '';
         }
-        $plain = sprintf(
-            __n('%d entry', '%d entries', $section['count']),
-            $section['count']
-        );
         ?>
-        <div class="border-bottom"
-             data-vp-audit-section
-             data-vp-audit-total="<?= h($section['count']) ?>">
-            <div class="d-flex align-items-center gap-2 gap-lg-3 p-2 px-3
-                        flex-wrap">
-                <button type="button"
-                        class="btn btn-sm btn-link text-decoration-none p-0
-                               text-body d-flex align-items-center gap-2
-                               vp-min-w-0"
-                        data-vp-audit-toggle
-                        aria-expanded="<?= $open ? 'true' : 'false' ?>"
-                        aria-controls="<?= h($id) ?>">
-                    <i class="fas fa-chevron-<?= $open ? 'down' : 'right' ?>"
-                       data-vp-audit-chevron></i>
-                    <span class="small fw-semibold text-truncate<?=
-                        $grouping === 'field'
-                            && strpos($section['key'], 'field:') === 0
-                            ? ' font-monospace' : '' ?>"><?=
-                        h($grouping === 'org'
-                            ? $section['name']
-                            : $section['label']) ?></span>
+        <div class="vp-hx-sec" data-vp-audit-section data-vp-audit-total="<?= h($section['count']) ?>">
+            <div class="vp-hx-head">
+                <button type="button" class="vp-hx-toggle" data-vp-audit-toggle
+                        aria-expanded="<?= $open ? 'true' : 'false' ?>" aria-controls="<?= h($id) ?>">
+                    <i class="fas fa-chevron-<?= $open ? 'down' : 'right' ?>" data-vp-audit-chevron aria-hidden="true"></i>
                 </button>
-                <div class="vp-min-w-0 flex-grow-1 text-muted"
-                     style="font-size: 0.7rem;"><?= h($sub) ?></div>
-                <div class="flex-shrink-0" style="width: 8.5rem;">
-                    <?= $renderMix($section['mix'], $section['count']) ?>
-                    <div class="text-muted" style="font-size: 0.7rem;"
-                         data-vp-audit-count
-                         data-vp-audit-plain="<?= h($plain) ?>"
-                         data-vp-audit-tpl="<?= h(__n(
-                             '%1$s of %2$s entry',
-                             '%1$s of %2$s entries',
-                             $section['count']
-                         )) ?>"><?= h($plain) ?></div>
+                <div class="vp-hx-title">
+                    <?php if ($grouping === 'org'): ?>
+                        <?= $this->element('Values/View/value_org_link', array(
+                            'org' => array('id' => $section['id'], 'name' => $section['name']),
+                        )) ?>
+                    <?php else: ?>
+                        <span class="vp-hx-event<?= strpos($section['key'], 'field:') === 0 ? ' font-monospace' : '' ?>"><?= h($section['label']) ?></span>
+                    <?php endif; ?>
+                    <?php if ($sub !== ''): ?>
+                        <div class="vp-hx-sub"><?= h($sub) ?></div>
+                    <?php endif; ?>
                 </div>
-                <div class="text-muted text-end flex-shrink-0"
-                     style="width: 6rem; font-size: 0.7rem;">
-                    <?= h($section['last'] === null
-                        ? '' : $fmt($section['last'], 'j M Y')) ?>
+                <div class="vp-hx-tally">
+                    <?= $renderMix($section['mix'], $section['count']) ?>
+                    <?= $renderCount($section['count']) ?>
+                </div>
+                <div class="vp-hx-last">
+                    <?php if ($section['last'] !== null): ?>
+                        <span title="<?= h(__('Last entry')) ?>"><?= h($fmt($section['last'], 'j M Y')) ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
-            <div id="<?= h($id) ?>" data-vp-audit-body
-                 class="<?= $open ? '' : 'd-none' ?>">
+            <div id="<?= h($id) ?>" class="vp-hx-body<?= $open ? '' : ' d-none' ?>" data-vp-audit-body>
                 <?php if ($section['count'] > $pageSize): ?>
-                    <div class="px-3 py-2 border-top"
-                         data-vp-audit-pagerhost>
+                    <div class="vp-hx-pager" data-vp-audit-pagerhost>
                         <?= $this->element('Values/View/value_pager', array(
                             'size' => $pageSize,
                             'shown' => $section['count'],
                             'total' => $section['count'],
-                            'noun' => array(
-                                'one' => __('entry'),
-                                'many' => __('entries'),
-                            ),
+                            'noun' => array('one' => __('entry'), 'many' => __('entries')),
                         )) ?>
                     </div>
                 <?php endif; ?>
@@ -100,20 +73,14 @@
     <?php endforeach; ?>
 
     <?php if (count($sections) > $sectionSize): ?>
-        <div class="px-3 py-2 border-top" data-vp-audit-sectionpager>
+        <div class="vp-hx-pager" data-vp-audit-sectionpager>
             <?= $this->element('Values/View/value_pager', array(
                 'size' => $sectionSize,
                 'shown' => count($sections),
                 'total' => count($sections),
                 'noun' => $grouping === 'org'
-                    ? array(
-                        'one' => __('organisation'),
-                        'many' => __('organisations'),
-                    )
-                    : array(
-                        'one' => __('group'),
-                        'many' => __('groups'),
-                    ),
+                    ? array('one' => __('organisation'), 'many' => __('organisations'))
+                    : array('one' => __('group'), 'many' => __('groups')),
             )) ?>
         </div>
     <?php endif; ?>
