@@ -194,6 +194,26 @@ class Collection extends AppModel
     }
 
     /**
+     * @return array Conditions leaving withheld collections in alone
+     */
+    public static function withheldConditions()
+    {
+        return ['Collection.distribution !=' => 0, 'Collection.published' => false];
+    }
+
+    /**
+     * Another 3.0 instance is served an unpublished collection as an
+     * unpublished event, and pulls published ones only. A MISP older than
+     * 3.0 has no publish step to tell them apart.
+     *
+     * @return array Conditions on what the requester is served
+     */
+    public static function servedConditions()
+    {
+        return SyncTool::requesterBelow30() ? self::releasedConditions() : [];
+    }
+
+    /**
      * As for events: the edit right and perm_publish.
      *
      * @param array $user
@@ -1115,6 +1135,9 @@ class Collection extends AppModel
         if ($collection['Collection']['org_id'] == $user['org_id']) {
             return true;
         }
+        if (Configure::read('MISP.unpublishedprivate') && self::isWithheld($collection['Collection'])) {
+            return false;
+        }
         if (in_array($collection['Collection']['distribution'], [1,2,3])) {
             return true;
         }
@@ -1141,17 +1164,25 @@ class Collection extends AppModel
         $sgids = $SharingGroup->authorizedIds($user);
         $conditions = [];
         if (!$user['Role']['perm_site_admin']) {
+            // As for events: unpublished is private to the organisation when set
+            $released = Configure::read('MISP.unpublishedprivate') ? ['Collection.published' => true] : [];
             $conditions['OR'] = [
                 [
                     'Collection.org_id' => $user['org_id']
                 ],
                 [
-                    'Collection.distribution IN' => [1,2,3]
+                    'AND' => [
+                        ['Collection.distribution IN' => [1,2,3]],
+                        $released,
+                    ]
                 ],
                 [
                     'AND' => [
-                        'Collection.distribution' => 4,
-                        'Collection.sharing_group_id' => $sgids
+                        [
+                            'Collection.distribution' => 4,
+                            'Collection.sharing_group_id' => $sgids
+                        ],
+                        $released,
                     ]
                 ]
             ];
@@ -1174,8 +1205,9 @@ class Collection extends AppModel
     public function indexMinimal(array $user, array $filters = []): array
     {
         $conditions = [$this->buildConditions($user['id'])];
-        if (SyncTool::requesterIsMisp()) {
-            $conditions[] = self::releasedConditions();
+        $served = self::servedConditions();
+        if (!empty($served)) {
+            $conditions[] = $served;
         }
         if (!empty($filters)) {
             $conditions[] = $filters;
@@ -1217,6 +1249,10 @@ class Collection extends AppModel
 
         try {
             $filterRules = $this->buildPullFilterRules($serverSync->server());
+            if ($serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
+                // A 3.0 instance lists unpublished collections, as events
+                $filterRules['published'] = 1;
+            }
             $remoteData = $serverSync->collectionIndexMinimal($filterRules)->json();
         } catch (Exception $e) {
             $this->logException("Could not fetch collection index from server {$serverSync->server()['Server']['name']}", $e);
@@ -1414,6 +1450,13 @@ class Collection extends AppModel
                 $collection['Collection'][$child] = $collection[$child];
                 unset($collection[$child]);
             }
+        }
+
+        // Served unpublished between the index and the fetch: it waits for its publish
+        if (array_key_exists('published', $collection['Collection']) && self::isWithheld($collection['Collection'])) {
+            $results['success'] = true;
+            $results['ignored'] = 1;
+            return $results;
         }
 
         // No server context ⇒ treat as external + non-internal (downgrade + locked

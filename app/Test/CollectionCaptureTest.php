@@ -713,6 +713,32 @@ class CollectionCaptureTest extends TestCase
         $this->assertNotContains('analysis', $this->collection->savedFieldList);
     }
 
+    public function testAPayloadSayingItIsUnpublishedWaitsForItsPublish(): void
+    {
+        $res = $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => false)), $this->externalServer());
+
+        $this->assertTrue($res['success']);
+        $this->assertSame(1, $res['ignored']);
+        $this->assertSame(0, $res['imported']);
+        $this->assertNull($this->collection->savedData, 'nothing written');
+        $this->assertSame(0, $this->element->callCount);
+
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => '0', 'distribution' => 4)), $this->externalServer());
+        $this->assertNull($this->collection->savedData, 'a sharing group too');
+    }
+
+    public function testAPublishedPayloadIsCaptured(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => true)), $this->externalServer());
+        $this->assertTrue($this->collection->savedData['Collection']['published']);
+    }
+
+    public function testAnOrganisationOnlyPayloadHasNothingToPublish(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => false, 'distribution' => 0)), $this->externalServer());
+        $this->assertNotNull($this->collection->savedData);
+    }
+
     public function testACaptureReleasesEveryMember(): void
     {
         $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer());

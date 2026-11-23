@@ -185,6 +185,7 @@ class CollectionPullTestServerSync extends ServerSyncTool
     public $fetchCallCount = 0;
     public $fetchedChunks = array();
     public $flags = array();             // flag => bool, over $supported
+    public $rulesSent = null;
 
     public function __construct()
     {
@@ -208,6 +209,7 @@ class CollectionPullTestServerSync extends ServerSyncTool
 
     public function collectionIndexMinimal(array $rules)
     {
+        $this->rulesSent = $rules;
         if ($this->throwOnIndex) {
             throw new Exception('boom-index');
         }
@@ -446,6 +448,18 @@ class CollectionPullTest extends TestCase
             $this->collection->pull($this->user(), $this->sync);
             $this->assertSame($fromPre30, $this->collection->captureCalls[0]['fromPre30']);
         }
+    }
+
+    public function testA30PeerIsAskedForPublishedCollectionsOnly(): void
+    {
+        $this->sync->flags[ServerSyncTool::FEATURE_VALUE_TARGETS] = true;
+        $this->collection->pull($this->user(), $this->sync);
+        $this->assertSame(1, $this->sync->rulesSent['published']);
+        $this->assertArrayHasKey('orgc_name', $this->sync->rulesSent, 'the org rules still go');
+
+        $this->sync->flags[ServerSyncTool::FEATURE_VALUE_TARGETS] = false;
+        $this->collection->pull($this->user(), $this->sync);
+        $this->assertArrayNotHasKey('published', $this->sync->rulesSent, 'an older peer has no publish step');
     }
 
     public function testPermSyncInternalFalseWhenRemoteLacksIt(): void

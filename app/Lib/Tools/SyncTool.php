@@ -132,8 +132,8 @@ class SyncTool
     }
 
     /**
-     * Another instance reads only what has been published, as a collection
-     * shared beyond its organisation is withheld until then.
+     * Another instance is not served the saved graphs and relationships an
+     * unpublished collection holds back.
      *
      * @return bool Whether a MISP instance is making the request
      */

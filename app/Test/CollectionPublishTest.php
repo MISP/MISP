@@ -83,6 +83,29 @@ require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Collection.php';
 
+class PublishTestSharingGroups
+{
+    public function authorizedIds($user)
+    {
+        return array(5);
+    }
+}
+
+class PublishTestUsers
+{
+    private $user;
+
+    public function __construct(array $user)
+    {
+        $this->user = $user;
+    }
+
+    public function getAuthUser($id)
+    {
+        return $this->user;
+    }
+}
+
 /** Collection with its writes and reads recorded instead of run. */
 class PublishTestCollection extends Collection
 {
@@ -287,6 +310,51 @@ class CollectionPublishTest extends TestCase
         $this->assertSame(array(), $this->collection->servedRelationships($rows));
         $this->collection->servedRelationships($rows);
         $this->assertSame(1, $this->collection->scopeReads, 'read once for the request');
+    }
+
+    public function testAnotherInstanceIsServedAsAnyUserUnlessOlderThan30()
+    {
+        $this->assertSame(array(), Collection::servedConditions(), 'an API client');
+        Configure::write('CurrentRequesterMispVersion', '3.0.0');
+        $this->assertSame(array(), Collection::servedConditions(), 'a 3.0 instance pulls published ones itself');
+        Configure::write('CurrentRequesterMispVersion', '2.5.22');
+        $this->assertSame(Collection::releasedConditions(), Collection::servedConditions(), 'no publish step to tell');
+        $this->assertSame(
+            array('Collection.distribution !=' => 0, 'Collection.published' => false),
+            Collection::withheldConditions()
+        );
+    }
+
+    public function testUnpublishedPrivateKeepsAnUnpublishedCollectionInItsOrganisation()
+    {
+        ClassRegistry::$instances['SharingGroup'] = new PublishTestSharingGroups();
+        $user = $this->user(array('perm_site_admin' => false), 2);
+        $setting = Configure::read('MISP.unpublishedprivate');
+
+        Configure::write('MISP.unpublishedprivate', false);
+        $open = $this->collection->buildConditions($user);
+        Configure::write('MISP.unpublishedprivate', true);
+        $private = $this->collection->buildConditions($user);
+
+        $this->collection->User = new PublishTestUsers($user);
+        $this->collection->listed = array(array('Collection' => array('org_id' => 1, 'distribution' => 1, 'published' => false)));
+        $mayView = $this->collection->mayView(3, 10);
+        $this->collection->listed = array(array('Collection' => array('org_id' => 2, 'distribution' => 1, 'published' => false)));
+        $mayViewOwn = $this->collection->mayView(3, 10);
+        Configure::write('MISP.unpublishedprivate', false);
+        $this->collection->listed = array(array('Collection' => array('org_id' => 1, 'distribution' => 1, 'published' => false)));
+        $mayViewOpen = $this->collection->mayView(3, 10);
+        Configure::write('MISP.unpublishedprivate', $setting);
+
+        $this->assertSame(array('Collection.org_id' => 2), $open['OR'][0]);
+        $this->assertSame(array(), $open['OR'][1]['AND'][1], 'unset: shared unpublished collections are seen');
+        $this->assertSame(array('Collection.published' => true), $private['OR'][1]['AND'][1]);
+        $this->assertSame(array('Collection.published' => true), $private['OR'][2]['AND'][1], 'a sharing group too');
+        $this->assertSame(array(5), $private['OR'][2]['AND'][0]['Collection.sharing_group_id']);
+        $this->assertSame(array('Collection.org_id' => 2), $private['OR'][0], 'its organisation still sees it');
+        $this->assertFalse($mayView);
+        $this->assertTrue($mayViewOwn);
+        $this->assertTrue($mayViewOpen);
     }
 
     public function testPublishingTakesPermPublishAndTheEditRight()

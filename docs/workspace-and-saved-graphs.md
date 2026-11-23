@@ -252,8 +252,11 @@ Synchronisation of collections is described for developers in
 - A 3.0 instance that is not yet able to hold standalone objects receives the
   collection without them.
 - A collection shared beyond your organisation and not published since its
-  last change is not sent to partners, and partners that ask for it do not see
-  it, nor its saved graphs and the links between its members.
+  last change is neither sent to partners nor taken by their pulls, as an
+  unpublished event. Their instances can still list it, marked unpublished,
+  but not its saved graphs or the links between its members. A MISP older
+  than 3.0 is not shown it at all. With `MISP.unpublishedprivate` set, only
+  your organisation sees it, as with events.
 - Who added a member stays inside the collection's organisation; when it was
   added is sent.
 
@@ -273,7 +276,7 @@ where the table says so).
 | `GET /collections/editable` | Collections you may make your workspace, recently used first; `active` is the stored choice | `scope=mine` keeps those you created | `perm_modify` |
 | `POST /collections/quickAdd` | Create a collection, optionally make it your workspace and fill it | `name`, `type`, `distribution`, `sharing_group_id`, `description`, `workspace`, `items`, `graph`, `copied_from` | `perm_modify` |
 | `GET /collections/index`, `GET /collections/view/<id or uuid>` | List and read collections, with their elements | the usual index filters | any |
-| `POST /collections/indexMinimal` | `{uuid: modified}` of the collections you may see | `orgc_name` | any |
+| `POST /collections/indexMinimal` | `{uuid: modified}` of the collections you may see | `orgc_name`, `published` (1: published or organisation-only, 0: waiting for a publish) | any |
 | `GET /collections/holding/<type>/<address>` | The collections you can see that hold a record, and `active` | type is `Event`, `Attribute`, `Object`, `GalaxyCluster`, `StandaloneObject`, or `Value` (then the address is its SHA-256) | any |
 | `GET /collections/getCollectionsForElement/<type>/<address>` | The collections holding one element | | any |
 | `POST /collections/getCollectionsForElements/<type>` | The same for many elements, keyed by address | `uuids` | any |

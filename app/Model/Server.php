@@ -5964,7 +5964,7 @@ class Server extends AppModel
                 ),
                 'unpublishedprivate' => array(
                     'level' => 2,
-                    'description' => __('True will deny access to unpublished events to users outside the organization of the submitter except site admins.'),
+                    'description' => __('True will deny access to unpublished events and collections to users outside the organization of the submitter except site admins.'),
                     'value' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'

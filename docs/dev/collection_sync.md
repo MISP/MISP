@@ -132,6 +132,8 @@ pull) runs the collection block when
 1. `Collection::pull($user, $serverSync)`:
    - `buildPullFilterRules(server)` → the `orgc_name` OR/NOT filter (from the
      server's `pull_rules`), which the remote `indexMinimal` resolves to `orgc_id`.
+     Against a 3.0 remote (`FEATURE_VALUE_TARGETS`) the rules also carry
+     `published: 1`, as the event pull asks `events/index` for published events.
    - `ServerSyncTool::collectionIndexMinimal($rules)` → remote `POST
      /collections/indexMinimal` → a flat `{uuid: modified}` map (collections have
      no analyst-data `type` dimension).
@@ -208,12 +210,20 @@ A collection that is shared beyond its organisation and not published is
 *withheld* (`Collection::isWithheld()`, `Collection::releasedConditions()`):
 
 - It is not pushed (`collectDataForPush` requires `published`).
-- It is not served to a requester identified as MISP
-  (`SyncTool::requesterIsMisp()`, from the `User-Agent: MISP <x.y.z>` header):
-  `collections/index` (REST) and `collections/indexMinimal` add
-  `releasedConditions()`. Any other client, PyMISP or a browser, is never
-  filtered.
-- What its organisation drew on it is withheld too: analyst data `indexMinimal`,
+- It is not pulled. As an unpublished event, it is still listed and shown to
+  whoever may see it, another 3.0 instance included, with `published: false`;
+  the pulling instance asks `indexMinimal` for `published: 1` and the capture
+  sink ignores a payload that says it is withheld (a collection unpublished
+  between the index and the fetch).
+- A MISP older than 3.0 (`SyncTool::requesterBelow30()`, from the
+  `User-Agent: MISP <x.y.z>` header) has no publish step to tell them apart,
+  so `collections/index`, `collections/view` and `collections/indexMinimal`
+  serve it released collections only (`Collection::servedConditions()`).
+- With `MISP.unpublishedprivate`, it is hidden from other organisations' users
+  altogether (`Collection::buildConditions()`, `mayView()`), as an unpublished
+  event is.
+- What its organisation drew on it is withheld from another instance:
+  analyst data `indexMinimal`,
   the analyst data pushed and the relationships nested in event, attribute and
   object views drop the collection's graphs and the relationships between its
   members (`Collection::withoutHeldBack()`, `servedRelationships()`,
@@ -298,7 +308,7 @@ in `AppController::beforeFilter`, so no `unlockedActions[]` entries are needed):
 
 | Action | ACL (`ACLComponent` `collections` block) | Purpose |
 |--------|------------------------------------------|---------|
-| `indexMinimal` | `['*']` | `{uuid: modified}` index (visibility-filtered inside). |
+| `indexMinimal` | `['*']` | `{uuid: modified}` index (visibility-filtered inside); `published` 1 or 0 keeps released or withheld collections only. |
 | `index` | `['*']` | Full collection fetch (REST adds `contain CollectionElement` + `uuid[]` filter). |
 | `filterCollectionsForPush` | `['perm_sync']` | Push-receive dedup handshake. |
 | `captureCollection` | `['perm_sync']` | Push-receive upload → the shared sink. |
@@ -306,8 +316,9 @@ in `AppController::beforeFilter`, so no `unlockedActions[]` entries are needed):
 | `analysis` | `['perm_modify']` | Set how far the investigation went. |
 | `shareAlong` | `['perm_modify']` | What would go along with a collection widened to a distribution. |
 
-On the requester side, `collections/index` and `collections/indexMinimal` leave
-withheld collections out when the request identifies as MISP, and
+On the requester side, `collections/index`, `collections/view` and
+`collections/indexMinimal` leave withheld collections out for a MISP older than
+3.0 (`Collection::servedConditions()`), and
 `CollectionsController::index` serves the elements through
 `Collection::servedElementOptions()`: a requester older than 3.0 is served only
 `Event` and `GalaxyCluster` elements.

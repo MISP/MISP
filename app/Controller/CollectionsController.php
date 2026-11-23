@@ -810,6 +810,10 @@ class CollectionsController extends AppController
         if (!$this->IndexFilter->isRest()) {
             $params['contain'][] = 'SharingGroup';
         }
+        $served = Collection::servedConditions();
+        if (!empty($served)) {
+            $params['conditions'] = $served;
+        }
         $this->CRUD->view($id, $params);
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
@@ -915,8 +919,9 @@ class CollectionsController extends AppController
             if (!empty($uuidFilter)) {
                 $params['conditions']['AND'][] = ['Collection.uuid' => (array)$uuidFilter];
             }
-            if (SyncTool::requesterIsMisp()) {
-                $params['conditions']['AND'][] = Collection::releasedConditions();
+            $served = Collection::servedConditions();
+            if (!empty($served)) {
+                $params['conditions']['AND'][] = $served;
             }
         }
         $this->loadModel('Event');
@@ -945,6 +950,10 @@ class CollectionsController extends AppController
             $filters = $this->request->data;
         }
         $options = [];
+        // As the event pull asks for published events: 1 released, 0 withheld
+        if (isset($filters['published']) && $filters['published'] !== '' && !is_array($filters['published'])) {
+            $options[]['AND'][] = $filters['published'] ? Collection::releasedConditions() : Collection::withheldConditions();
+        }
         if (!empty($filters['orgc_name'])) {
             // Resolve names through a canonically-aliased Organisation model: fetchOrg()
             // hardcodes a `LOWER(Organisation.name)` condition, so calling it via the
