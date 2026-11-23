@@ -115,7 +115,9 @@ class FeedsController extends AppController
                 }
 
                 foreach ($feeds as &$feed) {
-                    if (!empty($feed['Feed']['headers'])) {
+                    if (!$this->_isSiteAdmin()) {
+                        unset($feed['Feed']['headers']);
+                    } elseif (!empty($feed['Feed']['headers'])) {
                         $feed['Feed']['headers'] = '****';
                     }
                     if (!empty($feed['Feed']['tag_collection_id'])) {
@@ -195,8 +197,7 @@ class FeedsController extends AppController
             'afterFind' => function (array $feed) {
                 if (!$this->_isSiteAdmin()) {
                     unset($feed['Feed']['headers']);
-                }
-                if (!empty($feed['Feed']['headers'])) {
+                } elseif (!empty($feed['Feed']['headers'])) {
                     $feed['Feed']['headers'] = '****';
                 }
                 $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
