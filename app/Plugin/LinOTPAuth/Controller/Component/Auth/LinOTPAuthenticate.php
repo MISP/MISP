@@ -33,6 +33,9 @@ class LinOTPAuthenticate extends BaseAuthenticate
      */
     private static function _linotp_verify($baseUrl, $realm, $user, $password, $verifyssl)
     {
+        // A missing setting means verification on; only an explicit false opts out
+        $verifyssl = $verifyssl === null
+            || filter_var($verifyssl, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false;
         $params = array();
         $params['ssl_allow_self_signed'] = !$verifyssl;
         $params['ssl_verify_peer_name'] = $verifyssl;

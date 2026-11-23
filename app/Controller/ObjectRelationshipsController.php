@@ -84,7 +84,7 @@ class ObjectRelationshipsController extends AppController
         }
 
         $this->set('data', $relationships);
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('menuData', ['menuList' => 'objectTemplates', 'menuItem' => 'object_relationship_index']);
     }
 

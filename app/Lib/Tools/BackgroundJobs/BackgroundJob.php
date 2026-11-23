@@ -167,8 +167,9 @@ class BackgroundJob implements JsonSerializable
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
             'status' => $this->status,
-            'output' => $this->output,
-            'error' => $this->error,
+            // Job stdout/stderr may contain invalid UTF-8
+            'output' => $this->output === null ? null : mb_scrub($this->output, 'UTF-8'),
+            'error' => $this->error === null ? null : mb_scrub($this->error, 'UTF-8'),
             'metadata' => $this->metadata,
         ];
     }

@@ -344,12 +344,14 @@ class CollectionsController extends AppController
         }
         $data = $this->viewVars['data'];
         $sharingGroupId = $data['Collection']['SharingGroup']['id'] ?? null;
-        if (!empty($sharingGroupId)) {
+        if ($data['Collection']['distribution'] != 4) {
+            unset($data['Collection']['SharingGroup']);
+        } elseif (!empty($sharingGroupId)) {
             $data['Collection']['SharingGroup']['org_count'] = $this->Collection->SharingGroup->SharingGroupOrg->find('count', [
                 'conditions' => ['SharingGroupOrg.sharing_group_id' => $sharingGroupId],
             ]);
-            $this->set('data', $data);
         }
+        $this->set('data', $data);
         $elements = $data['Collection']['CollectionElement'] ?? [];
 
         // Enrich elements with a human-readable reference so the elements
@@ -437,6 +439,9 @@ class CollectionsController extends AppController
             'contain' => ['Orgc', 'SharingGroup'],
             'afterFind' => function($collections) {
                 foreach ($collections as $k => $collection) {
+                    if ($collection['Collection']['distribution'] != 4) {
+                        unset($collections[$k]['SharingGroup']);
+                    }
                     $collections[$k]['Collection']['element_count'] = $this->Collection->CollectionElement->find('count', [
                         'recursive' => -1,
                         'conditions' => ['CollectionElement.collection_id' => $collection['Collection']['id']]

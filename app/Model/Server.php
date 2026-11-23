@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('AnalystData', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('SharingGroup', 'Model');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
 App::uses('GitTool', 'Tools');
@@ -493,20 +494,18 @@ class Server extends AppModel
         $passAlong = $server['Server']['id'];
         if (!$existingEvent) {
             // add data for newly imported events
+            // An internal link needs no signature
+            $fingerprint = true;
             if (!$server['Server']['internal'] && isset($event['Event']['protected']) && $event['Event']['protected']) {
-                if (!$eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event)) {
+                $fingerprint = $eventModel->CryptographicKey->validateProtectedEvent($response->body, $user, $response->getHeader('x-pgp-signature'), $event);
+                if (!$fingerprint) {
                     $fails[$eventId] = __('Event failed the validation checks. The remote instance claims that the event can be signed with a valid key which is sus.');
                     return false;
                 }
             }
-            if(isset($event['Event']['protected']) && $event['Event']['protected'] && isset($event['Event']['CryptographicKey'][0])) {
-                $fingerprint = $event['Event']['CryptographicKey'][0]['fingerprint'];
-                $created_id = 0;
-                $validationIssues = array();
-                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
-            }else{
-                $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
-            }
+            $created_id = 0;
+            $validationIssues = array();
+            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId, $created_id, $validationIssues, $fingerprint);
             if ($result) {
                 $successes[] = $eventId;
                 if ($this->pubToZmq('event')) {
@@ -612,6 +611,13 @@ class Server extends AppModel
      * @throws Exception
      */
     public function pull(array $user, $technique, array $server, $jobId = false, $force = false)
+    {
+        return SharingGroup::captureRemote($server, function () use ($user, $technique, $server, $jobId, $force) {
+            return $this->__pull($user, $technique, $server, $jobId, $force);
+        });
+    }
+
+    private function __pull(array $user, $technique, array $server, $jobId, $force)
     {
         if ($jobId) {
             Configure::write('CurrentUserId', $user['id']);
@@ -1409,6 +1415,9 @@ class Server extends AppModel
                         $params['noSightings'] = 1;
                     }
                     $event = $this->Event->fetchEvent($user, $params);
+                    if (empty($event)) {
+                        continue;
+                    }
                     $event = $event[0];
                     $event['Event']['locked'] = 1;
 
@@ -1437,9 +1446,11 @@ class Server extends AppModel
                 if (count($fails) > 0) {
                     // there are fails, take the lowest fail
                     $lastpushedid = min(array_keys($fails));
-                } else {
+                } elseif (!empty($successes)) {
                     // no fails, take the highest success
                     $lastpushedid = max($successes);
+                } else {
+                    $lastpushedid = $server['Server']['lastpushedid'];
                 }
                 // increment lastid based on the highest ID seen
                 // Save the entire Server data instead of just a single field, so that the logger can be fed with the extra fields.
@@ -1541,11 +1552,24 @@ class Server extends AppModel
         }
 
         try {
-            return $serverSync->filterEventIdsForPush($request)->json();
+            $wanted = $serverSync->filterEventIdsForPush($request)->json();
         } catch (Exception $e) {
             $this->logException("Could not filter events for push when pushing to server {$serverSync->serverId()}", $e);
             return false;
         }
+        if (!is_array($wanted)) {
+            $this->log("Invalid reply when filtering events for push to server {$serverSync->serverId()}.", LOG_WARNING);
+            return [];
+        }
+        // The remote only picks from what was offered
+        $wanted = array_flip(array_filter($wanted, 'is_string'));
+        $eventUuids = [];
+        foreach ($request as $offered) {
+            if (isset($wanted[$offered['Event']['uuid']])) {
+                $eventUuids[] = $offered['Event']['uuid'];
+            }
+        }
+        return $eventUuids;
     }
 
     /**
@@ -1685,8 +1709,18 @@ class Server extends AppModel
     public function getCurrentServerSettings()
     {
         $serverSettings = $this->serverSettings;
-        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Action', 'Cortex');
+        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Action', 'Gathering', 'Cortex');
         return $this->readModuleSettings($serverSettings, $moduleTypes);
+    }
+
+    /**
+     * Only `test*` validators may be invoked by name; a setting definition cannot reach other methods.
+     * @param mixed $test
+     * @return bool
+     */
+    private static function isSettingTest($test)
+    {
+        return is_string($test) && strpos($test, 'test') === 0 && method_exists('Server', $test);
     }
 
     /**
@@ -1877,6 +1911,8 @@ class Server extends AppModel
             if (!empty($leafValue['test'])) {
                 if ($leafValue['test'] instanceof Closure) {
                     $result = $leafValue['test']($setting);
+                } elseif (!self::isSettingTest($leafValue['test'])) {
+                    $result = true;
                 } else {
                     $result = $this->{$leafValue['test']}($setting, empty($leafValue['errorMessage']) ? false : $leafValue['errorMessage']);
                 }
@@ -2948,6 +2984,8 @@ class Server extends AppModel
             if (isset($setting['test'])) {
                 if ($setting['test'] instanceof Closure) {
                     $testResult = $setting['test']($value);
+                } elseif (!self::isSettingTest($setting['test'])) {
+                    $testResult = true;
                 } else {
                     $testResult = $this->{$setting['test']}($value);
                 }
@@ -6672,9 +6710,16 @@ class Server extends AppModel
                 ),
                 'log_client_ip_header' => array(
                     'level' => 1,
-                    'description' => __('If log_client_ip is enabled, you can customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance. Prepend the variable with "HTTP_", for example "HTTP_X_FORWARDED_FOR".'),
+                    'description' => __('Customize which header field contains the client\'s IP address. This is generally used when you have a reverse proxy in front of your MISP instance, and applies to every use of the client IP: auth key IP restrictions, brute-force protection and logs. Prepend the variable with "HTTP_", for example "HTTP_X_FORWARDED_FOR". MISP uses the right-most address that does not belong to a trusted proxy, so set MISP.trusted_proxies as well.'),
                     'value' => 'REMOTE_ADDR',
                     'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'null' => true,
+                ),
+                'trusted_proxies' => array(
+                    'level' => 1,
+                    'description' => __('The reverse proxies in front of your MISP instance, as a comma-separated list of IP addresses or CIDR ranges. When set, MISP.log_client_ip_header is honoured only for requests coming from these proxies, and their own entries are skipped when reading it.'),
+                    'value' => '',
                     'type' => 'string',
                     'null' => true,
                 ),
@@ -7356,14 +7401,6 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'restrict_server_signing_to_host_org' => [
-                    'level' => self::SETTING_RECOMMENDED,
-                    'description' => __('Restrict server signing via /encryptionKeys/serverSign to host org only users, even for users that otherwise meet role requirements. This setting defaults to false. Site admins are exempt from this requirement, even when the setting is enabled.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
@@ -7572,6 +7609,14 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ),
+                'max_decompressed_size' => array(
+                    'level' => 1,
+                    'description' => __('Maximum size, in bytes, of compressed data once decompressed: request bodies sent to this instance (a larger one is refused with 413) and responses fetched from feeds and sync servers, including a zip feed\'s file (a larger one fails the fetch). Leave empty or 0 to use the PHP memory limit in force (no limit when that is -1, which is common for background workers). Large events need this at least as large as their JSON.'),
+                    'value' => 0,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ),
                 'syslog' => array(
                     'level' => 0,
                     'description' => __('Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.'),
@@ -7730,7 +7775,7 @@ class Server extends AppModel
                 ),
                 'allow_password_forgotten' => array(
                     'level' => 1,
-                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Users with no encryption keys will not be able to use this feature.'),
+                    'description' => __('Enabling this setting will allow users to request automated password reset tokens via mail and initiate a reset themselves. Requires MISP.baseurl or MISP.external_baseurl to be set. Users without an encryption key receive the reset link unencrypted, unless GnuPG.bodyonlyencrypted is enabled, in which case they cannot use this feature.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7903,6 +7948,8 @@ class Server extends AppModel
                         /** @var Cerebrate $cerebrate */
                         $cerebrate = ClassRegistry::init('Cerebrate');
                         $cerebrate->reencryptAuthKeys($old, $new);
+
+                        ClassRegistry::init('UserSetting')->reencryptOidcRefreshTokens($old, $new);
                         ClassRegistry::init('UserSetting')->reencryptModuleApiKeys($old, $new);
                         return true;
                     },
@@ -8757,6 +8804,62 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
+                'Gathering_services_url' => array(
+                    'level' => 1,
+                    'description' => __('URL of the misp-modules gathering service.'),
+                    'value' => 'http://127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Gathering_services_port' => array(
+                    'level' => 1,
+                    'description' => __('Port of the misp-modules gathering service.'),
+                    'value' => '6666',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Gathering_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable gathering modules as MISP feed sources.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Gathering_max_archive_bytes' => array(
+                    'level' => 1,
+                    'description' => __('Maximum compressed gathering archive size in bytes.'),
+                    'value' => 10737418240,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_max_expanded_bytes' => array(
+                    'level' => 1,
+                    'description' => __('Maximum expanded gathering feed size in bytes.'),
+                    'value' => 10737418240,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_max_event_bytes' => array(
+                    'level' => 1,
+                    'description' => __('Maximum size of one file in a gathering archive in bytes.'),
+                    'value' => 268435456,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_generation_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Maximum background gathering generation wait in seconds. Long collections should use feed background jobs.'),
+                    'value' => 86400,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Execution timeout in seconds for gathering modules.'),
+                    'value' => 150,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
                 'Action_services_url' => array(
                     'level' => 1,
                     'description' => __('The url used to access the action services. By default, it is accessible at http://127.0.0.1:6666'),
@@ -9292,7 +9395,6 @@ class Server extends AppModel
                     'Publish Galaxy clusters' => 'MISP/app/Console/cake Event publish_galaxy_clusters [cluster_id] [job_id] [user_id] [pass_along]',
                     'Cache event' => 'MISP/app/Console/cake Event cache [user_id] [event_id] [export_type]',
                     'Cache bro' => 'MISP/app/Console/cake Event cachebro [user_id] [event_id]',
-                    'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
                     'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',

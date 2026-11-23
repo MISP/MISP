@@ -1500,7 +1500,8 @@ class AdminShell extends AppShell
     {
         $conditions = array('Bruteforce.username !=' => '');
         if (!empty($this->args[0])) {
-            $conditions = array('Bruteforce.username' => $this->args[0]);
+            $username = $this->Bruteforce->usernameKey($this->args[0]);
+            $conditions = array('Bruteforce.username' => $username);
         }
         $result = $this->Bruteforce->deleteAll($conditions, false, false);
         $target = empty($this->args[0]) ? 'all users' : $this->args[0];
@@ -2105,6 +2106,7 @@ class AdminShell extends AppShell
 
             /** @var UserSetting $userSetting */
             $userSetting = ClassRegistry::init('UserSetting');
+            $userSetting->reencryptOidcRefreshTokens($old, $new);
             $userSetting->reencryptModuleApiKeys($old, $new);
 
             $result = $this->Server->serverSettingsSaveValue('Security.encryption_key', $new, true);

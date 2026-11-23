@@ -146,7 +146,7 @@ class BenchmarksController extends AppController
             $customPagination->truncateAndPaginate($data, $this->params, $this->modelClass, true);
         }
         $this->set('data', $data);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('filters', $filters);
         // Collection state, so the views can say why a screen is empty or stale.
         $this->set('benchmarkingEnabled', (bool)Configure::read('Plugin.Benchmarking_enable'));

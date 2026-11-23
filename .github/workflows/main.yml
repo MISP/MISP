@@ -261,10 +261,23 @@ jobs:
           sudo chmod +x /home
           sudo chmod +x /
 
+      # PyMISP 3 needs Python 3.11+, jammy ships 3.10
+      - name: Python 3.12 for jammy
+        if: matrix.os == 'ubuntu-22.04'
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
       - name: Python setup
         run: |
           # Dirty install python stuff
-          python3 -m virtualenv -p python3 ./venv
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            python -m venv ./venv
+            # MISP runs this venv as www-data: fail here if it cannot
+            sudo -u www-data ./venv/bin/python -c 'import ssl, sqlite3'
+          else
+            python3 -m virtualenv -p python3 ./venv
+          fi
           app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"
           . ./venv/bin/activate
           export PYTHONPATH=$PYTHONPATH:./app/files/scripts

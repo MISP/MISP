@@ -225,9 +225,10 @@ class UserSettingsController extends AppController
                 'conditions' => array(
                     'UserSetting.user_id' => $user_id,
                     'UserSetting.setting' => $setting
-                )
+                ),
+                'contain' => array('User.id', 'User.org_id')
             ));
-            if (!empty($current_setting)) {
+            if (!empty($current_setting) && $this->UserSetting->checkAccess($this->Auth->user(), $current_setting)) {
                 $this->set('current_setting', $current_setting['UserSetting']['value']);
             }
         }

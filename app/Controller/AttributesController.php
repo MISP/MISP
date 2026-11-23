@@ -3152,6 +3152,14 @@ class AttributesController extends AppController
             $toRemoveLocal  = array_diff(array_keys($currentLocal),  $desiredLocal);
 
             $AttributeTag = $this->MispAttribute->AttributeTag;
+            $attachable = $AttributeTag->Tag->attachableTagIdsForUser(
+                $user, array_merge($toAddGlobal, $toAddLocal));
+            $toAddGlobal = array_filter($toAddGlobal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]) && !$attachable[$tagId];
+            });
+            $toAddLocal = array_filter($toAddLocal, function ($tagId) use ($attachable) {
+                return isset($attachable[$tagId]);
+            });
             foreach ($toAddGlobal as $tagId) {
                 $AttributeTag->attachTagToAttribute($attributeId, $eventId, $tagId, false);
             }
@@ -4249,11 +4257,9 @@ class AttributesController extends AppController
                 }
                 $tag_id = $this->request->data['tag'];
             }
-            $attribute = $this->MispAttribute->find('first', [
-                'recursive' => -1,
+            $attribute = $this->MispAttribute->fetchAttributeSimple($this->Auth->user(), [
                 'conditions' => ['Attribute.id' => $id],
                 'fields' => ['Attribute.deleted', 'Attribute.event_id', 'Attribute.id', 'Attribute.object_id', 'Attribute.type', 'Attribute.disable_correlation', 'Attribute.value', 'Event.orgc_id', 'Event.user_id'],
-                'contain' => ['Event'],
             ]);
             if (empty($attribute) || $attribute['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));

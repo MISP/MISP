@@ -117,7 +117,7 @@ class TaxonomiesController extends AppController
 
         $this->set('entries', $taxonomy['entries']);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('passedArgsArray', $this->passedArgs);
         $this->set('taxonomy', $taxonomy['Taxonomy']);
         $this->set('id', $taxonomy['Taxonomy']['id']);

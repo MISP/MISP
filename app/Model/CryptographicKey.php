@@ -201,7 +201,7 @@ class CryptographicKey extends AppModel
      * @param string $data
      * @param string $signature
      * @param string $key
-     * @return bool
+     * @return string|false Fingerprint of $key when it made the signature
      */
     public function verifySignature($data, $signature, $key)
     {
@@ -227,7 +227,7 @@ class CryptographicKey extends AppModel
             return false;
         }
         if ($verifiedSignature[0]->getKeyFingerprint() === $fingerprint) {
-            return true;
+            return $fingerprint;
         } else {
             $this->error = self::ERROR_WRONG_KEY;
             return false;
@@ -315,6 +315,9 @@ class CryptographicKey extends AppModel
         }
     }
 
+    /**
+     * @return string|false Fingerprint of the event's key that made the signature
+     */
     public function validateProtectedEvent($raw_data, array $user, $pgp_signature, array $event)
     {
         if (empty($user)) {
@@ -327,18 +330,62 @@ class CryptographicKey extends AppModel
             $eventCryptoGraphicKey = $event['CryptographicKey'];
         }
         if (empty($eventCryptoGraphicKey)) {
-            $message = __('No valid signatures found for validating the signature.');
-            $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', $event['Event']['uuid'], $message);
+            $message = __('No valid signatures found for validating the signature of event %s.', $event['Event']['uuid']);
+            $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
             return false;
         }
         $pgp_signature = base64_decode($pgp_signature);
         foreach ($eventCryptoGraphicKey as $supplied_key) {
-            if ($this->verifySignature($raw_data, $pgp_signature, $supplied_key['key_data'])) {
-                return true;
+            if (!empty($supplied_key['revoked'])) {
+                continue;
+            }
+            $fingerprint = $this->verifySignature($raw_data, $pgp_signature, $supplied_key['key_data']);
+            if ($fingerprint) {
+                try {
+                    $unsigned = $this->__hasUnsignedWhitespace(JsonTool::decodeArray($raw_data));
+                } catch (Exception $e) {
+                    $unsigned = true;
+                }
+                if ($unsigned) {
+                    $message = __('The signed data has whitespace in a key or an identifier, which the signature does not cover.');
+                    $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
+                    return false;
+                }
+                return $fingerprint;
             }
         }
         $message = __('Could not validate the signature.');
         $this->loadLog()->createLogEntry($user, 'validateSig', 'Event', 0, $message);
+        return false;
+    }
+
+    /**
+     * Signatures cover the data with all whitespace removed, so whitespace added to a key (renaming the field)
+     * or to an identifier or timestamp goes unnoticed. Galaxy cluster meta keys may legitimately contain it.
+     *
+     * @param array $data
+     * @param int|string|null $parentKey
+     * @return bool
+     */
+    private function __hasUnsignedWhitespace(array $data, $parentKey = null)
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($key) && $parentKey !== 'meta' && strpbrk($key, " \t\n\r\v\f") !== false) {
+                return true;
+            }
+            if (is_array($value)) {
+                if ($this->__hasUnsignedWhitespace($value, $key)) {
+                    return true;
+                }
+            } else if (
+                is_string($value) &&
+                is_string($key) &&
+                strpbrk($value, " \t\n\r\v\f") !== false &&
+                preg_match('/^(?:uuid|id|timestamp|distribution|date)$|_(?:uuid|id|timestamp)$/', $key)
+            ) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -352,7 +399,7 @@ class CryptographicKey extends AppModel
      */
     public function captureCryptographicKeyUpdate(array $user, array $cryptographicKeys, $parent_id, $type)
     {
-        $existingKeys = $this->find('first', [
+        $existingKeys = $this->find('all', [
             'recursive' => -1,
             'conditions' => [
                 'parent_type' => $type,
@@ -367,36 +414,44 @@ class CryptographicKey extends AppModel
                 'fingerprint',
             ]
         ]);
+        foreach ($cryptographicKeys as $k => $cryptographicKey) {
+            // Without this, an entry built by hand would not match its stored key, which then gets removed
+            if (empty($cryptographicKey['fingerprint']) && isset($cryptographicKey['type'], $cryptographicKey['key_data'])) {
+                $cryptographicKeys[$k]['fingerprint'] = $this->extractKeyData($cryptographicKey['type'], $cryptographicKey['key_data']);
+            }
+        }
         $toRemove = [];
         $results = ['add' => [], 'remove' => []];
         foreach ($existingKeys as $existingKey) {
+            $existingKey = $existingKey['CryptographicKey'];
             foreach ($cryptographicKeys as $k2 => $cryptographicKey) {
-                if ($existingKey['fingerprint'] === $cryptographicKey['fingerprint']) {
-                    if ($cryptographicKey['revoked'] && !$existingKey['CryptographicKey']['revoked']) {
-                        $existingKey['CryptographicKey']['revoked'] = 1;
-                        $this->save($existingKey['CryptographicKey']);
+                if (isset($cryptographicKey['fingerprint']) && $existingKey['fingerprint'] === $cryptographicKey['fingerprint']) {
+                    // A revocation is never lifted by the pushed data
+                    if (!empty($cryptographicKey['revoked']) && empty($existingKey['revoked'])) {
+                        $this->save(['id' => $existingKey['id'], 'revoked' => 1]);
                     }
                     unset($cryptographicKeys[$k2]);
                     continue 2;
                 }
             }
-            $toRemove[] = $existingKey['CryptographicKey']['id'];
-            $results['remove'][$existingKey['CryptographicKey']['id']] = $existingKey['CryptographicKey']['fingerprint'];
+            $toRemove[] = $existingKey['id'];
+            $results['remove'][$existingKey['id']] = $existingKey['fingerprint'];
         }
         foreach ($cryptographicKeys as $cryptographicKey) {
             $this->create();
-            $this->save(
+            // beforeSave() sets uuid and fingerprint; an entry built by hand has only type and key_data
+            $saved = $this->save(
                 [
-                    'uuid' => $cryptographicKey['uuid'],
                     'key_data' => $cryptographicKey['key_data'],
-                    'fingerprint' => $cryptographicKey['fingerprint'],
-                    'revoked' => $cryptographicKey['revoked'],
-                    'parent_type' => $cryptographicKey['parent_type'],
+                    'revoked' => empty($cryptographicKey['revoked']) ? 0 : 1,
+                    'parent_type' => $type,
                     'parent_id' => $parent_id,
                     'type' => $cryptographicKey['type']
                 ]
             );
-            $results['add'][$cryptographicKey['id']] = $cryptographicKey['fingerprint'];
+            if ($saved) {
+                $results['add'][$this->id] = $saved['CryptographicKey']['fingerprint'];
+            }
         }
         $message = __(
             'Added %s (%s) and removed %s (%s) keys for %s #%s.',
@@ -404,11 +459,13 @@ class CryptographicKey extends AppModel
             implode (',', $results['add']),
             count($results['remove']),
             implode (',', $results['remove']),
-            $cryptographicKey['parent_type'],
+            $type,
             $parent_id
         );
-        $this->deleteAll(['CryptographicKey.id' => $toRemove]);
-        $this->loadLog()->createLogEntry($user, 'updateCryptoKeys', $cryptographicKey['parent_type'], $cryptographicKey['parent_id'], $message);
+        if (!empty($toRemove)) {
+            $this->deleteAll(['CryptographicKey.id' => $toRemove]);
+        }
+        $this->loadLog()->createLogEntry($user, 'updateCryptoKeys', $type, $parent_id, $message);
     }
 
     /**

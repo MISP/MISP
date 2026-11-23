@@ -138,6 +138,11 @@ h4 span.misp-element-wrapper {
     max-width: 90%;
 }
 
+#suggestion-container {
+    /* Headers stick to the results panel, without the page-navbar offset. */
+    --sticky-table-header-top: 0px;
+}
+
 #suggestion-container ul.nav-tabs {
     margin-bottom: 0;
 }

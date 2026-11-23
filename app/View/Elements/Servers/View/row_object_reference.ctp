@@ -9,7 +9,7 @@
   endif;
 ?>
 <span class="fa fa-plus-square useCursorPointer" title="<?php echo __('Add reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Add reference');?>" onClick="genericPopup('<?php echo '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
-<div id="Object_<?php echo $object['id']; ?>_references_collapsible" class="collapse">
+<div id="Object_<?php echo h($object['id']); ?>_references_collapsible" class="collapse">
 <?php
   foreach ($object['ObjectReference'] as $reference):
     if (!empty($reference['Object'])) {
@@ -25,8 +25,8 @@
     $idref = $reference['id'];
 ?>
     &nbsp;&nbsp;
-    <a class="bold white useCursorPointer" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')">
-      <?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . $reference['referenced_id'] . h($output);?>
+    <a class="bold white useCursorPointer" onClick="pivotObjectReferences(<?php echo h(json_encode($currentUri)); ?>, <?php echo h(json_encode($uuid)); ?>)">
+      <?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . h($reference['referenced_id']) . h($output);?>
     </a>
     <br />
 <?php

@@ -45,8 +45,8 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '238';
-    public $pyMispVersion = '2.5.34.2';
+    private $__queryVersion = '241';
+    public $pyMispVersion = '3.0.0';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -427,6 +427,7 @@ class AppController extends Controller
             if (isset($user['Role']['max_execution_time']) && $user['Role']['max_execution_time'] !== '') {
                 ini_set('max_execution_time', $user['Role']['max_execution_time']);
             }
+            $this->CompressedRequestHandler->decodeRequest($this);
 
             $this->set('mispVersion', "{$versionArray['major']}.{$versionArray['minor']}.0");
             $this->set('mispVersionFull', $this->mispVersion);
@@ -452,6 +453,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
+            $this->CompressedRequestHandler->rejectEncodedRequest($this);
             $this->__preAuthFloodFilter();
             $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
