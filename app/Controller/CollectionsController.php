@@ -243,6 +243,54 @@ class CollectionsController extends AppController
     }
 
     /**
+     * For the index page: the saved graphs the user may see on each
+     * collection, and what waits for a publish on the shared ones.
+     *
+     * @param array $user
+     * @param array $collections A page of the index
+     * @return array The same, with graph_count, changes and _canPublish
+     */
+    private function __withIndexTallies(array $user, array $collections)
+    {
+        if (empty($collections)) {
+            return $collections;
+        }
+        $uuids = [];
+        $withheld = [];
+        foreach ($collections as $collection) {
+            $uuids[] = (string)$collection['Collection']['uuid'];
+            $uuids[] = strtolower((string)$collection['Collection']['uuid']);
+            if (Collection::isWithheld($collection['Collection'])) {
+                $withheld[] = (int)$collection['Collection']['id'];
+            }
+        }
+        $Graph = ClassRegistry::init('Graph');
+        $rows = $Graph->find('all', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['Graph.object_uuid', 'COUNT(*) AS graph_count'],
+            'conditions' => ['AND' => [
+                ['Graph.object_type' => 'Collection', 'Graph.object_uuid' => array_values(array_unique($uuids))],
+                $Graph->buildConditions($user),
+            ]],
+            'group' => ['Graph.object_uuid'],
+        ]);
+        $graphs = [];
+        foreach ($rows as $row) {
+            $key = strtolower($row['Graph']['object_uuid']);
+            $graphs[$key] = ($graphs[$key] ?? 0) + (int)$row[0]['graph_count'];
+        }
+        $changes = $this->Collection->pendingChanges($withheld);
+        foreach ($collections as $k => $collection) {
+            $id = (int)$collection['Collection']['id'];
+            $collections[$k]['Collection']['graph_count'] = $graphs[strtolower((string)$collection['Collection']['uuid'])] ?? 0;
+            $collections[$k]['Collection']['changes'] = $changes[$id] ?? null;
+            $collections[$k]['Collection']['_canPublish'] = $this->Collection->canPublish($user, $collection['Collection']);
+        }
+        return $collections;
+    }
+
+    /**
      * The user's workspace. POST {collection_uuid, graph_uuid?} makes a
      * collection they may edit their workspace, laid out by one of their
      * organisation's graphs on it, or by none when graph_uuid is null; left
@@ -889,6 +937,9 @@ class CollectionsController extends AppController
                     if (!empty($collections[$k]['CollectionElement'])) {
                         $collections[$k]['CollectionElement'] = $this->Collection->CollectionElement->withRecords($collections[$k]['CollectionElement']);
                     }
+                }
+                if (!$this->_isRest()) {
+                    $collections = $this->__withIndexTallies($user, $collections);
                 }
                 return $collections;
             }

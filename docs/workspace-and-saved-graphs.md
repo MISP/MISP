@@ -147,6 +147,12 @@ The collection page shows where it stands:
 | **N changes waiting for a publisher** | The same, for someone who cannot publish. |
 | **Unpublished** | The collection was withdrawn by hand. |
 
+The collection list shows the same as one glyph per row, as the event list
+does: a tick when published, a dashed clock when it changed since it was
+published, a disk when it is unpublished, a dash when it is shared with your
+organisation only. Its tooltip gives the date and the changes waiting. Beside
+the members, the list counts the saved graphs you can see on each collection.
+
 To release it:
 
 1. Press **Review and publish**. The review lists the members added and
