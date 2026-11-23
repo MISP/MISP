@@ -5026,9 +5026,7 @@ class MispAttribute extends AppModel
         }
         $options = array();
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $enabledModules['modules'][$k]['config'] = Module::moduleConfig($temp);
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
         $attributes_added = 0;
         $tagsRemoved = 0;
@@ -5062,7 +5060,8 @@ class MispAttribute extends AppModel
                     $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                     if ($result === false) {
                         throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
-                    } else if (!is_array($result)) {
+                    } else if (!is_array($result) || !isset($result['results'])) {
+                        // A module error only applies to this lookup.
                         continue;
                     }
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {

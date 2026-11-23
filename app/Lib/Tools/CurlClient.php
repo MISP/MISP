@@ -353,20 +353,6 @@ class CurlClient extends HttpSocketExtended
             $options[CURLOPT_NOBODY] = true;
         }
 
-        if (is_resource($this->downloadStream)) {
-            $stream = $this->downloadStream;
-            $options[CURLOPT_RETURNTRANSFER] = false;
-            $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use ($stream) {
-                $offset = 0;
-                while ($offset < strlen($chunk)) {
-                    $written = fwrite($stream, substr($chunk, $offset));
-                    if (!$written) { return 0; }
-                    $offset += $written;
-                }
-                return $offset;
-            };
-        }
-
         if (!empty($request['header'])) {
             $headers = [];
             foreach ($request['header'] as $key => $value) {
@@ -396,11 +382,47 @@ class CurlClient extends HttpSocketExtended
             }
             return $len;
         };
+        $validateRedirects = $this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD');
         // The write function sees the body after libcurl has decoded it, so
         // the limit covers what a small compressed response inflates to.
         $limit = $this->maxSize ?: DecompressTool::limit();
         $body = '';
-        $options[CURLOPT_WRITEFUNCTION] = self::bodyCollector($body, $limit);
+        $stream = $this->downloadStream;
+        $streaming = is_resource($stream);
+        $streamLimitExceeded = false;
+        if ($streaming) {
+            $options[CURLOPT_RETURNTRANSFER] = false;
+            $received = 0;
+            $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use (
+                $stream, $limit, $validateRedirects, $url, &$responseHeaders, &$received, &$streamLimitExceeded
+            ) {
+                $length = strlen($chunk);
+                $received += $length;
+                if ($limit && $received > $limit) {
+                    $streamLimitExceeded = true;
+                    return 0;
+                }
+                // The next request will stream its own body into the same destination.
+                if ($validateRedirects && self::redirectTarget(
+                    curl_getinfo($curl, CURLINFO_HTTP_CODE),
+                    $responseHeaders,
+                    $url
+                ) !== null) {
+                    return $length;
+                }
+                $offset = 0;
+                while ($offset < $length) {
+                    $written = fwrite($stream, substr($chunk, $offset));
+                    if (!$written) {
+                        return 0;
+                    }
+                    $offset += $written;
+                }
+                return $length;
+            };
+        } else {
+            $options[CURLOPT_WRITEFUNCTION] = self::bodyCollector($body, $limit);
+        }
         if (!curl_setopt_array($this->ch, $options)) {
             throw new \RuntimeException('curl error: Could not set options');
         }
@@ -410,7 +432,7 @@ class CurlClient extends HttpSocketExtended
 
         if ($output === false) {
             $errorCode = curl_errno($this->ch);
-            if ($limit && $errorCode === CURLE_WRITE_ERROR) {
+            if ($limit && $errorCode === CURLE_WRITE_ERROR && (!$streaming || $streamLimitExceeded)) {
                 throw new SocketException("Response exceeds the maximum allowed size of $limit bytes.");
             }
             // Both of these mean the size limit tripped: 63 when the server
@@ -427,14 +449,13 @@ class CurlClient extends HttpSocketExtended
         }
 
         $code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
-        if (is_resource($this->downloadStream)) { $output = ''; }
 
         // Try to release pointer to local function to avoid circular reference and releasing memory
         // See https://github.com/php-mod/curl/issues/95
         curl_reset($this->ch);
 
-        if ($this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD')) {
-            $target = $this->redirectTarget($code, $responseHeaders, $url);
+        if ($validateRedirects) {
+            $target = self::redirectTarget($code, $responseHeaders, $url);
             if ($target !== null) {
                 if ($redirectsFollowed >= 10) {
                     throw new SocketException("Too many redirects while fetching $url.");
@@ -457,7 +478,7 @@ class CurlClient extends HttpSocketExtended
      * @param string $currentUrl
      * @return string|null absolute redirect target, or null if not a redirect
      */
-    private function redirectTarget($code, array $responseHeaders, $currentUrl)
+    private static function redirectTarget($code, array $responseHeaders, $currentUrl)
     {
         if (!in_array((int)$code, [301, 302, 303, 307, 308], true)) {
             return null;

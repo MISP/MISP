@@ -1214,23 +1214,26 @@ class Galaxy extends AppModel
         $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($targetType), $targetId, $logTitle);
     }
 
-    /**
-     * @param string $type
-     * @param string|array $namespace misp-galaxy renamed ATT&CK's namespace
-     *        from mitre-attack to mitre, so both are accepted by default
-     * @return int 0 when absent
-     */
-    public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace=['mitre-attack', 'mitre'])
+    public function getMitreAttackGalaxyId(
+        $type = 'mitre-attack-pattern',
+        $namespace = null
+    )
     {
-        $galaxy = $this->find('first', array(
+        // Bundled galaxies only: misp-galaxy renames namespaces, and a custom
+        // galaxy can reuse the type with a far higher (timestamp) version.
+        $conditions = [
+            'Galaxy.type' => $type,
+            'Galaxy.default' => true,
+        ];
+        if ($namespace !== null) {
+            $conditions['Galaxy.namespace'] = $namespace;
+        }
+        $galaxy = $this->find('first', [
             'recursive' => -1,
-            'fields' => array('Galaxy.id'),
-            'conditions' => array(
-                'Galaxy.type' => $type,
-                'Galaxy.namespace' => $namespace
-            ),
-            'order' => array('Galaxy.version' => 'DESC', 'Galaxy.id' => 'DESC'),
-        ));
+            'fields' => ['Galaxy.id'],
+            'conditions' => $conditions,
+            'order' => ['Galaxy.version DESC', 'Galaxy.id ASC'],
+        ]);
         return empty($galaxy) ? 0 : (int)$galaxy['Galaxy']['id'];
     }
 

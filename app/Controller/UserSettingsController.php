@@ -133,9 +133,13 @@ class UserSettingsController extends AppController
                 );
             }
         }
-        // Do not show internal settings
         if (!$this->_isSiteAdmin()) {
+            // Do not show internal settings, nor anyone else's module credentials
             $conditions['AND'][] = ['NOT' => ['UserSetting.setting' => $this->UserSetting->getInternalSettingNames()]];
+            $conditions['AND'][] = ['OR' => [
+                'UserSetting.setting !=' => 'module_api_keys',
+                'UserSetting.user_id' => $this->Auth->user('id'),
+            ]];
         }
 
         if ($this->_isRest()) {

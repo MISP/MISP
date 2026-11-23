@@ -129,7 +129,7 @@
 <script type="text/javascript">
     var lastPage = 4;
     var organisations = [];
-    var orgids = ['<?php echo h($user['Organisation']['id'])?>'];
+    var orgids = [];
     var servers = [];
     var serverids = [0];
     <?php

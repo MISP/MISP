@@ -67,6 +67,7 @@ class EventTemplateImporter
         }
 
         $eventTemplate = ClassRegistry::init('EventTemplate');
+        $definition = $eventTemplate->withoutSharingGroup($definition);
         $existing = null;
         if (!empty($template['uuid'])) {
             $existing = $eventTemplate->find('first', array(
