@@ -5863,7 +5863,13 @@ class EventsController extends AppController
         }
         $distributionLevels = $this->Event->distributionLevels;
         if ($this->request->is('post')) {
-            $importOptions = new StixImportOptions($this->_isSiteAdmin(), array_keys($sgs), (int)$initialDistribution);
+            $importOptions = new StixImportOptions(
+                $this->_isSiteAdmin(),
+                array_keys($distributionLevels),
+                Event::DISTRIBUTION_SHARING_GROUP,
+                array_keys($sgs),
+                (int)$initialDistribution
+            );
             if ($this->_isRest()) {
                 try {
                     list($document, $options) = $importOptions->fromRest(

@@ -43,7 +43,13 @@ class StixImportOptionsTest extends TestCase
 
     private function importOptions($isSiteAdmin = false, $default = 1)
     {
-        return new StixImportOptions($isSiteAdmin, [7, 12], $default);
+        return new StixImportOptions(
+            $isSiteAdmin,
+            [0, 1, 2, 3, 4],
+            4,
+            [7, 12],
+            $default
+        );
     }
 
     private function rest(
@@ -288,6 +294,22 @@ class StixImportOptionsTest extends TestCase
         $this->assertRejected(function () {
             $this->restOptions(['cluster_distribution' => '5']);
         }, 'Wrong cluster distribution level');
+    }
+
+    public function testDistributionLevelsAreTheInjectedOnes()
+    {
+        $importOptions = new StixImportOptions(false, [0, 1, 4], 4, [7, 12], 1);
+        $rawBody = json_encode(self::BUNDLE);
+
+        $this->assertRejected(function () use ($importOptions, $rawBody) {
+            $importOptions->fromRest(
+                self::BUNDLE,
+                $rawBody,
+                [],
+                ['distribution' => '2'],
+                []
+            );
+        }, 'Wrong distribution level');
     }
 
     public function testSharingGroupDistributionNeedsAnAuthorisedSharingGroup()

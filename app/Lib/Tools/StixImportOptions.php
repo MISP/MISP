@@ -7,9 +7,6 @@ require_once __DIR__ . '/JsonTool.php';
  */
 class StixImportOptions
 {
-    const DISTRIBUTION_LEVELS = [0, 1, 2, 3, 4];
-    const SHARING_GROUP = 4;
-
     // Legacy flags read from the URL path after the STIX version
     const POSITIONAL = [
         'publish', 'force_contextual_data', 'galaxies_as_tags', 'debug'
@@ -19,6 +16,12 @@ class StixImportOptions
     private $isSiteAdmin;
 
     /** @var int[] */
+    private $distributionLevels;
+
+    /** @var int */
+    private $sharingGroupLevel;
+
+    /** @var int[] */
     private $sharingGroupIds;
 
     /** @var int */
@@ -26,15 +29,21 @@ class StixImportOptions
 
     /**
      * @param bool $isSiteAdmin
+     * @param int[] $distributionLevels Valid distribution levels
+     * @param int $sharingGroupLevel Distribution level of a sharing group
      * @param int[] $sharingGroupIds Sharing groups the user is authorised for
      * @param int $defaultDistribution Instance default event distribution
      */
     public function __construct(
         $isSiteAdmin,
+        array $distributionLevels,
+        $sharingGroupLevel,
         array $sharingGroupIds,
         $defaultDistribution
     ) {
         $this->isSiteAdmin = (bool)$isSiteAdmin;
+        $this->distributionLevels = array_map('intval', $distributionLevels);
+        $this->sharingGroupLevel = (int)$sharingGroupLevel;
         $this->sharingGroupIds = array_map('intval', $sharingGroupIds);
         $this->defaultDistribution = (int)$defaultDistribution;
     }
@@ -158,12 +167,12 @@ class StixImportOptions
         if ($distribution === null) {
             $distribution = $this->defaultDistribution;
         }
-        if (!in_array($distribution, self::DISTRIBUTION_LEVELS, true)) {
+        if (!in_array($distribution, $this->distributionLevels, true)) {
             throw new InvalidArgumentException($cluster ?
                 __('Wrong cluster distribution level') :
                 __('Wrong distribution level'));
         }
-        if ($distribution !== self::SHARING_GROUP) {
+        if ($distribution !== $this->sharingGroupLevel) {
             return [$distribution, null];
         }
         if ($sharingGroupId === null) {
