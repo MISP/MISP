@@ -1015,11 +1015,7 @@ paths:
         "200":
           $ref: "#/components/responses/ExtendedEventResponse"
         "400":
-          description: "Invalid import option, or empty STIX document"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
+          $ref: "#/components/responses/StixImportBadRequestResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -1050,11 +1046,7 @@ paths:
         "200":
           $ref: "#/components/responses/ExtendedEventResponse"
         "400":
-          description: "Invalid import option, or empty STIX document"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
+          $ref: "#/components/responses/StixImportBadRequestResponse"
         "403":
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
@@ -11439,6 +11431,13 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/UnauthorizedApiError"
+
+    StixImportBadRequestResponse:
+      description: "Invalid import option, or empty STIX document"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
 
     AddCollectionResponse:
       description: "A collection"
