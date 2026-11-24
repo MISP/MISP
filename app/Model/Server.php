@@ -21,6 +21,11 @@ class Server extends AppModel
         SETTING_RECOMMENDED = 1,
         SETTING_OPTIONAL = 2;
 
+    // Families whose per-module settings are generated from misp-modules.
+    const MODULE_SETTING_FAMILIES = [
+        'Enrichment', 'Import', 'Export', 'Action', 'Gathering', 'Cortex'
+    ];
+
     public $name = 'Server';
 
     public $actsAs = array(
@@ -1708,9 +1713,28 @@ class Server extends AppModel
      */
     public function getCurrentServerSettings()
     {
-        $serverSettings = $this->serverSettings;
-        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Action', 'Gathering', 'Cortex');
-        return $this->readModuleSettings($serverSettings, $moduleTypes);
+        return $this->readModuleSettings(
+            $this->serverSettings,
+            self::MODULE_SETTING_FAMILIES
+        );
+    }
+
+    /**
+     * Whether a setting is generated at runtime (per-module or workflow
+     * trigger settings), so it only exists in getCurrentServerSettings().
+     *
+     * @param string $settingName
+     * @return bool
+     */
+    public static function isDynamicSetting($settingName)
+    {
+        $families = array_merge(self::MODULE_SETTING_FAMILIES, ['Workflow']);
+        foreach ($families as $family) {
+            if (strpos($settingName, 'Plugin.' . $family . '_') === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2931,7 +2955,7 @@ class Server extends AppModel
         // This is just hack to reset opcache, so for next request cache will be reloaded.
         $this->opcacheResetConfig();
 
-        if (strpos($settingName, 'Plugin.Enrichment') !== false || strpos($settingName, 'Plugin.Import') !== false || strpos($settingName, 'Plugin.Export') !== false || strpos($settingName, 'Plugin.Cortex') !== false || strpos($settingName, 'Plugin.Action') !== false || strpos($settingName, 'Plugin.Workflow') !== false) {
+        if (self::isDynamicSetting($settingName)) {
             $serverSettings = $this->getCurrentServerSettings();
         } else {
             $serverSettings = $this->serverSettings;
