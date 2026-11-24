@@ -81,7 +81,7 @@ class StixImportOptions
             unset($data['stix']);
             $body = $data;
             if (is_array($document) && !empty($document)) {
-                $document = JsonTool::encode($document);
+                $document = self::encodeDocument($rawBody, $document);
             }
         } else {
             $document = $rawBody;
@@ -186,6 +186,27 @@ class StixImportOptions
                 __('Please select a valid sharing group id.'));
         }
         return [$distribution, $sharingGroupId];
+    }
+
+    /**
+     * The decoded body turns `{}`, and objects keyed "0", "1"..., into lists:
+     * encode the document from the raw body decoded as objects instead.
+     *
+     * @param string $rawBody
+     * @param array $document `stix` of the decoded body
+     * @return string
+     */
+    private static function encodeDocument($rawBody, array $document)
+    {
+        try {
+            $body = JsonTool::decode($rawBody, false);
+        } catch (JsonException $e) {
+            // Form fields or XML, decoded by the request handler
+            return JsonTool::encode($document);
+        }
+        return JsonTool::encode(
+            $body->request->stix ?? $body->stix ?? $document
+        );
     }
 
     /**

@@ -88,21 +88,22 @@ class JsonTool
 
     /**
      * @param string $value
+     * @param bool $associative False to keep JSON objects as stdClass
      * @returns mixed
      * @throws JsonException
      * @throws UnexpectedValueException
      */
-    public static function decode($value)
+    public static function decode($value, $associative = true)
     {
         if (function_exists('simdjson_decode')) {
             // Use faster version of json_decode from simdjson PHP extension if this extension is installed
             try {
-                return simdjson_decode($value, true);
+                return simdjson_decode($value, $associative);
             } catch (SimdJsonException $e) {
                 throw new JsonException($e->getMessage(), $e->getCode(), $e);
             }
         }
-        return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        return json_decode($value, $associative, 512, JSON_THROW_ON_ERROR);
     }
 
     /**

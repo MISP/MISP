@@ -77,9 +77,24 @@ class StixImportOptionsTest extends TestCase
         )[1];
     }
 
+    private function restEnvelope(
+        array $data,
+        array $named = [],
+        array $query = [],
+        array $positional = []
+    ) {
+        return $this->rest(
+            $data,
+            json_encode($data),
+            $named,
+            $query,
+            $positional
+        );
+    }
+
     private function envelope(array $options)
     {
-        return $this->rest(['stix' => self::BUNDLE] + $options, 'body')[1];
+        return $this->restEnvelope(['stix' => self::BUNDLE] + $options)[1];
     }
 
     private function assertRejected(callable $call, $message)
@@ -123,7 +138,7 @@ class StixImportOptionsTest extends TestCase
     {
         $data = ['stix' => self::BUNDLE, 'distribution' => 2, 'publish' => true];
 
-        [$document, $options] = $this->rest($data, 'body');
+        [$document, $options] = $this->restEnvelope($data);
 
         $this->assertSame(self::BUNDLE, json_decode($document, true));
         $this->assertSame(2, $options['distribution']);
@@ -136,7 +151,7 @@ class StixImportOptionsTest extends TestCase
             'request' => ['stix' => self::BUNDLE, 'galaxies_as_tags' => 1],
         ];
 
-        [$document, $options] = $this->rest($data, 'body');
+        [$document, $options] = $this->restEnvelope($data);
 
         $this->assertSame(self::BUNDLE, json_decode($document, true));
         $this->assertTrue($options['galaxies_as_tags']);
@@ -146,10 +161,37 @@ class StixImportOptionsTest extends TestCase
     {
         $data = ['stix' => self::STIX1, 'original_file' => false];
 
-        [$document, $options] = $this->rest($data, 'body');
+        [$document, $options] = $this->restEnvelope($data);
 
         $this->assertSame(self::STIX1, $document);
         $this->assertFalse($options['original_file']);
+    }
+
+    public function testEnvelopeObjectKeepsItsJsonObjects()
+    {
+        $stix = '{"type":"bundle","id":"bundle--0c6d","objects":'
+            . '[{"type":"x-acme","x_acme_props":{},"x_acme_map":{"0":"a"},'
+            . '"labels":[]}]}';
+        $envelope = '{"publish":true,"stix":' . $stix . '}';
+
+        foreach ([$envelope, '{"request":' . $envelope . '}'] as $rawBody) {
+            $data = json_decode($rawBody, true);
+
+            [$document, $options] = $this->rest($data, $rawBody);
+
+            $this->assertSame($stix, $document);
+            $this->assertTrue($options['publish']);
+        }
+    }
+
+    public function testEnvelopeSentAsFormFieldsIsReencoded()
+    {
+        $data = ['stix' => self::BUNDLE, 'publish' => '1'];
+
+        [$document, $options] = $this->rest($data, http_build_query($data));
+
+        $this->assertSame(self::BUNDLE, json_decode($document, true));
+        $this->assertTrue($options['publish']);
     }
 
     public function testEmptyOrMissingDocumentIsRejected()
@@ -163,7 +205,7 @@ class StixImportOptionsTest extends TestCase
         }, $message);
         foreach (['', '  ', [], null, 42] as $stix) {
             $this->assertRejected(function () use ($stix) {
-                $this->rest(['stix' => $stix], 'body');
+                $this->restEnvelope(['stix' => $stix]);
             }, $message);
         }
     }
@@ -194,7 +236,7 @@ class StixImportOptionsTest extends TestCase
         $named = ['distribution' => '1', 'publish' => '0'];
         $query = ['distribution' => '2'];
 
-        $options = $this->rest($data, 'body', $named, $query)[1];
+        $options = $this->restEnvelope($data, $named, $query)[1];
 
         $this->assertSame(2, $options['distribution']);
         $this->assertFalse($options['publish']);
@@ -227,7 +269,7 @@ class StixImportOptionsTest extends TestCase
 
         $data = ['stix' => self::BUNDLE, 'publish' => false];
         $named = ['force_contextual_data' => '1'];
-        $options = $this->rest($data, 'body', $named, [], ['1', '0'])[1];
+        $options = $this->restEnvelope($data, $named, [], ['1', '0'])[1];
         $this->assertTrue($options['publish']);
         $this->assertTrue($options['force_contextual_data']);
     }
@@ -403,7 +445,7 @@ class StixImportOptionsTest extends TestCase
         $named = ['producer' => 'ACME'];
         $query = ['url' => 'events/upload_stix/2'];
 
-        $options = $this->rest($data, 'body', $named, $query)[1];
+        $options = $this->restEnvelope($data, $named, $query)[1];
 
         $this->assertSame(self::DEFAULTS, $options);
     }
