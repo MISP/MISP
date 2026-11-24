@@ -31,6 +31,8 @@ function summary(r) {
             return r.reply.email;
         case 'export':
             return r.format + ' · ' + bytes(r.size);
+        case 'plan':
+            return isClient(r) ? 'runs in mispql' : 'not run';
         case 'failure':
             return r.status ? 'HTTP ' + r.status : 'no answer';
         case 'error':
@@ -44,6 +46,9 @@ function summary(r) {
 }
 
 function isClient(r) {
+    if (r.kind === 'plan') {
+        return !!r.plan && (r.plan.kind === 'use' || r.plan.kind === 'show_databases');
+    }
     return r.kind === 'error' && r.errors.length === 1 && r.errors[0].code === 'client_statement';
 }
 
@@ -54,7 +59,7 @@ function kindIcon(r) {
 var KIND_ICON = {
     rows: 'fa-table-cells', count: 'fa-hashtag', describe: 'fa-list-ul', tables: 'fa-layer-group',
     whoami: 'fa-id-badge', export: 'fa-file-arrow-down', error: 'fa-circle-exclamation',
-    failure: 'fa-plug-circle-xmark'
+    failure: 'fa-plug-circle-xmark', plan: 'fa-route'
 };
 
 function flatten(row, prefix, out) {
@@ -540,6 +545,65 @@ function renderExport(r) {
     return wrap;
 }
 
+var ANSWERED_BY_MISP = {
+    show_tables: '<b>SHOW TABLES</b> is answered by MISP from the tables your role may query: no search is sent.',
+    whoami: '<b>WHOAMI</b> is answered by MISP from your session: no search is sent.'
+};
+
+/** What a statement compiles to, from explain: nothing was run. */
+function renderPlan(r, opts) {
+    opts = opts || {};
+    var p = r.plan;
+    var wrap = el('div', 'cq-plan');
+    if (!p) {
+        wrap.innerHTML = '<div class="cq-client"><i class="fa-solid fa-circle-info"></i><span>No statement here, only comments.</span></div>';
+        return wrap;
+    }
+    if (p.kind === 'use' || p.kind === 'show_databases') {
+        wrap.innerHTML = '<div class="cq-client"><i class="fa-solid fa-terminal"></i><span><b>' + (p.kind === 'use' ? 'USE' : 'SHOW DATABASES') +
+            '</b> switches between MISP servers: it runs in the mispql CLI. This console queries this MISP only.</span></div>';
+        return wrap;
+    }
+    if (ANSWERED_BY_MISP[p.kind]) {
+        wrap.innerHTML = '<div class="cq-client"><i class="fa-solid fa-circle-info"></i><span>' + ANSWERED_BY_MISP[p.kind] + '</span></div>';
+        return wrap;
+    }
+    var facts = [];
+    if (p.request) {
+        facts.push(['Sends', '<span class="cq-method cq-method-' + esc(p.request.method.toLowerCase()) + '">' + esc(p.request.method) + '</span>' +
+            '<code>' + esc(p.request.endpoint) + '</code>']);
+    }
+    if (p.kind === 'count') {
+        facts.push(['Returns', 'the number of matches']);
+    } else if (p.kind === 'describe') {
+        facts.push(['Returns', 'the table\'s fields, sort names and limits']);
+    } else if (p.kind === 'search') {
+        var format = p.request && p.request.body ? p.request.body.returnFormat : '';
+        facts.push(['Returns', p.output === 'verbatim'
+            ? 'MISP\'s <code>' + esc(format) + '</code> export, as a file'
+            : { table: 'rows, as a table', flat: 'rows, flattened' }[p.output] || 'rows']);
+        var lt = opts.pack && opts.pack.tables[p.table];
+        var columns = p.columns;
+        var note = '';
+        if (!columns && p.output === 'table' && lt && lt.default_columns) {
+            columns = lt.default_columns;
+            note = '<span class="cq-plan-note">the table\'s default:</span>';
+        }
+        if (p.output !== 'verbatim') {
+            facts.push(['Columns', columns
+                ? note + columns.map(function (c) { return '<code class="cq-chip">' + esc(c) + '</code>'; }).join('')
+                : 'every field']);
+        }
+        if (p.skip > 0) {
+            facts.push(['Skips', 'the first ' + fmtInt(p.skip) + (p.skip === 1 ? ' row' : ' rows') + ' of page ' + esc(p.request.body.page)]);
+        }
+    }
+    wrap.innerHTML = '<dl class="cq-plan-facts">' + facts.map(function (f) {
+        return '<div><dt>' + f[0] + '</dt><dd>' + f[1] + '</dd></div>';
+    }).join('') + '</dl>';
+    return wrap;
+}
+
 /** A request MISP refused before reading the statement, or no answer at all. */
 function renderFailure(r) {
     return el('div', 'cq-error cq-failure', '<div class="cq-client"><i class="fa-solid fa-plug-circle-xmark"></i><span>' +
@@ -610,6 +674,7 @@ function render(r, opts) {
         case 'tables': return renderTables(r, opts);
         case 'whoami': return renderWhoami(r, opts);
         case 'export': return renderExport(r, opts);
+        case 'plan': return renderPlan(r, opts);
         case 'failure': return renderFailure(r, opts);
         default: return renderError(r, opts);
     }

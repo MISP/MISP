@@ -151,6 +151,7 @@ function boot() {
     const filterEl = document.getElementById('wb-filter');
     const stmtCountEl = document.getElementById('wb-statements');
     const runBtn = document.getElementById('wb-run');
+    const explainBtn = document.getElementById('wb-explain');
     const examples = EXAMPLES.filter(function (ex) {
         return ex.tables.every(function (t) { return pack.tables[t]; });
     });
@@ -172,6 +173,7 @@ function boot() {
             return history.map(function (h) { return h.statement; });
         },
         onRun: function (st) { run(st); },
+        onPlan: function (st) { explainStatement(st); },
         onExplain: function (reply, w) {
             statusLine(statusEl, w, reply);
             const n = reply && reply.status === 200 ? reply.body.statements.length : T.splitStatements(w.value).length;
@@ -191,6 +193,14 @@ function boot() {
         const st = writer.statementAtCursor();
         if (st) {
             run(st);
+        } else {
+            writer.focus();
+        }
+    });
+    explainBtn.addEventListener('click', function () {
+        const st = writer.statementAtCursor();
+        if (st) {
+            explainStatement(st);
         } else {
             writer.focus();
         }
@@ -218,19 +228,13 @@ function boot() {
         if (running || !st || !st.text.trim()) {
             return;
         }
-        running = true;
         const remember = !opts || opts.remember !== false;
         const source = writer.value;
         const plan = st.plan || null;
-        runBtn.disabled = true;
-        resultEl.classList.add('is-running');
-        resultEl.innerHTML = '<div class="wb-result-head"><span class="cq-kind-icon"><i class="fa-solid fa-play"></i></span>' +
-            '<h2 class="wb-result-title">Running…</h2></div>' +
-            '<div class="wb-ran">' + R.highlight(st.text, []) + '</div>' +
-            '<div class="cq-loading"><div class="misp-loader" role="status"><span class="visually-hidden">Loading…</span></div>Asking MISP…</div>';
+        busy(true);
+        waiting('fa-play', 'Running…', st.text);
         client.run(st.text, { remember: remember }).then(function (r) {
-            running = false;
-            runBtn.disabled = false;
+            busy(false);
             r.plan = plan;
             r.table = r.table || (plan && plan.table) || null;
             r.range = { from: st.from, to: st.to, source: source };
@@ -242,6 +246,39 @@ function boot() {
             showResult(r);
             drawList();
         });
+    }
+
+    /** What the statement compiles to, from explain: nothing runs, nothing is remembered. */
+    function explainStatement(st) {
+        if (running || !st || !st.text.trim()) {
+            return;
+        }
+        const source = writer.value;
+        busy(true);
+        // Explain answers fast: the waiting card only shows if it does not.
+        const slow = setTimeout(function () { waiting('fa-route', 'Explaining…', st.text); }, 150);
+        client.plan(st.text).then(function (r) {
+            clearTimeout(slow);
+            busy(false);
+            r.range = { from: st.from, to: st.to, source: source };
+            current = null;
+            showResult(r);
+            drawList();
+        });
+    }
+
+    function busy(on) {
+        running = on;
+        runBtn.disabled = on;
+        explainBtn.disabled = on;
+    }
+
+    function waiting(icon, title, text) {
+        resultEl.classList.add('is-running');
+        resultEl.innerHTML = '<div class="wb-result-head"><span class="cq-kind-icon"><i class="fa-solid ' + icon + '"></i></span>' +
+            '<h2 class="wb-result-title">' + title + '</h2></div>' +
+            '<div class="wb-ran">' + R.highlight(text, []) + '</div>' +
+            '<div class="cq-loading"><div class="misp-loader" role="status"><span class="visually-hidden">Loading…</span></div>Asking MISP…</div>';
     }
 
     /** The server's history rule, applied to the page's copy. */
@@ -286,16 +323,34 @@ function boot() {
         meta.push('<span>' + fmtInt(r.elapsed) + ' ms</span>');
         const client_ = R.isClient(r);
         const failed = r.kind === 'error' || r.kind === 'failure';
+        const isPlan = r.kind === 'plan';
+        const runnable = isPlan && r.plan && !client_;
+        let title = 'Result';
+        if (client_) {
+            title = 'Not run here';
+        } else if (failed) {
+            title = r.explained && r.kind === 'error' ? 'Not valid' : 'Not run';
+        } else if (isPlan) {
+            title = 'Plan';
+        }
         head.innerHTML = '<span class="cq-kind-icon' + (failed && !client_ ? ' is-error' : '') + '"><i class="fa-solid ' + R.kindIcon(r) + '"></i></span>' +
-            '<h2 class="wb-result-title">' + (client_ ? 'Not run here' : failed ? 'Not run' : 'Result') + '</h2>' +
+            '<h2 class="wb-result-title">' + title + '</h2>' +
             '<div class="wb-result-meta">' + meta.join('<span class="mql-diag-sep">·</span>') + '</div>' +
             '<div class="wb-result-actions"></div>';
         const actions = head.querySelector('.wb-result-actions');
         const apiBtn = el('button', 'btn btn-sm btn-outline-secondary', '<i class="fa-solid fa-code"></i>API call');
         apiBtn.type = 'button';
         apiBtn.setAttribute('aria-expanded', 'false');
-        if (!failed) {
+        if (!failed && !isPlan) {
             actions.appendChild(apiBtn);
+        }
+        if (runnable) {
+            const runIt = el('button', 'btn btn-sm btn-outline-primary', '<i class="fa-solid fa-play"></i>Run');
+            runIt.type = 'button';
+            runIt.addEventListener('click', function () {
+                run({ text: r.statement, from: r.range.from, to: r.range.to, plan: r.plan });
+            });
+            actions.appendChild(runIt);
         }
         resultEl.appendChild(head);
 
@@ -338,6 +393,9 @@ function boot() {
             onPick: function (table) { writer.setValue('DESCRIBE ' + table); run(writer.statementAtCursor()); },
             onLocate: function (e) { locate(r, e); },
         }));
+        if (runnable) {
+            resultEl.appendChild(apiCallPanel(r.statement, r.plan, apiBase, { explain: true }));
+        }
     }
 
     /** The request behind a result: explain's plan, else what run sent back. */

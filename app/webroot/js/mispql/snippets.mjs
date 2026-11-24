@@ -1,6 +1,7 @@
 /*
- * MispQL console: the API call behind a result, as the /mispql/run call,
- * the compiled restSearch request, curl and PyMISP.
+ * MispQL console: the API call behind a result, as the /mispql/run call
+ * (and /mispql/explain for a plan), the compiled restSearch request, curl
+ * and PyMISP.
  */
 
 import { el, esc, jsonHTML, copyText } from './util.mjs';
@@ -32,14 +33,18 @@ function shellQuote(s) {
     return "'" + s.replace(/'/g, "'\\''") + "'";
 }
 
-function snippets(statement, plan, baseUrl) {
+function mispqlCall(baseUrl, action, body) {
+    return 'curl -X POST ' + baseUrl + '/mispql/' + action + ' \\\n  -H "Authorization: $MISP_KEY" \\\n  -H "Accept: application/json" \\\n' +
+        '  -H "Content-Type: application/json" \\\n  -d ' + shellQuote(JSON.stringify(body));
+}
+
+/** opts.explain: the /mispql/explain call comes first. */
+function snippets(statement, plan, baseUrl, opts) {
     var out = [];
-    var stmtBody = JSON.stringify({ statement: statement.trim() });
-    out.push({
-        id: 'mispql', label: '/mispql/run',
-        text: 'curl -X POST ' + baseUrl + '/mispql/run \\\n  -H "Authorization: $MISP_KEY" \\\n  -H "Accept: application/json" \\\n' +
-            '  -H "Content-Type: application/json" \\\n  -d ' + shellQuote(stmtBody)
-    });
+    if (opts && opts.explain) {
+        out.push({ id: 'explain', label: '/mispql/explain', text: mispqlCall(baseUrl, 'explain', { script: statement.trim() }) });
+    }
+    out.push({ id: 'mispql', label: '/mispql/run', text: mispqlCall(baseUrl, 'run', { statement: statement.trim() }) });
     if (plan && plan.request) {
         var req = plan.request;
         var url = baseUrl + req.endpoint;
@@ -60,15 +65,15 @@ function snippets(statement, plan, baseUrl) {
     return out;
 }
 
-/** baseUrl: where this MISP answers, as an API client reaches it. */
-function apiCallPanel(statement, plan, baseUrl) {
-    var list = snippets(statement, plan, baseUrl);
+/** baseUrl: where this MISP answers, as an API client reaches it. opts as snippets() takes them. */
+function apiCallPanel(statement, plan, baseUrl, opts) {
+    var list = snippets(statement, plan, baseUrl, opts);
     var wrap = el('div', 'cq-api');
     var tabs = el('div', 'cq-api-tabs');
     var pre = el('pre', 'cq-api-code');
     var copy = el('button', 'btn btn-sm btn-outline-secondary cq-copy', '<i class="fa-regular fa-copy"></i><span>Copy</span>');
     copy.type = 'button';
-    var current = list.length > 1 ? list[1] : list[0];
+    var current = list.filter(function (item) { return item.id === 'json'; })[0] || list[0];
     function show(item) {
         current = item;
         tabs.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b.dataset.id === item.id); });

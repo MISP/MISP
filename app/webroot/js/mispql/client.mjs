@@ -4,11 +4,13 @@
  *
  * createClient({baseurl, csrfToken() -> string}) -> {
  *     explain(script) -> Promise<{status, body, failure?}>,
- *     run(statement, {remember}) -> Promise<result>
+ *     run(statement, {remember}) -> Promise<result>,
+ *     plan(statement) -> Promise<result>
  * }
  * A result has a `kind`: rows, count, describe, tables, whoami (MISP's reply
- * in `reply`), export (MISP's own format, kept as a Blob), error (located
- * errors, offsets converted to string indices) or failure (`message`).
+ * in `reply`), export (MISP's own format, kept as a Blob), plan (explain's
+ * entry for the statement, in `plan`), error (located errors, offsets
+ * converted to string indices) or failure (`message`).
  */
 import * as T from './tokens.mjs';
 
@@ -82,10 +84,7 @@ function createClient(options) {
         if (body && Array.isArray(body.errors)) {
             r.kind = 'error';
             r.envelope = body;
-            r.errors = body.errors.map(function (e) {
-                const span = T.cpRangeToIndex(statement, e.start, e.end);
-                return Object.assign({}, e, { from: span.start, to: span.end });
-            });
+            r.errors = located(statement, body.errors);
             return done();
         }
         r.kind = 'failure';
@@ -93,7 +92,41 @@ function createClient(options) {
         return done();
     }
 
-    return { explain: explain, run: run };
+    /** Explains one statement, as a result: its plan, its errors or a failure. Reads no data. */
+    async function plan(statement) {
+        const started = Date.now();
+        const reply = await explain(statement);
+        const r = {
+            statement: statement,
+            ranAt: Math.floor(started / 1000),
+            status: reply.status,
+            elapsed: Date.now() - started,
+            explained: true,
+        };
+        if (reply.status === 200) {
+            r.kind = 'plan';
+            r.plan = reply.body.statements[0] || null;
+            r.table = (r.plan && r.plan.table) || null;
+        } else if (reply.failure) {
+            r.kind = 'failure';
+            r.message = reply.failure;
+        } else {
+            r.kind = 'error';
+            r.envelope = reply.body;
+            r.errors = located(statement, reply.body.errors);
+        }
+        return r;
+    }
+
+    return { explain: explain, run: run, plan: plan };
+}
+
+/** Errors with their code-point offsets converted to string indices of the text. */
+function located(text, errors) {
+    return errors.map(function (e) {
+        const span = T.cpRangeToIndex(text, e.start, e.end);
+        return Object.assign({}, e, { from: span.start, to: span.end });
+    });
 }
 
 const NO_ANSWER = 'MISP did not answer. Check the connection, then try again.';

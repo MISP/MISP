@@ -6,7 +6,7 @@
  *
  * new MispQLWriter(host, {
  *     pack, explain(script) -> Promise<{status, body}>,
- *     onRun(statement), onRunAll(statements), onExplain(reply),
+ *     onRun(statement) on Ctrl-Enter, onPlan(statement) on Ctrl-Shift-Enter, onExplain(reply),
  *     placeholder, minRows, maxRows, gutter, recall() -> [statements]
  * })
  */
@@ -390,13 +390,6 @@ MispQLWriter.prototype = {
         return Object.assign({ text: text.slice(pick.from, pick.to), count: ranges.length }, pick);
     },
 
-    allStatements: function () {
-        var text = this.ta.value;
-        return this.ranges().map(function (r) {
-            return Object.assign({ text: text.slice(r.from, r.to) }, r);
-        });
-    },
-
     /**
      * Errors to draw. One at the caret waits until typing pauses, so the
      * word being written is not flagged before it is finished.
@@ -536,13 +529,10 @@ MispQLWriter.prototype = {
         if (mod && e.key === 'Enter') {
             e.preventDefault();
             this.closeSuggestions();
-            if (e.shiftKey && this.opts.onRunAll) {
-                this.opts.onRunAll(this.allStatements());
-            } else if (this.opts.onRun) {
-                var st = this.statementAtCursor();
-                if (st) {
-                    this.opts.onRun(st);
-                }
+            var st = this.statementAtCursor();
+            var handler = e.shiftKey ? this.opts.onPlan : this.opts.onRun;
+            if (st && handler) {
+                handler(st);
             }
             return;
         }

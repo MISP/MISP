@@ -65,10 +65,11 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_
                         <span class="wb-statements" id="wb-statements"></span>
                         <div class="ms-auto d-flex gap-2 align-items-center">
                             <div class="dropdown" id="wb-examples">
-                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><?= __('Examples') ?></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<?= __('Examples') ?>"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span class="wb-btn-label"><?= __('Examples') ?></span></button>
                                 <ul class="dropdown-menu dropdown-menu-end"></ul>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="wb-clear" title="<?= __('Clear the writer') ?>"><i class="fas fa-eraser" aria-hidden="true"></i><?= __('Clear') ?></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="wb-clear" title="<?= __('Clear the writer') ?>" aria-label="<?= __('Clear') ?>"><i class="fas fa-eraser" aria-hidden="true"></i><span class="wb-btn-label"><?= __('Clear') ?></span></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="wb-explain" title="<?= __('Show what the statement under the caret compiles to, without running it') ?>" aria-keyshortcuts="Control+Shift+Enter"><i class="fas fa-route" aria-hidden="true"></i><?= __('Explain') ?></button>
                             <button type="button" class="btn btn-primary btn-run" id="wb-run" title="<?= __('Run the statement under the caret') ?>" aria-keyshortcuts="Control+Enter">
                                 <i class="fas fa-play" aria-hidden="true"></i><?= __('Run') ?> <kbd class="btn-run-keys" aria-hidden="true">Ctrl ↵</kbd>
                             </button>
@@ -80,6 +81,7 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_
                         <div class="mql-hints">
                             <span><kbd>Ctrl</kbd><kbd>Space</kbd> <?= __('suggest') ?></span>
                             <span><kbd>Ctrl</kbd><kbd>↵</kbd> <?= __('run statement') ?></span>
+                            <span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>↵</kbd> <?= __('explain') ?></span>
                         </div>
                     </div>
                 </div>

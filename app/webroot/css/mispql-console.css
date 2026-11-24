@@ -1096,6 +1096,68 @@
 
 .cq-client i { color: var(--bs-secondary-color); }
 
+.cq-plan-facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 8px 20px;
+    margin: 0;
+    padding: 14px 16px;
+}
+
+.cq-plan-facts > div { display: contents; }
+
+.cq-plan-facts dt {
+    color: var(--bs-secondary-color);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    line-height: 22px;
+    text-transform: uppercase;
+}
+
+.cq-plan-facts dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    margin: 0;
+    color: var(--bs-body-color);
+    font-size: 13px;
+    line-height: 22px;
+}
+
+.cq-plan-facts code {
+    color: var(--bs-emphasis-color);
+    font-family: var(--cq-mono);
+    font-size: 12.5px;
+}
+
+.cq-plan-facts .cq-chip {
+    padding: 0 6px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+    background: var(--bs-tertiary-bg);
+    font-size: 11.5px;
+    line-height: 20px;
+}
+
+.cq-plan-note { margin-right: 2px; color: var(--bs-secondary-color); font-size: 13px; }
+
+.cq-method {
+    --m: var(--cq-accent);
+    padding: 0 7px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--m) 14%, transparent);
+    color: var(--m);
+    font-family: var(--cq-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    line-height: 20px;
+}
+
+.cq-method-get { --m: var(--cq-ok); }
+
 .cq-api { border-top: 1px solid var(--bs-border-color); }
 
 .cq-api-tabs {
@@ -1504,6 +1566,7 @@
 
 @media (max-width: 575.98px) {
     .btn-run kbd,
+    .wb-btn-label,
     .mql-idle-keys,
     .wb-statements,
     .cq-pager-hint,
@@ -1516,7 +1579,8 @@
     .cq-desc-head,
     .cq-export-head { flex-wrap: wrap; }
 
-    .wb-writer-top > .ms-auto { margin-left: 0 !important; width: 100%; }
+    .wb-writer-top > .ms-auto { margin-left: 0 !important; width: 100%; flex-wrap: wrap; }
+    .cq-api-tabs { flex-wrap: wrap; }
     .wb-writer-top > .ms-auto .btn-run { margin-left: auto; }
     .wb-result-meta { order: 3; flex-basis: 100%; flex-wrap: wrap; }
     .cq-desc-filter { flex: 1 1 100%; margin-left: 0; }
