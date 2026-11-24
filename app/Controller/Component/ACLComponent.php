@@ -639,6 +639,7 @@ class ACLComponent extends Component
         ],
         'mispql' => [
             'explain' => ['perm_complex_query'],
+            'index' => ['perm_complex_query'],
             'run' => ['perm_complex_query'],
         ],
         'modules' => array(

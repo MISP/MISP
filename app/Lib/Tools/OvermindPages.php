@@ -151,6 +151,7 @@ class OvermindPages
             'index', 'add', 'edit', 'view', 'delete', 'deleteSelection'
         ),
         'api' => array('openapi', 'rest'),
+        'mispql' => array('index'),
         // One entry covers every documentation page, including the
         // administration ones — they all route through Pages::display().
         'pages' => array('display'),

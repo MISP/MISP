@@ -207,6 +207,14 @@ class UserSetting extends AppModel
             'placeholder' => ['workspace_uuid' => null],
             'validation' => 'validate_json',
         ],
+        // The query console's history, `{statement, ran_at}`, newest first
+        // (MispQLHistory). Kept out of the audit log: statements may name
+        // the values an analyst is looking for.
+        'mispql_history' => [
+            'internal' => true,
+            'placeholder' => [],
+            'validation' => 'validate_json',
+        ],
         /*
          * The uuid of the Analyst Profile this user has selected
          * (prd/personas/03-profiles.md §5, D45). The way to *use* a

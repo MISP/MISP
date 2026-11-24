@@ -563,6 +563,11 @@ if (!empty($me)) {
                     'text' => __('REST client'),
                     'url' => $baseurl . '/api/rest',
                     'requirement' => $this->Acl->canAccess('api', 'rest')
+                ),
+                array(
+                    'text' => __('Query console'),
+                    'url' => $baseurl . '/mispql',
+                    'requirement' => $this->Acl->canAccess('mispql', 'index')
                 )
             )
         )
