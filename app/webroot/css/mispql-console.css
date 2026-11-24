@@ -57,7 +57,7 @@
 }
 
 .mql-writer.mql-has-gutter {
-    --mql-gutter: 38px;
+    --mql-gutter: calc(var(--mql-digits, 2) * 7.5px + 20px);
 }
 
 .mql-editor {
@@ -73,7 +73,8 @@
     content: "";
     position: absolute;
     inset: 0 auto 0 0;
-    width: calc(var(--mql-gutter) + 4px);
+    box-sizing: border-box;
+    width: var(--mql-gutter);
     background: var(--bs-tertiary-bg);
     border-right: 1px solid var(--bs-border-color);
 }
@@ -95,7 +96,7 @@
     box-sizing: border-box;
     margin: 0;
     border: 0;
-    padding: var(--mql-pad-y) var(--mql-pad-x) var(--mql-pad-y) calc(var(--mql-pad-x) + var(--mql-gutter) + 6px);
+    padding: var(--mql-pad-y) var(--mql-pad-x) var(--mql-pad-y) calc(var(--mql-pad-x) + var(--mql-gutter));
     font-family: var(--cq-mono);
     font-size: var(--mql-size);
     font-weight: 400;
@@ -153,12 +154,18 @@
     content: counter(ln);
     position: absolute;
     top: 0;
-    left: calc(-1 * var(--mql-gutter) - 6px);
-    width: calc(var(--mql-gutter) - 8px);
+    left: calc(-1 * (var(--mql-pad-x) + var(--mql-gutter)));
+    width: calc(var(--mql-gutter) - 10px);
     text-align: right;
-    font-size: 11.5px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
     color: var(--bs-secondary-color);
-    opacity: .7;
+    opacity: .6;
+}
+
+.mql-has-gutter .mql-editor:focus-within .mq-line.is-caret::before {
+    color: var(--bs-emphasis-color);
+    opacity: 1;
 }
 
 .mql-hl .mq-tail {
@@ -502,6 +509,9 @@
 .mql-diag-pos { flex: none; font-family: var(--cq-mono); font-size: 11.5px; color: var(--bs-secondary-color); }
 .mql-diag-more { flex: none; padding: 0 6px; border-radius: 999px; background: var(--bs-secondary-bg); font-size: 11px; }
 .mql-diag-sep { opacity: .5; }
+.mql-diag.is-ok { flex-wrap: nowrap; white-space: nowrap; }
+.mql-diag.is-ok code { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mql-idle-keys { display: none; }
 
 .mql-pulse {
     width: 8px;
@@ -1181,10 +1191,13 @@
 }
 
 .btn-run kbd {
-    border-color: rgba(255, 255, 255, .45);
-    background: transparent;
+    padding: 0 6px;
+    border: 0;
+    background: rgba(255, 255, 255, .18);
     color: inherit;
-    opacity: .9;
+    font-weight: 500;
+    letter-spacing: .02em;
+    white-space: nowrap;
 }
 
 :where(#mql-console) .dropdown-menu .dropdown-header {
@@ -1294,7 +1307,7 @@
 .wb-hist-meta {
     display: flex;
     gap: 8px;
-    align-items: center;
+    align-items: baseline;
     color: var(--bs-secondary-color);
     font-size: 11.5px;
 }
@@ -1486,10 +1499,12 @@
 @media (max-width: 991.98px) {
     .wb-lib { position: static; max-height: 420px; }
     .mql-hints { display: none; }
+    .mql-idle-keys { display: inline; }
 }
 
 @media (max-width: 575.98px) {
     .btn-run kbd,
+    .mql-idle-keys,
     .wb-statements,
     .cq-pager-hint,
     .mql-hints { display: none; }

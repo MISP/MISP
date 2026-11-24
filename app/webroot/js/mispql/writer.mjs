@@ -184,7 +184,17 @@ MispQLWriter.prototype = {
 
         var self = this;
         this.ta.addEventListener('input', function (e) { self.onInput(e); });
-        this.ta.addEventListener('scroll', function () { self.syncScroll(); });
+        this.ta.addEventListener('scroll', function () {
+            self.tip.hidden = true;
+            self.syncScroll();
+        });
+        if (o.gutter) {
+            document.addEventListener('selectionchange', function () {
+                if (document.activeElement === self.ta) {
+                    self.markCaretLine();
+                }
+            });
+        }
         this.ta.addEventListener('keydown', function (e) { self.onKeyDown(e); });
         this.ta.addEventListener('keyup', function (e) {
             if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(e.key) !== -1) {
@@ -224,6 +234,7 @@ MispQLWriter.prototype = {
         this.inserting = true;
         var native = text === '' ? document.execCommand('delete', false) : document.execCommand('insertText', false, text);
         this.inserting = false;
+        this.lastInputAt = 0;
         if (!native || this.ta.value !== text) {
             this.ta.value = text;
             this.changed();
@@ -285,6 +296,7 @@ MispQLWriter.prototype = {
         this.errors = this.errors.filter(function (e) { return e.from < e.to && e.to <= cut; });
         this.statements = null;
         this.prevText = text;
+        this.tip.hidden = true;
         this.render();
         this.scheduleExplain();
         if (this.opts.onChange) {
@@ -427,8 +439,40 @@ MispQLWriter.prototype = {
         this.host.classList.toggle('is-empty', !text);
         this.host.classList.toggle('has-errors', errs.length > 0);
         this.host.classList.toggle('is-writing', errs.length < all.length);
+        if (!this.tip.hidden && visible.indexOf(this.tipErr) === -1) {
+            this.tip.hidden = true;
+        }
+        if (this.opts.gutter) {
+            var digits = String(this.hl.children.length - 1).length;
+            if (digits !== this.digits) {
+                this.digits = digits;
+                this.host.style.setProperty('--mql-digits', Math.max(2, digits));
+            }
+            this.markCaretLine();
+        }
         this.fit();
         this.syncScroll();
+    },
+
+    /** Marks the caret's line, whose number the gutter shows brighter. */
+    markCaretLine: function () {
+        var text = this.ta.value;
+        var caret = this.ta.selectionStart;
+        var line = 0;
+        for (var i = text.indexOf('\n'); i !== -1 && i < caret; i = text.indexOf('\n', i + 1)) {
+            line++;
+        }
+        var el = this.hl.children[line] || null;
+        if (el === this.caretLine) {
+            return;
+        }
+        if (this.caretLine) {
+            this.caretLine.classList.remove('is-caret');
+        }
+        if (el) {
+            el.classList.add('is-caret');
+        }
+        this.caretLine = el;
     },
 
     fit: function () {
@@ -470,9 +514,10 @@ MispQLWriter.prototype = {
             return;
         }
         var err = this.errors[Number(hit.el.getAttribute('data-err'))];
-        if (!err) {
+        if (!err || this.sugg) {
             return;
         }
+        this.tipErr = err;
         this.tip.innerHTML = '<span class="mq-code">' + esc(err.code) + '</span>' + esc(err.message) +
             (err.path ? '<span class="mq-path">' + esc(err.path) + '</span>' : '');
         this.tip.hidden = false;
@@ -641,6 +686,7 @@ MispQLWriter.prototype = {
         this.pop.innerHTML = '<div class="mql-pop-list">' + rows + '</div>' + info + hint +
             '<div class="mql-pop-foot"><span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>↵</kbd> insert</span><span><kbd>esc</kbd> close</span></div>';
         this.pop.hidden = false;
+        this.tip.hidden = true;
         this.ta.setAttribute('aria-expanded', 'true');
         this.ta.setAttribute('aria-activedescendant', this.id + '-o' + this.suggIndex);
         var active = this.pop.querySelector('.is-active');

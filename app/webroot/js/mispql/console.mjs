@@ -62,7 +62,8 @@ function publicBase(baseurl) {
 function statusLine(target, writer, reply) {
     const text = writer.value;
     if (!text.trim()) {
-        target.innerHTML = '<span class="mql-diag is-idle"><i class="fa-regular fa-keyboard"></i>Write a statement; <kbd>Ctrl</kbd>+<kbd>Space</kbd> suggests.</span>';
+        target.innerHTML = '<span class="mql-diag is-idle"><i class="fa-regular fa-keyboard"></i><span>Write a statement' +
+            '<span class="mql-idle-keys">; <kbd>Ctrl</kbd><kbd>Space</kbd> suggests</span>.</span></span>';
         return;
     }
     if (!reply) {
@@ -174,7 +175,7 @@ function boot() {
         onExplain: function (reply, w) {
             statusLine(statusEl, w, reply);
             const n = reply && reply.status === 200 ? reply.body.statements.length : T.splitStatements(w.value).length;
-            stmtCountEl.textContent = n > 1 ? n + ' statements · Ctrl+↵ runs the one under the caret' : '';
+            stmtCountEl.innerHTML = n > 1 ? n + ' statements · <kbd>Ctrl</kbd><kbd>↵</kbd> runs the one under the caret' : '';
         },
         onChange: function (text) {
             if (!text.trim()) {
@@ -372,7 +373,7 @@ function boot() {
 
     function emptyResult() {
         resultEl.innerHTML = '<div class="wb-empty"><i class="fa-solid fa-magnifying-glass-chart"></i>' +
-            '<div><b class="text-body-emphasis">Results show here.</b><br>Write a statement and press <kbd>Ctrl</kbd>+<kbd>↵</kbd>, or start from an example.</div>' +
+            '<div><b class="text-body-emphasis">Results show here.</b><br>Write a statement and press <kbd>Ctrl</kbd><kbd>↵</kbd>, or start from an example.</div>' +
             '<div class="wb-examples">' + examples.map(function (ex, i) {
                 return '<button type="button" class="cq-example" data-ex="' + i + '">' + esc(ex.label) + '</button>';
             }).join('') + '</div></div>';
@@ -413,10 +414,11 @@ function boot() {
                 const icon = r ? '<span class="cq-kind-icon ' + (failed ? 'is-error' : 'is-done') + '"><i class="fa-solid ' + R.kindIcon(r) + '"></i></span>'
                     : '<span class="cq-kind-icon"><i class="fa-regular fa-clock"></i></span>';
                 const isCurrent = current && current.statement.trim() === h.statement.trim();
+                const table = tableOf(h.statement);
                 html += '<div class="wb-hist' + (isCurrent ? ' is-current' : '') + '" role="button" tabindex="0" data-h="' + i + '" title="' +
                     (r ? 'Load into the writer and show its result from this page' : 'Load into the writer') + '">' + icon +
                     '<span class="wb-hist-stmt">' + R.highlight(h.statement, []) + '</span>' +
-                    '<span class="wb-hist-meta"><span class="wb-table">' + esc(tableOf(h.statement)) + '</span><span>' + esc(ago(h.ran_at)) + '</span>' +
+                    '<span class="wb-hist-meta">' + (table ? '<span class="wb-table">' + esc(table) + '</span>' : '') + '<span>' + esc(ago(h.ran_at)) + '</span>' +
                     (r ? '<span>· ' + esc(R.summary(r)) + '</span>' : '') + '</span>' +
                     '<button type="button" class="wb-hist-run" data-run="' + i + '" title="Run again" aria-label="Run again"><i class="fa-solid fa-play"></i></button></div>';
             });
@@ -480,9 +482,8 @@ function boot() {
     const start = asked !== null ? asked : (storage('get') || '');
     if (start) {
         writer.setValue(start);
-    } else {
-        statusLine(statusEl, writer, null);
     }
+    statusLine(statusEl, writer, null);
     writer.focus();
 }
 

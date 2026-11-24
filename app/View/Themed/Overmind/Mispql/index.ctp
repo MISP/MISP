@@ -69,8 +69,8 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_
                                 <ul class="dropdown-menu dropdown-menu-end"></ul>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="wb-clear" title="<?= __('Clear the writer') ?>"><i class="fas fa-eraser" aria-hidden="true"></i><?= __('Clear') ?></button>
-                            <button type="button" class="btn btn-primary btn-run" id="wb-run" title="<?= __('Run the statement under the caret') ?>">
-                                <i class="fas fa-play" aria-hidden="true"></i><?= __('Run') ?> <kbd>Ctrl</kbd><kbd>↵</kbd>
+                            <button type="button" class="btn btn-primary btn-run" id="wb-run" title="<?= __('Run the statement under the caret') ?>" aria-keyshortcuts="Control+Enter">
+                                <i class="fas fa-play" aria-hidden="true"></i><?= __('Run') ?> <kbd class="btn-run-keys" aria-hidden="true">Ctrl ↵</kbd>
                             </button>
                         </div>
                     </div>
