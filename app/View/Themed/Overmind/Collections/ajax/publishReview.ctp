@@ -99,6 +99,8 @@ foreach ($sections as $section) {
 $opened = false;
 $narrower = $review['narrower'] ?? ['count' => 0, 'items' => []];
 $narrowerCount = (int)$narrower['count'];
+$narrowerOrigins = $review['narrower_origins'] ?? ['count' => 0, 'items' => []];
+$narrowerOriginCount = (int)$narrowerOrigins['count'];
 
 ob_start();
 ?>
@@ -217,6 +219,30 @@ summary.cpr-head:focus-visible { outline: 2px solid var(--misp-accent, var(--bs-
             </ul>
             <?php if ($narrowerCount > count($narrower['items'])): ?>
                 <div class="cpr-more"><?= h(__('and %s more', $narrowerCount - count($narrower['items']))) ?></div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+    <?php if ($narrowerOriginCount > 0): ?>
+        <div class="cpr-narrow" data-review-narrower-origins>
+            <div class="cpr-narrow-head">
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>
+                    <span class="fw-semibold"><?= h(__n(
+                        '%s member was asked about a value held in MISP only by events shared more narrowly than this collection.',
+                        '%s members were asked about values held in MISP only by events shared more narrowly than this collection.',
+                        $narrowerOriginCount,
+                        $narrowerOriginCount
+                    )) ?></span>
+                    <span class="cpr-narrow-hint"><?= h(__('Publishing sends what was asked with each of them, to everyone this collection reaches.')) ?></span>
+                </span>
+            </div>
+            <ul class="cpr-list">
+                <?php foreach ($narrowerOrigins['items'] as $item): ?>
+                    <?= $member(['meta' => [__('asked about %s', $item['asked'])]] + $item, '') ?>
+                <?php endforeach; ?>
+            </ul>
+            <?php if ($narrowerOriginCount > count($narrowerOrigins['items'])): ?>
+                <div class="cpr-more"><?= h(__('and %s more', $narrowerOriginCount - count($narrowerOrigins['items']))) ?></div>
             <?php endif; ?>
         </div>
     <?php endif; ?>

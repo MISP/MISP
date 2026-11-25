@@ -71,7 +71,8 @@ you opened (**The N opened**) or the whole batch (**All N in the batch**).
 When you add a value, a short note appears if it is held in MISP only by
 events shared more narrowly than the collection: people who can see the
 collection will then see the value. Check who the collection is shared with
-before you keep it.
+before you keep it. The same note appears for a member found by asking a
+module about such a value: what was asked goes with the member.
 
 Each member can say **why** it is there, in one line. The working view asks for
 it when a record arrives (**Why?**), and **Say why…** or **Edit why…** in a
@@ -124,7 +125,8 @@ marked **not in MISP yet**:
 A standalone object opens from the caret on its row, or **Open** in its menu.
 **New object from a template…** (in **More actions on the members**) lets you
 pick a template, fill in its fields and press **Add object**; the template's
-requirements are checked before it is added.
+requirements are checked before it is added. An object is never edited once
+made, and the same object made twice is the same member.
 
 Members that came from a module say so (for example *from a module on a
 value*).
@@ -158,7 +160,8 @@ To release it:
 
 1. Press **Review and publish**. The review lists the members added and
    removed since the last publish, the saved graphs and the links that go with
-   them, and values held only in narrower events.
+   them, values held only in narrower events, and members found by asking a
+   module about such a value.
 2. Say how far the investigation went under **Still ongoing?**: **Ongoing**
    (partners see it as still in progress) or **Completed**.
 3. Confirm.
@@ -397,7 +400,8 @@ The answer holds `collection_uuid`, `changed`, `element_count`, `Collection`
 (as the chip reads it), and the report: `added`, `present` (already held),
 `refused` (`index`, `key`, `error`) and `narrower` (values held in MISP only by
 events shared more narrowly than the collection), each item by its
-`Type:address` key.
+`Type:address` key, and `narrower_origins`: the members added whose `origin`
+asked about such a value, as `{key: asked value}`.
 
 Publish a collection:
 

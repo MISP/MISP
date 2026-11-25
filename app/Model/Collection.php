@@ -557,7 +557,7 @@ class Collection extends AppModel
                 ];
             }, $added),
         ];
-        $review['narrower'] = $this->narrowerReview($user, $collection);
+        list($review['narrower'], $review['narrower_origins']) = $this->narrowerReview($user, $collection);
 
         $Removal = ClassRegistry::init('CollectionElementRemoval');
         $removedConditions = ['CollectionElementRemoval.collection_id' => $id];
@@ -620,41 +620,70 @@ class Collection extends AppModel
     }
 
     /**
-     * The values added since the last publish that every attribute the
-     * user can see holding them shares more narrowly than the collection.
+     * Of the members added since the last publish, the values every
+     * attribute the user can see holding them shares more narrowly than the
+     * collection, and the members whose origin asked about such a value.
      *
      * @param array $user
      * @param array $collection Unwrapped
-     * @return array {count, items: [{type, address, label, meta}]}
+     * @return array [values {count, items: [{type, address, label, meta}]},
+     *      origins {count, items: [{type, address, text, asked}]}]
      */
     private function narrowerReview(array $user, array $collection)
     {
         $texts = [];
+        $asked = [];
         $lastId = 0;
         do {
             $rows = $this->CollectionElement->find('all', [
                 'recursive' => -1,
-                'fields' => ['CollectionElement.id', 'CollectionElement.element_sha256', 'CollectionElement.element_value'],
+                'fields' => [
+                    'CollectionElement.id', 'CollectionElement.element_type', 'CollectionElement.element_uuid',
+                    'CollectionElement.element_sha256', 'CollectionElement.element_value', 'CollectionElement.origin',
+                ],
                 'conditions' => [
                     'CollectionElement.collection_id' => (int)$collection['id'],
                     'CollectionElement.published' => false,
-                    'CollectionElement.element_type' => 'AttributeValue',
                     'CollectionElement.id >' => $lastId,
                 ],
                 'order' => ['CollectionElement.id' => 'ASC'],
                 'limit' => 1000,
             ]);
             foreach ($rows as $row) {
-                $texts[strtolower($row['CollectionElement']['element_sha256'])] = $row['CollectionElement']['element_value'];
-                $lastId = (int)$row['CollectionElement']['id'];
+                $element = $row['CollectionElement'];
+                $lastId = (int)$element['id'];
+                if ($element['element_type'] === 'AttributeValue') {
+                    $texts[strtolower($element['element_sha256'])] = $element['element_value'];
+                }
+                $origin = CollectionElement::decodedOrigin($element['origin'] ?? null);
+                if ($origin !== null) {
+                    $asked[] = self::reviewEnd($element, 'element') + [
+                        'text' => $element['element_value'] ?? null,
+                        'asked' => $origin['value'],
+                    ];
+                }
             }
         } while (count($rows) === 1000);
-        $narrower = $this->CollectionElement->narrowerValues($user, (int)$collection['distribution'], array_keys($texts));
+        $hexes = array_map('strval', array_keys($texts));
+        foreach ($asked as $member) {
+            $hexes[] = CollectionElement::valueSha256($member['asked']);
+        }
+        $narrower = $this->CollectionElement->narrowerValues($user, (int)$collection['distribution'], array_values(array_unique($hexes)));
+        $values = array_values(array_filter($narrower, function ($hex) use ($texts) {
+            return isset($texts[$hex]);
+        }));
+        $flipped = array_flip($narrower);
+        $origins = array_values(array_filter($asked, function ($member) use ($flipped) {
+            return isset($flipped[CollectionElement::valueSha256($member['asked'])]);
+        }));
         return [
-            'count' => count($narrower),
-            'items' => array_map(function ($hex) use ($texts) {
-                return ['type' => 'AttributeValue', 'address' => $hex, 'label' => $texts[$hex], 'meta' => []];
-            }, array_slice($narrower, 0, self::REVIEW_LIMIT)),
+            [
+                'count' => count($values),
+                'items' => array_map(function ($hex) use ($texts) {
+                    return ['type' => 'AttributeValue', 'address' => $hex, 'label' => $texts[$hex], 'meta' => []];
+                }, array_slice($values, 0, self::REVIEW_LIMIT)),
+            ],
+            ['count' => count($origins), 'items' => array_slice($origins, 0, self::REVIEW_LIMIT)],
         ];
     }
 
@@ -686,7 +715,10 @@ class Collection extends AppModel
                 $targets[$end['type'] . ':' . $end['address']] = ['type' => $end['type'], 'address' => $end['address']];
             }
         };
-        foreach (['added', 'removed'] as $kind) {
+        $memberKinds = array_values(array_filter(['added', 'removed', 'narrower_origins'], function ($kind) use ($review) {
+            return isset($review[$kind]);
+        }));
+        foreach ($memberKinds as $kind) {
             array_map($collect, $review[$kind]['items']);
         }
         foreach ($review['relationships']['items'] as $relationship) {
@@ -718,7 +750,7 @@ class Collection extends AppModel
             unset($end['text']);
             return $end + ['label' => $found['label'] ?? $text, 'meta' => $found['meta'] ?? []];
         };
-        foreach (['added', 'removed'] as $kind) {
+        foreach ($memberKinds as $kind) {
             foreach ($review[$kind]['items'] as $i => $item) {
                 $review[$kind]['items'][$i] = $label($item);
             }
@@ -1705,30 +1737,21 @@ class Collection extends AppModel
     }
 
     /**
-     * Shared sync capture sink for Collections — the single ingest point for BOTH the
-     * pull path and the push-receive controller action (mirrors
-     * GalaxyCluster::captureCluster / AnalystData::captureAnalystData). Centralising
-     * every enforcement rule here means both sync directions are covered once:
-     *  - D5 corpus authoritative: the incoming element set replaces the local one
-     *    wholesale via CollectionElement::captureElements() (which self-suppresses the
-     *    parent `modified` bump, T1.3, so the remote `modified` we write stays
-     *    authoritative for `{uuid: modified}` dedup).
-     *  - D6 last-writer-wins guarded by `locked`: a locally-created (locked=0) collection
-     *    is never overwritten by a non-internal remote; otherwise the strictly-newer
-     *    `modified` wins (equal/older is skipped). Accepted captures are marked locked=1.
-     *  - D7 creator neutralised: `user_id` is pinned to the sync user, `org_id` to the
-     *    sync user's org; `orgc_id`/`sharing_group_id` are resolved by UUID.
-     *  - Distribution is downgraded on incoming (1->0, 2->1) unless the server is internal
+     * The one ingest point for a collection from another instance, pulled or
+     * pushed (as GalaxyCluster::captureCluster):
+     *  - the incoming member list replaces the local one, and the remote
+     *    `modified` is kept, so sync dedups on it;
+     *  - a collection created here (locked = 0) is overwritten only by an
+     *    internal server, and stays this instance's own; otherwise a strictly
+     *    newer `modified` wins. A new capture is stored as a copy (locked = 1);
+     *  - `user_id` is the sync user, `org_id` their organisation; `orgc_id` and
+     *    `sharing_group_id` are resolved by uuid;
+     *  - distribution is downgraded (1->0, 2->1) unless the server is internal
      *    and the remote sync user has perm_sync_internal.
      *
-     * All identity/security fields (uuid, org, orgc, user_id, locked) are pinned from
-     * server-derived context, never honoured from the payload; the payload `id` is
-     * dropped (capture keys on `uuid` only) — PRD §7 mass-assignment discipline.
-     *
-     * NB for the pull (T3.3) and push (T4.x) wiring: the downgrade + locked=1 live HERE,
-     * so callers must pass the raw remote collection and must NOT pre-downgrade it
-     * (avoids a double downgrade). Pull passes $remotePermSyncInternal from the remote
-     * user info; push-receive passes !empty($user['Role']['perm_sync_internal']).
+     * Identity fields come from the server context, never from the payload,
+     * and the payload's `id` is dropped. Callers pass the remote collection as
+     * received: the downgrade happens here.
      *
      * @param array $user The sync user performing/authorising the capture.
      * @param array $collection Remote collection (with Orgc / SharingGroup / CollectionElement).
@@ -1774,8 +1797,6 @@ class Collection extends AppModel
         // group by UUID (create-if-missing) — mirrors GalaxyCluster::captureOrganisationAndSG.
         $collection = $this->captureOrganisationAndSG($collection, $user);
 
-        // Server-derived, never attacker-controlled: owner org = the sync user's org;
-        // creator user neutralised to the sync user (D7); mark as synced-in (locked=1).
         $collection['Collection']['org_id'] = $user['Organisation']['id'];
         $collection['Collection']['user_id'] = $user['id'];
         $collection['Collection']['locked'] = 1;
@@ -1801,8 +1822,7 @@ class Collection extends AppModel
             $collection['Collection']['sharing_group_id'] = null;
         }
 
-        // D5: the incoming element corpus is authoritative — pull it aside for a wholesale
-        // replace after the parent is saved (present-but-empty ⇒ cull all local elements).
+        // Replaced after the parent is saved; present but empty removes every member
         $elements = null;
         if (array_key_exists('CollectionElement', $collection['Collection'])) {
             $elements = $collection['Collection']['CollectionElement'];
@@ -1842,16 +1862,15 @@ class Collection extends AppModel
                 $this->create();
                 $saveSuccess = $this->save($collection, true, $fieldList);
             } else {
-                // D6: never let a non-internal remote overwrite a locally-created original.
                 if (empty($existing['Collection']['locked']) && empty($server['Server']['internal'])) {
                     $results['errors'][] = __('Blocked an edit to a collection that was created locally. This can happen if a synchronised collection that was created on this instance was modified by an administrator on the remote side.');
                     $results['failed']++;
                     return $results;
                 }
-                // Last-writer-wins: only a strictly-newer remote version wins.
                 if (isset($collection['Collection']['modified']) && $collection['Collection']['modified'] > $existing['Collection']['modified']) {
                     $collection['Collection']['id'] = $existing['Collection']['id'];
-                    $saveSuccess = $this->save($collection, true, $fieldList);
+                    // An update leaves it a copy or this instance's own, as an event edit does
+                    $saveSuccess = $this->save($collection, true, array_values(array_diff($fieldList, ['locked'])));
                 } else {
                     $results['errors'][] = __('Remote version is not newer than local one for collection (%s)', $collection['Collection']['uuid']);
                     $results['ignored']++;
@@ -1869,8 +1888,6 @@ class Collection extends AppModel
                 'conditions' => ['Collection.uuid' => $collection['Collection']['uuid']],
             ]);
             if ($elements !== null) {
-                // captureElements() replaces the corpus authoritatively and suppresses the
-                // Collection.modified bump itself, preserving the remote `modified` (T1.3).
                 $this->CollectionElement->captureElements([
                     'Collection' => [
                         'id' => $saved['Collection']['id'],

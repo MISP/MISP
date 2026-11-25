@@ -179,6 +179,11 @@ $text = [
         __('%s value: in MISP, only events shared more narrowly than this collection hold it.'),
         __('%s values: in MISP, only events shared more narrowly than this collection hold them.'),
     ],
+    'narrowerAskedOne' => __('Found by asking about a value that, in MISP, only events shared more narrowly than this collection hold.'),
+    'narrowerAskedN' => [
+        __('%s found by asking about a value that, in MISP, only events shared more narrowly than this collection hold.'),
+        __('%s found by asking about values that, in MISP, only events shared more narrowly than this collection hold.'),
+    ],
 ];
 ?>
 <script type="application/json" id="ig-working-text"><?= json_encode($text, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>

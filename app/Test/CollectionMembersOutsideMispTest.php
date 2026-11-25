@@ -529,7 +529,7 @@ class CollectionMembersOutsideMispTest extends TestCase
         $this->assertStringContainsString('content is an object', $target['error']);
     }
 
-    public function testAStandaloneObjectFromATemplateGetsAFreshUuidEachTime()
+    public function testAStandaloneObjectFromATemplateStandsUnderAProvisionalKeyUntilBuilt()
     {
         $item = array('type' => 'StandaloneObject', 'template' => self::TEMPLATE, 'attributes' => array(array('relation' => 'domain', 'value' => 'a.example')), 'comment' => 'why');
 
@@ -705,21 +705,29 @@ class CollectionMembersOutsideMispTest extends TestCase
         $this->assertSame(array($uuid), $this->standalone->unheldAsked);
     }
 
-    public function testAnObjectMadeFromATemplateIsKeyedByTheUuidDrawnForIt()
+    public function testAnObjectMadeFromATemplateIsKeyedByTheUuidItsContentDerives()
     {
         $elements = new MembersOutsideElement();
-
-        $report = $elements->addItems(self::user(), self::COLLECTION, array(array(
+        $item = array(
             'type' => 'StandaloneObject', 'template' => self::TEMPLATE,
             'attributes' => array(array('relation' => 'domain', 'value' => 'a.example')), 'comment' => 'by hand',
-        )));
+        );
 
-        $this->assertCount(1, $report['added']);
+        $report = $elements->addItems(self::user(), self::COLLECTION, array($item, $item));
+
+        $this->assertCount(1, $report['added'], 'the same object asked twice is one');
         $uuid = $elements->saved[0]['element_uuid'];
         $this->assertSame('StandaloneObject:' . $uuid, $report['added'][0]);
-        $this->assertSame($uuid, $this->standalone->stored[$uuid]['uuid']);
-        $this->assertNull($this->standalone->stored[$uuid]['module']);
-        $this->assertSame('by hand', $this->standalone->stored[$uuid]['comment']);
+        $stored = $this->standalone->stored[$uuid];
+        $stored['attributes'] = json_decode($stored['attributes'], true);
+        $this->assertSame(AnalystGraphDocumentTool::handMadeUuid(StandaloneObject::content($stored)), $uuid);
+        $this->assertNull($stored['module']);
+        $this->assertSame('by hand', $stored['comment']);
+
+        $again = $elements->addItems(self::user(), self::COLLECTION, array($item));
+        $this->assertSame(array(), $again['added']);
+        $this->assertSame(array('StandaloneObject:' . $uuid), $again['present'], 'made twice, it is already held');
+        $this->assertCount(1, $elements->saved);
     }
 
     public function testAnOriginIsSavedAsJson()
@@ -752,6 +760,28 @@ class CollectionMembersOutsideMispTest extends TestCase
         $this->assertSame(array('Value:' . $narrow, 'Value:' . $wide, 'Value:' . $unseen), $report['added']);
         $this->assertSame(array('Value:' . $narrow), $report['narrower']);
         $this->assertSame(array(3), $this->attributes->reachAsked, 'the levels as wide as the collection');
+    }
+
+    public function testAMemberFoundByAskingAboutANarrowerValueIsReported()
+    {
+        $elements = new MembersOutsideElement();
+        $elements->Collection->distribution = 3;
+        $asked = 'org-only.example';
+        $this->analystData->visible = array(hash('sha256', $asked) => 11);
+        list($module, , $uuid) = self::answered();
+
+        $report = $elements->addItems(self::user(), self::COLLECTION, array(
+            array('type' => 'Value', 'value' => 'found.example', 'origin' => self::origin(array('value' => ' ' . $asked))),
+            array('type' => 'StandaloneObject', 'module' => $module, 'content' => self::content(), 'origin' => self::origin(array('value' => $asked))),
+            array('type' => 'Value', 'value' => 'other.example', 'origin' => self::origin(array('value' => 'unseen.example'))),
+        ));
+
+        $this->assertCount(3, $report['added']);
+        $this->assertSame(array(
+            'Value:' . hash('sha256', 'found.example') => ' ' . $asked,
+            'StandaloneObject:' . $uuid => $asked,
+        ), $report['narrower_origins'], 'hashed as a value member is, the asked value as it was sent');
+        $this->assertSame(array(), $report['narrower'], 'what was found is not narrower itself');
     }
 
     public function testNothingIsNarrowerInACollectionOnlyYourOrganisationSees()
@@ -895,6 +925,24 @@ class CollectionMembersOutsideMispTest extends TestCase
         $this->assertStringContainsString('derived from its content', $elements->logged[0]);
     }
 
+    public function testAHandMadeObjectElementIsCapturedOnlyUnderItsDerivedUuid()
+    {
+        $elements = new MembersOutsideCapture();
+        $good = self::handMadeRecord();
+        $forged = self::handMadeRecord(array('uuid' => '9b000000-0000-4000-8000-0000000000fd'));
+
+        $this->capture($elements, array(
+            array('uuid' => 'e1', 'element_type' => 'StandaloneObject', 'element_uuid' => $forged['uuid'], 'StandaloneObject' => $forged),
+            array('uuid' => 'e2', 'element_type' => 'StandaloneObject', 'element_uuid' => $good['uuid'], 'StandaloneObject' => $good),
+        ));
+
+        $this->assertSame(array($good['uuid']), array_column($elements->rows, 'element_uuid'));
+        $this->assertSame(array($good['uuid']), array_keys($this->standalone->stored));
+        $this->assertCount(1, $elements->logged);
+        $this->assertStringContainsString('Could not capture standalone object ' . $forged['uuid'], $elements->logged[0]);
+        $this->assertStringContainsString('derived from its content', $elements->logged[0]);
+    }
+
     public function testAStandaloneObjectElementNamingAnotherRecordIsSkippedAndLogged()
     {
         $elements = new MembersOutsideCapture();
@@ -1014,7 +1062,7 @@ class CollectionMembersOutsideMispTest extends TestCase
         $this->assertSame(self::TEMPLATE, $record['template_uuid']);
         $this->assertSame(4, $record['template_version']);
         $this->assertNull($record['module']);
-        $this->assertTrue(Validation::uuid($record['uuid']));
+        $this->assertSame(AnalystGraphDocumentTool::handMadeUuid(StandaloneObject::content($record)), $record['uuid']);
     }
 
     public function testATemplateIsFoundByItsIdToo()
@@ -1025,7 +1073,34 @@ class CollectionMembersOutsideMispTest extends TestCase
 
         $this->assertSame('domain-ip', $record['name']);
         $second = $this->standalone->fromTemplate('5', array(array('relation' => 'domain', 'value' => 'a.example')), '', $errors);
-        $this->assertNotSame($record['uuid'], $second['uuid'], 'made by hand, so each is its own');
+        $this->assertSame($record['uuid'], $second['uuid'], 'the same object is one record');
+    }
+
+    public function testObjectsMadeByHandDifferingInAnythingAreTwoRecords()
+    {
+        $errors = array();
+        $make = function (array $attribute, $comment = '') use (&$errors) {
+            return $this->standalone->fromTemplate(self::TEMPLATE, array(array('relation' => 'domain') + $attribute), $comment, $errors)['uuid'];
+        };
+        $base = $make(array('value' => 'a.example'));
+
+        $this->assertNotSame($base, $make(array('value' => 'b.example')));
+        $this->assertNotSame($base, $make(array('value' => 'a.example'), 'seen at a customer'), 'a comment is never another record\'s');
+        $this->assertNotSame($base, $make(array('value' => 'a.example', 'comment' => 'internal')));
+        $this->assertNotSame($base, $make(array('value' => 'a.example', 'to_ids' => false)));
+        $this->assertSame(array(), $errors);
+    }
+
+    public function testTheOrderOfAHandMadeObjectsAttributesDoesNotMatter()
+    {
+        $errors = array();
+        $a = array('relation' => 'domain', 'value' => 'a.example');
+        $b = array('relation' => 'ip', 'value' => '203.0.113.7');
+
+        $this->assertSame(
+            $this->standalone->fromTemplate(self::TEMPLATE, array($a, $b), '', $errors)['uuid'],
+            $this->standalone->fromTemplate(self::TEMPLATE, array($b, $a), '', $errors)['uuid']
+        );
     }
 
     public function badTemplateInputs()
@@ -1078,15 +1153,40 @@ class CollectionMembersOutsideMispTest extends TestCase
         $this->assertSame(array('The uuid of an object from a module is derived from its content.'), $errors);
     }
 
-    public function testARemoteRecordMadeByHandMayHaveAnyUuid()
+    /** A hand-made record as sync carries it, under the uuid its content derives. */
+    private static function handMadeRecord(array $override = array())
+    {
+        $sent = array('module' => null, 'template_uuid' => self::TEMPLATE, 'template_version' => 4) + self::remoteRecord();
+        $errors = array();
+        $content = AnalystGraphDocumentTool::normaliseObjectContent(StandaloneObject::content($sent), $errors);
+        return $override + array('uuid' => AnalystGraphDocumentTool::handMadeUuid($content)) + $sent;
+    }
+
+    public function testARemoteRecordMadeByHandKeepsTheUuidItsContentDerives()
     {
         $errors = array();
-        $sent = self::remoteRecord(self::MODULE, array('uuid' => '9b000000-0000-4000-8000-0000000000aa', 'module' => null));
+        $sent = self::handMadeRecord();
+        $sent['uuid'] = strtoupper($sent['uuid']);
 
         $record = $this->standalone->fromRemote($sent, $errors);
 
-        $this->assertSame('9b000000-0000-4000-8000-0000000000aa', $record['uuid']);
+        $this->assertSame(array(), $errors);
+        $this->assertSame(strtolower($sent['uuid']), $record['uuid']);
         $this->assertNull($record['module']);
+    }
+
+    public function testARemoteRecordMadeByHandWithAnotherUuidIsRefused()
+    {
+        $errors = array();
+
+        $this->assertNull($this->standalone->fromRemote(self::handMadeRecord(array('uuid' => '9b000000-0000-4000-8000-0000000000aa')), $errors));
+        $this->assertSame(array('The uuid of a standalone object is derived from its content.'), $errors);
+
+        $errors = array();
+        $planted = self::handMadeRecord();
+        $planted['attributes'][0]['value'] = 'planted.example';
+        $this->assertNull($this->standalone->fromRemote($planted, $errors), 'other content under a known uuid');
+        $this->assertSame(array('The uuid of a standalone object is derived from its content.'), $errors);
     }
 
     public function badRemoteRecords()

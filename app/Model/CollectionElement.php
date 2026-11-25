@@ -724,18 +724,21 @@ class CollectionElement extends AppModel
      * Each is reported by its key in a graph document (`Type:address`):
      * added, present when the collection holds it already, or refused.
      * `narrower` lists the values added that every attribute the user can
-     * see holding them shares more narrowly than the collection.
+     * see holding them shares more narrowly than the collection;
+     * `narrower_origins` the members added whose origin asked about such a
+     * value, with that value.
      *
      * @param array $user
      * @param int $collectionId
      * @param array $items
      * @param string $description
-     * @return array {added: [key], present: [key], refused: [{index, key, error}], narrower: [key]}
+     * @return array {added: [key], present: [key], refused: [{index, key, error}], narrower: [key],
+     *      narrower_origins: {key: asked value}}
      */
     public function addItems(array $user, $collectionId, array $items, $description = '')
     {
         list($wanted, $report) = $this->itemTargets($items);
-        $report += ['added' => [], 'present' => [], 'narrower' => []];
+        $report += ['added' => [], 'present' => [], 'narrower' => [], 'narrower_origins' => []];
         $wanted = $this->valueTexts($user, $wanted, $report['refused']);
         $wanted = $this->readableTargets($user, $wanted, $report['refused'], ['AttributeValue']);
         $wanted = $this->builtRecords($wanted, $report['refused']);
@@ -748,6 +751,7 @@ class CollectionElement extends AppModel
             }
         }
         $addedValues = [];
+        $askedValues = [];
         $this->current_user = $user;
         $this->skipCollectionModifiedBump = true;
         try {
@@ -782,6 +786,9 @@ class CollectionElement extends AppModel
                     if ($target['element_type'] === 'AttributeValue') {
                         $addedValues[$target['address']] = $key;
                     }
+                    if (isset($target['origin'])) {
+                        $askedValues[$key] = $target['origin']['value'];
+                    }
                 } else {
                     $report['refused'][] = ['index' => $target['index'], 'key' => $key, 'error' => implode(' ', Hash::flatten($this->validationErrors))];
                     if (isset($target['record'])) {
@@ -795,13 +802,34 @@ class CollectionElement extends AppModel
         if (!empty($report['added'])) {
             $this->touchCollection($collectionId);
         }
-        if (!empty($addedValues)) {
+        if (!empty($addedValues) || !empty($askedValues)) {
+            $hexes = array_map('strval', array_keys($addedValues));
+            foreach ($askedValues as $value) {
+                $hexes[] = self::valueSha256($value);
+            }
             $distribution = $this->Collection->field('distribution', ['Collection.id' => $collectionId]);
-            foreach ($this->narrowerValues($user, (int)$distribution, array_keys($addedValues)) as $hex) {
-                $report['narrower'][] = $addedValues[$hex];
+            $narrower = array_flip($this->narrowerValues($user, (int)$distribution, array_values(array_unique($hexes))));
+            foreach ($addedValues as $hex => $key) {
+                if (isset($narrower[(string)$hex])) {
+                    $report['narrower'][] = $key;
+                }
+            }
+            foreach ($askedValues as $key => $value) {
+                if (isset($narrower[self::valueSha256($value)])) {
+                    $report['narrower_origins'][$key] = $value;
+                }
             }
         }
         return $report;
+    }
+
+    /**
+     * @param string $value
+     * @return string The SHA-256 a value member holding it is addressed by
+     */
+    public static function valueSha256($value)
+    {
+        return hash('sha256', trim((string)$value));
     }
 
     /**
@@ -935,7 +963,9 @@ class CollectionElement extends AppModel
 
     /**
      * Standalone objects named by what they hold become records, not saved
-     * yet; one that does not fit its template is refused.
+     * yet; one that does not fit its template is refused. One made by hand
+     * is keyed by its uuid once built, so the same object asked twice is
+     * one.
      *
      * @param array $wanted itemTargets()'s
      * @param array $refused
@@ -944,8 +974,10 @@ class CollectionElement extends AppModel
     private function builtRecords(array $wanted, array &$refused)
     {
         $StandaloneObject = null;
+        $out = [];
         foreach ($wanted as $key => $target) {
             if (!isset($target['build'])) {
+                $out[$key] = $out[$key] ?? $target;
                 continue;
             }
             $StandaloneObject = $StandaloneObject ?: ClassRegistry::init('StandaloneObject');
@@ -956,16 +988,18 @@ class CollectionElement extends AppModel
                 : $StandaloneObject->fromTemplate($build['template'], $build['attributes'], $build['comment'], $errors);
             if ($record === null) {
                 $refused[] = ['index' => $target['index'], 'key' => $key, 'error' => implode(' ', $errors)];
-                unset($wanted[$key]);
                 continue;
             }
             if (!isset($build['content'])) {
-                // Made by hand: its key is the uuid drawn for it
-                $record['uuid'] = $target['address'];
+                $key = 'StandaloneObject:' . $record['uuid'];
+                $target['key'] = $key;
+                $target['address'] = $record['uuid'];
             }
-            $wanted[$key] = $target + ['record' => $record];
+            if (!isset($out[$key]) || !isset($out[$key]['record'])) {
+                $out[$key] = $target + ['record' => $record];
+            }
         }
-        return $wanted;
+        return $out;
     }
 
     /**
@@ -1178,6 +1212,7 @@ class CollectionElement extends AppModel
             $extra['build'] = ['module' => $module, 'content' => $content];
             $column = 'element_uuid';
         } elseif ($type === 'StandaloneObject' && array_key_exists('template', $item)) {
+            // Stands in until the object is built and its uuid derived
             $address = strtolower(CakeText::uuid());
             $extra['build'] = [
                 'template' => $item['template'],

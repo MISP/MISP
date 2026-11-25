@@ -137,15 +137,15 @@ class StandaloneObject extends AppModel
         if ($content === null || !self::fits($content, $errors)) {
             return null;
         }
-        return self::record(CakeText::uuid(), null, $content, [
+        return self::record(AnalystGraphDocumentTool::handMadeUuid($content), null, $content, [
             'uuid' => $template['ObjectTemplate']['uuid'],
             'version' => (int)$template['ObjectTemplate']['version'],
         ]);
     }
 
     /**
-     * A record as another instance sends it. One from a module must carry
-     * the uuid its content derives; one made by hand any uuid.
+     * A record as another instance sends it: its uuid must be the one its
+     * content derives, whether a module answered it or someone made it.
      *
      * @param mixed $record
      * @param string[] $errors
@@ -178,6 +178,9 @@ class StandaloneObject extends AppModel
                 $errors[] = __('The uuid of an object from a module is derived from its content.');
                 return null;
             }
+        } elseif (AnalystGraphDocumentTool::handMadeUuid($content) !== $uuid) {
+            $errors[] = __('The uuid of a standalone object is derived from its content.');
+            return null;
         }
         $template = null;
         if (is_string($record['template_uuid'] ?? null) && Validation::uuid($record['template_uuid'])) {

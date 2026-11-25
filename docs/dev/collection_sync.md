@@ -41,8 +41,12 @@ elements between instances.
 - **Standalone objects travel with their record.** The element carries
   `element_uuid`; the sender attaches the `standalone_objects` row
   (`CollectionElement::withRecords()`) and the receiver stores it
-  (`captureRecord()`) before the element. The record is never edited: the same
-  module answer has the same uuid everywhere.
+  (`captureRecord()`) before the element. The record is never edited, and its
+  uuid is derived from its content: from the module and what it answered
+  (`AnalystGraphDocumentTool::answerUuid()`), or, for one made from a template,
+  from everything it holds (`handMadeUuid()`). The same object has the same
+  uuid everywhere, and a record whose uuid is not the one its content derives
+  is refused, so a peer cannot plant other content under a known uuid.
 - **Where a member came from.** `collection_elements.origin` (JSON: module,
   type, value, ran_at) is set for a value or answer that came from a module,
   and travels with the element.
@@ -91,6 +95,7 @@ Every later schema change is a migration under
 | `20261028_100344_collection_publish_state` | `collections.published`, `collections.last_published`, `collections.analysis`; `collection_elements.published`; the table `collection_element_removals`. Existing shared collections start published, members included; organisation-only ones start unpublished. |
 | `20261118_080050_collection_members_outside_misp` | `collection_elements.element_value` and `collection_elements.origin`; the table `standalone_objects`. Fills `element_value` for existing value members from the value table. |
 | `20261120_081016_active_workspace_on_a_collection` | No DDL. Converts a user's stored `active_workspace` setting from a graph to the collection that graph is drawn on. |
+| `20261125_121841_lowercase_collection_element_uuids` | No DDL. Stores every member's `element_uuid` in lowercase, which every lookup asks for (the column compares case by case); a member whose collection already holds the lowercase spelling is a duplicate and is deleted. |
 
 `standalone_objects` holds `uuid` (unique), `module`, `name`, `template_uuid`,
 `template_version`, `meta_category`, `description`, `comment`, `attributes`
@@ -243,7 +248,8 @@ Publishing and unpublishing take the edit right on the collection plus
 `perm_publish` (`Collection::canPublish()`), the same as publishing an event;
 a site admin always may. The review the publish shows
 (`Collection::publishReview()`, members added and removed since the last
-publish, links, graphs, and values narrower than the collection) lists at most
+publish, links, graphs, values narrower than the collection, and members whose
+origin asked about such a value) lists at most
 `Collection::REVIEW_LIMIT` entries per kind.
 
 A collection captured from a peer is stored as published
@@ -267,12 +273,15 @@ controller action). Modelled on `GalaxyCluster::captureCluster` (the integer-FK
 analogue — collections key org/orgc/SG by integer id, not uuid columns). It owns
 every enforcement rule, so callers pass the **raw** remote collection:
 
-- **locked = 1.** Every accepted capture is marked synced-in.
+- **locked = 1.** A collection captured for the first time is marked synced-in.
+  An update leaves `locked` as stored, as an event edit does.
 - **Published.** A capture is stored as published.
 - **Last-writer-wins, guarded by `locked`.** A locally-created (`locked=0`)
   collection is authoritative and is **never** overwritten by a non-internal
   remote (blocked). Otherwise the strictly-newer `modified` wins; equal/older is
-  skipped. (An *internal* server may overwrite a local original.)
+  skipped. A collection created here is changed from outside only by an
+  internal server, and it stays this instance's own (`locked=0`), as events
+  and galaxy clusters do.
 - **Creator neutralised.** `user_id` is pinned to the sync user, `org_id` to
   the sync user's org; `orgc_id` / `sharing_group_id` are resolved by UUID.
 - **Distribution downgrade on incoming.** `1 → 0`, `2 → 1`, unless the server is
@@ -311,7 +320,7 @@ except inside `captureElements`, which suppresses the bump so the remote
 `locked` cannot be flipped by a normal web user: `Collection::beforeValidate`
 forces `locked=0` on create for non-`perm_sync` callers, and
 `CollectionsController::edit` pins `locked` to the stored value. Only the capture
-sink (a `perm_sync` context) sets `locked=1`.
+sink (a `perm_sync` context) sets `locked=1`, and only on a create.
 
 ---
 

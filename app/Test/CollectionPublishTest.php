@@ -83,6 +83,8 @@ require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Collection.php';
+require_once __DIR__ . '/../Lib/Tools/AnalystGraphDocumentTool.php';
+require_once __DIR__ . '/../Model/CollectionElement.php';
 
 class PublishTestSharingGroups
 {
@@ -171,7 +173,18 @@ class PublishTestElements
         return array_shift($this->lists) ?? array();
     }
 
+    /** @var array SHA-256s narrowerValues() answers narrower */
+    public $narrower = array();
+
     public function narrowerValues(array $user, $distribution, array $hexes)
+    {
+        return array_values(array_intersect($this->narrower, $hexes));
+    }
+}
+
+class PublishTestDescriber
+{
+    public function describeTargets(array $user, array $targets)
     {
         return array();
     }
@@ -513,6 +526,40 @@ class CollectionPublishTest extends TestCase
 
         $this->assertSame(array(), $this->collection->updates);
         $this->assertSame(array(), $this->elements->asked, 'nothing looked up');
+    }
+
+    public function testTheReviewListsMembersFoundByAskingAboutANarrowerValue()
+    {
+        ClassRegistry::$instances['Graph'] = new PublishTestAnalystData();
+        ClassRegistry::$instances['Relationship'] = new PublishTestAnalystData();
+        ClassRegistry::$instances['AnalystData'] = new PublishTestDescriber();
+        $asked = 'org-only.example';
+        $found = hash('sha256', 'found.example');
+        $origin = json_encode(array('module' => 'circl_passivedns', 'type' => 'domain', 'value' => $asked, 'ran_at' => 1700000000));
+        $this->elements->narrower = array(hash('sha256', $asked));
+        // added, their count, the members not yet published
+        $this->elements->lists = array(array(), array(), array(
+            array('CollectionElement' => array(
+                'id' => 1, 'element_type' => 'AttributeValue', 'element_uuid' => null,
+                'element_sha256' => $found, 'element_value' => 'found.example', 'origin' => $origin,
+            )),
+            array('CollectionElement' => array(
+                'id' => 2, 'element_type' => 'Event', 'element_uuid' => self::EVENT,
+                'element_sha256' => null, 'element_value' => null, 'origin' => null,
+            )),
+        ));
+
+        $review = $this->collection->publishReview($this->user(array()), array(
+            'id' => 7, 'uuid' => self::COLLECTION, 'name' => 'APT28', 'distribution' => 3,
+            'last_published' => null, 'Orgc' => array('uuid' => 'org-a'),
+        ));
+
+        $this->assertSame(0, $review['narrower']['count'], 'the value found is not narrower');
+        $this->assertSame(1, $review['narrower_origins']['count']);
+        $this->assertSame(
+            array('type' => 'AttributeValue', 'address' => $found, 'asked' => $asked, 'label' => 'found.example', 'meta' => array()),
+            $review['narrower_origins']['items'][0]
+        );
     }
 
     public function testTheReviewLeavesOutGraphsAndLinksThatStayOnThisInstance()

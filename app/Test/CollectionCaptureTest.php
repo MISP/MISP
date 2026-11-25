@@ -1,6 +1,6 @@
 <?php
 /**
- * Collection::captureCollection() unit tests (T2.2 — PRD §9.1).
+ * Collection::captureCollection() unit tests.
  *
  * Pure PHPUnit, no CakePHP bootstrap, no DB — the convention used by every
  * other test under app/Test/ (see DashboardURLValidatorTest). captureCollection
@@ -312,6 +312,14 @@ class CollectionCaptureTest extends TestCase
         ClassRegistry::$instances['CollectionElementRemoval'] = $this->removals;
     }
 
+    /** Another capture, with the lookups counted afresh. */
+    private function freshCollection()
+    {
+        $this->collection = new TestableCollection();
+        $this->collection->Orgc = $this->orgc;
+        $this->collection->CollectionElement = $this->element;
+    }
+
     private function syncUser()
     {
         return array(
@@ -368,7 +376,7 @@ class CollectionCaptureTest extends TestCase
 
         $saved = $this->collection->savedData['Collection'];
         $this->assertSame(1, $saved['locked'], 'synced-in ⇒ locked=1');
-        $this->assertSame(5, $saved['user_id'], 'user_id neutralised to sync user (D7)');
+        $this->assertSame(5, $saved['user_id'], 'user_id neutralised to sync user');
         $this->assertSame(9, $saved['org_id'], 'org_id = sync user org');
         $this->assertSame(42, $saved['orgc_id'], 'orgc_id resolved via captureOrg');
         $this->assertSame(0, $saved['distribution'], 'community(1) downgraded to org-only(0)');
@@ -441,7 +449,7 @@ class CollectionCaptureTest extends TestCase
         $this->assertSame(0, $this->collection->saveCallCount);
     }
 
-    // ---------------- 3. locked block (D6) ----------------
+    // ---------------- 3. locked block ----------------
 
     public function testLockedBlockOnLocalOriginalFromExternal(): void
     {
@@ -474,6 +482,66 @@ class CollectionCaptureTest extends TestCase
         );
 
         $this->assertSame(1, $res['imported'], 'internal server may overwrite a local original');
+    }
+
+    /**
+     * @return array The existing row, as the last save left it
+     */
+    private function storedAfterSave()
+    {
+        $stored = $this->collection->existingRow['Collection'];
+        foreach ($this->collection->savedFieldList as $field) {
+            if (array_key_exists($field, $this->collection->savedData['Collection'])) {
+                $stored[$field] = $this->collection->savedData['Collection'][$field];
+            }
+        }
+        return array('Collection' => $stored);
+    }
+
+    public function testALocalOriginalOverwrittenByAnInternalServerStaysThisInstancesOwn(): void
+    {
+        $this->collection->existingRow = array('Collection' => array(
+            'id' => 50, 'locked' => 0, 'modified' => '2000-01-01 00:00:00'
+        ));
+
+        $res = $this->collection->captureCollection(
+            $this->syncUser(),
+            $this->incoming(array('modified' => '2030-01-01 00:00:00', 'name' => 'Renamed there')),
+            $this->internalServer()
+        );
+        $stored = $this->storedAfterSave();
+
+        $this->assertSame(1, $res['imported']);
+        $this->assertSame('Renamed there', $stored['Collection']['name']);
+        $this->assertSame(0, $stored['Collection']['locked'], 'not turned into a copy');
+
+        $this->freshCollection();
+        $this->collection->existingRow = $stored;
+        $res = $this->collection->captureCollection(
+            $this->syncUser(),
+            $this->incoming(array('modified' => '2031-01-01 00:00:00')),
+            $this->externalServer()
+        );
+
+        $this->assertSame(1, $res['failed'], 'a partner still may not overwrite it');
+        $this->assertSame(0, $this->collection->saveCallCount);
+    }
+
+    public function testACopyTakesANewerVersionFromAnyServerAndStaysACopy(): void
+    {
+        foreach (array($this->externalServer(), $this->internalServer()) as $server) {
+            $this->freshCollection();
+            $this->collection->existingRow = array('Collection' => array(
+                'id' => 50, 'locked' => 1, 'modified' => '2000-01-01 00:00:00'
+            ));
+            $res = $this->collection->captureCollection(
+                $this->syncUser(),
+                $this->incoming(array('modified' => '2030-01-01 00:00:00')),
+                $server
+            );
+            $this->assertSame(1, $res['imported']);
+            $this->assertSame(1, $this->storedAfterSave()['Collection']['locked']);
+        }
     }
 
     // ---------------- 4. distribution downgrade ----------------
@@ -571,7 +639,7 @@ class CollectionCaptureTest extends TestCase
         $this->assertNull($this->collection->savedData['Collection']['sharing_group_id']);
     }
 
-    // ---------------- 6. element corpus (D5) ----------------
+    // ---------------- 6. element corpus ----------------
 
     public function testElementsCapturedWithLocalId(): void
     {

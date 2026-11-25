@@ -717,6 +717,31 @@ class AnalystGraphDocumentTool
     }
 
     /**
+     * The uuid of an object made by hand: derived from everything it holds,
+     * so the same object is one record, and one differing in anything, a
+     * comment included, is another.
+     *
+     * @param array $content Normalised, kind object
+     * @return string
+     */
+    public static function handMadeUuid(array $content)
+    {
+        $attributes = [];
+        foreach ($content['attributes'] as $attribute) {
+            $attributes[] = [
+                $attribute['relation'] ?? '', $attribute['type'], $attribute['value'],
+                $attribute['category'], $attribute['comment'], !empty($attribute['to_ids']),
+            ];
+        }
+        sort($attributes);
+        $hash = hash('sha256', json_encode(
+            [$content['name'], $content['meta_category'], $content['description'], $content['comment'], $attributes],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ));
+        return self::uuidV5('hand-obj:' . $hash);
+    }
+
+    /**
      * The uuid of the attribute or element answer holding this value.
      *
      * @param string $type

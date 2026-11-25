@@ -141,7 +141,8 @@
         Object.keys(log).forEach(function (uuid) {
             out[uuid] = log[uuid].slice(0, LOG_MAX).map(function (e) {
                 return { id: e.id, kind: e.kind, keys: e.keys, present: e.present, labels: e.labels,
-                         count: e.count, refused: e.refused, narrower: e.narrower, message: e.message, at: e.at, why: e.why };
+                         count: e.count, refused: e.refused, narrower: e.narrower, narrowerAsked: e.narrowerAsked,
+                         message: e.message, at: e.at, why: e.why };
             });
         });
         write(LOG_KEY, out);
@@ -1070,7 +1071,8 @@
         var entry = {
             id: String(++seq), keys: (r.added || []).slice(), present: (r.present || []).slice(),
             count: (r.added || []).length, refused: (r.refused || []).length, labels: {}, at: Date.now(), fresh: true,
-            narrower: (r.narrower || []).length
+            narrower: (r.narrower || []).length,
+            narrowerAsked: Object.keys(r.narrower_origins || {}).length
         };
         entry.kind = entry.keys.length ? 'added' : 'present';
         var only = (d.items || []).length === 1 ? d.items[0] : null;
@@ -1533,6 +1535,13 @@
                 narrow.appendChild(icon('fas fa-triangle-exclamation'));
                 narrow.appendChild(document.createTextNode(e.count === 1 && e.narrower === 1 ? t('narrowerOne') : tn('narrowerN', e.narrower)));
                 bodyEl.appendChild(narrow);
+            }
+            if (e.narrowerAsked && e.kind !== 'undone' && e.kind !== 'gone') {
+                var asked = el('span', 'ig-so-arr-narrow');
+                asked.setAttribute('data-ig-arrival-narrower-asked', '');
+                asked.appendChild(icon('fas fa-triangle-exclamation'));
+                asked.appendChild(document.createTextNode(e.count === 1 && e.narrowerAsked === 1 ? t('narrowerAskedOne') : tn('narrowerAskedN', e.narrowerAsked)));
+                bodyEl.appendChild(asked);
             }
             if (e.why && !(trayWhy && trayWhy.id === e.id)) {
                 var said = el('span', 'ig-so-arr-why');
