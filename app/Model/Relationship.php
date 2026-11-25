@@ -114,7 +114,7 @@ class Relationship extends AnalystData
             'conditions' => [$this->alias . '.id' => $this->id],
             'fields' => [
                 'object_type', 'object_uuid', 'object_sha256', 'related_object_type',
-                'related_object_uuid', 'related_object_sha256', 'orgc_uuid', 'locked',
+                'related_object_uuid', 'related_object_sha256', 'orgc_uuid', 'locked', 'distribution',
             ],
             'recursive' => -1,
             'callbacks' => false,

@@ -136,7 +136,8 @@ A collection shared wider keeps its changes in-house until someone publishes
 them, as an event does. Until then partners keep the version they last
 received. A change is a member added or removed, a change to the collection
 itself, or a saved graph or link between members that your organisation drew on
-it.
+it. A graph or link kept to your organisation never leaves this instance, so
+saving one changes nothing partners would receive.
 
 The collection page shows where it stands:
 

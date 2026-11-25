@@ -170,6 +170,11 @@ class PublishTestElements
         $this->asked[] = $query['conditions'];
         return array_shift($this->lists) ?? array();
     }
+
+    public function narrowerValues(array $user, $distribution, array $hexes)
+    {
+        return array();
+    }
 }
 
 class PublishTestRemovals
@@ -180,6 +185,29 @@ class PublishTestRemovals
     {
         $this->deleted[] = $conditions;
         return true;
+    }
+
+    public function find($type, $query = array())
+    {
+        return $type === 'count' ? 0 : array();
+    }
+}
+
+/** Graphs and relationships: the conditions they are asked with. */
+class PublishTestAnalystData
+{
+    public $asked = array();
+
+    public function find($type, $query = array())
+    {
+        $this->asked[] = $query['conditions'];
+        return $type === 'count' ? 0 : array();
+    }
+
+    public function summaries(array $user, array $conditions, array $options = array())
+    {
+        $this->asked[] = $conditions;
+        return array();
     }
 }
 
@@ -425,16 +453,24 @@ class CollectionPublishTest extends TestCase
         $this->assertRegExp('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $saved['Collection']['modified']);
     }
 
+    /**
+     * @param array $fields What unpublishFor() wrote
+     */
+    private function assertUnpublishedAndChanged(array $fields)
+    {
+        $this->assertSame(false, $fields['Collection.published']);
+        $this->assertRegExp("/^'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'$/", $fields['Collection.modified'], 'a change partners lack, not unpublished by hand');
+    }
+
     public function testAGraphSavedHereUnpublishesItsOrganisationsCollection()
     {
-        $this->collection->graphSaved(array('object_type' => 'Collection', 'object_uuid' => 'C0000000-0000-4000-8000-00000000000A', 'orgc_uuid' => 'org-a', 'locked' => false));
-        $this->assertSame(array(array(
-            array('Collection.published' => false),
-            array('AND' => array(
-                array('Collection.uuid' => array(self::COLLECTION, strtoupper(self::COLLECTION))),
-                array('Collection.orgc_id' => 9, 'Collection.published' => true),
-            )),
-        )), $this->collection->updates);
+        $this->collection->graphSaved(array('object_type' => 'Collection', 'object_uuid' => 'C0000000-0000-4000-8000-00000000000A', 'orgc_uuid' => 'org-a', 'locked' => false, 'distribution' => '1'));
+        $this->assertCount(1, $this->collection->updates);
+        $this->assertUnpublishedAndChanged($this->collection->updates[0][0]);
+        $this->assertSame(array('AND' => array(
+            array('Collection.uuid' => array(self::COLLECTION, strtoupper(self::COLLECTION))),
+            array('Collection.orgc_id' => 9, 'Collection.published' => true),
+        )), $this->collection->updates[0][1]);
 
         $this->collection->updates = array();
         $this->collection->graphSaved(array('object_type' => 'Collection', 'object_uuid' => self::COLLECTION, 'orgc_uuid' => 'org-a', 'locked' => true));
@@ -450,10 +486,11 @@ class CollectionPublishTest extends TestCase
         $this->elements->lists = array(array(10 => 1, 11 => 2), array(12 => 2, 13 => 3));
         $this->collection->relationshipSaved($this->link(self::EVENT, self::ATTRIBUTE));
         $this->assertSame(array('CollectionElement.element_uuid' => self::EVENT), $this->elements->asked[0], 'members are stored lowercase');
-        $this->assertSame(array(array('Collection.published' => false), array('AND' => array(
+        $this->assertUnpublishedAndChanged($this->collection->updates[0][0]);
+        $this->assertSame(array('AND' => array(
             array('Collection.id' => array(2)),
             array('Collection.orgc_id' => 9, 'Collection.published' => true),
-        ))), $this->collection->updates[0]);
+        )), $this->collection->updates[0][1]);
 
         $this->collection->updates = array();
         $this->collection->listed = array(array(7 => 7));
@@ -466,6 +503,43 @@ class CollectionPublishTest extends TestCase
         $this->collection->relationshipSaved($this->link(self::EVENT, self::ATTRIBUTE));
         $this->collection->relationshipSaved(array('locked' => true) + $this->link(self::EVENT, self::ATTRIBUTE));
         $this->assertSame(array(), $this->collection->updates, 'no collection holds both; a capture');
+    }
+
+    public function testWhatStaysOnThisInstanceLeavesTheCollectionPublished()
+    {
+        $this->collection->graphSaved(array('object_type' => 'Collection', 'object_uuid' => self::COLLECTION, 'orgc_uuid' => 'org-a', 'locked' => false, 'distribution' => '0'));
+        $this->elements->lists = array(array(10 => 2), array(12 => 2));
+        $this->collection->relationshipSaved(array('locked' => false, 'distribution' => 0) + $this->link(self::EVENT, self::ATTRIBUTE));
+
+        $this->assertSame(array(), $this->collection->updates);
+        $this->assertSame(array(), $this->elements->asked, 'nothing looked up');
+    }
+
+    public function testTheReviewLeavesOutGraphsAndLinksThatStayOnThisInstance()
+    {
+        $graphs = new PublishTestAnalystData();
+        $relationships = new PublishTestAnalystData();
+        ClassRegistry::$instances['Graph'] = $graphs;
+        ClassRegistry::$instances['Relationship'] = $relationships;
+        // added, their count, value members, member addresses
+        $this->elements->lists = array(array(), array(), array(), array(
+            array('CollectionElement' => array('collection_id' => 7, 'element_uuid' => self::EVENT, 'element_sha256' => null)),
+        ));
+
+        $review = $this->collection->publishReview($this->user(array()), array(
+            'id' => 7, 'uuid' => self::COLLECTION, 'name' => 'APT28', 'distribution' => 3,
+            'last_published' => '2026-11-01 10:00:00', 'Orgc' => array('uuid' => 'org-a'),
+        ));
+
+        $this->assertSame(0, $review['graphs']['count']);
+        foreach ($graphs->asked as $conditions) {
+            $this->assertSame(0, $conditions['Graph.distribution !='] ?? null);
+        }
+        $this->assertNotEmpty($relationships->asked);
+        foreach ($relationships->asked as $conditions) {
+            $this->assertSame(0, $conditions['Relationship.distribution !='] ?? null);
+            $this->assertSame('2026-11-01 10:00:00', $conditions['Relationship.modified >']);
+        }
     }
 
     public function testMembersSentToPartnersKeepTheirFlagHome()

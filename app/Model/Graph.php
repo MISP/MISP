@@ -244,7 +244,10 @@ class Graph extends AnalystData
         }
         $saved = $this->find('first', [
             'conditions' => [$this->alias . '.id' => $this->id],
-            'fields' => [$this->alias . '.object_type', $this->alias . '.object_uuid', $this->alias . '.orgc_uuid', $this->alias . '.locked'],
+            'fields' => [
+                $this->alias . '.object_type', $this->alias . '.object_uuid', $this->alias . '.orgc_uuid',
+                $this->alias . '.locked', $this->alias . '.distribution',
+            ],
             'recursive' => -1,
             'callbacks' => false,
         ]);

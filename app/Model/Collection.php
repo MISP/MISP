@@ -591,6 +591,7 @@ class Collection extends AppModel
             'Graph.object_uuid' => self::spellings($collection['uuid']),
             'Graph.orgc_uuid' => $orgcUuid,
             'Graph.locked' => false,
+            'Graph.distribution !=' => 0,
         ];
         foreach ($changedSince as $field => $value) {
             $graphConditions['Graph.' . $field] = $value;
@@ -602,7 +603,7 @@ class Collection extends AppModel
 
         $members = $this->memberAddresses([$id])[$id] ?? [];
         $members[strtolower($collection['uuid'])] = true;
-        $drawn = $this->relationshipsBetween($orgcUuid, $members, $changedSince);
+        $drawn = $this->relationshipsBetween($orgcUuid, $members, $changedSince + ['distribution !=' => 0]);
         $review['relationships'] = [
             'count' => count($drawn),
             'items' => array_map(function ($relationship) {
@@ -1084,19 +1085,31 @@ class Collection extends AppModel
             return;
         }
         $this->updateAll(
-            ['Collection.published' => false],
+            ['Collection.published' => false, 'Collection.modified' => "'" . date('Y-m-d H:i:s') . "'"],
             ['AND' => [$conditions, ['Collection.orgc_id' => $org['Orgc']['id'], 'Collection.published' => true]]]
         );
     }
 
     /**
+     * @param array $row A graph or a relationship, unwrapped
+     * @return bool Whether it stays on this instance, so partners lack nothing
+     */
+    private static function staysHere(array $row)
+    {
+        return isset($row['distribution']) && (string)$row['distribution'] === '0';
+    }
+
+    /**
      * A graph saved here on a collection of its organisation changed it.
      *
-     * @param array $graph Unwrapped; reads object_type, object_uuid, orgc_uuid and locked
+     * @param array $graph Unwrapped; reads object_type, object_uuid, orgc_uuid, locked and distribution
      */
     public function graphSaved(array $graph)
     {
         if (($graph['object_type'] ?? null) !== 'Collection' || !empty($graph['locked']) || !is_string($graph['object_uuid'] ?? null)) {
+            return;
+        }
+        if (self::staysHere($graph)) {
             return;
         }
         $this->unpublishFor($graph['orgc_uuid'] ?? null, ['Collection.uuid' => self::spellings($graph['object_uuid'])]);
@@ -1110,7 +1123,7 @@ class Collection extends AppModel
      */
     public function relationshipSaved(array $relationship)
     {
-        if (!empty($relationship['locked'])) {
+        if (!empty($relationship['locked']) || self::staysHere($relationship)) {
             return;
         }
         $sets = [];
