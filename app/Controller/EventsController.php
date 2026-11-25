@@ -6113,6 +6113,7 @@ class EventsController extends AppController
                 'hosts' => __('Hosts file'),
                 'json' => __('MISP JSON'),
                 'netfilter' => __('Netfilter'),
+                'nfdump' => __('nfdump filter'),
                 'opendata' => __('Open data'),
                 'openioc' => __('OpenIOC'),
                 'rpz' => __('RPZ'),
