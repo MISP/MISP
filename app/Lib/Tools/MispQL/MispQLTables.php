@@ -2,7 +2,8 @@
 
 /**
  * What MispQL knows of each table: its endpoints, where its rows sit, its
- * default columns, how it is counted and the names it can be sorted by.
+ * default columns, how it is counted, the names it can be sorted by and the
+ * columns naming a record the console links to.
  *
  * Sort names are read from the model's REST_SEARCH_ORDER_FIELDS: every field
  * of the table's own model sorts under its own name, except those listed in
@@ -30,6 +31,17 @@ class MispQLTables
             ],
             'metadata' => false,
             'path' => '/attributes/%s',
+            'links' => [
+                'id' => 'Attribute',
+                'uuid' => 'Attribute',
+                'value' => 'Value',
+                'event_id' => 'Event',
+                'Event.id' => 'Event',
+                'Event.uuid' => 'Event',
+                'object_id' => 'Object',
+                'Object.id' => 'Object',
+                'Object.uuid' => 'Object',
+            ],
         ],
         'events' => [
             'rowKey' => 'Event',
@@ -51,6 +63,11 @@ class MispQLTables
             ],
             'metadata' => true,
             'path' => '/events/%s',
+            'links' => [
+                'id' => 'Event',
+                'uuid' => 'Event',
+                'extends_uuid' => 'Event',
+            ],
         ],
         'objects' => [
             'rowKey' => 'Object',
@@ -68,6 +85,13 @@ class MispQLTables
             ],
             'metadata' => false,
             'path' => '/objects/%s',
+            'links' => [
+                'id' => 'Object',
+                'uuid' => 'Object',
+                'event_id' => 'Event',
+                'Event.id' => 'Event',
+                'Event.uuid' => 'Event',
+            ],
         ],
         'galaxy_clusters' => [
             'rowKey' => 'GalaxyCluster',
@@ -85,6 +109,13 @@ class MispQLTables
             ],
             'metadata' => false,
             'path' => '/galaxy_clusters/%s',
+            'links' => [
+                'id' => 'GalaxyCluster',
+                'uuid' => 'GalaxyCluster',
+                'galaxy_id' => 'Galaxy',
+                'Galaxy.id' => 'Galaxy',
+                'Galaxy.uuid' => 'Galaxy',
+            ],
         ],
         'event_reports' => [
             'rowKey' => 'EventReport',
@@ -104,6 +135,13 @@ class MispQLTables
             ],
             'metadata' => false,
             'path' => '/event_reports/%s',
+            'links' => [
+                'id' => 'EventReport',
+                'uuid' => 'EventReport',
+                'event_id' => 'Event',
+                'Event.id' => 'Event',
+                'Event.uuid' => 'Event',
+            ],
         ],
         'notes' => [
             'rowKey' => 'Note',
@@ -116,6 +154,12 @@ class MispQLTables
             'aliases' => ['org' => 'Orgc.name'],
             'metadata' => false,
             'path' => '/analyst_data/%s/Note',
+            'links' => [
+                'id' => 'Note',
+                'uuid' => 'Note',
+                'object_uuid' => ['type_from' => 'object_type'],
+                'object_sha256' => ['type' => 'Value', 'by' => 'sha256'],
+            ],
         ],
         'opinions' => [
             'rowKey' => 'Opinion',
@@ -128,6 +172,12 @@ class MispQLTables
             'aliases' => ['org' => 'Orgc.name'],
             'metadata' => false,
             'path' => '/analyst_data/%s/Opinion',
+            'links' => [
+                'id' => 'Opinion',
+                'uuid' => 'Opinion',
+                'object_uuid' => ['type_from' => 'object_type'],
+                'object_sha256' => ['type' => 'Value', 'by' => 'sha256'],
+            ],
         ],
         'relationships' => [
             'rowKey' => 'Relationship',
@@ -143,6 +193,14 @@ class MispQLTables
             'aliases' => ['org' => 'Orgc.name'],
             'metadata' => false,
             'path' => '/analyst_data/%s/Relationship',
+            'links' => [
+                'id' => 'Relationship',
+                'uuid' => 'Relationship',
+                'object_uuid' => ['type_from' => 'object_type'],
+                'object_sha256' => ['type' => 'Value', 'by' => 'sha256'],
+                'related_object_uuid' => ['type_from' => 'related_object_type'],
+                'related_object_sha256' => ['type' => 'Value', 'by' => 'sha256'],
+            ],
         ],
         'collections' => [
             'rowKey' => 'Collection',
@@ -155,6 +213,7 @@ class MispQLTables
             'aliases' => ['org' => 'Orgc.name'],
             'metadata' => false,
             'path' => '/collections/%s',
+            'links' => ['id' => 'Collection', 'uuid' => 'Collection'],
         ],
         'tags' => [
             'rowKey' => 'Tag',
@@ -169,6 +228,7 @@ class MispQLTables
             'aliases' => [],
             'metadata' => false,
             'path' => '/tags/%s',
+            'links' => ['id' => 'Tag'],
         ],
         'organisations' => [
             'rowKey' => 'Organisation',
@@ -181,7 +241,37 @@ class MispQLTables
             'aliases' => [],
             'metadata' => false,
             'path' => '/organisations/%s',
+            'links' => ['id' => 'Organisation', 'uuid' => 'Organisation'],
         ],
+    ];
+
+    /** Organisation columns, linked wherever a table's rows carry them. */
+    const ORGANISATION_LINKS = [
+        'org_id', 'orgc_id', 'org_uuid', 'orgc_uuid',
+        'Org.id', 'Org.uuid', 'Orgc.id', 'Orgc.uuid',
+        'Event.org_id', 'Event.orgc_id',
+        'Event.Org.id', 'Event.Org.uuid', 'Event.Orgc.id', 'Event.Orgc.uuid',
+    ];
+
+    /**
+     * The page of each kind of record a cell can name, and the table whose
+     * access it follows (null: every user). `%s` takes the id, the uuid or,
+     * for a value, its address.
+     */
+    const PAGES = [
+        'Attribute' => ['/attributes/view/%s', 'attributes'],
+        'Event' => ['/events/view/%s', 'events'],
+        'Object' => ['/objects/view/%s', 'objects'],
+        'GalaxyCluster' => ['/galaxy_clusters/view/%s', 'galaxy_clusters'],
+        'Galaxy' => ['/galaxies/view/%s', 'galaxy_clusters'],
+        'EventReport' => ['/eventReports/view/%s', 'event_reports'],
+        'Note' => ['/analystData/view/Note/%s', 'notes'],
+        'Opinion' => ['/analystData/view/Opinion/%s', 'opinions'],
+        'Relationship' => ['/analystData/view/Relationship/%s', 'relationships'],
+        'Collection' => ['/collections/view/%s', 'collections'],
+        'Tag' => ['/events/index/searchtag:%s', 'events'],
+        'Organisation' => ['/organisations/view/%s', 'organisations'],
+        'Value' => ['/values/view/%s', null],
     ];
 
     /** @var callable model class => its REST_SEARCH_ORDER_FIELDS */
@@ -273,6 +363,33 @@ class MispQLTables
             $endpoints[$name] = $this->discovery($name);
         }
         return $endpoints;
+    }
+
+    /**
+     * @param string $name
+     * @return array column, as the rows name it => the record it names: a
+     *   record type, ['type_from' => column holding the type], or
+     *   ['type' => 'Value', 'by' => 'sha256']
+     */
+    public function links($name)
+    {
+        return self::TABLES[$name]['links'] + array_fill_keys(self::ORGANISATION_LINKS, 'Organisation');
+    }
+
+    /**
+     * @param string[] $tables the tables the user may query
+     * @return array record type => its page, for the records the user may
+     *   search for
+     */
+    public function pages(array $tables)
+    {
+        $pages = [];
+        foreach (self::PAGES as $type => list($url, $table)) {
+            if ($table === null || in_array($table, $tables, true)) {
+                $pages[$type] = $url;
+            }
+        }
+        return $pages;
     }
 
     /**

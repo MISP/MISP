@@ -21,7 +21,7 @@ echo $this->element('genericElements/assetLoader', ['css' => ['mispql-console']]
 
 // Module imports carry no query string of their own, so each module's
 // version goes through the import map.
-$modules = ['client', 'console', 'results', 'snippets', 'suggest', 'tokens', 'util', 'writer'];
+$modules = ['client', 'console', 'results', 'rewrite', 'snippets', 'suggest', 'tokens', 'util', 'writer'];
 $imports = [];
 foreach ($modules as $module) {
     $path = 'js/mispql/' . $module . '.mjs';

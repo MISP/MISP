@@ -387,8 +387,11 @@ function boot() {
 
         resultEl.appendChild(R.render(r, {
             pack: pack,
+            baseurl: baseurl,
+            valueAddress: window.MispValueAddress ? window.MispValueAddress.address : null,
             hideStatement: true,
             onPage: function (next) { pageTo(r, next); },
+            onFilter: function (next) { pageTo(r, next, { remember: true }); },
             onInsert: function (text) { writer.insert(text + ' '); },
             onPick: function (table) { writer.setValue('DESCRIBE ' + table); run(writer.statementAtCursor()); },
             onLocate: function (e) { locate(r, e); },
@@ -406,16 +409,21 @@ function boot() {
         return r.reply && r.reply.request ? { request: r.reply.request } : r.plan;
     }
 
-    /** The pager rewrites LIMIT/OFFSET in the writer, where the statement still is, then runs it. */
-    function pageTo(r, next) {
+    /**
+     * A rewrite of the result's statement (a page, a filter) goes into the
+     * writer where the statement still is, else replaces it, then runs. Only
+     * a filter, a new question, is remembered.
+     */
+    function pageTo(r, next, opts) {
+        const remember = !!(opts && opts.remember);
         const range = r.range;
         const text = writer.value;
         if (range && text.slice(range.from, range.to) === r.statement) {
             writer.setValue(text.slice(0, range.from) + next + text.slice(range.to), range.from + next.length);
-            run({ text: next, from: range.from, to: range.from + next.length }, { remember: false });
+            run({ text: next, from: range.from, to: range.from + next.length }, { remember: remember });
         } else {
             writer.setValue(next);
-            run({ text: next, from: 0, to: next.length }, { remember: false });
+            run({ text: next, from: 0, to: next.length }, { remember: remember });
         }
     }
 

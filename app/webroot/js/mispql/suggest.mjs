@@ -616,5 +616,6 @@ function suggest(text, cursor, pack) {
 export {
     suggest,
     fieldDef,
+    elementOnly,
     TYPE_DOC,
 };

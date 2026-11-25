@@ -8,7 +8,8 @@ require_once __DIR__ . '/MispQLTables.php';
 /**
  * What the query console needs to colour and suggest statements for one
  * user: the keywords, the tables the user may query and, per table, its
- * fields, sort names, formats, default columns and aliases.
+ * fields, sort names, formats, default columns, aliases and linked columns;
+ * and the pages those links open.
  */
 class MispQLLanguagePack
 {
@@ -25,7 +26,8 @@ class MispQLLanguagePack
     {
         $treeLimits = [];
         $packed = [];
-        foreach ($backend->tables() as $name) {
+        $names = $backend->tables();
+        foreach ($names as $name) {
             $found = $backend->describe($name);
             $table = $tables->get($name);
             $packed[$name] = [
@@ -36,6 +38,7 @@ class MispQLLanguagePack
                 'formats' => array_values($formats($name)),
                 'default_columns' => $table['columns'],
                 'aliases' => (object)$table['aliases'],
+                'links' => (object)$tables->links($name),
             ];
             $treeLimits = $found['limits'];
         }
@@ -49,6 +52,7 @@ class MispQLLanguagePack
                 'max_nesting' => MispQLParser::MAX_DEPTH,
             ]),
             'tables' => (object)$packed,
+            'pages' => (object)$tables->pages($names),
         ];
     }
 

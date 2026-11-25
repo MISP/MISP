@@ -1,29 +1,112 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { rewritePaging, pagingOf } from '../../webroot/js/mispql/results.mjs';
 import { createClient, failureMessage } from '../../webroot/js/mispql/client.mjs';
 import { snippets } from '../../webroot/js/mispql/snippets.mjs';
+import { cellLink, columnField, filterEntries, tagEntries, sortNameOf, nextOrder } from '../../webroot/js/mispql/results.mjs';
 
-describe('Pager', () => {
-    test('sets OFFSET after LIMIT, before FORMAT', () => {
-        assert.equal(rewritePaging("SELECT * FROM events WHERE id > 1 LIMIT 20 FORMAT table", 20, 40),
-            "SELECT * FROM events WHERE id > 1 LIMIT 20 OFFSET 40 FORMAT table");
-        assert.equal(rewritePaging('SELECT * FROM events LIMIT 20 OFFSET 40', 50, 0), 'SELECT * FROM events LIMIT 50');
-        assert.equal(rewritePaging("SELECT * FROM events WHERE id > 1", 20, 20), 'SELECT * FROM events WHERE id > 1 LIMIT 20 OFFSET 20');
+const f = (type, level, operators) => ({ type: type, level: [level], operators: operators });
+const EQ = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
+const CMP = ['=', '!=', '<', '>', '<=', '>=', 'IN', 'NOT IN'];
+const PACK = {
+    pages: {
+        Attribute: '/attributes/view/%s', Event: '/events/view/%s', Object: '/objects/view/%s',
+        Note: '/analystData/view/Note/%s', Value: '/values/view/%s',
+    },
+    tables: {
+        attributes: {
+            fields: {
+                id: f('int', 'attribute', CMP), type: f('string', 'attribute', EQ), value: f('string', 'attribute', EQ),
+                timestamp: f('timestamp', 'attribute', CMP), to_ids: f('bool', 'attribute', ['=', '!=']),
+                eventinfo: f('string', 'event', EQ), org: f('string', 'event', EQ),
+                tags: { type: 'string', level: ['attribute', 'event'], operators: EQ },
+            },
+            aliases: { eventinfo: 'Event.info', org: 'Event.Orgc.name', tags: 'Tag' },
+            links: { id: 'Attribute', value: 'Value', event_id: 'Event', object_id: 'Object', 'Event.Orgc.id': 'Organisation' },
+        },
+        objects: {
+            fields: { id: f('int', 'object', CMP), comment: f('string', 'attribute', EQ), event_id: f('int', 'event', CMP) },
+            aliases: { object_name: 'name' },
+            links: { id: 'Object' },
+        },
+        notes: {
+            fields: { id: f('int', 'note', CMP), created: f('datetime', 'note', CMP) },
+            aliases: {},
+            links: {
+                id: 'Note', object_uuid: { type_from: 'object_type' },
+                object_sha256: { type: 'Value', by: 'sha256' },
+            },
+        },
+    },
+};
+const ctx = (table) => ({ pack: PACK, tableName: table, baseurl: '/misp', address: (v) => 'b64:' + v });
+
+describe('Cells', () => {
+    test('a column reads the field of its name, or the alias printed as it', () => {
+        const t = PACK.tables.attributes;
+        assert.equal(columnField(t, 'attributes', 'type'), 'type');
+        assert.equal(columnField(t, 'attributes', 'TYPE'), 'type');
+        assert.equal(columnField(t, 'attributes', 'Event.info'), 'eventinfo');
+        assert.equal(columnField(t, 'attributes', 'Event.Orgc.name'), 'org');
+        assert.equal(columnField(t, 'attributes', 'Tag'), 'tags');
+        assert.equal(columnField(t, 'attributes', 'Event.date'), null);
     });
 
-    test('keeps a trailing semicolon last', () => {
-        assert.equal(rewritePaging('SELECT * FROM tags WHERE id > 1;', 10, 0), 'SELECT * FROM tags WHERE id > 1 LIMIT 10;');
+    test('a field matched against the records inside is not the column', () => {
+        const t = PACK.tables.objects;
+        assert.equal(columnField(t, 'objects', 'comment'), null, "an object's comment is not its attributes' comment");
+        assert.equal(columnField(t, 'objects', 'event_id'), 'event_id');
     });
 
-    test('leaves a LIMIT inside a string alone', () => {
-        assert.equal(rewritePaging("SELECT * FROM events WHERE eventinfo = 'LIMIT 5' LIMIT 5", 5, 5),
-            "SELECT * FROM events WHERE eventinfo = 'LIMIT 5' LIMIT 5 OFFSET 5");
+    test('a value offers the conditions its field takes', () => {
+        const t = PACK.tables.attributes;
+        assert.deepEqual(filterEntries(t, 'attributes', 'type', 'domain').map((e) => e.condition),
+            ["type = 'domain'", "type != 'domain'"]);
+        assert.deepEqual(filterEntries(t, 'attributes', 'timestamp', '1731591425').map((e) => e.label + ': ' + e.condition), [
+            'Keep only this: timestamp = 1731591425', 'Leave this out: timestamp != 1731591425',
+            'From this on: timestamp >= 1731591425', 'Up to this: timestamp <= 1731591425',
+        ]);
+        assert.deepEqual(filterEntries(t, 'attributes', 'id', '30').map((e) => e.label),
+            ['Keep only this', 'Leave this out', 'At least this', 'At most this']);
+        assert.deepEqual(filterEntries(t, 'attributes', 'to_ids', true).map((e) => e.condition), ['to_ids = TRUE', 'to_ids != TRUE']);
+        assert.deepEqual(filterEntries(t, 'attributes', 'Event.info', "Bob's"), [
+            { label: 'Keep only this', icon: 'fa-filter', condition: "eventinfo = 'Bob''s'" },
+            { label: 'Leave this out', icon: 'fa-filter-circle-xmark', condition: "eventinfo != 'Bob''s'" },
+        ]);
     });
 
-    test('reads LIMIT and OFFSET', () => {
-        assert.deepEqual(pagingOf('SELECT * FROM events LIMIT 20 OFFSET 40'), { limit: 20, offset: 40 });
-        assert.deepEqual(pagingOf("SELECT * FROM events WHERE eventinfo = 'LIMIT 3'"), { limit: null, offset: 0 });
+    test('no condition where = would refuse the value, or none reads the column', () => {
+        const t = PACK.tables.attributes;
+        assert.deepEqual(filterEntries(t, 'attributes', 'value', '%.example.com'), []);
+        assert.deepEqual(filterEntries(t, 'attributes', 'value', ''), []);
+        assert.deepEqual(filterEntries(t, 'attributes', 'Event.date', '2024-11-11'), []);
+        assert.deepEqual(filterEntries(PACK.tables.notes, 'notes', 'created', '2024-11-12 09:11:15').map((e) => e.label),
+            ['Keep only this', 'Leave this out', 'From this on', 'Up to this']);
+    });
+
+    test('a tag chip filters by its name, never its id', () => {
+        const t = PACK.tables.attributes;
+        assert.deepEqual(tagEntries(t, 'attributes', 'Tag', 'tlp:green').map((e) => e.condition),
+            ["tags = 'tlp:green'", "tags != 'tlp:green'"]);
+        assert.deepEqual(tagEntries(t, 'attributes', 'Tag', '42'), [], 'digits alone would name a tag id');
+    });
+
+    test('ids, uuids and values link to their page', () => {
+        assert.deepEqual(cellLink(ctx('attributes'), 'id', '30', {}), { href: '/misp/attributes/view/30', type: 'Attribute' });
+        assert.deepEqual(cellLink(ctx('attributes'), 'EVENT_ID', 1, {}), { href: '/misp/events/view/1', type: 'Event' });
+        assert.deepEqual(cellLink(ctx('attributes'), 'value', 'circl.lu', {}), { href: '/misp/values/view/b64:circl.lu', type: 'Value' });
+        assert.equal(cellLink(ctx('attributes'), 'object_id', '0', {}), null, 'no object');
+        assert.equal(cellLink(ctx('attributes'), 'type', 'domain', {}), null, 'not a linked column');
+        assert.equal(cellLink(ctx('attributes'), 'Event.Orgc.id', '1', {}), null, 'no page for organisations in this pack');
+        assert.equal(cellLink(ctx('attributes'), 'id', 'x', {}), null);
+    });
+
+    test('analyst data link to the record their row names', () => {
+        const uuid = '2192a382-792f-4108-a064-a17970a2de30';
+        assert.equal(cellLink(ctx('notes'), 'object_uuid', uuid, { object_type: 'Attribute' }).href, '/misp/attributes/view/' + uuid);
+        assert.equal(cellLink(ctx('notes'), 'object_uuid', uuid, { object_type: 'SharingGroup' }), null);
+        assert.equal(cellLink(ctx('notes'), 'object_uuid', uuid, {}), null, 'without the type column');
+        const sha = 'A'.repeat(64);
+        assert.equal(cellLink(ctx('notes'), 'object_sha256', sha, {}).href, '/misp/values/view/sha256:' + 'a'.repeat(64));
     });
 });
 
@@ -94,5 +177,47 @@ describe('API call', () => {
 
     test('a result offers the run call only', () => {
         assert.deepEqual(snippets('DESCRIBE events', plan, 'https://misp.example').map((s) => s.id), ['mispql', 'json', 'curl', 'pymisp']);
+    });
+});
+
+describe('Header sort', () => {
+    const attributes = {
+        fields: { timestamp: f('timestamp', 'attribute', CMP), value: f('string', 'attribute', EQ) },
+        aliases: { publish_timestamp: 'Event.publish_timestamp', eventinfo: 'Event.info' },
+        order_by: { id: 'id', value: 'value', timestamp: 'timestamp', publish_timestamp: 'Event.publish_timestamp' },
+    };
+    const events = {
+        fields: { date: f('date', 'event', CMP) },
+        aliases: { event_id: 'id', eventinfo: 'info', org: 'Orgc.name' },
+        order_by: { id: 'id', event_id: 'id', eventinfo: 'info', date: 'date' },
+    };
+
+    test('a column sorts by its sort name, the sort name of its field, or an alias', () => {
+        assert.equal(sortNameOf(attributes, 'timestamp'), 'timestamp');
+        assert.equal(sortNameOf(attributes, 'Event.publish_timestamp'), 'publish_timestamp');
+        assert.equal(sortNameOf(events, 'info'), 'eventinfo');
+        assert.equal(sortNameOf(events, 'ID'), 'id');
+        assert.equal(sortNameOf(events, 'Orgc.name'), null);
+        assert.equal(sortNameOf(attributes, 'Event.info'), null);
+        assert.equal(sortNameOf({ order_by: {}, aliases: {}, fields: {} }, 'id'), null, 'objects sort by nothing');
+    });
+
+    test('a click sorts by the column alone, times newest first', () => {
+        assert.deepEqual(nextOrder(attributes, [], 'value', false), [{ name: 'value', dir: 'ASC' }]);
+        assert.deepEqual(nextOrder(attributes, [{ name: 'value', dir: null }], 'timestamp', false), [{ name: 'timestamp', dir: 'DESC' }]);
+        assert.deepEqual(nextOrder(events, [], 'date', false), [{ name: 'date', dir: 'DESC' }]);
+    });
+
+    test('a click on the first key flips it, whatever name it was written with', () => {
+        assert.deepEqual(nextOrder(attributes, [{ name: 'timestamp', dir: 'DESC' }, { name: 'id', dir: null }], 'timestamp', false),
+            [{ name: 'timestamp', dir: 'ASC' }]);
+        assert.deepEqual(nextOrder(events, [{ name: 'event_id', dir: null }], 'id', false), [{ name: 'event_id', dir: 'DESC' }]);
+    });
+
+    test('Shift adds the column as the next key, or flips it where it stands', () => {
+        assert.deepEqual(nextOrder(attributes, [{ name: 'timestamp', dir: 'DESC' }], 'value', true),
+            [{ name: 'timestamp', dir: 'DESC' }, { name: 'value', dir: 'ASC' }]);
+        assert.deepEqual(nextOrder(attributes, [{ name: 'timestamp', dir: 'DESC' }, { name: 'value', dir: 'ASC' }], 'value', true),
+            [{ name: 'timestamp', dir: 'DESC' }, { name: 'value', dir: 'DESC' }]);
     });
 });

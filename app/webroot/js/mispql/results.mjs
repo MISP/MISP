@@ -5,7 +5,9 @@
 
 import * as T from './tokens.mjs';
 import { highlightHTML } from './writer.mjs';
-import { el, esc, fmtInt, ago, bytes, download, jsonHTML } from './util.mjs';
+import { addCondition, literal, fieldName, orderOf, setOrder, pagingOf, rewritePaging } from './rewrite.mjs';
+import { elementOnly } from './suggest.mjs';
+import { el, esc, fmtInt, ago, bytes, download, jsonHTML, copyText } from './util.mjs';
 
 var DISTRIBUTION = ['Your organisation only', 'This community only', 'Connected communities', 'All communities', 'Sharing group', 'Inherit event'];
 
@@ -208,6 +210,370 @@ function cell(column, value) {
     return '<span class="cq-text" title="' + esc(s.length > 60 ? s : '') + '">' + esc(s.replace(/\n/g, ' ⏎ ')) + '</span>';
 }
 
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+var RECORD_LABEL = {
+    Attribute: 'the attribute', Event: 'the event', Object: 'the object', GalaxyCluster: 'the galaxy cluster',
+    Galaxy: 'the galaxy', EventReport: 'the event report', Note: 'the note', Opinion: 'the opinion',
+    Relationship: 'the relationship', Collection: 'the collection', Tag: 'the events carrying the tag',
+    Organisation: 'the organisation',
+    Value: 'the value\'s page'
+};
+
+/** The key of `map` that is `name` in any case, or null. */
+function keyOf(map, name) {
+    if (!map) {
+        return null;
+    }
+    if (Object.prototype.hasOwnProperty.call(map, name)) {
+        return name;
+    }
+    var lower = String(name).toLowerCase();
+    var keys = Object.keys(map);
+    for (var i = 0; i < keys.length; i++) {
+        if (keys[i].toLowerCase() === lower) {
+            return keys[i];
+        }
+    }
+    return null;
+}
+
+function rowValue(row, column) {
+    var k = keyOf(row, column);
+    return k === null ? undefined : row[k];
+}
+
+function isEmpty(v) {
+    return v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length);
+}
+
+/**
+ * The page a cell names, from the pack's links and pages: {href, type}, or
+ * null. ctx: {pack, tableName, baseurl, address(value)}.
+ */
+function cellLink(ctx, column, value, row) {
+    var table = ctx.pack && ctx.pack.tables[ctx.tableName];
+    var pages = ctx.pack && ctx.pack.pages;
+    var key = table && table.links ? keyOf(table.links, column) : null;
+    if (key === null || !pages || isEmpty(value) || typeof value === 'object') {
+        return null;
+    }
+    var spec = table.links[key];
+    var type = typeof spec === 'string' ? spec : spec.type;
+    if (spec.type_from) {
+        type = rowValue(row, spec.type_from);
+    }
+    if (typeof type !== 'string' || !Object.prototype.hasOwnProperty.call(pages, type)) {
+        return null;
+    }
+    var s = String(value);
+    var address = null;
+    if (type === 'Value') {
+        if (spec.by === 'sha256') {
+            address = /^[0-9a-f]{64}$/i.test(s) ? 'sha256:' + s.toLowerCase() : null;
+        } else {
+            address = ctx.address ? ctx.address(s) : null;
+        }
+    } else if ((/^[0-9]+$/.test(s) && s !== '0') || UUID.test(s)) {
+        address = s;
+    }
+    return address === null ? null : { href: (ctx.baseurl || '') + pages[type].replace('%s', address), type: type };
+}
+
+/**
+ * The field a column reads, as conditions name it: the field of that name,
+ * else the alias printed as that column. A field matched against the
+ * records inside (an event's attributes) is not the column's own.
+ */
+function columnField(table, tableName, column) {
+    if (!table) {
+        return null;
+    }
+    var direct = keyOf(table.fields, column);
+    if (direct !== null && !elementOnly(tableName, table.fields[direct])) {
+        return direct;
+    }
+    var aliases = table.aliases || {};
+    var lower = String(column).toLowerCase();
+    var alias = Object.keys(aliases).filter(function (a) {
+        return String(aliases[a]).toLowerCase() === lower && table.fields[a] && !elementOnly(tableName, table.fields[a]);
+    })[0];
+    return alias || null;
+}
+
+var TIMELIKE = { timestamp: 1, date: 1, datetime: 1 };
+
+/** The conditions a cell's value can add: [{label, icon, condition}]. */
+function filterEntries(table, tableName, column, value) {
+    var field = columnField(table, tableName, column);
+    if (field === null) {
+        return [];
+    }
+    var def = table.fields[field];
+    var lit = literal(def.type, value);
+    if (lit === null) {
+        return [];
+    }
+    var name = fieldName(field);
+    var has = function (op) { return def.operators.indexOf(op) !== -1; };
+    var out = [];
+    if (has('=')) {
+        out.push({ label: 'Keep only this', icon: 'fa-filter', condition: name + ' = ' + lit });
+    }
+    if (has('!=')) {
+        out.push({ label: 'Leave this out', icon: 'fa-filter-circle-xmark', condition: name + ' != ' + lit });
+    }
+    if (def.type === 'int' || TIMELIKE[def.type]) {
+        var time = TIMELIKE[def.type] === 1;
+        if (has('>=')) {
+            out.push({ label: time ? 'From this on' : 'At least this', icon: 'fa-greater-than-equal', condition: name + ' >= ' + lit });
+        }
+        if (has('<=')) {
+            out.push({ label: time ? 'Up to this' : 'At most this', icon: 'fa-less-than-equal', condition: name + ' <= ' + lit });
+        }
+    }
+    return out;
+}
+
+/**
+ * The conditions a tag chip can add, always by the tag's name. A name of
+ * digits only would be read as a tag id, so it gets none.
+ */
+function tagEntries(table, tableName, column, name) {
+    if (/^[0-9]+$/.test(name)) {
+        return [];
+    }
+    return filterEntries(table, tableName, column, name).filter(function (e) {
+        return e.label === 'Keep only this' || e.label === 'Leave this out';
+    });
+}
+
+/**
+ * The name ORDER BY takes for a column: a sort name of the table, the sort
+ * name whose server field the column is, or an alias printed as the column
+ * that is a sort name. null when MISP cannot sort by it.
+ */
+function sortNameOf(table, column) {
+    var order = table && table.order_by;
+    if (!order) {
+        return null;
+    }
+    var direct = keyOf(order, column);
+    if (direct !== null) {
+        return direct;
+    }
+    var lower = String(column).toLowerCase();
+    var names = Object.keys(order);
+    for (var i = 0; i < names.length; i++) {
+        if (String(order[names[i]]).toLowerCase() === lower) {
+            return names[i];
+        }
+    }
+    var aliases = table.aliases || {};
+    var alias = Object.keys(aliases).filter(function (a) {
+        return String(aliases[a]).toLowerCase() === lower && keyOf(order, a) !== null;
+    })[0];
+    return alias ? keyOf(order, alias) : null;
+}
+
+/** Index in `keys` of the key sorting by the same server field as `name`, or -1. */
+function keyIndex(table, keys, name) {
+    var target = table.order_by[name];
+    for (var i = 0; i < keys.length; i++) {
+        var k = keyOf(table.order_by, keys[i].name);
+        if (k !== null && table.order_by[k] === target) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * The ORDER BY keys after a click on a column's header: alone, ascending
+ * (descending for times and dates), or flipped when it was the first key;
+ * with `add` (Shift), appended, or flipped where it stands.
+ */
+function nextOrder(table, keys, name, add) {
+    var def = table.fields && table.fields[name];
+    var first = def && TIMELIKE[def.type] ? 'DESC' : 'ASC';
+    var flip = function (k) { return { name: k.name, dir: k.dir === 'DESC' ? 'ASC' : 'DESC' }; };
+    var at = keyIndex(table, keys, name);
+    if (add) {
+        if (at === -1) {
+            return keys.concat([{ name: name, dir: first }]);
+        }
+        return keys.map(function (k, i) { return i === at ? flip(k) : k; });
+    }
+    return [at === 0 ? flip(keys[0]) : { name: name, dir: first }];
+}
+
+function copyable(v) {
+    if (Array.isArray(v)) {
+        return v.map(function (x) { return x !== null && typeof x === 'object' ? x.name : x; }).join(', ');
+    }
+    return String(v);
+}
+
+/**
+ * The funnel's menu, in Bootstrap's dropdown look but opened and closed
+ * here. While it is open its keys are taken at window capture, so
+ * Bootstrap's delegated dropdown handler never sees them.
+ * Items: {label | html, icon, detail, run() | copy | open() -> items},
+ * {header: html}, {divider: true}.
+ */
+function cellMenu(host) {
+    var menu = null;
+    var cell = null;
+    var button = null;
+    var list = [];
+
+    function render(items) {
+        list = items;
+        menu.innerHTML = items.map(function (it, k) {
+            if (it.divider) {
+                return '<hr class="dropdown-divider">';
+            }
+            if (it.header !== undefined) {
+                return '<div class="dropdown-header cq-menu-head">' + it.header + '</div>';
+            }
+            var icon = '<i class="fa-solid ' + it.icon + ' fa-fw" aria-hidden="true"></i>';
+            return '<button type="button" class="dropdown-item cq-menu-item' + (it.trailing ? ' is-trailing' : '') + '" role="menuitem" data-k="' + k + '">' +
+                (it.trailing ? '' : icon) + '<span class="cq-menu-label">' + (it.html || esc(it.label)) +
+                (it.detail ? '<code class="cq-menu-detail">' + esc(it.detail) + '</code>' : '') + '</span>' +
+                (it.trailing ? icon : '') + '</button>';
+        }).join('');
+        var first = menu.querySelector('.dropdown-item');
+        if (first) {
+            first.focus({ preventScroll: true });
+        }
+    }
+
+    function place() {
+        var r = button.getBoundingClientRect();
+        var w = menu.offsetWidth;
+        var h = menu.offsetHeight;
+        var left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
+        var top = r.bottom + 4;
+        if (top + h > window.innerHeight - 8 && r.top - 4 - h >= 8) {
+            top = r.top - 4 - h;
+        }
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+    }
+
+    function close(refocus) {
+        if (!menu) {
+            return;
+        }
+        menu.remove();
+        menu = null;
+        window.removeEventListener('keydown', onKey, true);
+        document.removeEventListener('pointerdown', onPointer, true);
+        window.removeEventListener('scroll', onScroll, true);
+        window.removeEventListener('resize', onScroll);
+        cell.classList.remove('is-open');
+        button.setAttribute('aria-expanded', 'false');
+        if (refocus) {
+            cell.focus({ preventScroll: true });
+        }
+        cell = null;
+        button = null;
+    }
+
+    function onKey(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            close(true);
+            return;
+        }
+        if (!menu.contains(e.target)) {
+            return;
+        }
+        var items = Array.prototype.slice.call(menu.querySelectorAll('.dropdown-item'));
+        var at = items.indexOf(document.activeElement);
+        var n = items.length;
+        var to = null;
+        if (e.key === 'ArrowDown') {
+            to = (at + 1) % n;
+        } else if (e.key === 'ArrowUp') {
+            to = at <= 0 ? n - 1 : at - 1;
+        } else if (e.key === 'Home') {
+            to = 0;
+        } else if (e.key === 'End') {
+            to = n - 1;
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            e.stopPropagation();
+            close(true);
+            return;
+        } else {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (n) {
+            items[to].focus({ preventScroll: true });
+        }
+    }
+
+    function onPointer(e) {
+        if (!menu.contains(e.target) && !button.contains(e.target)) {
+            close(false);
+        }
+    }
+
+    function onScroll(e) {
+        if (!e || !e.target || !menu.contains(e.target)) {
+            close(false);
+        }
+    }
+
+    function choose(e) {
+        var b = e.target.closest('[data-k]');
+        if (!b) {
+            return;
+        }
+        var it = list[Number(b.dataset.k)];
+        if (it.open) {
+            render(it.open());
+            place();
+        } else if (it.copy !== undefined) {
+            var flash = button;
+            close(true);
+            copyText(it.copy, flash);
+        } else if (it.run) {
+            close(false);
+            it.run();
+        }
+    }
+
+    function toggle(td, btn, items, keyboard) {
+        var same = menu && cell === td;
+        close(same && keyboard);
+        if (same) {
+            return;
+        }
+        cell = td;
+        button = btn;
+        menu = el('div', 'dropdown-menu show cq-menu');
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('data-bs-popper', 'static');
+        menu.addEventListener('click', choose);
+        host.appendChild(menu);
+        render(items);
+        place();
+        td.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+        window.addEventListener('keydown', onKey, true);
+        document.addEventListener('pointerdown', onPointer, true);
+        window.addEventListener('scroll', onScroll, true);
+        window.addEventListener('resize', onScroll);
+    }
+
+    return { toggle: toggle, close: close };
+}
+
 function csvOf(columns, rows) {
     function c(v) {
         if (Array.isArray(v)) {
@@ -221,69 +587,10 @@ function csvOf(columns, rows) {
     })).join('\n') + '\n';
 }
 
-/** The statement with its LIMIT and OFFSET set, rewritten through the tokens. */
-function rewritePaging(statement, limit, offset) {
-    var toks = T.significant(T.tokenize(statement));
-    var limitTok = null;
-    var offsetTok = null;
-    var formatTok = null;
-    for (var i = 0; i < toks.length; i++) {
-        var t = toks[i];
-        if (t.kind === 'keyword' && t.value === 'LIMIT' && toks[i + 1] && toks[i + 1].kind === 'number') {
-            limitTok = { kw: t, num: toks[i + 1] };
-        }
-        if (t.kind === 'keyword' && t.value === 'OFFSET' && toks[i + 1] && toks[i + 1].kind === 'number') {
-            offsetTok = { kw: t, num: toks[i + 1] };
-        }
-        if (t.kind === 'keyword' && t.value === 'FORMAT') {
-            formatTok = t;
-        }
-    }
-    var edits = [];
-    var clause = offset > 0 ? ' OFFSET ' + offset : '';
-    if (limitTok) {
-        edits.push({ from: limitTok.num.start, to: limitTok.num.end, text: String(limit) });
-        if (offsetTok) {
-            edits.push(offset > 0
-                ? { from: offsetTok.num.start, to: offsetTok.num.end, text: String(offset) }
-                : { from: limitTok.num.end, to: offsetTok.num.end, text: '' });
-        } else if (offset > 0) {
-            edits.push({ from: limitTok.num.end, to: limitTok.num.end, text: clause });
-        }
-    } else {
-        var at = formatTok ? formatTok.start : (toks.length ? toks[toks.length - 1].end : statement.length);
-        if (!formatTok && toks.length && toks[toks.length - 1].value === ';') {
-            at = toks[toks.length - 1].start;
-        }
-        edits.push({ from: at, to: at, text: (formatTok ? '' : ' ') + 'LIMIT ' + limit + clause + (formatTok ? ' ' : '') });
-    }
-    edits.sort(function (a, b) { return b.from - a.from; });
-    var out = statement;
-    edits.forEach(function (e) { out = out.slice(0, e.from) + e.text + out.slice(e.to); });
-    return out;
-}
-
-function pagingOf(statement) {
-    var toks = T.significant(T.tokenize(statement));
-    var limit = null;
-    var offset = 0;
-    for (var i = 0; i < toks.length - 1; i++) {
-        if (toks[i].kind === 'keyword' && toks[i + 1].kind === 'number') {
-            if (toks[i].value === 'LIMIT') {
-                limit = Number(toks[i + 1].value);
-            }
-            if (toks[i].value === 'OFFSET') {
-                offset = Number(toks[i + 1].value);
-            }
-        }
-    }
-    return { limit: limit, offset: offset };
-}
-
 /**
  * Rows: grid (column list or default columns), JSON of the raw rows for
  * SELECT *, CSV text for FORMAT flat; pager driven by `total`.
- * opts: {onPage(statement), compact}
+ * opts: {pack, baseurl, valueAddress(value), onPage(statement), onFilter(statement)}
  */
 function renderRows(r, opts) {
     opts = opts || {};
@@ -355,26 +662,218 @@ function renderRows(r, opts) {
             return;
         }
         var cap = Math.min(shown, GRID_CAP);
-        var head = '<th class="cq-rn" scope="col">#</th>' + model.columns.map(function (c) {
-            return '<th scope="col"><span>' + esc(c) + '</span></th>';
-        }).join('');
+        var head = '<th class="cq-rn" scope="col">#</th>' + model.columns.map(headerCell).join('');
         var rowsHtml = '';
         for (var i = 0; i < cap; i++) {
             var row = model.rows[i];
-            rowsHtml += '<tr><td class="cq-rn">' + fmtInt(paging.offset + i + 1) + '</td>' + model.columns.map(function (c) {
-                var v = row[c];
-                if (v === undefined) {
-                    var lower = c.toLowerCase();
-                    var k = Object.keys(row).filter(function (x) { return x.toLowerCase() === lower; })[0];
-                    v = k ? row[k] : undefined;
+            rowsHtml += '<tr data-r="' + i + '"><td class="cq-rn">' + fmtInt(paging.offset + i + 1) + '</td>' + model.columns.map(function (c, j) {
+                var v = rowValue(row, c);
+                var content = cell(c, v);
+                var link = cellLink(ctx, c, v, row);
+                if (link) {
+                    content = '<a class="cq-link" href="' + esc(link.href) + '" target="_blank" rel="noopener" tabindex="-1" title="Open ' +
+                        esc(RECORD_LABEL[link.type] || link.type) + ' in a new tab">' + content + '<i class="fa-solid fa-arrow-up-right-from-square cq-ext" aria-hidden="true"></i></a>';
                 }
-                return '<td>' + cell(c, v) + '</td>';
+                if (isEmpty(v)) {
+                    return '<td data-c="' + j + '"' + (i === 0 && j === 0 ? ' tabindex="0"' : '') + '>' + content + '</td>';
+                }
+                return '<td data-c="' + j + '" class="has-funnel"' + (i === 0 && j === 0 ? ' tabindex="0"' : '') + '>' + content +
+                    '<button type="button" class="cq-funnel" tabindex="-1" aria-haspopup="menu" aria-label="Filter or copy this value" title="Filter or copy">' +
+                    '<i class="fa-solid fa-filter" aria-hidden="true"></i></button></td>';
             }).join('') + '</tr>';
         }
-        body.innerHTML = '<div class="cq-grid-wrap"><table class="cq-grid"><thead><tr>' + head + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
+        body.innerHTML = '<div class="cq-grid-wrap"><table class="cq-grid" role="grid" aria-label="Rows" aria-rowcount="' + (cap + 1) + '">' +
+            '<thead><tr>' + head + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
             (shown > cap ? '<div class="cq-capnote"><i class="fa-solid fa-circle-info"></i>The grid shows the first ' + fmtInt(cap) +
                 ' of ' + fmtInt(shown) + ' rows returned. Add a <code>LIMIT</code> to page through them.</div>' : '');
     }
+
+    var ctx = {
+        pack: opts.pack,
+        tableName: r.table,
+        baseurl: opts.baseurl || '',
+        address: opts.valueAddress || null,
+    };
+    var tableDef = opts.pack && opts.pack.tables[r.table];
+    var menu = cellMenu(root_);
+    var order = orderOf(r.statement);
+    var canSort = !!opts.onPage && !!tableDef;
+
+    /** A header sorts when MISP can sort the table by its column; its arrow reads the statement's ORDER BY. */
+    function headerCell(c, j) {
+        var name = canSort ? sortNameOf(tableDef, c) : null;
+        var label = '<span>' + esc(c) + '</span>';
+        if (name === null) {
+            var why = '';
+            if (canSort) {
+                why = Object.keys(tableDef.order_by || {}).length ? r.table + ' cannot be sorted by this column' : r.table + ' cannot be sorted';
+            }
+            return '<th scope="col" data-c="' + j + '"' + (why ? ' title="' + esc(why) + '"' : '') + '>' + label + '</th>';
+        }
+        var at = keyIndex(tableDef, order, name);
+        var dir = at === -1 ? null : (order[at].dir === 'DESC' ? 'DESC' : 'ASC');
+        var title = dir === null
+            ? 'Sort by ' + name + ' · Shift+click adds it to the order'
+            : 'ORDER BY ' + name + ' ' + dir + ' · click to flip · Shift+click for another key';
+        return '<th scope="col" data-c="' + j + '" class="cq-sortable' + (dir ? ' is-sorted' : '') + '" data-sort="' + esc(name) +
+            '" aria-sort="' + (dir === null ? 'none' : dir === 'DESC' ? 'descending' : 'ascending') + '" title="' + esc(title) + '">' + label +
+            '<i class="fa-solid ' + (dir === null ? 'fa-sort' : dir === 'DESC' ? 'fa-arrow-down-long' : 'fa-arrow-up-long') + ' cq-sort-icon" aria-hidden="true"></i>' +
+            (dir && order.length > 1 ? '<span class="cq-sort-rank">' + (at + 1) + '</span>' : '') + '</th>';
+    }
+
+    function sortBy(th, add) {
+        var next = setOrder(r.statement, nextOrder(tableDef, order, th.dataset.sort, add));
+        if (next !== null) {
+            opts.onPage(next);
+        }
+    }
+
+    body.addEventListener('mousedown', function (e) {
+        if (e.shiftKey && e.target.closest('th.cq-sortable')) {
+            e.preventDefault();
+        }
+    });
+
+    /** What the funnel of a cell offers: filters (when the page takes them), then Copy. */
+    function menuFor(td) {
+        var i = Number(td.parentNode.dataset.r);
+        var column = model.columns[Number(td.dataset.c)];
+        var value = rowValue(model.rows[i], column);
+        var canFilter = !!opts.onFilter && tableDef;
+        if (column.split('.').pop().toLowerCase() === 'tag') {
+            return tagMenu(splitTags(value), column, canFilter);
+        }
+        var items = (canFilter ? filterEntries(tableDef, r.table, column, value) : []).map(filterItem);
+        if (items.length) {
+            items.push({ divider: true });
+        }
+        items.push({ label: 'Copy value', icon: 'fa-copy', copy: copyable(value) });
+        return items;
+    }
+
+    function tagMenu(tags, column, canFilter) {
+        function entriesOf(t) {
+            var items = [{ header: tagChip(t) }];
+            (canFilter ? tagEntries(tableDef, r.table, column, t.name) : []).forEach(function (e) { items.push(filterItem(e)); });
+            items.push({ label: 'Copy the tag name', icon: 'fa-copy', copy: t.name });
+            return items;
+        }
+        if (tags.length === 1) {
+            return entriesOf(tags[0]);
+        }
+        var items = [{ header: 'Tags' }];
+        tags.forEach(function (t) {
+            items.push({ html: tagChip(t), icon: 'fa-chevron-right', trailing: true, open: function () {
+                return [{ label: 'All tags', icon: 'fa-chevron-left', open: function () { return tagMenu(tags, column, canFilter); } }]
+                    .concat(entriesOf(t));
+            } });
+        });
+        items.push({ divider: true });
+        items.push({ label: 'Copy every tag name', icon: 'fa-copy', copy: tags.map(function (t) { return t.name; }).join(', ') });
+        return items;
+    }
+
+    function filterItem(e) {
+        return { label: e.label, icon: e.icon, detail: e.condition, run: function () {
+            var next = addCondition(r.statement, e.condition);
+            if (next === null) {
+                return;
+            }
+            if (paging.limit && paging.offset > 0) {
+                next = rewritePaging(next, paging.limit, 0);
+            }
+            opts.onFilter(next);
+        } };
+    }
+
+    body.addEventListener('click', function (e) {
+        var b = e.target.closest('.cq-funnel');
+        if (b && body.contains(b)) {
+            var td = b.closest('td');
+            focusCell(td, false);
+            menu.toggle(td, b, menuFor(td), false);
+            return;
+        }
+        var th = e.target.closest('th.cq-sortable');
+        if (th && body.contains(th)) {
+            sortBy(th, e.shiftKey);
+        }
+    });
+
+    function rowAbove(tr) {
+        return tr.previousElementSibling || (tr.parentNode.tagName === 'TBODY' ? tr.closest('table').tHead.rows[0] : null);
+    }
+
+    function rowBelow(tr) {
+        return tr.nextElementSibling || (tr.parentNode.tagName === 'THEAD' ? tr.closest('table').tBodies[0].rows[0] : null);
+    }
+
+    function focusCell(td, focus) {
+        var grid = body.querySelector('.cq-grid');
+        var was = grid && grid.querySelector('[data-c][tabindex="0"]');
+        if (was && was !== td) {
+            was.removeAttribute('tabindex');
+        }
+        td.setAttribute('tabindex', '0');
+        if (focus) {
+            td.focus();
+        }
+    }
+
+    body.addEventListener('keydown', function (e) {
+        var td = e.target;
+        if (!td.matches || !td.matches('.cq-grid td[data-c], .cq-grid th[data-c]')) {
+            return;
+        }
+        var tr = td.parentNode;
+        var c = Number(td.dataset.c);
+        var next = null;
+        var above = null;
+        var below = null;
+        switch (e.key) {
+            case 'ArrowLeft':
+                next = tr.querySelector('[data-c="' + (c - 1) + '"]');
+                break;
+            case 'ArrowRight':
+                next = tr.querySelector('[data-c="' + (c + 1) + '"]');
+                break;
+            case 'ArrowUp':
+                above = rowAbove(tr);
+                next = above && above.querySelector('[data-c="' + c + '"]');
+                break;
+            case 'ArrowDown':
+                below = rowBelow(tr);
+                next = below && below.querySelector('[data-c="' + c + '"]');
+                break;
+            case 'Home':
+                next = tr.querySelector('[data-c="0"]');
+                break;
+            case 'End':
+                next = tr.querySelector('[data-c="' + (model.columns.length - 1) + '"]');
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (td.tagName === 'TH') {
+                    if (td.classList.contains('cq-sortable')) {
+                        sortBy(td, e.shiftKey);
+                    }
+                    return;
+                }
+                var a = td.querySelector('.cq-link');
+                if ((e.ctrlKey || e.metaKey) && a) {
+                    window.open(a.href, '_blank', 'noopener');
+                } else if (!e.ctrlKey && !e.metaKey && td.classList.contains('has-funnel')) {
+                    menu.toggle(td, td.querySelector('.cq-funnel'), menuFor(td), true);
+                }
+                return;
+            default:
+                return;
+        }
+        e.preventDefault();
+        if (next) {
+            focusCell(next, true);
+        }
+    });
     function drawJson() {
         body.innerHTML = '<pre class="cq-json">' + jsonHTML(model.raw.slice(0, 50)) + '</pre>' +
             (model.raw.length > 50 ? '<div class="cq-capnote">First 50 rows of ' + fmtInt(model.raw.length) + '. Download the page for all of them.</div>' : '');
@@ -686,6 +1185,10 @@ export {
     summary,
     isClient,
     kindIcon,
-    rewritePaging,
-    pagingOf,
+    cellLink,
+    columnField,
+    filterEntries,
+    tagEntries,
+    sortNameOf,
+    nextOrder,
 };

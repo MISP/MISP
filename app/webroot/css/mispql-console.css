@@ -663,8 +663,183 @@
     opacity: .75;
 }
 
+.cq-grid th.cq-sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.cq-grid th.cq-sortable:hover { color: var(--bs-emphasis-color); }
+.cq-grid th.is-sorted { color: var(--cq-accent); }
+
+.cq-grid th:focus {
+    outline: 2px solid var(--cq-accent);
+    outline-offset: -2px;
+}
+
+.cq-grid th:focus:not(:focus-visible) { outline: 0; }
+
+.cq-sort-icon {
+    margin-left: 6px;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity .12s ease;
+}
+
+.cq-grid th.cq-sortable:hover .cq-sort-icon,
+.cq-grid th.cq-sortable:focus .cq-sort-icon { opacity: .45; }
+.cq-grid th.is-sorted .cq-sort-icon { opacity: 1; }
+
+.cq-sort-rank {
+    margin-left: 1px;
+    font-size: 9.5px;
+    font-weight: 700;
+    vertical-align: 1px;
+}
+
+@media (hover: none) {
+    .cq-grid th.cq-sortable .cq-sort-icon { opacity: .45; }
+    .cq-grid th.is-sorted .cq-sort-icon { opacity: 1; }
+}
+
+.cq-grid td.has-funnel {
+    position: relative;
+    padding-right: 32px;
+}
+
+.cq-grid td:focus {
+    outline: 2px solid var(--cq-accent);
+    outline-offset: -2px;
+    background: var(--bs-tertiary-bg);
+}
+
+.cq-grid td:focus:not(:focus-visible) { outline: 0; }
+
+.cq-funnel {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: 10.5px;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition: opacity .12s ease, color .12s ease, background-color .12s ease, border-color .12s ease;
+}
+
+.cq-grid td:hover > .cq-funnel,
+.cq-grid td:focus > .cq-funnel,
+.cq-grid td.is-open > .cq-funnel,
+.cq-funnel.is-done {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.cq-funnel:hover,
+.cq-funnel:focus-visible,
+.cq-grid td.is-open > .cq-funnel {
+    border-color: var(--cq-accent-ring);
+    background: var(--cq-accent-soft);
+    color: var(--cq-accent);
+}
+
+.cq-funnel.is-done { color: var(--cq-ok); }
+.cq-funnel.is-done i::before { content: "\f00c"; }
+
+@media (hover: none) {
+    .cq-funnel { opacity: .6; pointer-events: auto; }
+}
+
+.cq-link {
+    color: var(--bs-link-color);
+    text-decoration: none;
+}
+
+.cq-link:hover {
+    color: var(--bs-link-hover-color);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.cq-link .cq-id,
+.cq-link .cq-mono,
+.cq-link .cq-text { color: inherit; }
+
+.cq-link .cq-mono,
+.cq-link .cq-text { max-width: 330px; }
+
+.cq-ext {
+    margin-left: 4px;
+    font-size: 8.5px;
+    opacity: .55;
+    vertical-align: 2px;
+}
+
+.cq-link:hover .cq-ext { opacity: 1; }
+
+.cq-menu {
+    position: fixed;
+    z-index: 1080;
+    min-width: 14rem;
+    max-width: min(24rem, calc(100vw - 16px));
+    margin: 0;
+}
+
+.cq-menu-item {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+}
+
+.cq-menu-item > i {
+    margin-top: 3px;
+    color: var(--bs-secondary-color);
+    font-size: 11.5px;
+}
+
+.cq-menu-item.is-trailing {
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cq-menu-label {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.cq-menu-detail {
+    max-width: 20rem;
+    padding: 0;
+    background: none;
+    color: var(--bs-secondary-color);
+    font-family: var(--cq-mono);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cq-menu-head { display: flex; align-items: center; }
+
+.cq-menu .cq-tag {
+    max-width: 19rem;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
 .cq-null { color: var(--bs-secondary-color); opacity: .6; }
-.cq-id { font-family: var(--cq-mono); font-size: 12.5px; color: var(--bs-link-color); }
+.cq-id { font-family: var(--cq-mono); font-size: 12.5px; color: var(--bs-emphasis-color); }
 .cq-mono { font-family: var(--cq-mono); font-size: 12.5px; color: var(--bs-emphasis-color); }
 
 .cq-mono,

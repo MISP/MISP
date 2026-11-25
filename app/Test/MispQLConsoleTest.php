@@ -87,6 +87,72 @@ class MispQLConsoleTest extends TestCase
         $this->assertSame('id', $attributes['order_by']->id);
     }
 
+    public function testPackLinks()
+    {
+        $pack = $this->pack(new MispQLConsoleTestBackend());
+        $links = $pack['tables']->attributes['links'];
+        $this->assertSame('Attribute', $links->id);
+        $this->assertSame('Value', $links->value);
+        $this->assertSame('Event', $links->event_id);
+        $this->assertSame('Organisation', $links->{'Event.Orgc.id'});
+        $this->assertSame('Tag', $pack['tables']->tags['links']->id);
+        $this->assertSame('Organisation', $pack['tables']->tags['links']->org_id);
+    }
+
+    public function testPackPagesFollowTheTablesTheUserMayQuery()
+    {
+        $pack = $this->pack(new MispQLConsoleTestBackend());
+        $this->assertSame([
+            'Attribute' => '/attributes/view/%s',
+            'Value' => '/values/view/%s',
+        ], (array)$pack['pages'], 'a tag opens the events carrying it, which this user cannot search');
+
+        $backend = new MispQLConsoleTestBackend();
+        $backend->tables = ['events', 'tags'];
+        $this->assertSame('/events/index/searchtag:%s', $this->pack($backend)['pages']->Tag);
+
+        $backend = new MispQLConsoleTestBackend();
+        $backend->tables = [];
+        $this->assertStringContainsString(
+            '"pages":{"Value":"/values/view/%s"}',
+            json_encode($this->pack($backend), JSON_UNESCAPED_SLASHES)
+        );
+    }
+
+    public function testAnalystDataLinksReadTheirTypeFromTheRow()
+    {
+        $links = MispQLFixtures::tables()->links('relationships');
+        $this->assertSame(['type_from' => 'object_type'], $links['object_uuid']);
+        $this->assertSame(['type_from' => 'related_object_type'], $links['related_object_uuid']);
+        $this->assertSame(['type' => 'Value', 'by' => 'sha256'], $links['related_object_sha256']);
+        $this->assertStringContainsString(
+            '"object_uuid":{"type_from":"object_type"}',
+            json_encode((object)$links)
+        );
+    }
+
+    public function testEveryLinkOpensAPage()
+    {
+        $tables = MispQLFixtures::tables();
+        $pages = $tables->pages($tables->names());
+        $this->assertSame(array_keys(MispQLTables::PAGES), array_keys($pages));
+        foreach ($pages as $type => $url) {
+            $this->assertSame(1, substr_count($url, '%s'), $type);
+        }
+        foreach ($tables->names() as $name) {
+            $links = $tables->links($name);
+            $this->assertArrayHasKey('id', $links, $name);
+            foreach ($links as $column => $link) {
+                if (is_array($link) && isset($link['type_from'])) {
+                    $this->assertContains($link['type_from'], $tables->get($name)['columns'], "$name.$column");
+                    continue;
+                }
+                $type = is_array($link) ? $link['type'] : $link;
+                $this->assertArrayHasKey($type, $pages, "$name.$column");
+            }
+        }
+    }
+
     public function testPackLanguage()
     {
         $pack = $this->pack(new MispQLConsoleTestBackend());
