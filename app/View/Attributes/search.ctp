@@ -7,6 +7,11 @@
         <?= __('For string searches (such as searching for an expression, tags, etc) - lookups are simple string matches. If you want a substring match encapsulate the lookup string between "%" characters.'); ?>
         <br><br>
         <?php
+            if (preg_match('/\/value:([^\/]*)/', $this->request->url, $matches)) {
+                $value = urldecode($matches[1]);
+            } else {
+                $value = '';
+            }
             echo $this->Form->input('value', array(
                 'type' => 'textarea',
                 'rows' => 2,
@@ -14,7 +19,7 @@
                 'div' => 'clear',
                 'class' => 'input-xxlarge',
                 'required' => false,
-                'value' => isset($this->request->params['named']['value']) ? $this->request->params['named']['value'] : ''
+                'value' => $value
             ));
 
             echo $this->Form->input('tags', array(
