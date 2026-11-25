@@ -1528,10 +1528,11 @@ class AnalystData extends AppModel
      * 
      * @param array $user
      * @param ServerSyncTool $serverSync
+     * @param array|null $only [type => conditions]: these records alone, as a collection's publish sends them
      * @return array
      * @throws Exception
      */
-    public function push(array $user, ServerSyncTool $serverSync): array
+    public function push(array $user, ServerSyncTool $serverSync, ?array $only = null): array
     {
         $server = $serverSync->server();
 
@@ -1547,7 +1548,13 @@ class AnalystData extends AppModel
         if ($serverSync->isSupported(ServerSyncTool::FEATURE_ANALYST_GRAPH)) {
             $types[] = 'Graph';
         }
-        $analystData = $this->collectDataForPush($serverSync->server(), $types);
+        if ($only !== null) {
+            $types = array_values(array_intersect($types, array_keys($only)));
+            if (empty($types)) {
+                return [];
+            }
+        }
+        $analystData = $this->collectDataForPush($serverSync->server(), $types, $only ?? []);
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
             $analystData = self::withoutValueTargets($analystData);
         }
@@ -1592,9 +1599,10 @@ class AnalystData extends AppModel
      *
      * @param array $server
      * @param array $types
+     * @param array $only [type => conditions] narrowing what each type collects
      * @return array
      */
-    public function collectDataForPush(array $server, array $types = self::ANALYST_DATA_TYPES): array
+    public function collectDataForPush(array $server, array $types = self::ANALYST_DATA_TYPES, array $only = []): array
     {
         $sgIDs = $this->collectValidSharingGroupIDs($server);
         $options = [
@@ -1620,6 +1628,9 @@ class AnalystData extends AppModel
         if (in_array('Graph', $types, true)) {
             // Content is read at upload, for the graphs the remote accepts
             $typeOptions['Graph']['fields'] = ClassRegistry::init('Graph')->metadataFields();
+        }
+        foreach ($only as $type => $conditions) {
+            $typeOptions[$type]['conditions'] = ['AND' => [$options['conditions'], $conditions]];
         }
         $dataForPush = $this->getAllAnalystData('all', $options, $types, $typeOptions);
         $this->Event = ClassRegistry::init('Event');

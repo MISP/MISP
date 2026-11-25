@@ -1165,7 +1165,7 @@ paths:
       tags:
         - Collections
       description: |
-        Releases the collection to partners: they receive it, its members, graphs and links on the next synchronisation.
+        Releases the collection to partners and pushes it at once, with its members, graphs and links, to every server collections are pushed to.
         Optionally records how far the investigation went. PUT is accepted as well as POST.
 
         Answers 400 for a collection shared with the organisation only or for an invalid `analysis`, 403 without the right to publish and edit it, 404 when it is not visible.

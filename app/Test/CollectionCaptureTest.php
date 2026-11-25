@@ -144,6 +144,7 @@ if (!class_exists('AppModel', false)) {
 require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/Collection.php';
+require_once __DIR__ . '/../Model/CollectionElement.php';
 
 use PHPUnit\Framework\TestCase;
 
@@ -195,6 +196,11 @@ class StubRemovals
         $this->deleted[] = $conditions;
         return true;
     }
+
+    public function find($type, $options = array())
+    {
+        return array();
+    }
 }
 
 /** CollectionElement::captureElements double: records the corpus it was handed. */
@@ -218,6 +224,17 @@ class StubCollectionElement
     {
         $this->updates[] = array($fields, $conditions);
         return true;
+    }
+
+    /** Members still unreleased after the release, as pendingChanges() counts them. */
+    public $unreleased = 0;
+
+    public function find($type, $options = array())
+    {
+        if ($this->unreleased === 0) {
+            return array();
+        }
+        return array(array('CollectionElement' => array('collection_id' => 123), 0 => array('n' => $this->unreleased)));
     }
 }
 
@@ -258,6 +275,14 @@ class TestableCollection extends Collection
         $this->savedData = $data;
         $this->savedFieldList = $fieldList;
         return $this->saveReturn;
+    }
+
+    public $updates = array();
+
+    public function updateAll($fields, $conditions = true)
+    {
+        $this->updates[] = array($fields, $conditions);
+        return true;
     }
 }
 
@@ -749,5 +774,42 @@ class CollectionCaptureTest extends TestCase
             array('CollectionElement.collection_id' => 123, 'CollectionElement.published' => false),
         )), $this->element->updates);
         $this->assertSame(array(array('CollectionElementRemoval.collection_id' => 123)), $this->removals->deleted);
+    }
+
+    public function testASenderOlderThan30ReleasesOnlyTheTypesItHolds(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer(), false, true);
+
+        $this->assertSame(array(array(
+            array('CollectionElement.published' => true),
+            array(
+                'CollectionElement.collection_id' => 123,
+                'CollectionElement.published' => false,
+                'CollectionElement.element_type' => CollectionElement::PRE30_TYPES,
+            ),
+        )), $this->element->updates, 'members kept beyond its types keep their own state');
+        $this->assertSame(array(array(
+            'CollectionElementRemoval.collection_id' => 123,
+            'CollectionElementRemoval.element_type' => CollectionElement::PRE30_TYPES,
+        )), $this->removals->deleted);
+    }
+
+    public function testAnUnpublishedLocalChangeStaysWithheldAfterAPre30Capture(): void
+    {
+        $this->element->unreleased = 2;
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer(), false, true);
+
+        $this->assertSame(array(array(
+            array('Collection.published' => false),
+            array('Collection.id' => 123),
+        )), $this->collection->updates, 'nobody here published it: it waits for a publisher');
+    }
+
+    public function testAPre30CaptureWithNothingPendingStaysPublished(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer(), false, true);
+
+        $this->assertTrue($this->collection->savedData['Collection']['published']);
+        $this->assertSame(array(), $this->collection->updates);
     }
 }

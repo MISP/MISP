@@ -138,7 +138,10 @@ pull) runs the collection block when
      /collections/indexMinimal` → a flat `{uuid: modified}` map (collections have
      no analyst-data `type` dimension).
    - **Dedup:** fetch uuids that are missing locally **or** strictly newer on the
-     remote (`localModified < remoteModified`; equal is skipped).
+     remote (`localModified < remoteModified`; equal is skipped). A collection
+     created here (`locked = 0`) is not fetched from a non-internal server, since
+     the capture would refuse it (section 6), as `filterCollectionsForPush` already
+     declines it on push.
    - `pullCollectionsInChunks` — `array_chunk(100)` →
      `ServerSyncTool::fetchCollections($chunk)` (remote `GET /collections/index/uuid[]:….json`,
      full collections **including** `CollectionElement`) → each RAW collection to
@@ -201,6 +204,13 @@ until someone with the right publishes it, as an event does.
 
 `Collection::publish()` sets `published` and `last_published` (and `analysis`
 when given), marks every member released and clears the removal rows.
+`collections/publish` then sends it at once, as an event's publish does:
+`Collection::publishRouter()` enqueues `publish_collection` (`EventShell`, the
+prio queue), or runs inline without background jobs, and
+`Collection::uploadToServers()` pushes that collection alone to every server with
+`push` and `push_collections`, followed by the graphs and relationships it held
+back (`AnalystData::push()` narrowed to them). Later pushes and pulls carry it as
+before.
 `Collection::unpublish()` clears `published` only: partners keep the version
 they last received and `modified` stays, so they need not refetch it. A
 collection shared with the organisation only (`distribution = 0`) has nothing to
@@ -238,7 +248,11 @@ publish, links, graphs, and values narrower than the collection) lists at most
 
 A collection captured from a peer is stored as published
 (`captureCollection` sets `published` and takes `last_published` from the
-payload), since a peer only sends what it published.
+payload), since a peer only sends what it published. From a sender older than
+3.0 only its `Event` and `GalaxyCluster` members and their removals are released:
+members of other types kept here keep their own state, and if one of them, or
+its removal, is still unpublished, the collection stays withheld until someone
+here publishes it.
 
 When a collection is widened, `collections/shareAlong` lists the graphs and
 relationships its organisation drew on it that reach fewer than the new
@@ -318,10 +332,11 @@ in `AppController::beforeFilter`, so no `unlockedActions[]` entries are needed):
 
 On the requester side, `collections/index`, `collections/view` and
 `collections/indexMinimal` leave withheld collections out for a MISP older than
-3.0 (`Collection::servedConditions()`), and
-`CollectionsController::index` serves the elements through
-`Collection::servedElementOptions()`: a requester older than 3.0 is served only
-`Event` and `GalaxyCluster` elements.
+3.0 (`Collection::servedConditions()`), and `index` and `view` serve the
+elements through `Collection::servedElementOptions()`: a requester older than
+3.0 is served only `Event` and `GalaxyCluster` elements. A collection the caller
+may not see answers 404, as one that does not exist, on `view`, `edit`,
+`delete` and the element `add`/`delete`.
 ACL is **default-deny**: an action absent from the controller's block falls
 through to site-admin-only then Forbidden, so every sync action needs an explicit
 entry. `captureCollection` / `filterCollectionsForPush` additionally hard-check

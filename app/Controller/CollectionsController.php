@@ -78,7 +78,8 @@ class CollectionsController extends AppController
         if (!$this->Collection->publish($id, $analysis === null ? null : (int)$analysis)) {
             return $this->RestResponse->saveFailResponse('Collections', 'publish', $id, $this->Collection->validationErrors, $this->response->type());
         }
-        $message = __('“%s” is published: partners receive it, its members, graphs and links on the next synchronisation.', $collection['name']);
+        $this->Collection->publishRouter($user, $id);
+        $message = __('“%s” is published: it is on its way to partners with its members, graphs and links.', $collection['name']);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $id), 'message' => $message], 'json');
         }
@@ -710,6 +711,9 @@ class CollectionsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->Collection->current_user = $this->Auth->user();
+        if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
+        }
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
@@ -811,6 +815,9 @@ class CollectionsController extends AppController
     public function delete($id)
     {
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
+        if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
+        }
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
@@ -841,7 +848,8 @@ class CollectionsController extends AppController
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->set('mayModify', $this->Collection->mayModify($this->Auth->user('id'), $id));
         if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
-            throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
+            // As for a uuid that does not exist: a hidden collection is not confirmed
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'view'));
         $user = $this->Auth->user();
@@ -854,7 +862,7 @@ class CollectionsController extends AppController
                 'Orgc',
                 'Org',
                 'User',
-                'CollectionElement'
+                'CollectionElement' => Collection::servedElementOptions(),
             ],
             'afterFind' => function (array $collection) use ($user) {
                 return $this->Collection->rearrangeCollection($collection, $user);

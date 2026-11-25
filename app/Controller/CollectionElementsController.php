@@ -427,6 +427,9 @@ class CollectionElementsController extends AppController
     public function add($collection_id)
     {   
         $this->CollectionElement->Collection->current_user = $this->Auth->user();
+        if (!$this->CollectionElement->Collection->mayView($this->Auth->user('id'), intval($collection_id))) {
+            throw new NotFoundException(__('Invalid Collection.'));
+        }
         if (!$this->CollectionElement->Collection->mayModify($this->Auth->user('id'), intval($collection_id))) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
@@ -474,6 +477,9 @@ class CollectionElementsController extends AppController
             ]
         ]);
         $collection_id = $collectionElement['CollectionElement']['collection_id'];
+        if (!$this->CollectionElement->Collection->mayView($this->Auth->user('id'), $collection_id)) {
+            throw new NotFoundException(__('Invalid Collection.'));
+        }
         if (!$this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $collection_id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }

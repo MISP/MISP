@@ -162,9 +162,9 @@ To release it:
    (partners see it as still in progress) or **Completed**.
 3. Confirm.
 
-The members, the saved graphs and the links between them go out together on
-the next synchronisation. **Unpublish collection** withdraws it again; partners
-keep what they received.
+The members, the saved graphs and the links between them go out together as
+soon as it is published, to every server collections are pushed to.
+**Unpublish collection** withdraws it again; partners keep what they received.
 
 Publishing takes the same right as publishing an event (`perm_publish`) and
 the right to edit the collection. Without it your changes wait for a

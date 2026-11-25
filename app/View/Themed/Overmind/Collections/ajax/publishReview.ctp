@@ -1,8 +1,7 @@
 <?php
 /*
  * Review and publish a collection shared beyond its organisation: what goes
- * out together on the next synchronisation, and how far the investigation
- * went.
+ * out together when it is published, and how far the investigation went.
  *
  * Set by CollectionsController::publish():
  *   $collection    array  unwrapped, with Orgc
@@ -246,7 +245,7 @@ summary.cpr-head:focus-visible { outline: 2px solid var(--misp-accent, var(--bs-
         </label>
     </div>
     <?= $this->element('genericElementsBS5/Forms/field_hint', [
-        'text' => __('Partners receive all of this together on the next synchronisation, and keep the version they last received until then.'),
+        'text' => __('Publishing sends all of this to partners together; until then they keep the version they last received.'),
         'icon' => 'fas fa-share-nodes',
         'class' => 'mt-2',
     ]) ?>

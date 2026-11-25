@@ -313,9 +313,10 @@ class CollectionPullTest extends TestCase
         );
     }
 
-    private function localRow($uuid, $modified)
+    /** A local copy; locked 1 = synced in from a peer, 0 = created here. */
+    private function localRow($uuid, $modified, $locked = 1)
     {
-        return array('Collection' => array('uuid' => $uuid, 'modified' => $modified));
+        return array('Collection' => array('uuid' => $uuid, 'modified' => $modified, 'locked' => $locked));
     }
 
     // ---------------- negotiation gate ----------------
@@ -380,6 +381,27 @@ class CollectionPullTest extends TestCase
 
         $this->assertSame(0, $this->collection->pull($this->user(), $this->sync), 'skip-on-equal (D6)');
         $this->assertSame(0, $this->sync->fetchCallCount, 'nothing to fetch when equal');
+    }
+
+    public function testANewerCopyOfAnOriginalMadeHereIsNotFetched(): void
+    {
+        $this->sync->indexData = array('u1' => '2026-06-01 00:00:00');
+        $this->sync->fetchMap = array('u1' => $this->remoteCollection('u1', '2026-06-01 00:00:00'));
+        $this->collection->localRows = array($this->localRow('u1', '2026-01-01 00:00:00', 0));
+
+        $this->assertSame(0, $this->collection->pull($this->user(), $this->sync));
+        $this->assertSame(0, $this->sync->fetchCallCount, 'the capture would refuse it: not fetched');
+    }
+
+    public function testAnInternalServerStillUpdatesAnOriginalMadeHere(): void
+    {
+        $this->sync->serverData['Server']['internal'] = 1;
+        $this->sync->indexData = array('u1' => '2026-06-01 00:00:00');
+        $this->sync->fetchMap = array('u1' => $this->remoteCollection('u1', '2026-06-01 00:00:00'));
+        $this->collection->localRows = array($this->localRow('u1', '2026-01-01 00:00:00', 0));
+
+        $this->assertSame(1, $this->collection->pull($this->user(), $this->sync));
+        $this->assertSame(array('u1'), $this->sync->fetchedChunks[0]);
     }
 
     public function testOlderRemoteIsSkipped(): void

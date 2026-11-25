@@ -64,14 +64,17 @@ class SyncAnalystDataPushServerSync extends ServerSyncTool
 {
     private $version;
 
-    public function __construct($version)
+    private $flags;
+
+    public function __construct($version, array $flags = [])
     {
         $this->version = $version;
+        $this->flags = $flags;
     }
 
     public function info()
     {
-        return ['version' => $this->version];
+        return ['version' => $this->version] + $this->flags;
     }
 
     public function server()
@@ -98,8 +101,11 @@ class SyncAnalystDataPushProbe extends AnalystData
     {
     }
 
-    public function collectDataForPush(array $server, array $types = self::ANALYST_DATA_TYPES): array
+    public $collectedWith = null;
+
+    public function collectDataForPush(array $server, array $types = self::ANALYST_DATA_TYPES, array $only = []): array
     {
+        $this->collectedWith = ['types' => $types, 'only' => $only];
         return $this->collected;
     }
 
@@ -186,5 +192,23 @@ class SyncAnalystDataPushTest extends TestCase
         $this->assertSame([
             'note-event', 'note-value', 'opinion-value', 'rel-uuids', 'rel-from-value', 'rel-to-value',
         ], $probe->uploaded);
+    }
+
+    public function testAPublishCollectsOnlyTheRecordsItNames()
+    {
+        $probe = new SyncAnalystDataPushProbe();
+        $only = ['Graph' => ['Graph.id' => [4]], 'Relationship' => ['Relationship.id' => [9]]];
+        $probe->push(['id' => 1], new SyncAnalystDataPushServerSync('3.0.0', ['analyst_graph' => true]), $only);
+
+        $this->assertSame(['types' => ['Relationship', 'Graph'], 'only' => $only], $probe->collectedWith);
+    }
+
+    public function testGraphsAloneToAPeerWithoutGraphsCollectNothing()
+    {
+        $probe = new SyncAnalystDataPushProbe();
+        $result = $probe->push(['id' => 1], new SyncAnalystDataPushServerSync('3.0.0'), ['Graph' => ['Graph.id' => [4]]]);
+
+        $this->assertSame([], $result);
+        $this->assertNull($probe->collectedWith, 'nothing asked of the database');
     }
 }

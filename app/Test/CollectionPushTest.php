@@ -293,12 +293,15 @@ class CollectionPushTestable extends Collection
         return $this->findAllResult;
     }
 
-    public function collectDataForPush(array $server): array
+    public $collectedOnly = array();
+
+    public function collectDataForPush(array $server, $onlyId = null): array
     {
+        $this->collectedOnly[] = $onlyId;
         if ($this->collectDataForPushReturn !== null) {
             return $this->collectDataForPushReturn;
         }
-        return parent::collectDataForPush($server);
+        return parent::collectDataForPush($server, $onlyId);
     }
 
     public function uploadCollectionToServer(array $collection, array $server, ServerSyncTool $serverSync, array $user)
@@ -388,6 +391,29 @@ class CollectionPushTest extends TestCase
     {
         $this->collection->collectDataForPushReturn = array();
         $this->assertSame(0, $this->collection->push($this->user(), $this->sync));
+    }
+
+    public function testAPublishPushesThatCollectionAlone(): void
+    {
+        $this->collection->collectDataForPushReturn = array();
+        $this->collection->push($this->user(), $this->sync, 42);
+        $this->collection->push($this->user(), $this->sync);
+
+        $this->assertSame(array(42, null), $this->collection->collectedOnly);
+    }
+
+    public function testCollectForOneCollectionNarrowsTheQuery(): void
+    {
+        ClassRegistry::$instances['Event'] = new CollectionPushFakeEvent();
+        ClassRegistry::$instances['SharingGroup'] = new CollectionPushFakeSharingGroup();
+        $this->collection->findAllResult = array();
+
+        $this->collection->collectDataForPush($this->collectServer(), 42);
+        $this->collection->collectDataForPush($this->collectServer());
+
+        $this->assertSame(42, $this->collection->findOptions[0]['conditions']['Collection.id']);
+        $this->assertTrue($this->collection->findOptions[0]['conditions']['Collection.published'], 'still published ones only');
+        $this->assertArrayNotHasKey('Collection.id', $this->collection->findOptions[1]['conditions']);
     }
 
     public function testPushRemoteWantsNothingReturnsZero(): void

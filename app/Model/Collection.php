@@ -361,20 +361,128 @@ class Collection extends AppModel
     }
 
     /**
+     * Send a published collection to the servers collections are pushed to,
+     * with what its organisation drew on it, as an event's publish does.
+     *
+     * @param array $user Who published it
+     * @param int $id
+     * @return mixed The job's process id, or the number of servers reached
+     */
+    public function publishRouter(array $user, $id)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            /** @var Job $Job */
+            $Job = ClassRegistry::init('Job');
+            $jobId = $Job->createJob($user, Job::WORKER_PRIO, 'publish_collection', 'Collection ID: ' . (int)$id, 'Publishing.');
+            return $this->getBackgroundJobsTool()->enqueue(
+                BackgroundJobsTool::PRIO_QUEUE,
+                BackgroundJobsTool::CMD_EVENT,
+                ['publish_collection', (int)$id, $jobId, $user['id']],
+                true,
+                $jobId
+            );
+        }
+        return $this->uploadToServers($user, $id);
+    }
+
+    /**
+     * @param array $user
+     * @param int $id
+     * @return int How many servers took the collection
+     */
+    public function uploadToServers(array $user, $id)
+    {
+        $found = $this->find('first', [
+            'recursive' => -1,
+            'contain' => ['Orgc'],
+            'conditions' => ['Collection.id' => (int)$id],
+        ]);
+        if (empty($found) || empty($found['Collection']['published'])) {
+            return 0;
+        }
+        $Server = ClassRegistry::init('Server');
+        $servers = $Server->find('all', [
+            'conditions' => ['Server.push' => true, 'Server.push_collections' => true],
+            'order' => ['Server.priority ASC', 'Server.id ASC'],
+        ]);
+        if (empty($servers)) {
+            return 0;
+        }
+        $released = $this->releasedAnalystData($found);
+        $AnalystData = ClassRegistry::init('AnalystData');
+        $reached = 0;
+        foreach ($servers as $server) {
+            try {
+                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+                if (!$serverSync->isSupported(ServerSyncTool::PERM_SYNC)) {
+                    continue;
+                }
+                if ($this->push($user, $serverSync, (int)$id) > 0) {
+                    $reached++;
+                }
+                if (!empty($released)) {
+                    $AnalystData->push($user, $serverSync, $released);
+                }
+            } catch (Exception $e) {
+                $this->logException("Could not push collection #$id to server #{$server['Server']['id']}.", $e);
+            }
+        }
+        return $reached;
+    }
+
+    /**
+     * The graphs its organisation drew on it and the relationships between
+     * its members: what withheldScopes() kept back until the publish.
+     *
+     * @param array $found The collection, with its Orgc
+     * @return array [type => conditions] for AnalystData::push(), empty for none
+     */
+    private function releasedAnalystData(array $found)
+    {
+        $orgcUuid = $found['Orgc']['uuid'] ?? null;
+        if (empty($orgcUuid)) {
+            return [];
+        }
+        $collection = $found['Collection'];
+        $graphIds = ClassRegistry::init('Graph')->find('column', [
+            'fields' => ['Graph.id'],
+            'conditions' => [
+                'Graph.object_type' => 'Collection',
+                'Graph.object_uuid' => self::spellings($collection['uuid']),
+                'Graph.orgc_uuid' => $orgcUuid,
+                'Graph.locked' => false,
+            ],
+            'callbacks' => false,
+        ]);
+        $members = $this->memberAddresses([(int)$collection['id']])[(int)$collection['id']] ?? [];
+        $members[strtolower($collection['uuid'])] = true;
+        $relationshipIds = array_column($this->relationshipsBetween($orgcUuid, $members), 'id');
+        $released = [];
+        if (!empty($graphIds)) {
+            $released['Graph'] = ['Graph.id' => array_values($graphIds)];
+        }
+        if (!empty($relationshipIds)) {
+            $released['Relationship'] = ['Relationship.id' => $relationshipIds];
+        }
+        return $released;
+    }
+
+    /**
      * Partners hold every member now, and none of those taken out.
      *
      * @param int $id
+     * @param array|null $types These member types only
      */
-    private function markReleased($id)
+    private function markReleased($id, ?array $types = null)
     {
-        $this->CollectionElement->updateAll(
-            ['CollectionElement.published' => true],
-            ['CollectionElement.collection_id' => $id, 'CollectionElement.published' => false]
-        );
-        ClassRegistry::init('CollectionElementRemoval')->deleteAll(
-            ['CollectionElementRemoval.collection_id' => $id],
-            false
-        );
+        $elements = ['CollectionElement.collection_id' => $id, 'CollectionElement.published' => false];
+        $removals = ['CollectionElementRemoval.collection_id' => $id];
+        if ($types !== null) {
+            $elements['CollectionElement.element_type'] = $types;
+            $removals['CollectionElementRemoval.element_type'] = $types;
+        }
+        $this->CollectionElement->updateAll(['CollectionElement.published' => true], $elements);
+        ClassRegistry::init('CollectionElementRemoval')->deleteAll($removals, false);
     }
 
     /**
@@ -1434,15 +1542,24 @@ class Collection extends AppModel
         $localRows = $this->find('all', [
             'recursive' => -1,
             'conditions' => ['Collection.uuid' => $remoteUUIDs],
-            'fields' => ['Collection.uuid', 'Collection.modified'],
+            'fields' => ['Collection.uuid', 'Collection.modified', 'Collection.locked'],
         ]);
+        // The capture refuses a remote copy of an original made here, unless the server is internal
+        $internal = !empty($serverSync->server()['Server']['internal']);
         $localModified = [];
+        $localOriginals = [];
         foreach ($localRows as $localRow) {
             $localModified[$localRow['Collection']['uuid']] = $localRow['Collection']['modified'];
+            if (empty($localRow['Collection']['locked']) && !$internal) {
+                $localOriginals[$localRow['Collection']['uuid']] = true;
+            }
         }
 
         $uuidsToFetch = [];
         foreach ($remoteData as $remoteUUID => $remoteModified) {
+            if (isset($localOriginals[$remoteUUID])) {
+                continue;
+            }
             if (!isset($localModified[$remoteUUID])) {
                 // Missing locally — fetch it.
                 $uuidsToFetch[] = $remoteUUID;
@@ -1451,7 +1568,7 @@ class Collection extends AppModel
                 $uuidsToFetch[] = $remoteUUID;
             }
         }
-        unset($remoteData, $remoteUUIDs, $localRows, $localModified);
+        unset($remoteData, $remoteUUIDs, $localRows, $localModified, $localOriginals);
 
         if (empty($uuidsToFetch)) {
             return 0;
@@ -1744,7 +1861,18 @@ class Collection extends AppModel
                     ],
                 ], $fromPre30 === null ? SyncTool::valueTargetsWithheld() : $fromPre30, true);
             }
-            $this->markReleased((int)$saved['Collection']['id']);
+            $id = (int)$saved['Collection']['id'];
+            if ($fromPre30 === null ? SyncTool::valueTargetsWithheld() : $fromPre30) {
+                // Such a sender speaks for these types alone: members kept beyond
+                // them keep their state, and an unpublished change keeps it withheld
+                $this->markReleased($id, CollectionElement::PRE30_TYPES);
+                $changes = $this->pendingChanges([$id])[$id];
+                if ($changes['added'] + $changes['removed'] > 0) {
+                    $this->updateAll(['Collection.published' => false], ['Collection.id' => $id]);
+                }
+            } else {
+                $this->markReleased($id);
+            }
         } else {
             $results['failed']++;
             foreach ($this->validationErrors as $validationError) {
@@ -1794,9 +1922,10 @@ class Collection extends AppModel
      *
      * @param array $user The local sync user driving the push.
      * @param ServerSyncTool $serverSync Negotiated connection to the remote instance.
+     * @param int|null $onlyId This collection alone, as its publish sends it
      * @return int Number of collections accepted + uploaded by the remote.
      */
-    public function push(array $user, ServerSyncTool $serverSync)
+    public function push(array $user, ServerSyncTool $serverSync, $onlyId = null)
     {
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_COLLECTION_SYNC)) {
             return 0;
@@ -1804,7 +1933,7 @@ class Collection extends AppModel
         $server = $serverSync->server();
         $this->Server = ClassRegistry::init('Server');
 
-        $collections = $this->collectDataForPush($server);
+        $collections = $this->collectDataForPush($server, $onlyId);
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
             $collections = self::withoutElementsNewIn30($collections);
         }
@@ -1856,21 +1985,26 @@ class Collection extends AppModel
      * the element corpus. Mirrors AnalystData::collectDataForPush, flattened.
      *
      * @param array $server
+     * @param int|null $onlyId This collection alone
      * @return array List of collections, each nested under 'Collection'.
      */
-    public function collectDataForPush(array $server): array
+    public function collectDataForPush(array $server, $onlyId = null): array
     {
         $sgIDs = $this->collectValidSharingGroupIDs($server);
+        $conditions = [
+            'Collection.published' => true,
+            'OR' => [
+                ['AND' => [['Collection.distribution >' => 0], ['Collection.distribution <' => 4]]],
+                ['AND' => ['Collection.distribution' => 4, 'Collection.sharing_group_id' => $sgIDs]],
+            ],
+        ];
+        if ($onlyId !== null) {
+            $conditions['Collection.id'] = (int)$onlyId;
+        }
         $rows = $this->find('all', [
             'recursive' => -1,
             'contain' => ['Orgc', 'SharingGroup', 'CollectionElement'],
-            'conditions' => [
-                'Collection.published' => true,
-                'OR' => [
-                    ['AND' => [['Collection.distribution >' => 0], ['Collection.distribution <' => 4]]],
-                    ['AND' => ['Collection.distribution' => 4, 'Collection.sharing_group_id' => $sgIDs]],
-                ],
-            ],
+            'conditions' => $conditions,
         ]);
         $this->Event = ClassRegistry::init('Event');
         $SGModel = ClassRegistry::init('SharingGroup');
