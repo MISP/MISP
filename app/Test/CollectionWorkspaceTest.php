@@ -268,7 +268,8 @@ class WorkspaceTestElement extends CollectionElement
         }
         $out = array();
         foreach ($this->stored as $id => $row) {
-            if (isset($row[$column]) && in_array(strtolower($row[$column]), $addresses, true)) {
+            // As the address columns compare: case by case
+            if (isset($row[$column]) && in_array($row[$column], (array)$addresses, true)) {
                 $out[$id] = $row[$column];
             }
         }
@@ -769,6 +770,40 @@ class CollectionWorkspaceTest extends TestCase
 
         $this->assertSame(3, $elements->saved[0]['user_id']);
         $this->assertNotSame('2001-01-01 00:00:00', $elements->saved[0]['created']);
+    }
+
+    public function testAMemberSavedWithCapitalsIsFoundAsAnyOther()
+    {
+        $elements = new WorkspaceTestElement();
+        $elements->readable = array('Event' => array(self::EVENT));
+        $elements->current_user = self::user();
+        // The legacy form and a REST edit save the uuid as they are given it
+        $elements->save(array('CollectionElement' => array(
+            'collection_id' => 7, 'element_type' => 'Event', 'element_uuid' => strtoupper(self::EVENT),
+        )));
+        $this->assertSame(self::EVENT, $elements->saved[0]['element_uuid']);
+
+        $report = $elements->addItems(self::user(), 7, array(array('type' => 'Event', 'uuid' => self::EVENT)));
+        $this->assertSame(array('Event:' . self::EVENT), $report['present']);
+        $this->assertCount(1, $elements->saved, 'nothing written');
+
+        $held = $elements->heldItems(self::user(), 7, array(array('type' => 'Event', 'uuid' => strtoupper(self::EVENT))));
+        $this->assertSame(array('Event:' . self::EVENT), $held['present']);
+
+        $removed = $elements->removeItems(7, array('Event:' . self::EVENT));
+        $this->assertSame(array('Event:' . self::EVENT), $removed['removed']);
+        $this->assertSame(array(), $elements->stored);
+    }
+
+    public function testACapturedMemberIsStoredLowercase()
+    {
+        $elements = new WorkspaceTestCaptureElement();
+
+        $elements->captureElements(array('Collection' => array('id' => 7, 'CollectionElement' => array(
+            array('uuid' => 'e1', 'element_type' => 'Event', 'element_uuid' => strtoupper(self::EVENT)),
+        ))), false, true);
+
+        $this->assertSame(self::EVENT, $elements->saved[0]['element_uuid']);
     }
 
     public function testRemovingTakesKeysAndSaysWhatWasNotThere()

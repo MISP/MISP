@@ -449,7 +449,7 @@ class CollectionPublishTest extends TestCase
         // element id => collection id, one list per end
         $this->elements->lists = array(array(10 => 1, 11 => 2), array(12 => 2, 13 => 3));
         $this->collection->relationshipSaved($this->link(self::EVENT, self::ATTRIBUTE));
-        $this->assertSame(array('CollectionElement.element_uuid' => array(self::EVENT, strtoupper(self::EVENT))), $this->elements->asked[0]);
+        $this->assertSame(array('CollectionElement.element_uuid' => self::EVENT), $this->elements->asked[0], 'members are stored lowercase');
         $this->assertSame(array(array('Collection.published' => false), array('AND' => array(
             array('Collection.id' => array(2)),
             array('Collection.orgc_id' => 9, 'Collection.published' => true),

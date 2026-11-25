@@ -242,7 +242,7 @@ class StandaloneObject extends AppModel
         $uuid = strtolower((string)$uuid);
         $held = ClassRegistry::init('CollectionElement')->hasAny([
             'CollectionElement.element_type' => 'StandaloneObject',
-            'CollectionElement.element_uuid' => [$uuid, strtoupper($uuid)],
+            'CollectionElement.element_uuid' => $uuid,
         ]);
         if (!$held) {
             $this->deleteAll(['StandaloneObject.uuid' => $uuid], false, false);

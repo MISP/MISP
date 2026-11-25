@@ -144,6 +144,10 @@ class CollectionElement extends AppModel
         ) {
             $this->data['CollectionElement']['element_type'] = $this->deduceType($this->data['CollectionElement']['element_uuid']);
         }
+        // The column compares case by case: every lookup asks for lowercase
+        if (isset($this->data['CollectionElement']['element_uuid']) && is_string($this->data['CollectionElement']['element_uuid'])) {
+            $this->data['CollectionElement']['element_uuid'] = strtolower($this->data['CollectionElement']['element_uuid']);
+        }
         return true;
     }
 
@@ -405,11 +409,9 @@ class CollectionElement extends AppModel
     }
 
     /**
-     * Bump the parent Collection's `modified` so element-only edits are visible
-     * to {uuid: modified} sync dedup (D5), and leave it with changes partners
-     * do not have yet. updateAll avoids callbacks/validation and harmlessly
-     * affects zero rows if the parent no longer exists (e.g. a cascading
-     * Collection delete). Skipped during sync capture (see the flag).
+     * Move the parent's `modified`, so sync sees an element-only edit, and
+     * leave it with changes partners do not have yet. Skipped during sync
+     * capture (see the flag).
      */
     private function touchCollection($collectionId)
     {
@@ -573,9 +575,8 @@ class CollectionElement extends AppModel
      *  A value's text is kept only when it is the text its SHA-256 names; a standalone object comes with its record.
      */
     public function captureElements($data, $fromPre30 = false, $remote = false) {
-        // Sync capture: the parent Collection's `modified` is set authoritatively
-        // from the remote by Collection::captureCollection(), so element saves/
-        // deletes here must NOT bump it to the local now (D5 / D6 dedup).
+        // The parent's `modified` comes from the remote: element writes must
+        // not move it to the local now, or sync would see a change each pull.
         $this->skipCollectionModifiedBump = true;
         $this->remoteCapture = (bool)$remote;
         try {
@@ -583,8 +584,7 @@ class CollectionElement extends AppModel
             'recursive' => -1,
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
         ]);
-        // Rows match as the unique keys compare them: by row uuid, else by element
-        // within the collection, both case-insensitive (ascii_general_ci).
+        // A row matches by its uuid, else by its element within the collection
         $oldElements = [];
         $oldByTarget = [];
         foreach ($temp as $oldElement) {
@@ -636,7 +636,7 @@ class CollectionElement extends AppModel
                     $elementsToSave[$k] = [
                         'CollectionElement' => [
                             'uuid' => $element['uuid'],
-                            'element_uuid' => $element['element_uuid'] ?? null,
+                            'element_uuid' => is_string($element['element_uuid'] ?? null) ? strtolower($element['element_uuid']) : null,
                             'element_sha256' => $element['element_sha256'] ?? null,
                             'element_value' => self::capturedText($element),
                             'element_type' => $element['element_type'] ?? null,

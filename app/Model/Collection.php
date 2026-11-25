@@ -121,7 +121,8 @@ class Collection extends AppModel
             'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['collection_element'],
         ],
         'element_uuid' => [
-            'kind' => 'string', 'column' => 'CollectionElement.element_uuid', 'via' => ['CollectionElement', 'Collection.id', 'collection_id'],
+            'kind' => 'string', 'column' => 'CollectionElement.element_uuid', 'lower' => 'value',
+            'via' => ['CollectionElement', 'Collection.id', 'collection_id'],
             'ops' => ComplexQueryTool::EXACT_STRING_OPS, 'level' => ['collection_element'],
         ],
         'element_sha256' => [
@@ -1130,7 +1131,7 @@ class Collection extends AppModel
                 $ids = $this->CollectionElement->find('list', [
                     'recursive' => -1,
                     'fields' => ['CollectionElement.id', 'CollectionElement.collection_id'],
-                    'conditions' => ['CollectionElement.' . $column => $column === 'element_uuid' ? self::spellings($address) : $address],
+                    'conditions' => ['CollectionElement.' . $column => $address],
                 ]);
             }
             $sets[] = array_flip(array_map('intval', array_values($ids)));

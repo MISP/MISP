@@ -1203,14 +1203,11 @@ class CollectionsController extends AppController
         if ($target === null) {
             throw new NotFoundException(__('Invalid record.'));
         }
-        $addresses = $target['column'] === 'element_uuid'
-            ? array_values(array_unique([$target['address'], strtoupper($target['address'])]))
-            : $target['address'];
         $joined = $this->Collection->CollectionElement->find('list', [
             'recursive' => -1,
             'conditions' => [
                 'CollectionElement.element_type' => $target['element_type'],
-                'CollectionElement.' . $target['column'] => $addresses,
+                'CollectionElement.' . $target['column'] => $target['address'],
             ],
             'fields' => ['CollectionElement.collection_id', 'CollectionElement.created'],
         ]);
@@ -1252,13 +1249,18 @@ class CollectionsController extends AppController
         if (empty($uuids)) {
             return [];
         }
+        // Stored lowercase; answered under the spelling asked
+        $asked = [];
+        foreach ($uuids as $uuid) {
+            $asked[strtolower($uuid)] = $asked[strtolower($uuid)] ?? $uuid;
+        }
 
         $this->loadModel('CollectionElement');
         $elements = $this->CollectionElement->find('all', [
             'recursive' => -1,
             'conditions' => [
                 'CollectionElement.element_type' => $elementType,
-                'CollectionElement.' . $column => $uuids
+                'CollectionElement.' . $column => array_map('strval', array_keys($asked))
             ],
             'fields' => ['CollectionElement.collection_id', 'CollectionElement.' . $column]
         ]);
@@ -1287,7 +1289,7 @@ class CollectionsController extends AppController
 
         foreach ($elements as $element) {
             $collectionId = $element['CollectionElement']['collection_id'];
-            $elementUuid = $element['CollectionElement'][$column];
+            $elementUuid = $asked[strtolower($element['CollectionElement'][$column])] ?? $element['CollectionElement'][$column];
             if (!isset($collectionsById[$collectionId])) {
                 continue;
             }

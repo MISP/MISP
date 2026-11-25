@@ -575,7 +575,7 @@ class CollectionElementsController extends AppController
                     'fields' => ['CollectionElement.id', 'CollectionElement.collection_id'],
                     'conditions' => [
                         'CollectionElement.element_type' => $element_type,
-                        'CollectionElement.' . $column => $this->__normaliseElementAddresses($element_uuid, $element_type),
+                        'CollectionElement.' . $column => array_map('strtolower', $this->__normaliseElementAddresses($element_uuid, $element_type)),
                         'CollectionElement.collection_id' => array_keys($validCollections)
                     ]
                 ])));

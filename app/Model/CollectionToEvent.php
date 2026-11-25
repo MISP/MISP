@@ -937,7 +937,7 @@ class CollectionToEvent extends AppModel
                 ],
                 'conditions' => [
                     'CollectionElement.collection_id' => $collectionId,
-                    'CollectionElement.' . $column => array_map('strval', array_merge(array_keys($keys), array_map('strtoupper', array_keys($keys)))),
+                    'CollectionElement.' . $column => array_map('strval', array_keys($keys)),
                 ],
             ]);
             foreach ($found as $element) {
