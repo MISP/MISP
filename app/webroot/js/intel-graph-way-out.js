@@ -142,7 +142,7 @@
         function rowFor(it) {
             if (typeof it === 'string') return rowOf(it);
             if (!it || it.type !== 'Value' || !S.plan) return null;
-            var text = String(it.value == null ? '' : it.value).trim();
+            var text = IG().phpTrim(it.value == null ? '' : it.value);
             return S.plan.rows.filter(function (r) { return r.value === text && /^Value:/.test(r.key || ''); })[0] || null;
         }
         // The items as toEvent takes them, with what the value controls changed

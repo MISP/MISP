@@ -202,6 +202,11 @@
     if (channel) channel.onmessage = function (e) { hear(e.data); };
 
     /* ── what the workspace holds ──────────────────────────── */
+    // As PHP's trim(): String.trim() also strips NBSP, U+2028, the BOM…, so a
+    // value with one would hash to another key than the server's.
+    function phpTrim(text) {
+        return String(text).replace(/^[ \t\n\r\0\x0B]+|[ \t\n\r\0\x0B]+$/g, '');
+    }
     // A record's key as addItems answers it; a value's is the SHA-256 of its
     // trimmed text, so it resolves later. Null for what cannot be a member.
     var valueKeys = {};
@@ -210,7 +215,7 @@
         if (!item || typeof item.type !== 'string') return Promise.resolve(null);
         if (item.type !== 'Value') return Promise.resolve(keyNow(item));
         if (item.sha256) return Promise.resolve(keyNow(item));
-        var text = String(item.value == null ? '' : item.value).trim();
+        var text = phpTrim(item.value == null ? '' : item.value);
         if (!text || !(window.crypto && window.crypto.subtle && window.TextEncoder)) return Promise.resolve(null);
         if (!valueKeys[text]) {
             valueKeys[text] = window.crypto.subtle.digest('SHA-256', new window.TextEncoder().encode(text)).then(function (buf) {
@@ -227,7 +232,7 @@
         if (!item || typeof item.type !== 'string') return null;
         if (item.type !== 'Value') return item.uuid ? item.type + ':' + lower(item.uuid) : null;
         if (item.sha256) return 'Value:' + lower(item.sha256);
-        return valueKeysDone[String(item.value == null ? '' : item.value).trim()] || null;
+        return valueKeysDone[phpTrim(item.value == null ? '' : item.value)] || null;
     }
 
     function forgetHeld() {
@@ -831,6 +836,7 @@
         eventChoices: eventChoices,
         keyOf: keyOf,
         keyNow: keyNow,
+        phpTrim: phpTrim,
         holds: holds,
         markHeld: markHeld,
         lookup: lookup,
