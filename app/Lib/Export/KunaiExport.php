@@ -119,7 +119,7 @@ class KunaiExport
                 $temp = $this->__convertAttribute($attribute, $data['Event']);
                 if ($temp) $result[] = $temp;
             }
-            return $result;
+            return implode($this->separator(), $result);
         }
         return '';
     }
