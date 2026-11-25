@@ -17,7 +17,11 @@ $this->set('headerActions', [
     ],
 ]);
 
-echo $this->element('genericElements/assetLoader', ['css' => ['mispql-console']]);
+// A tag cell is an events index lane: its chips, +N and popover
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['events-index-cards', 'events-index-table', 'mispql-console'],
+    'js' => ['events-index-cards'],
+]);
 
 // Module imports carry no query string of their own, so each module's
 // version goes through the import map.

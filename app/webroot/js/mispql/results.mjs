@@ -101,7 +101,12 @@ function gridModel(r, pack) {
 function splitTags(v) {
     if (Array.isArray(v)) {
         return v.filter(function (t) { return t !== null && t !== undefined; }).map(function (t) {
-            return typeof t === 'object' ? { name: String(t.name), colour: t.colour } : { name: String(t), colour: null };
+            return typeof t === 'object'
+                ? {
+                    id: t.id, name: String(t.name), colour: t.colour, local: t.local,
+                    numerical_value: t.numerical_value, relationship_type: t.relationship_type
+                }
+                : { name: String(t), colour: null };
         });
     }
     if (!v) {
@@ -127,34 +132,142 @@ function splitTags(v) {
     return out.map(function (n) { return { name: n, colour: null }; });
 }
 
-function tagColour(name) {
-    var fixed = {
-        'tlp:red': '#CC0033', 'tlp:amber': '#FFC000', 'tlp:amber+strict': '#FFC000', 'tlp:green': '#339900',
-        'tlp:clear': '#ffffff', 'tlp:white': '#ffffff'
-    };
-    if (fixed[name]) {
-        return fixed[name];
-    }
-    return name.indexOf('misp-galaxy:') === 0 ? '#0088cc' : '#6c757d';
+// The declared colours of TLP, for rows that carry tag names only.
+var TLP_COLOUR = {
+    'tlp:red': '#CC0033', 'tlp:amber': '#FFC000', 'tlp:amber+strict': '#FFC000', 'tlp:green': '#339900',
+    'tlp:clear': '#ffffff', 'tlp:white': '#ffffff'
+};
+
+var GALAXY_TAG = /^misp-galaxy:([^=]+)="?(.*?)"?$/;
+
+// The galaxies the user can see, by type, once a grid has asked for them
+var galaxyTypes = null;
+
+function typesOf(list) {
+    var out = {};
+    list.forEach(function (g) {
+        var type = String(g.type || '').toLowerCase();
+        if (type && !out[type]) {
+            out[type] = { galaxy: g.name, iconClass: g.icon || null };
+        }
+    });
+    return out;
 }
 
-function textOn(hex) {
-    var c = hex.replace('#', '');
-    if (c.length === 3) {
-        c = c.split('').map(function (x) { return x + x; }).join('');
-    }
-    var r = parseInt(c.slice(0, 2), 16);
-    var g = parseInt(c.slice(2, 4), 16);
-    var b = parseInt(c.slice(4, 6), 16);
-    return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#111' : '#fff';
+/** The galaxies MISP sends with event rows, by their clusters' tag names. */
+function galaxiesOf(raw) {
+    var out = {};
+    (raw || []).forEach(function (row) {
+        [row && row.Galaxy, row && row.Event && row.Event.Galaxy].forEach(function (list) {
+            (Array.isArray(list) ? list : []).forEach(function (g) {
+                (g.GalaxyCluster || []).forEach(function (c) {
+                    if (c.tag_name) {
+                        out[c.tag_name] = { galaxy: g.name, icon: g.icon, value: c.value, description: c.description };
+                    }
+                });
+            });
+        });
+    });
+    return out;
 }
 
-function tagChip(t) {
-    var colour = t.colour || tagColour(t.name);
-    var galaxy = t.name.indexOf('misp-galaxy:') === 0;
-    var label = galaxy ? t.name.replace(/^misp-galaxy:/, '') : t.name;
-    return '<span class="cq-tag' + (galaxy ? ' is-galaxy' : '') + '" style="--tag:' + esc(colour) + ';--tag-fg:' + textOn(colour) +
-        '" title="' + esc(t.name) + '">' + (galaxy ? '<i class="fa-solid fa-earth-europe"></i>' : '') + esc(label) + '</span>';
+/** The predicate and value a tag chip shows, split as the events index does. */
+function tagParts(name) {
+    var m = /^([^:="]+):([^=]+)="(.*)"$/s.exec(name);
+    if (m) {
+        return { namespace: m[2], value: m[3] };
+    }
+    m = /^([^:]+):(.+)$/s.exec(name);
+    return m ? { namespace: m[1], value: m[2] } : { namespace: null, value: name };
+}
+
+/**
+ * A tag cell's tags as the events index sorts them: the clusters, named
+ * from the row's galaxies or the ones the user can see, then the tags; a
+ * cluster tag holding a uuid it cannot name is only counted.
+ */
+function tagLane(tags, galaxies) {
+    var lane = { clusters: [], tags: [], unresolved: 0 };
+    tags.forEach(function (t) {
+        var m = GALAXY_TAG.exec(t.name);
+        if (!m || !m[2]) {
+            lane.tags.push(Object.assign({}, t, { colour: t.colour || TLP_COLOUR[t.name.toLowerCase()] || null }));
+            return;
+        }
+        var known = (galaxies && galaxies[t.name]) || {};
+        if (!known.value && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(m[2])) {
+            lane.unresolved++;
+            return;
+        }
+        var byType = (galaxyTypes && galaxyTypes[m[1].toLowerCase()]) || {};
+        lane.clusters.push({
+            value: known.value || m[2],
+            galaxy: known.galaxy || byType.galaxy || m[1],
+            iconClass: byType.iconClass || (known.icon ? 'fas fa-' + known.icon : null),
+            description: known.description,
+            tag_id: t.id,
+            local: t.local,
+            relationship_type: t.relationship_type
+        });
+    });
+    return lane;
+}
+
+function unresolvedNote(n) {
+    return n + (n === 1 ? ' galaxy tag whose cluster is' : ' galaxy tags whose cluster is') + ' not available here';
+}
+
+function laneChips(lane) {
+    var html = lane.clusters.map(function (c) {
+        var title = (c.relationship_type ? c.relationship_type + ': ' : '') + c.galaxy + ' › ' + c.value;
+        return '<span class="dk-chip is-gx" title="' + esc(title) + '"><i class="' + esc(c.iconClass || 'fas fa-circle-dot') +
+            '"></i><span>' + esc(c.value) + '</span></span>';
+    }).join('') + lane.tags.map(function (t) {
+        var parts = tagParts(t.name);
+        var colour = /^#[0-9a-f]{3,8}$/i.test(String(t.colour || '')) ? ' style="--tc:' + esc(t.colour) + '"' : '';
+        return '<span class="dk-chip is-tag"' + colour + ' title="' + esc(t.name) + '"><span>' +
+            (parts.namespace !== null ? '<small>' + esc(parts.namespace) + '</small> ' : '') + esc(parts.value) + '</span></span>';
+    }).join('');
+    if (lane.unresolved) {
+        html += '<span class="dk-chip is-fold" title="' + esc(unresolvedNote(lane.unresolved)) + '">' +
+            lane.unresolved + ' unresolved</span>';
+    }
+    return html;
+}
+
+/** What +N opens: every tag of the cell, one list per galaxy or namespace, as EventIndexHelper::lists() draws it. */
+function laneTemplate(lane, head) {
+    var chips = typeof window !== 'undefined' ? window.TagChips : null;
+    if (!chips || !chips.lists) {
+        return '';
+    }
+    var lists = chips.lists([], lane.clusters) + chips.lists(lane.tags, [], { ownColour: true });
+    var cols = 1;
+    if (lists.indexOf('data-cols="2"') === -1 && lists.indexOf('data-cols="3"') === -1) {
+        var height = 45 * (lists.split('hg-card-head').length - 1) + 21 * (lists.split('class="hg-row').length - 1);
+        cols = Math.max(1, Math.min(3, Math.ceil(height / 360)));
+    }
+    var count = lane.clusters.length + lane.tags.length + lane.unresolved;
+    return '<template class="dk-ctx-tpl"><div class="dk-pop-in"><div class="dk-pop-head">' +
+        (head.id ? '<span class="dk-pop-id">#' + esc(head.id) + '</span>' : '') +
+        '<b title="' + esc(head.label) + '">' + esc(head.label) + '</b>' +
+        '<button type="button" class="dk-pop-x" data-dk-close aria-label="Close"><i class="fas fa-xmark"></i></button></div>' +
+        '<section class="dk-pop-sec" data-dk-lane="tags"><h4><i class="misp-icon misp-icon-tag misp-simple" aria-hidden="true"></i>Tags <small>' + count + '</small></h4>' +
+        '<div class="dk-pop-body" data-cols="' + cols + '">' + lists + '</div>' +
+        (lane.unresolved ? '<div class="dk-pop-note">' + esc(unresolvedNote(lane.unresolved)) + '</div>' : '') +
+        '</section></div></template>';
+}
+
+/**
+ * A tag cell as an events index lane: the chips that fit, then +N, which
+ * events-index-cards.js reveals and opens onto every tag.
+ */
+function tagCell(tags, galaxies, head) {
+    var lane = tagLane(tags, galaxies);
+    return '<div class="te-ctx" data-dk-lane="tags" data-dk-root data-dk-label="' +
+        esc('Tags' + (head.id ? ' of #' + head.id : '')) + '">' + laneChips(lane) +
+        '<button type="button" class="dk-more" data-dk-lane="tags" tabindex="-1" aria-haspopup="dialog" ' +
+        'aria-expanded="false" aria-label="Tags: show all" hidden></button>' + laneTemplate(lane, head) + '</div>';
 }
 
 var TIME_COLUMN = /(^|\.)(timestamp|publish_timestamp|event_timestamp)$/i;
@@ -189,7 +302,7 @@ function levelNames(pack, tableName) {
     return names;
 }
 
-function cell(column, value, levels) {
+function cell(column, value, levels, galaxies, head) {
     var base = column.split('.').pop().toLowerCase();
     var level = levels && levels[base] && !Array.isArray(value) ? levels[base][value] : undefined;
     if (value === null || value === undefined || value === '') {
@@ -197,7 +310,7 @@ function cell(column, value, levels) {
     }
     if (base === 'tag') {
         var tags = splitTags(value);
-        return tags.length ? '<span class="cq-tags">' + tags.map(tagChip).join('') + '</span>' : '<span class="cq-null">—</span>';
+        return tags.length ? tagCell(tags, galaxies, head || {}) : '<span class="cq-null">—</span>';
     }
     if (Array.isArray(value)) {
         return '<span class="cq-text">' + esc(value.join(', ')) + '</span>';
@@ -593,7 +706,7 @@ function renderRows(r, opts) {
     opts = opts || {};
     var reply = r.reply;
     var model = gridModel(r, opts.pack);
-    var root_ = el('div', 'cq-rows');
+    var root_ = el('div', 'cq-rows dk-index');
     var views = [{ id: 'grid', label: 'Grid', icon: 'fa-table-cells' }];
     if (model.raw) {
         views.push({ id: 'json', label: 'JSON', icon: 'fa-code' });
@@ -665,7 +778,7 @@ function renderRows(r, opts) {
             var row = model.rows[i];
             rowsHtml += '<tr data-r="' + i + '"><td class="cq-rn">' + fmtInt(paging.offset + i + 1) + '</td>' + model.columns.map(function (c, j) {
                 var v = rowValue(row, c);
-                var content = cell(c, v, levels);
+                var content = cell(c, v, levels, galaxies, rowHead(row));
                 var link = cellLink(ctx, c, v, row);
                 if (link) {
                     content = '<a class="cq-link" href="' + esc(link.href) + '" target="_blank" rel="noopener" tabindex="-1" title="Open ' +
@@ -683,6 +796,40 @@ function renderRows(r, opts) {
             '<thead><tr>' + head + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
             (shown > cap ? '<div class="cq-capnote"><i class="fa-solid fa-circle-info"></i>The grid shows the first ' + fmtInt(cap) +
                 ' of ' + fmtInt(shown) + ' rows returned. Add a <code>LIMIT</code> to page through them.</div>' : '');
+        fitLanes();
+        if (!galaxyTypes && opts.galaxies && body.querySelector('.te-ctx .dk-chip.is-gx')) {
+            opts.galaxies().then(function (list) {
+                galaxyTypes = typesOf(list);
+                redrawTags();
+            });
+        }
+    }
+
+    // Drawn before the page attaches it, so fitted a frame later
+    function fitLanes() {
+        requestAnimationFrame(function () {
+            if (window.eventIndexCards) {
+                window.eventIndexCards.fitLanes(Array.prototype.slice.call(body.querySelectorAll('.te-ctx[data-dk-lane]')));
+            }
+        });
+    }
+
+    function redrawTags() {
+        body.querySelectorAll('.cq-grid td > .te-ctx').forEach(function (lane) {
+            var td = lane.parentNode;
+            var row = model.rows[Number(td.parentNode.dataset.r)];
+            var column = model.columns[Number(td.dataset.c)];
+            lane.outerHTML = cell(column, rowValue(row, column), levels, galaxies, rowHead(row));
+        });
+        fitLanes();
+    }
+
+    /** What a tag popover is headed with: the row's id and what names it. */
+    function rowHead(row) {
+        var label = ['info', 'Event.info', 'value', 'name'].map(function (c) { return rowValue(row, c); })
+            .filter(function (v) { return v !== null && v !== undefined && v !== '' && typeof v !== 'object'; })[0];
+        var id = rowValue(row, 'id');
+        return { id: id === null || id === undefined ? '' : String(id), label: label === undefined ? 'Tags' : String(label) };
     }
 
     var ctx = {
@@ -693,6 +840,7 @@ function renderRows(r, opts) {
     };
     var tableDef = opts.pack && opts.pack.tables[r.table];
     var levels = levelNames(opts.pack, r.table);
+    var galaxies = galaxiesOf(model.raw);
     var menu = cellMenu(root_);
     var order = orderOf(r.statement);
     var canSort = !!opts.onPage && !!tableDef;
@@ -757,9 +905,13 @@ function renderRows(r, opts) {
         return items;
     }
 
+    function menuChip(t) {
+        return laneChips(tagLane([t], galaxies)) || esc(t.name);
+    }
+
     function tagMenu(tags, column, canFilter) {
         function entriesOf(t) {
-            var items = [{ header: tagChip(t) }];
+            var items = [{ header: menuChip(t) }];
             (canFilter ? tagEntries(tableDef, r.table, column, t.name) : []).forEach(function (e) { items.push(filterItem(e)); });
             items.push({ label: 'Copy the tag name', icon: 'fa-copy', copy: t.name });
             return items;
@@ -769,7 +921,7 @@ function renderRows(r, opts) {
         }
         var items = [{ header: 'Tags' }];
         tags.forEach(function (t) {
-            items.push({ html: tagChip(t), icon: 'fa-chevron-right', trailing: true, open: function () {
+            items.push({ html: menuChip(t), icon: 'fa-chevron-right', trailing: true, open: function () {
                 return [{ label: 'All tags', icon: 'fa-chevron-left', open: function () { return tagMenu(tags, column, canFilter); } }]
                     .concat(entriesOf(t));
             } });
@@ -1201,4 +1353,6 @@ export {
     sortNameOf,
     nextOrder,
     levelNames,
+    tagLane,
+    tagParts,
 };

@@ -871,8 +871,8 @@
 
 .cq-menu-head { display: flex; align-items: center; }
 
-.cq-menu .cq-tag {
-    max-width: 19rem;
+.cq-menu .dk-chip {
+    max-width: 100%;
     letter-spacing: normal;
     text-transform: none;
 }
@@ -935,32 +935,10 @@
 .cq-threat-2::before { background: #fd7e14; }
 .cq-threat-3::before { background: #20c997; }
 
-.cq-tags {
-    display: inline-flex;
-    gap: 4px;
-    flex-wrap: nowrap;
+.cq-grid td > .te-ctx {
+    max-width: 336px;
+    height: 21px;
 }
-
-.cq-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 220px;
-    padding: 0 7px;
-    border: 1px solid color-mix(in srgb, var(--tag) 70%, #000 10%);
-    border-radius: 4px;
-    background: var(--tag);
-    color: var(--tag-fg);
-    font-size: 11.5px;
-    font-weight: 600;
-    line-height: 19px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.cq-tag[style*="#ffffff"] { border-color: var(--bs-border-color); }
-.cq-tag i { font-size: 9px; opacity: .85; }
 
 .cq-empty {
     display: flex;

@@ -391,6 +391,7 @@ function boot() {
             pack: pack,
             baseurl: baseurl,
             valueAddress: window.MispValueAddress ? window.MispValueAddress.address : null,
+            galaxies: client.galaxies,
             hideStatement: true,
             onPage: function (next) { pageTo(r, next); },
             onFilter: function (next) { pageTo(r, next, { remember: true }); },

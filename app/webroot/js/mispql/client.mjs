@@ -137,19 +137,36 @@ function createClient(options) {
         });
     }
 
+    function wholeList(url) {
+        if (!wholeLists[url]) {
+            wholeLists[url] = getJson(url).catch(function (e) {
+                delete wholeLists[url];
+                throw e;
+            });
+        }
+        return wholeLists[url];
+    }
+
     /** A picker answering its whole list is asked once per page; its rows are matched here. */
     function pickerRows(picker, prefix, signal) {
         if (!picker.whole) {
             return getJson(picker.url + '?q=' + encodeURIComponent(prefix), signal);
         }
-        if (!wholeLists[picker.url]) {
-            wholeLists[picker.url] = getJson(picker.url).catch(function (e) {
-                delete wholeLists[picker.url];
-                throw e;
-            });
-        }
-        return wholeLists[picker.url].then(function (rows) {
+        return wholeList(picker.url).then(function (rows) {
             return matching(rows, picker.insert, prefix);
+        });
+    }
+
+    /** The galaxies the user can see ({type, name, icon}), from the galaxy types' picker; [] without one. */
+    function galaxies() {
+        const picker = (sources.galaxy_types || [])[0];
+        if (!picker || !picker.whole) {
+            return Promise.resolve([]);
+        }
+        return wholeList(picker.url).then(function (rows) {
+            return Array.isArray(rows) ? rows : [];
+        }, function () {
+            return [];
         });
     }
 
@@ -173,7 +190,7 @@ function createClient(options) {
         return [].concat.apply([], found);
     }
 
-    return { explain: explain, run: run, plan: plan, lookup: lookup };
+    return { explain: explain, run: run, plan: plan, lookup: lookup, galaxies: galaxies };
 }
 
 /** The text at a dotted key of a picker row, or ''. */

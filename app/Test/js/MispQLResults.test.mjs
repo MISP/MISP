@@ -2,7 +2,7 @@ import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient, failureMessage } from '../../webroot/js/mispql/client.mjs';
 import { snippets } from '../../webroot/js/mispql/snippets.mjs';
-import { cellLink, columnField, filterEntries, tagEntries, sortNameOf, nextOrder, levelNames } from '../../webroot/js/mispql/results.mjs';
+import { cellLink, columnField, filterEntries, tagEntries, sortNameOf, nextOrder, levelNames, tagLane, tagParts } from '../../webroot/js/mispql/results.mjs';
 
 const f = (type, level, operators) => ({ type: type, level: [level], operators: operators });
 const EQ = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
@@ -222,6 +222,56 @@ describe('Lookups', () => {
             throw Object.assign(new Error('aborted'), { name: 'AbortError', signal: init.signal });
         };
         await assert.rejects(client.lookup('tags', 'xx', ctrl.signal));
+    });
+
+    test('the galaxies come from the galaxy types picker, sharing its list with lookups', async () => {
+        let calls = 0;
+        globalThis.fetch = async () => {
+            calls++;
+            return new Response(JSON.stringify([{ name: 'Threat Actor', type: 'threat-actor', icon: 'fas fa-user-secret' }]), { status: 200 });
+        };
+        const types = [{ url: '/galaxies/pickerScopes', insert: 'type', detail: 'name', whole: true }];
+        const client = createClient({ csrfToken: () => '', sources: { galaxy_types: types } });
+        assert.deepEqual((await client.lookup('galaxy_types', 'thr')).map((r) => r.detail), ['Threat Actor']);
+        assert.deepEqual(await client.galaxies(), [{ name: 'Threat Actor', type: 'threat-actor', icon: 'fas fa-user-secret' }]);
+        assert.equal(calls, 1);
+    });
+
+    test('no galaxy types picker, or one that fails, gives no galaxies', async () => {
+        assert.deepEqual(await createClient({ csrfToken: () => '', sources }).galaxies(), []);
+        globalThis.fetch = async () => new Response('{}', { status: 500 });
+        const types = [{ url: '/galaxies/pickerScopes', insert: 'type', whole: true }];
+        assert.deepEqual(await createClient({ csrfToken: () => '', sources: { galaxy_types: types } }).galaxies(), []);
+    });
+});
+
+describe('Tag cells', () => {
+    test('a chip shows the predicate and the value, as the events index splits them', () => {
+        assert.deepEqual(tagParts('osint:source-type="blog-post"'), { namespace: 'source-type', value: 'blog-post' });
+        assert.deepEqual(tagParts('tlp:amber'), { namespace: 'tlp', value: 'amber' });
+        assert.deepEqual(tagParts('Free text'), { namespace: null, value: 'Free text' });
+    });
+
+    test('clusters come first, named from the row, then from their type', () => {
+        const rows = {
+            'misp-galaxy:threat-actor="APT 28"': { galaxy: 'Threat Actor', icon: 'user-secret', value: 'APT 28' },
+        };
+        const lane = tagLane([
+            { name: 'tlp:red', colour: null },
+            { name: 'misp-galaxy:threat-actor="APT 28"', id: '9' },
+            { name: 'misp-galaxy:tool="Mimikatz"' },
+        ], rows);
+        assert.deepEqual(lane.clusters.map((c) => [c.galaxy, c.value, c.iconClass]),
+            [['Threat Actor', 'APT 28', 'fas fa-user-secret'], ['tool', 'Mimikatz', null]]);
+        assert.deepEqual(lane.tags.map((t) => [t.name, t.colour]), [['tlp:red', '#CC0033']]);
+    });
+
+    test('a cluster tag holding a uuid is counted unless the row names it', () => {
+        const custom = 'misp-galaxy:my-galaxy="fa5e7fb1-c3f3-47bc-91b6-67f8f0c2210a"';
+        assert.equal(tagLane([{ name: custom }], {}).unresolved, 1);
+        const named = tagLane([{ name: custom }], { [custom]: { galaxy: 'My galaxy', value: 'Custom Cluster' } });
+        assert.equal(named.unresolved, 0);
+        assert.equal(named.clusters[0].value, 'Custom Cluster');
     });
 });
 
