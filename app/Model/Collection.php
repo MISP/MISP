@@ -1304,6 +1304,9 @@ class Collection extends AppModel
             'recursive' => -1,
             'conditions' => ['Collection.id' => $collection_id]
         ]);
+        if (empty($user) || empty($collection)) {
+            return false;
+        }
         if ($user['Role']['perm_site_admin']) {
             return true;
         }

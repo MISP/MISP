@@ -358,6 +358,14 @@ class CollectionPublishTest extends TestCase
         $this->assertTrue($mayViewOpen);
     }
 
+    public function testACollectionThatIsNotThereCannotBeViewed()
+    {
+        $this->collection->User = new PublishTestUsers($this->user(array('perm_site_admin' => true)));
+        $this->collection->listed = array();
+
+        $this->assertFalse($this->collection->mayView(3, 987654), 'not even by a site admin');
+    }
+
     public function testPublishingTakesPermPublishAndTheEditRight()
     {
         $collection = array('org_id' => 1, 'orgc_id' => 1, 'user_id' => 3);

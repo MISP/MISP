@@ -40,7 +40,7 @@ class CollectionsController extends AppController
             'conditions' => ['Collection.id' => $id],
         ]);
         if (empty($found) || !$this->Collection->mayView($user['id'], $id)) {
-            throw new NotFoundException(__('Invalid collection.'));
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
         }
         $collection = $found['Collection'] + ['Orgc' => $found['Orgc']];
         if (!$this->Collection->canPublish($user, $collection)) {
@@ -229,7 +229,7 @@ class CollectionsController extends AppController
             'conditions' => ['Collection.id' => $id],
         ]);
         if (empty($found) || !$this->Collection->mayView($user['id'], $id)) {
-            throw new NotFoundException(__('Invalid collection.'));
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
         }
         return $found['Collection'] + ['Orgc' => $found['Orgc']];
     }
@@ -317,7 +317,7 @@ class CollectionsController extends AppController
         list($workspace, $refusal) = ActiveWorkspaceTool::choose($user, $collection, $graph, array_key_exists('graph_uuid', $input));
         switch ($refusal) {
             case 'collection':
-                throw new NotFoundException(__('Invalid collection.'));
+                throw new NotFoundException(__('Invalid %s.', 'Collection'));
             case 'edit':
                 throw new ForbiddenException(__('Only a collection you can edit can be your workspace, and “%s” is not one.', $workspace['Collection']['name']));
             case 'graph':
@@ -376,7 +376,7 @@ class CollectionsController extends AppController
                 'Collection.uuid' => array_values(array_unique([$copiedFrom, strtolower($copiedFrom), strtoupper($copiedFrom)])),
             ], 1)[0] ?? null;
             if ($original === null) {
-                throw new NotFoundException(__('Invalid collection.'));
+                throw new NotFoundException(__('Invalid %s.', 'Collection'));
             }
         }
         $record = [
@@ -725,7 +725,7 @@ class CollectionsController extends AppController
                 'conditions' => ['Collection.id' => intval($id)]
             ]);
             if (empty($oldCollection)) {
-                throw new NotFoundException(__('Invalid collection.'));
+                throw new NotFoundException(__('Invalid %s.', 'Collection'));
             }
             if (empty($this->request->data['Collection'])) {
                 $this->request->data = ['Collection' => $this->request->data];

@@ -347,11 +347,11 @@ class CollectionElementsController extends AppController
         } elseif (ctype_digit((string)$ref)) {
             $condition = ['Collection.id' => (string)$ref];
         } else {
-            throw new NotFoundException(__('Invalid collection.'));
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
         }
         $found = $this->CollectionElement->Collection->workspaceSummaries($user, $condition, 1);
         if (empty($found)) {
-            throw new NotFoundException(__('Invalid collection.'));
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
         }
         if (!$found[0]['_canEdit']) {
             throw new ForbiddenException(__('You cannot change the collection “%s”.', $found[0]['name']));
@@ -428,7 +428,7 @@ class CollectionElementsController extends AppController
     {   
         $this->CollectionElement->Collection->current_user = $this->Auth->user();
         if (!$this->CollectionElement->Collection->mayView($this->Auth->user('id'), intval($collection_id))) {
-            throw new NotFoundException(__('Invalid Collection.'));
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
         }
         if (!$this->CollectionElement->Collection->mayModify($this->Auth->user('id'), intval($collection_id))) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
@@ -476,9 +476,12 @@ class CollectionElementsController extends AppController
                 'CollectionElement.id' => $element_id
             ]
         ]);
+        if (empty($collectionElement)) {
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
+        }
         $collection_id = $collectionElement['CollectionElement']['collection_id'];
         if (!$this->CollectionElement->Collection->mayView($this->Auth->user('id'), $collection_id)) {
-            throw new NotFoundException(__('Invalid Collection.'));
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
         }
         if (!$this->CollectionElement->Collection->mayModify($this->Auth->user('id'), $collection_id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
