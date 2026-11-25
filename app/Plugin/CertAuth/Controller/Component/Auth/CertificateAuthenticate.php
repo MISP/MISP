@@ -83,7 +83,7 @@ class CertificateAuthenticate extends BaseAuthenticate
             } else {
                 self::$client = array();
             }
-            foreach($map as $n=>$d) {
+            foreach((array)$map as $n=>$d) {
                 if(isset($_SERVER[$n])) {
                     self::$client[$d] = $_SERVER[$n];
                 }
