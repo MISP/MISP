@@ -3,6 +3,7 @@ require_once __DIR__ . '/MispQLCompiler.php';
 require_once __DIR__ . '/MispQLRows.php';
 require_once __DIR__ . '/MispQLBackend.php';
 require_once __DIR__ . '/MispQLErrors.php';
+require_once __DIR__ . '/MispQLFieldDocs.php';
 require_once __DIR__ . '/../ComplexQueryTool.php';
 
 /**
@@ -173,7 +174,7 @@ class MispQLRunner
         }
         return self::reply('describe', [
             'table' => $plan['table'],
-            'fields' => (object)$found['tables'][$plan['table']]['fields'],
+            'fields' => (object)MispQLFieldDocs::annotate($plan['table'], $found['tables'][$plan['table']]['fields']),
             'order_by' => array_keys($this->tables->sortable($plan['table'])),
             'limits' => (object)$found['limits'],
         ]);

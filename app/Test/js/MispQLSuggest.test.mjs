@@ -7,7 +7,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { suggest, lookupItems } from '../../webroot/js/mispql/suggest.mjs';
+import { suggest, lookupItems, describeAt, TYPE_DOC } from '../../webroot/js/mispql/suggest.mjs';
 
 const ALL_OPS = ['=', '!=', '>', '<', '>=', '<=', 'IN', 'NOT IN'];
 const STR_OPS = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
@@ -401,5 +401,92 @@ describe('Value suggestions', () => {
   test('a pack without lists offers what it offered before', () => {
     assert.equal(at(ATTR + 'distribution = |').items.length, 0);
     assert.equal(at(ATTR + "tags = 'tlp|").lookup, null);
+  });
+});
+
+// The same pack, with what each field means, as the server adds it.
+const DPACK = structuredClone(PACK);
+DPACK.tables.attributes.fields.type.description = "The attribute's type.";
+DPACK.tables.attributes.fields.eventinfo.description = "The event's info.";
+DPACK.tables.attributes.fields.org.description = "The event's creator organisation.";
+DPACK.tables.attributes.fields.timestamp.description = 'When it was last changed.';
+DPACK.tables.events.fields.value.description = "The attribute's value.";
+DPACK.tables.galaxy_clusters.fields = { 'meta.<key>': Object.assign(str(['galaxy_element']), { description: 'A meta value.' }) };
+
+// The text with `^` before the character the pointer rests on.
+function hover(textWithPointer) {
+  const p = textWithPointer.indexOf('^');
+  const text = textWithPointer.slice(0, p) + textWithPointer.slice(p + 1);
+  const r = describeAt(text, p, DPACK);
+  return r && Object.assign({ written: text.slice(r.from, r.to) }, r);
+}
+
+const HOVER_FIXTURES = [
+  ["SELECT * FROM attributes WHERE ty^pe = 'x'", { kind: 'field', name: 'type', table: 'attributes', written: 'type' }],
+  ["SELECT * FROM attributes WHERE NOT (^type = 'x')", { kind: 'field', name: 'type', written: 'type' }],
+  ['SELECT * FROM attributes ORDER BY ^timestamp DESC', { kind: 'field', name: 'timestamp' }],
+  ['SELECT * FROM attributes ORDER BY ^eventinfo', null],
+  ['SELECT * FROM ^attributes', { kind: 'table', name: 'attributes', table: 'attributes' }],
+  ['DESCRIBE ^events', { kind: 'table', name: 'events' }],
+  ["SELECT * FROM attributes WHERE ^attributes.type = 'x'", { kind: 'table', name: 'attributes', written: 'attributes' }],
+  ["SELECT * FROM attributes WHERE attributes.t^ype = 'x'", { kind: 'field', name: 'type', written: 'type' }],
+  ["SELECT * FROM galaxy_clusters WHERE me^ta.synonyms = 'x'", { kind: 'field', name: 'meta.synonyms', written: 'meta.synonyms' }],
+  ["SELECT * FROM galaxy_clusters WHERE meta.`cfr-^x` = 'x'", { kind: 'field', name: 'meta.`cfr-x`' }],
+  ['SELECT id, Event.i^nfo FROM attributes', { kind: 'column', name: 'Event.info', field: 'eventinfo', written: 'Event.info' }],
+  ['SELECT ^org FROM attributes', { kind: 'column', name: 'org', field: 'org' }],
+  ['SELECT ^value FROM events', null],
+  ["SELECT * FROM events WHERE ^value = 'x'", { kind: 'field', name: 'value', table: 'events' }],
+  ['SELECT ^nope FROM attributes', null],
+  ["SELECT * FROM attributes WHERE ^nope = 'x'", null],
+  ["SELECT * FROM attributes WHERE type = '^x'", null],
+  ["^SELECT * FROM attributes WHERE type = 'x'", null],
+  ["SELECT * FROM events LIMIT 1; SELECT * FROM attributes WHERE ^type = 'x'", { kind: 'field', table: 'attributes' }],
+  ['SELECT ^id, value FROM attributes; SELECT * FROM events', { kind: 'column', table: 'attributes' }],
+];
+
+describe('What a name means', () => {
+  HOVER_FIXTURES.forEach(([text, want]) => {
+    test(JSON.stringify(text), () => {
+      const r = hover(text);
+      if (want === null) {
+        assert.equal(r, null);
+        return;
+      }
+      assert.ok(r, 'something to say');
+      Object.keys(want).forEach((k) => { assert.equal(r[k], want[k], k); });
+    });
+  });
+
+  test('a field answers with its definition, a table with none', () => {
+    assert.equal(hover("SELECT * FROM attributes WHERE ^type = 'x'").def.description, "The attribute's type.");
+    assert.equal(hover('SELECT * FROM galaxy_clusters WHERE ^meta.x = 1').def.description, 'A meta value.');
+    assert.equal(hover('SELECT * FROM ^attributes').def, null);
+  });
+
+  test('a field suggestion says what it means, then the literals it takes', () => {
+    const r = suggest('SELECT * FROM attributes WHERE ty', 33, DPACK);
+    assert.equal(r.items[0].doc, "The attribute's type.");
+    assert.equal(r.items[0].typeDoc, TYPE_DOC.string);
+    assert.deepEqual(r.items[0].notes, []);
+  });
+
+  test('a field read inside the records says so', () => {
+    const r = suggest('SELECT * FROM events WHERE valu', 31, DPACK);
+    assert.equal(r.items[0].doc, "The attribute's value.");
+    assert.deepEqual(r.items[0].notes, ['Matched against the attributes inside; positive operators only.']);
+  });
+
+  test('without a sentence, the type sentence stays the doc', () => {
+    const r = at('SELECT * FROM attributes WHERE ty|');
+    assert.equal(r.items[0].doc, TYPE_DOC.string);
+    assert.equal(r.items[0].typeDoc, '');
+  });
+
+  test('a column says what its field means and where it is printed', () => {
+    const items = suggest('SELECT  FROM attributes', 7, DPACK).items;
+    const doc = (label) => items.filter((i) => i.label === label)[0].doc;
+    assert.equal(doc('eventinfo'), "The event's info. Printed as Event.info.");
+    assert.equal(doc('type'), "The attribute's type.");
+    assert.equal(doc('Tag'), '');
   });
 });

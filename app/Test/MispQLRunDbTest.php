@@ -194,6 +194,10 @@ class MispQLRunDbTest extends TestCase
         foreach (self::DESCRIBED as $table => list($class, $models, $argument)) {
             $described = $this->queryDescribe($class, $models, $argument);
             $reply = self::decoded($runner->run("DESCRIBE $table"));
+            foreach ($reply['fields'] as $name => $field) {
+                $this->assertNotEmpty($field['description'] ?? null, "$table.$name says what it means");
+                unset($reply['fields'][$name]['description']);
+            }
             $this->assertSame($described['tables'][$table]['fields'], $reply['fields'], $table);
             $this->assertSame($described['limits'], $reply['limits'], $table);
             $sortable = $described['tables'][$table]['sortable'];

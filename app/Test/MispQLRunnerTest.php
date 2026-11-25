@@ -391,6 +391,11 @@ class MispQLRunnerTest extends TestCase
         $reply = $this->decoded($this->runner->run('DESCRIBE events'));
         $this->assertSame(['describe', 'events'], [$reply['kind'], $reply['table']]);
         $this->assertSame(['id'], array_keys($reply['fields']));
+        $this->assertSame(
+            ['type' => 'integer', 'operators' => ['='], 'level' => [], 'description' => MispQLFieldDocs::describe('events', 'id')],
+            $reply['fields']['id'],
+            'what queryDescribe lists, and what the field means'
+        );
         $this->assertContains('eventinfo', $reply['order_by']);
         $this->assertNotContains('info', $reply['order_by']);
         $this->assertSame(['max_depth' => 5], $reply['limits']);

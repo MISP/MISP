@@ -3,16 +3,10 @@
  * What the query console page is given: the language pack and the history.
  * Pure PHPUnit, no database.
  */
-if (!function_exists('__')) {
-    function __($singular, $args = null)
-    {
-        $arguments = array_slice(func_get_args(), 1);
-        return $arguments ? vsprintf($singular, $arguments) : $singular;
-    }
-}
 require_once __DIR__ . '/MispQLFixtures.php';
 require_once __DIR__ . '/../Lib/Tools/MispQL/MispQLHistory.php';
 require_once __DIR__ . '/../Lib/Tools/MispQL/MispQLLanguagePack.php';
+require_once __DIR__ . '/../Lib/Tools/MispQL/MispQLFieldDocs.php';
 
 use PHPUnit\Framework\TestCase;
 
@@ -78,7 +72,10 @@ class MispQLConsoleTest extends TestCase
         $this->assertSame('/attributes/restSearch', $attributes['endpoint']);
         $this->assertSame('Attributes, each with its event and its tags', $attributes['description']);
         $this->assertSame(
-            ['type' => 'int', 'operators' => ['=', 'IN'], 'level' => ['attribute']],
+            [
+                'type' => 'int', 'operators' => ['=', 'IN'], 'level' => ['attribute'],
+                'description' => MispQLFieldDocs::describe('attributes', 'id'),
+            ],
             $attributes['fields']->id
         );
         $this->assertSame(['csv', 'json'], $attributes['formats']);
@@ -243,6 +240,48 @@ class MispQLConsoleTest extends TestCase
                 $this->assertIsString($picker['insert'], $source);
             }
         }
+    }
+
+    public function testEveryFieldSaysWhatItMeans()
+    {
+        $tables = MispQLFixtures::tables();
+        foreach ($tables->names() as $name) {
+            $fields = MispQLFixtures::fieldNames($name);
+            $this->assertContains('id', $fields, "$name: its fields are read");
+            foreach ($fields as $field) {
+                $sentence = MispQLFieldDocs::describe($name, $field);
+                $this->assertIsString($sentence, "$name.$field has no sentence in MispQLFieldDocs");
+                $this->assertRegExp('/^[A-Z].*\.$/s', $sentence, "$name.$field");
+            }
+        }
+        $this->assertContains('meta.<key>', MispQLFixtures::fieldNames('galaxy_clusters'));
+        $this->assertContains('note', MispQLFixtures::fieldNames('notes'), 'the type\'s own fields');
+        $this->assertContains('locked', MispQLFixtures::fieldNames('notes'), 'and those every type has');
+    }
+
+    public function testFieldSentencesFollowTheTable()
+    {
+        $this->assertNotSame(
+            MispQLFieldDocs::describe('attributes', 'tags'),
+            MispQLFieldDocs::describe('events', 'tags'),
+            'on events, tags selects events'
+        );
+        $this->assertSame(
+            MispQLFieldDocs::describe('attributes', 'eventinfo'),
+            MispQLFieldDocs::describe('event_reports', 'eventinfo'),
+            'a name means the same wherever it does'
+        );
+        $this->assertStringContainsString('5', MispQLFieldDocs::describe('attributes', 'distribution'));
+        $this->assertStringNotContainsString('5', MispQLFieldDocs::describe('events', 'distribution'));
+        $this->assertNull(MispQLFieldDocs::describe('tags', 'nope'));
+    }
+
+    public function testPackLeavesOutAMissingSentence()
+    {
+        $backend = new MispQLConsoleTestBackend();
+        $backend->fields = ['tags' => ['nope' => ['type' => 'int', 'operators' => ['='], 'level' => ['tag']]]];
+        $pack = $this->pack($backend);
+        $this->assertArrayNotHasKey('description', $pack['tables']->tags['fields']->nope);
     }
 
     public function testPackLanguage()

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/MispQLBackend.php';
 require_once __DIR__ . '/MispQLCompiler.php';
+require_once __DIR__ . '/MispQLFieldDocs.php';
 require_once __DIR__ . '/MispQLLexer.php';
 require_once __DIR__ . '/MispQLParser.php';
 require_once __DIR__ . '/MispQLTables.php';
@@ -8,7 +9,8 @@ require_once __DIR__ . '/MispQLTables.php';
 /**
  * What the query console needs to colour and suggest statements for one
  * user: the keywords, the tables the user may query and, per table, its
- * fields, sort names, formats, default columns, aliases and linked columns;
+ * fields with what each means, sort names, formats, default columns, aliases
+ * and linked columns;
  * the pages those links open; and the values it offers for a field, from
  * a list (`values`, shared by every field naming it) or looked up through
  * MISP's pickers (`sources`).
@@ -36,7 +38,7 @@ class MispQLLanguagePack
         foreach ($names as $name) {
             $found = $backend->describe($name);
             $table = $tables->get($name);
-            $fields = $found['tables'][$name]['fields'];
+            $fields = MispQLFieldDocs::annotate($name, $found['tables'][$name]['fields']);
             foreach ($tables->values($name) as $field => $list) {
                 if (!isset($fields[$field])) {
                     continue;

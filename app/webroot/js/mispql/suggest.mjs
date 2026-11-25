@@ -11,6 +11,9 @@
  * Where a field's values are named rather than typed, they come from the
  * pack's lists (`values`), or `lookup` says which source to ask, for the
  * page to answer; lookupItems() turns its rows into items.
+ *
+ * describeAt(text, offset, pack) -> what the name at the offset is (a
+ * field, a column or a table), for the writer's hover.
  */
 import * as T from './tokens.mjs';
 import { literal } from './rewrite.mjs';
@@ -66,14 +69,31 @@ function elementOnly(tableName, def) {
     return native !== null && def.level.every(function (l) { return native.indexOf(l) === -1; });
 }
 
+/** What the field means; its type's sentence when the pack has none. */
+function fieldDoc(name, def) {
+    if (def.description) {
+        return def.description;
+    }
+    return (name.slice(-5) === '<key>' ? 'any meta key: meta.synonyms, meta.`cfr-suspected-victims`. ' : '') + TYPE_DOC[def.type];
+}
+
+/** The literals the field takes, when its own sentence leaves them out. */
+function fieldTypeDoc(def) {
+    return def.description ? TYPE_DOC[def.type] : '';
+}
+
+/** How the field matches when it reads the records inside the table's. */
+function fieldNotes(tableName, def) {
+    return elementOnly(tableName, def)
+        ? ['Matched against the ' + def.level.join(' or ') + 's inside; positive operators only.']
+        : [];
+}
+
 function fieldItems(tableName, table) {
     return Object.keys(table.fields).map(function (name) {
         var def = table.fields[name];
         var isWildcard = name.slice(-5) === '<key>';
         var label = isWildcard ? name.slice(0, -5) : name;
-        var notes = elementOnly(tableName, def)
-            ? 'matched against the ' + def.level.join(' or ') + 's inside; positive operators only'
-            : '';
         return {
             label: label,
             insert: isWildcard ? label : label + ' ',
@@ -81,25 +101,51 @@ function fieldItems(tableName, table) {
             detail: def.type,
             level: def.level,
             operators: def.operators,
-            doc: (isWildcard ? 'any meta key: meta.synonyms, meta.`cfr-suspected-victims`. ' : '') + TYPE_DOC[def.type],
-            note: notes,
+            doc: fieldDoc(name, def),
+            typeDoc: fieldTypeDoc(def),
+            notes: fieldNotes(tableName, def),
             chain: true
         };
     });
 }
 
-function columnItems(table) {
+/**
+ * The field a column reads, as conditions name it: the field of that name,
+ * else the alias printed as that column, in any case. A field matched
+ * against the records inside (an event's attributes) is not the column's own.
+ */
+function columnField(table, tableName, column) {
+    if (!table) {
+        return null;
+    }
+    var lower = String(column).toLowerCase();
+    function own(f) {
+        return !!table.fields[f] && !elementOnly(tableName, table.fields[f]);
+    }
+    var direct = Object.keys(table.fields).filter(function (f) { return f.toLowerCase() === lower; })[0];
+    if (direct && own(direct)) {
+        return direct;
+    }
+    var aliases = table.aliases || {};
+    return Object.keys(aliases).filter(function (a) {
+        return String(aliases[a]).toLowerCase() === lower && own(a);
+    })[0] || null;
+}
+
+function columnItems(tableName, table) {
     var seen = {};
     var items = [];
-    function add(label, detail, doc) {
+    function add(label, detail, printed) {
         if (seen[label.toLowerCase()] || label.slice(-5) === '<key>') {
             return;
         }
         seen[label.toLowerCase()] = true;
-        items.push({ label: label, insert: label, kind: 'column', detail: detail, doc: doc || '', chain: false });
+        var field = columnField(table, tableName, label);
+        var doc = [field && table.fields[field].description, printed ? 'Printed as ' + printed + '.' : ''];
+        items.push({ label: label, insert: label, kind: 'column', detail: detail, doc: doc.filter(Boolean).join(' '), chain: false });
     }
     table.default_columns.forEach(function (c) { add(c, 'default column'); });
-    Object.keys(table.aliases).forEach(function (a) { add(a, '→ ' + table.aliases[a], 'printed as ' + table.aliases[a]); });
+    Object.keys(table.aliases).forEach(function (a) { add(a, '→ ' + table.aliases[a], table.aliases[a]); });
     Object.keys(table.fields).forEach(function (f) { add(f, table.fields[f].type); });
     return items;
 }
@@ -601,7 +647,7 @@ function suggest(text, cursor, pack) {
                 { label: 'COUNT(*)', insert: 'COUNT(*) ', kind: 'keyword', detail: 'count the matches', chain: true }
             ];
             if (table) {
-                items = items.concat(columnItems(table));
+                items = items.concat(columnItems(tableName, table));
             } else {
                 hint = 'Write FROM and a table to get its columns.';
             }
@@ -609,7 +655,7 @@ function suggest(text, cursor, pack) {
         case 'select_cols_more':
         case 'col_dot':
             if (table) {
-                items = columnItems(table);
+                items = columnItems(tableName, table);
             }
             break;
         case 'col_name':
@@ -754,6 +800,98 @@ function quotedValue(text, cursor, t, sig, pack, stmtStart) {
     });
 }
 
+function isDot(t) {
+    return !!t && t.kind === 'symbol' && t.value === '.';
+}
+
+function isName(t) {
+    return !!t && (t.kind === 'name' || t.kind === 'qname');
+}
+
+/**
+ * What the name at an offset stands for: a field in a condition or after
+ * ORDER BY, a column after SELECT, or a table after FROM or DESCRIBE.
+ * Dotted names are read whole (`meta.synonyms`, `Event.info`); in a table
+ * qualified field (`attributes.type`) the table part is the table.
+ *
+ * @return {kind: 'field'|'column'|'table', name, table, def, from, to}, or
+ *     null for anything else, including a name the table does not have
+ */
+function describeAt(text, offset, pack) {
+    var all = T.tokenize(text);
+    var start = 0;
+    var end = all.length;
+    var hit = -1;
+    for (var i = 0; i < all.length; i++) {
+        var t = all[i];
+        if (t.kind === 'symbol' && t.value === ';') {
+            if (t.end <= offset) {
+                start = i + 1;
+            } else if (hit !== -1) {
+                end = i;
+                break;
+            }
+        }
+        if (hit === -1 && t.start <= offset && offset < t.end) {
+            hit = i;
+        }
+    }
+    if (hit === -1 || !isName(all[hit])) {
+        return null;
+    }
+    var sig = T.significant(all.slice(start, end));
+    var at = sig.indexOf(all[hit]);
+    var first = at;
+    while (first >= 2 && isDot(sig[first - 1]) && isName(sig[first - 2]) && sig[first - 1].start === sig[first - 2].end) {
+        first -= 2;
+    }
+    var last = at;
+    while (isDot(sig[last + 1]) && isName(sig[last + 2]) && sig[last + 1].start === sig[last].end) {
+        last += 2;
+    }
+    var parts = [];
+    for (var k = first; k <= last; k += 2) {
+        parts.push(sig[k].value);
+    }
+    var written = function (from) { return text.slice(from, sig[last].end); };
+    var scanned = scan(sig.slice(0, first));
+    var tableName = scanned.ctx.table || lookAheadTable(sig);
+    var table = tableName && pack.tables[tableName] ? pack.tables[tableName] : null;
+    var span = { from: sig[first].start, to: sig[last].end };
+    function tableTip(name, tok) {
+        return pack.tables[name] ? { kind: 'table', name: name, table: name, def: null, from: tok.start, to: tok.end } : null;
+    }
+    switch (scanned.state) {
+        case 'from_table':
+        case 'describe_table':
+            return parts.length === 1 ? tableTip(parts[0], sig[first]) : null;
+        case 'cond_start':
+        case 'order_field':
+            if (!table) {
+                return null;
+            }
+            if (parts.length > 1 && parts[0] === tableName) {
+                if (at === first) {
+                    return tableTip(tableName, sig[first]);
+                }
+                parts.shift();
+                span.from = sig[first + 2].start;
+            }
+            var name = parts.join('.');
+            var def = fieldDef(table, name);
+            if (!def || (scanned.state === 'order_field' && !table.order_by[name])) {
+                return null;
+            }
+            return Object.assign({ kind: 'field', name: written(span.from), table: tableName, def: def }, span);
+        case 'select_cols':
+        case 'select_cols_more':
+            var field = columnField(table, tableName, parts.join('.'));
+            return field ? Object.assign({ kind: 'column', name: written(span.from), field: field, table: tableName, def: table.fields[field] }, span) : null;
+        default:
+            return null;
+    }
+}
+
 /** Inside a comment, a quoted name or a string, or right after a literal. */
 function nothing(cursor, state) {
     return finish([], '', { from: cursor, to: cursor, state: state });
@@ -788,7 +926,12 @@ function rank(items, prefix) {
 
 export {
     suggest,
+    describeAt,
     fieldDef,
+    fieldDoc,
+    fieldTypeDoc,
+    fieldNotes,
+    columnField,
     elementOnly,
     valueRows,
     lookupItems,

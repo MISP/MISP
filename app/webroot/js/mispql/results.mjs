@@ -6,7 +6,7 @@
 import * as T from './tokens.mjs';
 import { highlightHTML } from './writer.mjs';
 import { addCondition, literal, fieldName, orderOf, setOrder, pagingOf, rewritePaging } from './rewrite.mjs';
-import { elementOnly, valueRows } from './suggest.mjs';
+import { columnField, valueRows } from './suggest.mjs';
 import { el, esc, fmtInt, ago, bytes, download, jsonHTML, copyText } from './util.mjs';
 
 var GRID_CAP = 500;
@@ -296,27 +296,6 @@ function cellLink(ctx, column, value, row) {
         address = s;
     }
     return address === null ? null : { href: (ctx.baseurl || '') + pages[type].replace('%s', address), type: type };
-}
-
-/**
- * The field a column reads, as conditions name it: the field of that name,
- * else the alias printed as that column. A field matched against the
- * records inside (an event's attributes) is not the column's own.
- */
-function columnField(table, tableName, column) {
-    if (!table) {
-        return null;
-    }
-    var direct = keyOf(table.fields, column);
-    if (direct !== null && !elementOnly(tableName, table.fields[direct])) {
-        return direct;
-    }
-    var aliases = table.aliases || {};
-    var lower = String(column).toLowerCase();
-    var alias = Object.keys(aliases).filter(function (a) {
-        return String(aliases[a]).toLowerCase() === lower && table.fields[a] && !elementOnly(tableName, table.fields[a]);
-    })[0];
-    return alias || null;
 }
 
 var TIMELIKE = { timestamp: 1, date: 1, datetime: 1 };
@@ -718,6 +697,13 @@ function renderRows(r, opts) {
     var order = orderOf(r.statement);
     var canSort = !!opts.onPage && !!tableDef;
 
+    /** What the column's field means, above the header's sort state. */
+    function headerTitle(c, state) {
+        var field = columnField(tableDef, r.table, c);
+        var sentence = field !== null ? tableDef.fields[field].description : '';
+        return [sentence, state].filter(Boolean).join('\n');
+    }
+
     /** A header sorts when MISP can sort the table by its column; its arrow reads the statement's ORDER BY. */
     function headerCell(c, j) {
         var name = canSort ? sortNameOf(tableDef, c) : null;
@@ -727,13 +713,14 @@ function renderRows(r, opts) {
             if (canSort) {
                 why = Object.keys(tableDef.order_by || {}).length ? r.table + ' cannot be sorted by this column' : r.table + ' cannot be sorted';
             }
-            return '<th scope="col" data-c="' + j + '"' + (why ? ' title="' + esc(why) + '"' : '') + '>' + label + '</th>';
+            var plain = headerTitle(c, why);
+            return '<th scope="col" data-c="' + j + '"' + (plain ? ' title="' + esc(plain) + '"' : '') + '>' + label + '</th>';
         }
         var at = keyIndex(tableDef, order, name);
         var dir = at === -1 ? null : (order[at].dir === 'DESC' ? 'DESC' : 'ASC');
-        var title = dir === null
+        var title = headerTitle(c, dir === null
             ? 'Sort by ' + name + ' · Shift+click adds it to the order'
-            : 'ORDER BY ' + name + ' ' + dir + ' · click to flip · Shift+click for another key';
+            : 'ORDER BY ' + name + ' ' + dir + ' · click to flip · Shift+click for another key');
         return '<th scope="col" data-c="' + j + '" class="cq-sortable' + (dir ? ' is-sorted' : '') + '" data-sort="' + esc(name) +
             '" aria-sort="' + (dir === null ? 'none' : dir === 'DESC' ? 'descending' : 'ascending') + '" title="' + esc(title) + '">' + label +
             '<i class="fa-solid ' + (dir === null ? 'fa-sort' : dir === 'DESC' ? 'fa-arrow-down-long' : 'fa-arrow-up-long') + ' cq-sort-icon" aria-hidden="true"></i>' +
@@ -989,13 +976,16 @@ function renderDescribe(r, opts) {
     Object.keys(t.fields).forEach(function (f) { t.fields[f].level.forEach(function (l) { levels[l] = 1; }); });
     var rows = Object.keys(t.fields).map(function (f) {
         var d = t.fields[f];
-        return '<tr data-f="' + esc(f.toLowerCase()) + '"><td><button type="button" class="cq-field" data-insert="' + esc(f.replace('<key>', '')) + '" title="Insert into the writer">' + esc(f) + '</button></td>' +
+        var sentence = d.description || (lt && lt.fields[f] && lt.fields[f].description) || '';
+        return '<tr data-f="' + esc(f.toLowerCase()) + '"><td><button type="button" class="cq-field" data-insert="' + esc(f.replace('<key>', '')) + '" title="Insert into the writer">' + esc(f) + '</button>' +
+            (sentence ? '<div class="cq-desc-inline">' + esc(sentence) + '</div>' : '') + '</td>' +
             '<td><span class="mql-type mql-type-' + esc(d.type) + '">' + esc(d.type) + '</span></td>' +
             '<td class="cq-ops">' + d.operators.map(function (o) { return '<code>' + esc(o) + '</code>'; }).join('') + '</td>' +
-            '<td>' + d.level.map(function (l) { return '<span class="cq-level">' + esc(l) + '</span>'; }).join('') + '</td></tr>';
+            '<td>' + d.level.map(function (l) { return '<span class="cq-level">' + esc(l) + '</span>'; }).join('') + '</td>' +
+            '<td class="cq-desc-cell">' + esc(sentence) + '</td></tr>';
     }).join('');
     var table = el('div', 'cq-grid-wrap cq-desc-grid');
-    table.innerHTML = '<table class="cq-grid"><thead><tr><th>Field</th><th>Type</th><th>Operators</th><th>Level</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    table.innerHTML = '<table class="cq-grid"><thead><tr><th>Field</th><th>Type</th><th>Operators</th><th>Level</th><th>Description</th></tr></thead><tbody>' + rows + '</tbody></table>';
     wrap.appendChild(table);
     var sortNames = t.order_by || [];
     var foot = el('div', 'cq-desc-foot');

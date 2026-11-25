@@ -501,8 +501,11 @@ function boot() {
             return '<details class="wb-schema-table"' + (q ? ' open' : '') + '><summary><i class="fa-solid fa-chevron-right"></i>' + esc(name) +
                 '<span class="wb-count">' + Object.keys(t.fields).length + ' fields</span></summary><div class="wb-fields">' +
                 fields.map(function (f) {
-                    return '<button type="button" class="wb-field" data-insert="' + esc(f.replace('<key>', '')) + '" title="' + esc(t.fields[f].operators.join(' ')) + '">' +
-                        esc(f) + '<span class="mql-type mql-type-' + esc(t.fields[f].type) + '">' + esc(t.fields[f].type) + '</span></button>';
+                    const d = t.fields[f];
+                    const tip = (d.description ? d.description + '\n' : '') + d.operators.join(' ');
+                    return '<button type="button" class="wb-field" data-insert="' + esc(f.replace('<key>', '')) + '" title="' + esc(tip) + '">' +
+                        '<span class="wb-field-name">' + esc(f) + '</span><span class="mql-type mql-type-' + esc(d.type) + '">' + esc(d.type) + '</span>' +
+                        (d.description ? '<span class="wb-field-doc">' + esc(d.description) + '</span>' : '') + '</button>';
                 }).join('') + '</div></details>';
         }).join('') || '<div class="cq-empty"><i class="fa-solid fa-table"></i><div>' +
             (q ? 'No table or field matches.' : 'Your role may query no table.') + '</div></div>';

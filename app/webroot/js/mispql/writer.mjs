@@ -37,6 +37,7 @@ var KIND_ICON = {
 
 var uid = 0;
 var TYPING_GRACE = 1200;
+var TIP_DELAY = 400;
 
 function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
@@ -146,6 +147,31 @@ function highlightHTML(text, errors, active) {
     }).join('');
 }
 
+/** A field's sentence, then the literals it takes and how it matches inside a record. */
+function fieldDocHTML(doc, typeDoc, notes) {
+    return '<div class="mql-doc">' + esc(doc || '') + '</div>' +
+        (typeDoc ? '<div class="mql-typedoc">' + esc(typeDoc) + '</div>' : '') +
+        (notes || []).map(function (n) { return '<div class="mql-note">' + esc(n) + '</div>'; }).join('');
+}
+
+/** The hover tip of a field, a column or a table, as the suggestion panel tells it. */
+function docTip(what, pack) {
+    if (what.kind === 'table') {
+        var t = pack.tables[what.name];
+        return '<div class="mql-info-head"><code>' + esc(what.name) + '</code><span class="mql-level">POST ' + esc(t.endpoint) + '</span></div>' +
+            '<div class="mql-doc">' + esc(t.description) + '</div>';
+    }
+    var def = what.def;
+    var name = what.kind === 'column' && what.field.toLowerCase() !== what.name.toLowerCase()
+        ? '<code>' + esc(what.name) + '</code><span class="mql-tip-as">' + esc(what.field) + '</span>'
+        : '<code>' + esc(what.name) + '</code>';
+    return '<div class="mql-info-head">' + name +
+        '<span class="mql-type mql-type-' + esc(def.type) + '">' + esc(def.type) + '</span>' +
+        '<span class="mql-level">' + esc(def.level.join(' · ')) + '</span></div>' +
+        '<div class="mql-ops">' + def.operators.map(function (op) { return '<code>' + esc(op) + '</code>'; }).join('') + '</div>' +
+        fieldDocHTML(S.fieldDoc(what.field || what.name, def), S.fieldTypeDoc(def), S.fieldNotes(what.table, def));
+}
+
 function MispQLWriter(host, options) {
     this.host = host;
     this.opts = Object.assign({ minRows: 3, maxRows: 14, gutter: true, placeholder: '' }, options || {});
@@ -191,7 +217,7 @@ MispQLWriter.prototype = {
         var self = this;
         this.ta.addEventListener('input', function (e) { self.onInput(e); });
         this.ta.addEventListener('scroll', function () {
-            self.tip.hidden = true;
+            self.hideTip();
             self.syncScroll();
         });
         if (o.gutter) {
@@ -217,7 +243,7 @@ MispQLWriter.prototype = {
             }, 120);
         });
         this.ta.addEventListener('mousemove', function (e) { self.onHover(e); });
-        this.ta.addEventListener('mouseleave', function () { self.tip.hidden = true; });
+        this.ta.addEventListener('mouseleave', function () { self.hideTip(); });
         this.pop.addEventListener('mousedown', function (e) {
             var row = e.target.closest('[data-i]');
             e.preventDefault();
@@ -273,6 +299,7 @@ MispQLWriter.prototype = {
     },
 
     onInput: function (e) {
+        this.hideTip();
         this.recallPos = -1;
         this.lastInputAt = Date.now();
         this.changed();
@@ -304,7 +331,7 @@ MispQLWriter.prototype = {
         this.errors = this.errors.filter(function (e) { return e.from < e.to && e.to <= cut; });
         this.statements = null;
         this.prevText = text;
-        this.tip.hidden = true;
+        this.hideTip();
         this.render();
         this.scheduleExplain();
         if (this.opts.onChange) {
@@ -440,7 +467,7 @@ MispQLWriter.prototype = {
         this.host.classList.toggle('is-empty', !text);
         this.host.classList.toggle('has-errors', errs.length > 0);
         this.host.classList.toggle('is-writing', errs.length < all.length);
-        if (!this.tip.hidden && visible.indexOf(this.tipErr) === -1) {
+        if (!this.tip.hidden && !this.tip.classList.contains('is-doc') && visible.indexOf(this.tipErr) === -1) {
             this.tip.hidden = true;
         }
         if (this.opts.gutter) {
@@ -493,43 +520,91 @@ MispQLWriter.prototype = {
         this.hl.scrollLeft = this.ta.scrollLeft;
     },
 
-    onHover: function (e) {
-        if (!this.errors.length) {
-            this.tip.hidden = true;
-            return;
-        }
-        var spans = this.hl.querySelectorAll('[data-err]');
-        var hit = null;
-        for (var i = 0; i < spans.length && !hit; i++) {
+    /** The highlight span under the pointer among `selector`, with the rect hit; `slack` widens thin targets. */
+    spanAt: function (e, selector, slack) {
+        var spans = this.hl.querySelectorAll(selector);
+        var x = slack ? [2, 6, 2, 4] : [0, 0, 0, 0];
+        for (var i = 0; i < spans.length; i++) {
             var rects = spans[i].getClientRects();
             for (var j = 0; j < rects.length; j++) {
                 var r = rects[j];
-                if (e.clientX >= r.left - 2 && e.clientX <= r.right + 6 && e.clientY >= r.top - 2 && e.clientY <= r.bottom + 4) {
-                    hit = { el: spans[i], rect: r };
-                    break;
+                if (e.clientX >= r.left - x[0] && e.clientX < r.right + x[1] && e.clientY >= r.top - x[2] && e.clientY < r.bottom + x[3]) {
+                    return { el: spans[i], rect: r };
                 }
             }
         }
-        if (!hit) {
+        return null;
+    },
+
+    /** An error under the pointer shows at once; a field, column or table after a rest. */
+    onHover: function (e) {
+        if (this.sugg) {
+            this.hideTip();
+            return;
+        }
+        var hit = this.errors.length ? this.spanAt(e, '[data-err]', true) : null;
+        var err = hit ? this.errors[Number(hit.el.getAttribute('data-err'))] : null;
+        if (err) {
+            this.cancelTip();
+            this.tipOn = null;
+            this.tipErr = err;
+            this.tip.classList.remove('is-doc');
+            this.tip.innerHTML = '<span class="mq-code">' + esc(err.code) + '</span>' + esc(err.message) +
+                (err.path ? '<span class="mq-path">' + esc(err.path) + '</span>' : '');
+            this.showTip(hit.rect);
+            return;
+        }
+        if (this.tip.hidden === false && !this.tip.classList.contains('is-doc')) {
             this.tip.hidden = true;
+        }
+        var over = this.ta.value.length <= 20000 ? this.spanAt(e, '[data-at]') : null;
+        var at = over ? Number(over.el.getAttribute('data-at')) : -1;
+        if ((this.tipOn && at >= this.tipOn.from && at < this.tipOn.to) || (at !== -1 && at === this.tipMiss)) {
             return;
         }
-        var err = this.errors[Number(hit.el.getAttribute('data-err'))];
-        if (!err || this.sugg) {
+        this.hideTip();
+        var what = at === -1 ? null : S.describeAt(this.ta.value, at, this.pack);
+        if (!what) {
+            this.tipMiss = at;
             return;
         }
-        this.tipErr = err;
-        this.tip.innerHTML = '<span class="mq-code">' + esc(err.code) + '</span>' + esc(err.message) +
-            (err.path ? '<span class="mq-path">' + esc(err.path) + '</span>' : '');
+        this.tipOn = what;
+        var self = this;
+        var rect = over.rect;
+        this.tipTimer = setTimeout(function () {
+            self.tipTimer = null;
+            if (self.tipOn === what && !self.sugg) {
+                self.tip.innerHTML = docTip(what, self.pack);
+                self.tip.classList.add('is-doc');
+                self.showTip(rect);
+            }
+        }, TIP_DELAY);
+    },
+
+    showTip: function (rect) {
         this.tip.hidden = false;
         var hostRect = this.host.getBoundingClientRect();
-        var left = Math.min(hit.rect.left - hostRect.left, hostRect.width - this.tip.offsetWidth - 4);
-        var top = hit.rect.bottom - hostRect.top + 6;
-        if (hit.rect.bottom + this.tip.offsetHeight + 12 > window.innerHeight) {
-            top = hit.rect.top - hostRect.top - this.tip.offsetHeight - 6;
+        var left = Math.min(rect.left - hostRect.left, hostRect.width - this.tip.offsetWidth - 4);
+        var top = rect.bottom - hostRect.top + 6;
+        if (rect.bottom + this.tip.offsetHeight + 12 > window.innerHeight) {
+            top = rect.top - hostRect.top - this.tip.offsetHeight - 6;
         }
         this.tip.style.left = Math.max(0, left) + 'px';
         this.tip.style.top = top + 'px';
+    },
+
+    cancelTip: function () {
+        if (this.tipTimer) {
+            clearTimeout(this.tipTimer);
+            this.tipTimer = null;
+        }
+    },
+
+    hideTip: function () {
+        this.cancelTip();
+        this.tipOn = null;
+        this.tipMiss = -1;
+        this.tip.hidden = true;
     },
 
     onKeyDown: function (e) {
@@ -769,7 +844,7 @@ MispQLWriter.prototype = {
                 '<span class="mql-type mql-type-' + esc(cur.detail) + '">' + esc(cur.detail) + '</span>' +
                 '<span class="mql-level">' + esc(cur.level.join(' · ')) + '</span></div>' +
                 '<div class="mql-ops">' + cur.operators.map(function (op) { return '<code>' + esc(op) + '</code>'; }).join('') + '</div>' +
-                '<div class="mql-doc">' + esc(cur.doc || '') + (cur.note ? '<br><span class="mql-note">' + esc(cur.note) + '</span>' : '') + '</div></div>';
+                fieldDocHTML(cur.doc, cur.typeDoc, cur.notes) + '</div>';
         } else if (cur && (cur.doc || cur.kind === 'client')) {
             info = '<div class="mql-info"><div class="mql-doc">' +
                 (cur.kind === 'client' ? 'Switches between MISP servers: runs in the mispql CLI, not in this console.' : esc(cur.doc)) +
@@ -779,7 +854,7 @@ MispQLWriter.prototype = {
         this.pop.innerHTML = '<div class="mql-pop-list">' + rows + '</div>' + info + hint +
             '<div class="mql-pop-foot"><span><kbd>↑</kbd><kbd>↓</kbd> choose</span><span><kbd>↵</kbd> insert</span><span><kbd>esc</kbd> close</span></div>';
         this.pop.hidden = false;
-        this.tip.hidden = true;
+        this.hideTip();
         this.ta.setAttribute('aria-expanded', 'true');
         this.ta.setAttribute('aria-activedescendant', this.id + '-o' + this.suggIndex);
         var active = this.pop.querySelector('.is-active');
