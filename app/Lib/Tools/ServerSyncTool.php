@@ -553,6 +553,29 @@ class ServerSyncTool
         return $this->decodeRule('push_rules');
     }
 
+    /**
+     * Translate a server's org pull-rules into the orgc_name OR/NOT filter the
+     * indexMinimal endpoints expect (they resolve names -> orgc_id).
+     *
+     * @return array
+     * @throws JsonException
+     * @throws UnexpectedValueException
+     */
+    public function buildPullFilterRules()
+    {
+        $filterRules = ['orgc_name' => []];
+        $pullRules = JsonTool::decodeArray($this->server()['Server']['pull_rules']);
+        if (!empty($pullRules['orgs']['OR'])) {
+            $filterRules['orgc_name'] = $pullRules['orgs']['OR'];
+        }
+        if (!empty($pullRules['orgs']['NOT'])) {
+            $filterRules['orgc_name'] = array_merge($filterRules['orgc_name'], array_map(function ($orgName) {
+                return '!' . $orgName;
+            }, $pullRules['orgs']['NOT']));
+        }
+        return $filterRules;
+    }
+
     public function getFastCache($lastId)
     {
         $url = sprintf(
