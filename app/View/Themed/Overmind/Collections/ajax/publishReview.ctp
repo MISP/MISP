@@ -228,8 +228,8 @@ summary.cpr-head:focus-visible { outline: 2px solid var(--misp-accent, var(--bs-
                 <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
                 <span>
                     <span class="fw-semibold"><?= h(__n(
-                        '%s member was asked about a value held in MISP only by events shared more narrowly than this collection.',
-                        '%s members were asked about values held in MISP only by events shared more narrowly than this collection.',
+                        '%s member was found by asking about a value held in MISP only by events shared more narrowly than this collection.',
+                        '%s members were found by asking about values held in MISP only by events shared more narrowly than this collection.',
                         $narrowerOriginCount,
                         $narrowerOriginCount
                     )) ?></span>
