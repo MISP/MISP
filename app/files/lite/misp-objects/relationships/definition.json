@@ -1,0 +1,2379 @@
+{
+  "description": "Default type of relationships in MISP objects.",
+  "name": "relationships",
+  "uuid": "b002c0d6-320f-450d-82c4-b3aa15bbbd6c",
+  "values": [
+    {
+      "description": "The information in the target object is based on information from the source object.",
+      "format": [
+        "misp",
+        "stix-2.0",
+        "alfred"
+      ],
+      "name": "derived-from"
+    },
+    {
+      "description": "This relationship describes an object which executes another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "executes",
+      "opposite": "executed-by"
+    },
+    {
+      "description": "This relationship describes an object which shares another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "shares",
+      "opposite": "shared-by"
+    },
+    {
+      "description": "This relationship describes an object which was shared by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "shared-by",
+      "opposite": "shares"
+    },
+    {
+      "description": "This relationship describes an object which publishes another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "publishes",
+      "opposite": "published-by"
+    },
+    {
+      "description": "This relationship describes an object which was published by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "published-by",
+      "opposite": "publishes"
+    },
+    {
+      "description": "The referenced source and target objects are semantically duplicates of each other.",
+      "format": [
+        "misp",
+        "stix-2.0"
+      ],
+      "name": "duplicate-of"
+    },
+    {
+      "description": "The referenced source is related to the target object.",
+      "format": [
+        "alfred",
+        "followthemoney",
+        "misp",
+        "stix-2.0"
+      ],
+      "name": "related-to"
+    },
+    {
+      "description": "The referenced source is connected to the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "connected-to",
+      "opposite": "connected-from"
+    },
+    {
+      "description": "The referenced source is connected from the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "connected-from",
+      "opposite": "connected-to"
+    },
+    {
+      "description": "The referenced source is containing the target object.",
+      "format": [
+        "misp",
+        "stix-1.1",
+        "alfred"
+      ],
+      "name": "contains",
+      "opposite": "contained-by"
+    },
+    {
+      "description": "The referenced source is contained by the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "contained-by",
+      "opposite": "contains"
+    },
+    {
+      "description": "The referenced source is contained within the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "contained-within"
+    },
+    {
+      "description": "The referenced source is characterized by the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "characterized-by",
+      "opposite": "characterizes"
+    },
+    {
+      "description": "The referenced source is characterizing the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "characterizes",
+      "opposite": "characterized-by"
+    },
+    {
+      "description": "The referenced source has queried the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "properties-queried",
+      "opposite": "properties-queried-by"
+    },
+    {
+      "description": "The referenced source is queried by the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "properties-queried-by",
+      "opposite": "properties-queried"
+    },
+    {
+      "description": "The referenced source is extracted from the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "extracted-from"
+    },
+    {
+      "description": "The referenced source is a supra domain of the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "supra-domain-of",
+      "opposite": "sub-domain-of"
+    },
+    {
+      "description": "The referenced source is a sub domain of the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "sub-domain-of",
+      "opposite": "supra-domain-of"
+    },
+    {
+      "description": "The referenced source has dropped the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "dropped"
+    },
+    {
+      "description": "The referenced source is dropped by the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "dropped-by"
+    },
+    {
+      "description": "The referenced source has downloaded the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "downloaded",
+      "opposite": "downloaded-from"
+    },
+    {
+      "description": "The referenced source has been downloaded from the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "downloaded-from",
+      "opposite": "downloaded"
+    },
+    {
+      "description": "The referenced source is resolved to the target object.",
+      "format": [
+        "misp",
+        "stix-1.1"
+      ],
+      "name": "resolved-to"
+    },
+    {
+      "description": "This referenced source is attributed to the target object.",
+      "format": [
+        "misp",
+        "stix-2.0"
+      ],
+      "name": "attributed-to"
+    },
+    {
+      "description": "This relationship describes that the source object targets the target object.",
+      "format": [
+        "misp",
+        "stix-2.0"
+      ],
+      "name": "targets",
+      "opposite": "targeted-by"
+    },
+    {
+      "description": "This relationship describes the use by the source object of the target object.",
+      "format": [
+        "misp",
+        "stix-2.0",
+        "alfred"
+      ],
+      "name": "uses",
+      "opposite": "used-by"
+    },
+    {
+      "description": "This relationship describes that the source object indicates the target object.",
+      "format": [
+        "misp",
+        "stix-2.0"
+      ],
+      "name": "indicates",
+      "opposite": "indicated-by"
+    },
+    {
+      "description": "This relationship describes that the source object is indicated by the target object.",
+      "format": [
+        "misp",
+        "stix-2.1"
+      ],
+      "name": "indicated-by",
+      "opposite": "indicates"
+    },
+    {
+      "description": "This relationship describes that the source object mentions the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "mentions"
+    },
+    {
+      "description": "This relationship describes a source object which mitigates the target object.",
+      "format": [
+        "misp",
+        "stix-2.0"
+      ],
+      "name": "mitigates"
+    },
+    {
+      "description": "This relationship describes a source object which is a variant of the target object",
+      "format": [
+        "misp",
+        "stix-2.0",
+        "alfred"
+      ],
+      "name": "variant-of"
+    },
+    {
+      "description": "This relationship describes a source object which impersonates the target object",
+      "format": [
+        "misp",
+        "stix-2.0"
+      ],
+      "name": "impersonates"
+    },
+    {
+      "description": "This relationship describes an object retrieved from the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "retrieved-from"
+    },
+    {
+      "description": "This relationship describes the author of a specific object.",
+      "format": [
+        "misp"
+      ],
+      "name": "authored-by",
+      "opposite": "is-author-of"
+    },
+    {
+      "description": "This relationship describes an object being author by someone.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-author-of",
+      "opposite": "authored-by"
+    },
+    {
+      "description": "This relationship describes the location (of any type) of a specific object.",
+      "format": [
+        "misp"
+      ],
+      "name": "located"
+    },
+    {
+      "description": "This relationship describes an object included in another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "included-in",
+      "opposite": "includes"
+    },
+    {
+      "description": "This relationship describes an object that includes an other object.",
+      "format": [
+        "misp"
+      ],
+      "name": "includes",
+      "opposite": "included-in"
+    },
+    {
+      "description": "This relationship describes an object analysed by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "analysed-with"
+    },
+    {
+      "description": "This relationship describes an object claimed by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "claimed-by"
+    },
+    {
+      "description": "This relationship describes an object communicating with another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "communicates-with"
+    },
+    {
+      "description": "This relationship describes an object which drops another object",
+      "format": [
+        "misp"
+      ],
+      "name": "drops"
+    },
+    {
+      "description": "This relationship describes an object executed by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "executed-by",
+      "opposite": "executes"
+    },
+    {
+      "description": "This relationship describes an object that affects another object.",
+      "format": [
+        "misp",
+        "alfred"
+      ],
+      "name": "affects",
+      "opposite": "affected-by"
+    },
+    {
+      "description": "This relationship describes an object affected by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "affected-by",
+      "opposite": "affects"
+    },
+    {
+      "description": "This relationship describes an object beaconing to another object.",
+      "format": [
+        "misp",
+        "alfred"
+      ],
+      "name": "beacons-to"
+    },
+    {
+      "description": "This relationship describes an object which abuses another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "abuses"
+    },
+    {
+      "description": "This relationship describes an object exfiltrating to another object.",
+      "format": [
+        "misp",
+        "alfred"
+      ],
+      "name": "exfiltrates-to"
+    },
+    {
+      "description": "This relationship describes an object which identifies another object.",
+      "format": [
+        "misp",
+        "alfred"
+      ],
+      "name": "identifies",
+      "opposite": "identified-by"
+    },
+    {
+      "description": "This relationship describes an object which intercepts another object.",
+      "format": [
+        "misp",
+        "alfred"
+      ],
+      "name": "intercepts",
+      "opposite": "intercepted-by"
+    },
+    {
+      "description": "This relationship describes an object which calls another objects.",
+      "format": [
+        "misp"
+      ],
+      "name": "calls"
+    },
+    {
+      "description": "This relationship describes an object which is detected as another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "detected-as"
+    },
+    {
+      "description": "This relationship describes an object which is followed by another object. This can be used when a time reference is missing but a sequence is known.",
+      "format": [
+        "misp"
+      ],
+      "name": "followed-by",
+      "opposite": "preceded-by"
+    },
+    {
+      "description": "This relationship describes an object which is preceded by another object. This can be used when a time reference is missing but a sequence is known.",
+      "format": [
+        "misp"
+      ],
+      "name": "preceded-by",
+      "opposite": "followed-by"
+    },
+    {
+      "description": "This relationship describes an object which triggers another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "triggers"
+    },
+    {
+      "description": "This relationship describes an object which is a vulnerability of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "vulnerability-of"
+    },
+    {
+      "description": "This relationship describes an object which works like another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "works-like"
+    },
+    {
+      "description": "This relationship describes an object which is selling another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "seller-of"
+    },
+    {
+      "description": "This relationship describes an object which is selling on another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "seller-on"
+    },
+    {
+      "description": "This relationship describes an object which is trying to obtain the exploit described by another object",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "trying-to-obtain-the-exploit"
+    },
+    {
+      "description": "This relationship describes an object which is used by another object.",
+      "format": [
+        "cert-eu",
+        "stix-2.1"
+      ],
+      "name": "used-by",
+      "opposite": "uses"
+    },
+    {
+      "description": "This relationship describes an object which hosts another object.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "hosts",
+      "opposite": "hosted-by"
+    },
+    {
+      "description": "This relatiobship describes an object hosted by another object.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "hosted-by",
+      "opposite": "hosts"
+    },
+    {
+      "description": "This relationship describes an object which consists of one or more object(s).",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "consists"
+    },
+    {
+      "description": "This relationship describes an object which delivers to one or more object(s).",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "delivers"
+    },
+    {
+      "description": "This relationship describes an object which is affiliated with another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "affiliated"
+    },
+    {
+      "description": "This relationship describes an object which is the alleged founder of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "alleged-founder-of"
+    },
+    {
+      "description": "This relationship describes an object which attacks another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "attacking-other-group"
+    },
+    {
+      "description": "This relationship describes an object which belongs to another object.",
+      "format": [
+        "cert-eu",
+        "followthemoney"
+      ],
+      "name": "belongs-to"
+    },
+    {
+      "description": "This relationship describes an object which has business relations with another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "business-relations"
+    },
+    {
+      "description": "This relationship describes an object which claims to be the founder of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "claims-to-be-the-founder-of"
+    },
+    {
+      "description": "This relationship describes an object which cooperates with another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "cooperates-with"
+    },
+    {
+      "description": "This relationship describes an object which is a former member of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "former-member-of"
+    },
+    {
+      "description": "This relationship describes an object which is a successor of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "successor-of"
+    },
+    {
+      "description": "This relationship describes an object which has joined another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "has-joined"
+    },
+    {
+      "description": "This relationship describes an object which is a member of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "member-of"
+    },
+    {
+      "description": "This relationship describes an object which is a primary member of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "primary-member-of"
+    },
+    {
+      "description": "This relationship describes an object which is an administrator of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "administrator-of"
+    },
+    {
+      "description": "This relationship describes an object which is in relation with another object,",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "is-in-relation-with"
+    },
+    {
+      "description": "This relationship describes an object which provides support to another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "provide-support-to"
+    },
+    {
+      "description": "This relationship describes an object which is a regional branch of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "regional-branch"
+    },
+    {
+      "description": "This relationship describes an object which is similar to another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "similar"
+    },
+    {
+      "description": "This relationship describes an object which is a subgroup of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "subgroup"
+    },
+    {
+      "description": "This relationship describes an object which is suspected to be linked with another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "suspected-link"
+    },
+    {
+      "description": "This relationship describes an object which is the same as another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "same-as"
+    },
+    {
+      "description": "This relationship describes an object which is the creator of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "creator-of"
+    },
+    {
+      "description": "This relationship describes an object which is a developer of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "developer-of"
+    },
+    {
+      "description": "This relationship describes an object which uses another object for recon.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "uses-for-recon"
+    },
+    {
+      "description": "This relationship describes an object which is an operator of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "operator-of"
+    },
+    {
+      "description": "This relationship describes an object which overlaps another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "overlaps"
+    },
+    {
+      "description": "This relationship describes an object which owns another object.",
+      "format": [
+        "cert-eu",
+        "alfred"
+      ],
+      "name": "owner-of"
+    },
+    {
+      "description": "This relationship describes an object which publishes method for another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "publishes-method-for"
+    },
+    {
+      "description": "This relationship describes an object which recommends the use of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "recommends-use-of"
+    },
+    {
+      "description": "This relationship describes an object which released source code of another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "released-source-code"
+    },
+    {
+      "description": "This relationship describes an object which release another object.",
+      "format": [
+        "cert-eu"
+      ],
+      "name": "released"
+    },
+    {
+      "description": "This relationship describes an object (like a PoC/exploit) which exploits another object (such as a vulnerability object).",
+      "format": [
+        "misp"
+      ],
+      "name": "exploits"
+    },
+    {
+      "description": "This relationship describes an object signed by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "signed-by"
+    },
+    {
+      "description": "This relationship describes an object by another object (such as exploit kit, dropper).",
+      "format": [
+        "misp"
+      ],
+      "name": "delivered-by"
+    },
+    {
+      "description": "This relationship describes an object which controls another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "controls"
+    },
+    {
+      "description": "This relationships describes an object which annotates another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "annotates"
+    },
+    {
+      "description": "This relationships describes an object which references another object or attribute.",
+      "format": [
+        "misp"
+      ],
+      "name": "references"
+    },
+    {
+      "description": "A child semantic link to a parent.",
+      "format": [
+        "alfred"
+      ],
+      "name": "child-of"
+    },
+    {
+      "description": "A parent semantic link to a child.",
+      "format": [
+        "alfred",
+        "misp"
+      ],
+      "name": "parent-of"
+    },
+    {
+      "description": "Represents the semantic link of having compromised something.",
+      "format": [
+        "alfred"
+      ],
+      "name": "compromised"
+    },
+    {
+      "description": "The initiator of a connection.",
+      "format": [
+        "alfred"
+      ],
+      "name": "connects"
+    },
+    {
+      "description": "The destination or target of a connection.",
+      "format": [
+        "alfred"
+      ],
+      "name": "connects-to"
+    },
+    {
+      "description": "Represents the semantic link of one thing being the cover term for another.",
+      "format": [
+        "alfred"
+      ],
+      "name": "cover-term-for"
+    },
+    {
+      "description": "Semantic link indicating where information is disclosed to.",
+      "format": [
+        "alfred"
+      ],
+      "name": "disclosed-to"
+    },
+    {
+      "description": "Represents the semantic link of one thing downloading another.",
+      "format": [
+        "alfred"
+      ],
+      "name": "downloads",
+      "opposite": "downloads-from"
+    },
+    {
+      "description": "Represents the semantic link of malware being downloaded from a location.",
+      "format": [
+        "alfred"
+      ],
+      "name": "downloads-from",
+      "opposite": "downloads"
+    },
+    {
+      "description": "Represents the semantic link of an alert generated from a signature.",
+      "format": [
+        "alfred"
+      ],
+      "name": "generated"
+    },
+    {
+      "description": "One data object implements another.",
+      "format": [
+        "alfred"
+      ],
+      "name": "implements"
+    },
+    {
+      "description": "Represents the semantic link of a communication initiating an event.",
+      "format": [
+        "alfred",
+        "misp"
+      ],
+      "name": "initiates",
+      "opposite": "initiated-by"
+    },
+    {
+      "description": "The source object initiated the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "initiated-by",
+      "opposite": "initiates"
+    },
+    {
+      "description": "Represents the semantic link between a FILE and FILE_BINARY.",
+      "format": [
+        "alfred"
+      ],
+      "name": "instance-of"
+    },
+    {
+      "description": "Represents the semantic link of being the issuer of something.",
+      "format": [
+        "alfred"
+      ],
+      "name": "issuer-of"
+    },
+    {
+      "description": "Represents the semantic link of being associated with something.",
+      "format": [
+        "alfred",
+        "followthemoney"
+      ],
+      "name": "linked-to"
+    },
+    {
+      "description": "Represents the semantic link of a comm that is not relevant to an EVENT.",
+      "format": [
+        "alfred"
+      ],
+      "name": "not-relevant-to"
+    },
+    {
+      "description": "Represents the semantic link that defines one thing to be part of another in a hierachial structure from the child to the parent.",
+      "format": [
+        "alfred"
+      ],
+      "name": "part-of"
+    },
+    {
+      "description": "Represents the semantic link of something has been processed by another program.",
+      "format": [
+        "alfred"
+      ],
+      "name": "processed-by"
+    },
+    {
+      "description": "Represents the semantic link of something having produced something else.",
+      "format": [
+        "alfred"
+      ],
+      "name": "produced"
+    },
+    {
+      "description": "The IP Address or domain being queried for.",
+      "format": [
+        "alfred"
+      ],
+      "name": "queried-for"
+    },
+    {
+      "description": "The IP Address or domain returned as the result of a query.",
+      "format": [
+        "alfred"
+      ],
+      "name": "query-returned"
+    },
+    {
+      "description": "Represents the semantic link of someone registered some thing.",
+      "format": [
+        "alfred"
+      ],
+      "name": "registered",
+      "opposite": "registered-to"
+    },
+    {
+      "description": "Represents the semantic link of something being registered to.",
+      "format": [
+        "alfred"
+      ],
+      "name": "registered-to",
+      "opposite": "registered"
+    },
+    {
+      "description": "Represents the semantic link between HBS Comms and communication addresses.",
+      "format": [
+        "alfred"
+      ],
+      "name": "relates"
+    },
+    {
+      "description": "Represents the semantic link of a comm that is relevant to an EVENT.",
+      "format": [
+        "alfred"
+      ],
+      "name": "relevant-to"
+    },
+    {
+      "description": "Represents the semantic link of resolving to something.",
+      "format": [
+        "alfred"
+      ],
+      "name": "resolves-to"
+    },
+    {
+      "description": "Represents the semantic link of some entity being responsible for something.",
+      "format": [
+        "alfred"
+      ],
+      "name": "responsible-for"
+    },
+    {
+      "description": "Represents the semantic link of a seeded domain redirecting to another site.",
+      "format": [
+        "alfred"
+      ],
+      "name": "seeded"
+    },
+    {
+      "description": "A sends semantic link meaning 'who sends what'.",
+      "format": [
+        "alfred"
+      ],
+      "name": "sends"
+    },
+    {
+      "description": "A sends to as BCC semantic link meaning 'what sends to who as BCC'.",
+      "format": [
+        "alfred"
+      ],
+      "name": "sends-as-bcc-to"
+    },
+    {
+      "description": "A sends to as CC semantic link meaning 'what sends to who as CC'.",
+      "format": [
+        "alfred"
+      ],
+      "name": "sends-as-cc-to"
+    },
+    {
+      "description": "A sends to semantic link meaning 'what sends to who'.",
+      "format": [
+        "alfred"
+      ],
+      "name": "sends-to"
+    },
+    {
+      "description": "The represents the semantic link of having spoofed something.",
+      "format": [
+        "alfred"
+      ],
+      "name": "spoofer-of"
+    },
+    {
+      "description": "Represents a domain being a subdomain of another.",
+      "format": [
+        "alfred"
+      ],
+      "name": "subdomain-of"
+    },
+    {
+      "description": "One data object supersedes another.",
+      "format": [
+        "alfred"
+      ],
+      "name": "supersedes"
+    },
+    {
+      "description": "Represents the semantic link of an alert triggered on an event.",
+      "format": [
+        "alfred"
+      ],
+      "name": "triggered-on"
+    },
+    {
+      "description": "Represents the semantic link of one thing uploading another.",
+      "format": [
+        "alfred"
+      ],
+      "name": "uploads"
+    },
+    {
+      "description": "The represents the semantic link of being the user of something.",
+      "format": [
+        "alfred"
+      ],
+      "name": "user-of"
+    },
+    {
+      "description": "Represents the semantic link of working for something.",
+      "format": [
+        "alfred"
+      ],
+      "name": "works-for"
+    },
+    {
+      "description": "Represents an object working with another one.",
+      "format": [
+        "misp"
+      ],
+      "name": "works-with"
+    },
+    {
+      "description": "Represents an object being a witness of something.",
+      "format": [
+        "misp"
+      ],
+      "name": "witness-of"
+    },
+    {
+      "description": "Represents an object injecting something into something",
+      "format": [
+        "misp"
+      ],
+      "name": "injects-into"
+    },
+    {
+      "description": "Represents an object which is injected something into something",
+      "format": [
+        "misp"
+      ],
+      "name": "injected-into"
+    },
+    {
+      "description": "Represents an object that creates something.",
+      "format": [
+        "misp",
+        "haxpak"
+      ],
+      "name": "creates",
+      "opposite": "created-by"
+    },
+    {
+      "description": "Represents an object being the screenshot of something.",
+      "format": [
+        "misp"
+      ],
+      "name": "screenshot-of"
+    },
+    {
+      "description": "Represents an object having the knowledge of another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "knows"
+    },
+    {
+      "description": "Represents the semantic link of describing another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "describes"
+    },
+    {
+      "description": "Represents the semantic link of extending another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "extends"
+    },
+    {
+      "description": "Reprensents an object which writes towards another object or attribute",
+      "format": [
+        "misp"
+      ],
+      "name": "writes"
+    },
+    {
+      "description": "Represents the semantic link of an asn object being ranked with a bgp-ranking object",
+      "format": [
+        "misp"
+      ],
+      "name": "ranked-with"
+    },
+    {
+      "description": "owns",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "owns"
+    },
+    {
+      "description": "awarded-to",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "awarded-to"
+    },
+    {
+      "description": "directs",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "directs"
+    },
+    {
+      "description": "involved-in",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "involved-in"
+    },
+    {
+      "description": "associated-with",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "associated-with"
+    },
+    {
+      "description": "represents",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "represents"
+    },
+    {
+      "description": "owes",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "owes"
+    },
+    {
+      "description": "preceeds",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "preceeds"
+    },
+    {
+      "description": "documents",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "documents"
+    },
+    {
+      "description": "paid",
+      "format": [
+        "followthemoney"
+      ],
+      "name": "paid"
+    },
+    {
+      "description": "leaks",
+      "format": [
+        "misp"
+      ],
+      "name": "leaks",
+      "opposite": "leaked-by"
+    },
+    {
+      "description": "leaked-by",
+      "format": [
+        "misp"
+      ],
+      "name": "leaked-by",
+      "opposite": "leaks"
+    },
+    {
+      "description": "doxed-by",
+      "format": [
+        "misp"
+      ],
+      "name": "doxed-by"
+    },
+    {
+      "description": "alerts about a specific object",
+      "format": [
+        "misp"
+      ],
+      "name": "alerts"
+    },
+    {
+      "description": "The referenced source object is the legal address of the target.",
+      "format": [
+        "misp"
+      ],
+      "name": "legal-address-of"
+    },
+    {
+      "description": "The referenced source object is a shipping address of the target.",
+      "format": [
+        "misp"
+      ],
+      "name": "shipping-address-of"
+    },
+    {
+      "description": "The referenced source object visited the target (for example an address).",
+      "format": [
+        "misp"
+      ],
+      "name": "visited"
+    },
+    {
+      "description": "The referenced source object is an office of the target.",
+      "format": [
+        "misp"
+      ],
+      "name": "office-of"
+    },
+    {
+      "description": "The referenced source object is a picture (photo/image) of the target.",
+      "format": [
+        "misp"
+      ],
+      "name": "picture-of",
+      "opposite": "pictured-by"
+    },
+    {
+      "description": "The referenced source object is pictured by the target (photo/image).",
+      "format": [
+        "misp"
+      ],
+      "name": "pictured-by",
+      "opposite": "picture-of"
+    },
+    {
+      "description": "The referenced source object has been found on the target (device, server).",
+      "format": [
+        "misp"
+      ],
+      "name": "found-on"
+    },
+    {
+      "description": "The referenced source object has been found in the target (document).",
+      "format": [
+        "misp"
+      ],
+      "name": "found-in"
+    },
+    {
+      "description": "The referenced source object drives the target described (often a vehicule).",
+      "format": [
+        "misp"
+      ],
+      "name": "drives"
+    },
+    {
+      "description": "The referenced source object is a rewrite specified in the target object. The rewrite can be for a computer program text but also any rewrite of a text.",
+      "format": [
+        "misp"
+      ],
+      "name": "rewrite"
+    },
+    {
+      "description": "The referenced source object is a friend of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "friend-of"
+    },
+    {
+      "description": "The referenced source object is an acquaintance of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "acquaintance-of"
+    },
+    {
+      "description": "The referenced source object is a sibling of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "sibling-of"
+    },
+    {
+      "description": "The referenced source object is a grandchild of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "grandchild-of"
+    },
+    {
+      "description": "The referenced source object is a spouse of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "spouse-of"
+    },
+    {
+      "description": "The referenced source object is an enemy of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "enemy-of"
+    },
+    {
+      "description": "The referenced source object is an antagonist of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "antagonist-of"
+    },
+    {
+      "description": "The referenced source object is an ambivalent of the target object.",
+      "format": [
+        "foaf"
+      ],
+      "name": "ambivalient-of"
+    },
+    {
+      "description": "The referenced source object is a translation of the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-a-translation-of"
+    },
+    {
+      "description": "The referenced source object has met with the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "has-met"
+    },
+    {
+      "description": "The referenced source object submitted the referenced target object (to an online anti virus scanner).",
+      "format": [
+        "misp"
+      ],
+      "name": "submitted",
+      "opposite": "submitted-by"
+    },
+    {
+      "description": "The referenced source object was submitted (to an online anti virus scanner) by the referenced target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "submitted-by",
+      "opposite": "submitted"
+    },
+    {
+      "description": "This relationship describes that the source object does not target the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "does-not-target"
+    },
+    {
+      "description": "This relationship describes that the source object is targeted by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-targeted-by"
+    },
+    {
+      "description": "This relationship describes that the source object is not targeted by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-not-targeted-by"
+    },
+    {
+      "description": "This relationship describes that the source object provides services described in the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "serves"
+    },
+    {
+      "description": "The source object considers the target object as a friend. Is not necessarily symmetric.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Friend"
+    },
+    {
+      "description": "The source object considers the target object as a acquaintance. Is not necessarily symmetric.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Acquaintance"
+    },
+    {
+      "description": "The source object have information to contact and/or get in touch with the target object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Contact"
+    },
+    {
+      "description": "The source object have physically met the target object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Met"
+    },
+    {
+      "description": "The source object shares an employer with the target object. This relationship is not geographically limited.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Co-worker"
+    },
+    {
+      "description": "The source object regards the target object as a peer, someone who they feel is on their level and has skills and interests similar to their own. A colleague does not have to be a co-worker, although of course can be.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Colleague"
+    },
+    {
+      "description": "The source object is co-resident with the target object, which means they share a street address with the target object. Co-resident is symmetric.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Co-resident"
+    },
+    {
+      "description": "The source object is neighbor with the target object. This is not limited to next door neighbor.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Neighbor"
+    },
+    {
+      "description": "The target object is the child of the source object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Child"
+    },
+    {
+      "description": "The target object is the parent of the source object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Parent"
+    },
+    {
+      "description": "The source object share a parent with the target object. Brothers, sisters, half-brothers, and half-sisters are all examples of siblings.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Sibling"
+    },
+    {
+      "description": "The source object is -or feels themself to be- married, whether legally or not, to the target object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Spouse"
+    },
+    {
+      "description": "The target object is a relative of the source object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Kin"
+    },
+    {
+      "description": "The source object is inspired in some way by the target object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Muse"
+    },
+    {
+      "description": "The source object is attracted -romantically speaking- to the target object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Crush"
+    },
+    {
+      "description": "The source object is dating the target object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Date"
+    },
+    {
+      "description": "The source object is intimate, whether physically or emotionally, with the target object.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Sweetheart"
+    },
+    {
+      "description": "The source object refers to the target object as themself or a representation of themself. Can be a profile on social-networking for example. This value is exclusive of all other XFN values.",
+      "format": [
+        "XFN"
+      ],
+      "name": "Me"
+    },
+    {
+      "description": "The source object is redirected to the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "redirects-to"
+    },
+    {
+      "description": "The source object is rendered to the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "rendered-as"
+    },
+    {
+      "description": "The source object is known as the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "known-as"
+    },
+    {
+      "description": "The source object is led to the target object.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "led-to"
+    },
+    {
+      "description": "The source object has an impact on the target.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "impacts",
+      "opposite": "impacted-by"
+    },
+    {
+      "description": "The source object is impacted by the target.",
+      "format": [
+        "misp"
+      ],
+      "name": "impacted-by",
+      "opposite": "impacts"
+    },
+    {
+      "description": "An object occured at a specific location.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "located-at"
+    },
+    {
+      "description": "The source object should be considered a point of contact for the target.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "contact-for"
+    },
+    {
+      "description": "The source object was responsible for detecting the target object.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "detects",
+      "opposite": "detected-by"
+    },
+    {
+      "description": "The source object is detected by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "detected-by",
+      "opposite": "detects"
+    },
+    {
+      "description": "The target object was observed as part of a source event.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "observed",
+      "opposite": "observed-by"
+    },
+    {
+      "description": "The source object was observed by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "observed-by",
+      "opposite": "observed"
+    },
+    {
+      "description": "The source object is based on the target.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "based-on"
+    },
+    {
+      "description": "The source object performed the target event.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "performed",
+      "opposite": "performed-by"
+    },
+    {
+      "description": "The source object was performed by the target.",
+      "format": [
+        "misp"
+      ],
+      "name": "performed-by",
+      "opposite": "performed"
+    },
+    {
+      "description": "The source object blocks the target object.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "blocks",
+      "opposite": "blocked-by"
+    },
+    {
+      "description": "The source object is blocked by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "blocked-by",
+      "opposite": "blocks"
+    },
+    {
+      "description": "The source object causes the target event.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "causes",
+      "opposite": "caused-by"
+    },
+    {
+      "description": "The source object is caused by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "caused-by",
+      "opposite": "causes"
+    },
+    {
+      "description": "The source object is followed by the target because of an error.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "errored-to"
+    },
+    {
+      "description": "The source object has been assigned the target.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "assigned"
+    },
+    {
+      "description": "The source object participated in the target task.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "participated-in"
+    },
+    {
+      "description": "The source object is targeted by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "targeted-by",
+      "opposite": "targets"
+    },
+    {
+      "description": "The source object was created by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "created-by",
+      "opposite": "creates"
+    },
+    {
+      "description": "The source object is the sample of the target object.",
+      "format": [
+        "stix-2.1"
+      ],
+      "name": "sample-of"
+    },
+    {
+      "description": "This relationship describes an object which is allied with another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-allied-with "
+    },
+    {
+      "description": "The source object acquires the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "acquires",
+      "opposite": "is-acquired-by"
+    },
+    {
+      "description": "The source object is acquired by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-acquired-by",
+      "opposite": "acquires"
+    },
+    {
+      "description": "The source object supports the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "supports",
+      "opposite": "supported-by"
+    },
+    {
+      "description": "The source object is supported by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "supported-by",
+      "opposite": "supports"
+    },
+    {
+      "description": "The source object sponsors the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "sponsors",
+      "opposite": "sponsored-by"
+    },
+    {
+      "description": "The source object is sponsored by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "sponsored-by",
+      "opposite": "sponsors"
+    },
+    {
+      "description": "The source object operates from the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "operates-from"
+    },
+    {
+      "description": "The source object deploys the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "deploys",
+      "opposite": "is-deployed-by"
+    },
+    {
+      "description": "The source object is deployed by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-deployed-by",
+      "opposite": "deploys"
+    },
+    {
+      "description": "The source object interacts with the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "interacts-with"
+    },
+    {
+      "description": "The source object injects the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "injects",
+      "opposite": "is-injected-by"
+    },
+    {
+      "description": "The source object is injected by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-injected-by",
+      "opposite": "injects"
+    },
+    {
+      "description": "The source object interviews the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "interviews",
+      "opposite": "is-interviewed-by"
+    },
+    {
+      "description": "The source object is interviewed by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-interviewed-by",
+      "opposite": "interviews"
+    },
+    {
+      "description": "The source object summarizes the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "summarizes",
+      "opposite": "summarized-by"
+    },
+    {
+      "description": "The source object is summarized by the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "summarized-by",
+      "opposite": "summarizes"
+    },
+    {
+      "description": "The source object is releasable to the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "releasable-to"
+    },
+    {
+      "description": "The source object is weakened by the target weakness.",
+      "format": [
+        "misp"
+      ],
+      "name": "weakened-by",
+      "opposite": "weakens"
+    },
+    {
+      "description": "The source weakness weakens the target object.",
+      "format": [
+        "misp"
+      ],
+      "name": "weakens",
+      "opposite": "weakened-by"
+    },
+    {
+      "description": "This relationship describes an object taking off from a location, platform, or site.",
+      "format": [
+        "misp"
+      ],
+      "name": "takes-off-from",
+      "opposite": "is-takeoff-site-for"
+    },
+    {
+      "description": "This relationship describes a location, platform, or site being the takeoff origin for an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-takeoff-site-for",
+      "opposite": "takes-off-from"
+    },
+    {
+      "description": "This relationship describes an object being launched from a location, platform, or site (e.g., catapult/vehicle launch).",
+      "format": [
+        "misp"
+      ],
+      "name": "launches-from",
+      "opposite": "is-launch-site-for"
+    },
+    {
+      "description": "This relationship describes a location, platform, or site being the launch origin for an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-launch-site-for",
+      "opposite": "launches-from"
+    },
+    {
+      "description": "This relationship describes an object departing from a location (e.g., airfield, helipad, vessel).",
+      "format": [
+        "misp"
+      ],
+      "name": "departs-from",
+      "opposite": "is-departure-point-for"
+    },
+    {
+      "description": "This relationship describes a location being the departure point for an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-departure-point-for",
+      "opposite": "departs-from"
+    },
+    {
+      "description": "This relationship describes an object landing at a location, platform, or site.",
+      "format": [
+        "misp"
+      ],
+      "name": "lands-at",
+      "opposite": "is-landing-site-for"
+    },
+    {
+      "description": "This relationship describes a location, platform, or site being the landing destination for an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-landing-site-for",
+      "opposite": "lands-at"
+    },
+    {
+      "description": "This relationship describes an object being recovered at a location or by a recovery system (e.g., net, arresting gear).",
+      "format": [
+        "misp"
+      ],
+      "name": "recovers-at",
+      "opposite": "is-recovery-site-for"
+    },
+    {
+      "description": "This relationship describes a location or system being used to recover an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-recovery-site-for",
+      "opposite": "recovers-at"
+    },
+    {
+      "description": "This relationship describes an object returning to a location or platform (e.g., return-to-home).",
+      "format": [
+        "misp"
+      ],
+      "name": "returns-to",
+      "opposite": "is-return-destination-for"
+    },
+    {
+      "description": "This relationship describes a location or platform being the return destination for an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-return-destination-for",
+      "opposite": "returns-to"
+    },
+    {
+      "description": "This relationship describes an object aborting a landing at a location (go-around / wave-off).",
+      "format": [
+        "misp"
+      ],
+      "name": "aborts-landing-at",
+      "opposite": "is-aborted-landing-site-for"
+    },
+    {
+      "description": "This relationship describes a location where an attempted landing was aborted.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-aborted-landing-site-for",
+      "opposite": "aborts-landing-at"
+    },
+    {
+      "description": "This relationship describes an object being intercepted by another object (e.g., counter-UAS, aircraft, air defense).",
+      "format": [
+        "misp"
+      ],
+      "name": "intercepted-by",
+      "opposite": "intercepts"
+    },
+    {
+      "description": "This relationship describes an object being shadowed/escorted/monitored closely by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "shadowed-by",
+      "opposite": "shadows"
+    },
+    {
+      "description": "This relationship describes an object shadowing/escorting/monitoring another object closely.",
+      "format": [
+        "misp"
+      ],
+      "name": "shadows",
+      "opposite": "shadowed-by"
+    },
+    {
+      "description": "This relationship describes an object being tracked by another object (e.g., radar, sensor, platform).",
+      "format": [
+        "misp"
+      ],
+      "name": "tracked-by",
+      "opposite": "tracks"
+    },
+    {
+      "description": "This relationship describes an object tracking another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "tracks",
+      "opposite": "tracked-by"
+    },
+    {
+      "description": "This relationship describes an object being identified (positively identified / classified) by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "identified-by",
+      "opposite": "identifies"
+    },
+    {
+      "description": "This relationship describes an object being jammed by another object (electronic attack, RF jamming).",
+      "format": [
+        "misp"
+      ],
+      "name": "jammed-by",
+      "opposite": "jams"
+    },
+    {
+      "description": "This relationship describes an object jamming another object (electronic attack, RF jamming).",
+      "format": [
+        "misp"
+      ],
+      "name": "jams",
+      "opposite": "jammed-by"
+    },
+    {
+      "description": "This relationship describes an object being spoofed by another object (e.g., GNSS spoofing, identity/radio spoofing).",
+      "format": [
+        "misp"
+      ],
+      "name": "spoofed-by",
+      "opposite": "spoofs"
+    },
+    {
+      "description": "This relationship describes an object spoofing another object (e.g., GNSS spoofing, identity/radio spoofing).",
+      "format": [
+        "misp"
+      ],
+      "name": "spoofs",
+      "opposite": "spoofed-by"
+    },
+    {
+      "description": "This relationship describes an object being neutralized (non-necessarily destroyed) by another object (e.g., countermeasure).",
+      "format": [
+        "misp"
+      ],
+      "name": "neutralized-by",
+      "opposite": "neutralizes"
+    },
+    {
+      "description": "This relationship describes an object neutralizing another object (non-necessarily destroyed) via a countermeasure.",
+      "format": [
+        "misp"
+      ],
+      "name": "neutralizes",
+      "opposite": "neutralized-by"
+    },
+    {
+      "description": "This relationship describes an object crashing at a location.",
+      "format": [
+        "misp"
+      ],
+      "name": "crashed-at",
+      "opposite": "is-crash-site-for"
+    },
+    {
+      "description": "This relationship describes a location being the crash site for an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-crash-site-for",
+      "opposite": "crashed-at"
+    },
+    {
+      "description": "This relationship describes an object crashing into another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "crashed-into",
+      "opposite": "was-crashed-into-by"
+    },
+    {
+      "description": "This relationship describes an object being impacted by another object that crashed into it.",
+      "format": [
+        "misp"
+      ],
+      "name": "was-crashed-into-by",
+      "opposite": "crashed-into"
+    },
+    {
+      "description": "This relationship describes an object being forced down (forced landing / compelled to land) by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "forced-down-by",
+      "opposite": "forces-down"
+    },
+    {
+      "description": "This relationship describes an object forcing another object down (forced landing / compelled to land).",
+      "format": [
+        "misp"
+      ],
+      "name": "forces-down",
+      "opposite": "forced-down-by"
+    },
+    {
+      "description": "This relationship describes an object being shot down by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "shot-down-by",
+      "opposite": "shoots-down"
+    },
+    {
+      "description": "This relationship describes an object shooting down another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "shoots-down",
+      "opposite": "shot-down-by"
+    },
+    {
+      "description": "This relationship describes an object being destroyed by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "destroyed-by",
+      "opposite": "destroys"
+    },
+    {
+      "description": "This relationship describes an object destroying another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "destroys",
+      "opposite": "destroyed-by"
+    },
+    {
+      "description": "This relationship describes an object losing contact with another object (telemetry/command link loss).",
+      "format": [
+        "misp"
+      ],
+      "name": "lost-contact-with",
+      "opposite": "contact-lost-by"
+    },
+    {
+      "description": "This relationship describes an object for which contact was lost by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "contact-lost-by",
+      "opposite": "lost-contact-with"
+    },
+    {
+      "description": "This relationship describes an object malfunctioning during a specific phase, operation, or event.",
+      "format": [
+        "misp"
+      ],
+      "name": "malfunctioned-during",
+      "opposite": "had-malfunction"
+    },
+    {
+      "description": "This relationship describes a phase, operation, or event during which an object malfunctioned.",
+      "format": [
+        "misp"
+      ],
+      "name": "had-malfunction",
+      "opposite": "malfunctioned-during"
+    },
+    {
+      "description": "This relationship describes recovery of an object from a location or context (e.g., wreckage recovered from field).",
+      "format": [
+        "misp"
+      ],
+      "name": "recovered-from",
+      "opposite": "is-recovery-origin-for"
+    },
+    {
+      "description": "This relationship describes a location or context from which an object was recovered.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-recovery-origin-for",
+      "opposite": "recovered-from"
+    },
+    {
+      "description": "This relationship describes an object being taken over (control hijacked) by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "taken-over-by",
+      "opposite": "takes-over"
+    },
+    {
+      "description": "This relationship describes an object taking over control of another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "takes-over",
+      "opposite": "taken-over-by"
+    },
+    {
+      "description": "This relationship describes an object being commandeered by another object (unauthorized control).",
+      "format": [
+        "misp"
+      ],
+      "name": "commandeered-by",
+      "opposite": "commandeers"
+    },
+    {
+      "description": "This relationship describes an object commandeering another object (unauthorized control).",
+      "format": [
+        "misp"
+      ],
+      "name": "commandeers",
+      "opposite": "commandeered-by"
+    },
+    {
+      "description": "This relationship describes an object being disabled by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "disabled-by",
+      "opposite": "disables"
+    },
+    {
+      "description": "This relationship describes an object disabling another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "disables",
+      "opposite": "disabled-by"
+    },
+    {
+      "description": "This relationship describes an object being diverted (flight path altered) by another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "diverted-by",
+      "opposite": "diverts"
+    },
+    {
+      "description": "This relationship describes an object diverting another object (flight path altered).",
+      "format": [
+        "misp"
+      ],
+      "name": "diverts",
+      "opposite": "diverted-by"
+    },
+    {
+      "description": "This relationship describes an object being prepared at a location (pre-flight setup, staging).",
+      "format": [
+        "misp"
+      ],
+      "name": "prepared-at",
+      "opposite": "is-preparation-site-for"
+    },
+    {
+      "description": "This relationship describes a location being used to prepare an object (pre-flight setup, staging).",
+      "format": [
+        "misp"
+      ],
+      "name": "is-preparation-site-for",
+      "opposite": "prepared-at"
+    },
+    {
+      "description": "This relationship describes an object being maintained at a location.",
+      "format": [
+        "misp"
+      ],
+      "name": "maintained-at",
+      "opposite": "is-maintenance-site-for"
+    },
+    {
+      "description": "This relationship describes a location being used to maintain an object.",
+      "format": [
+        "misp"
+      ],
+      "name": "is-maintenance-site-for",
+      "opposite": "maintained-at"
+    },
+    {
+      "description": "This relationship describes an object being inspected by another object (authority, operator, maintenance org).",
+      "format": [
+        "misp"
+      ],
+      "name": "inspected-by",
+      "opposite": "inspects"
+    },
+    {
+      "description": "This relationship describes an object inspecting another object.",
+      "format": [
+        "misp"
+      ],
+      "name": "inspects",
+      "opposite": "inspected-by"
+    }
+  ],
+  "version": 52
+}

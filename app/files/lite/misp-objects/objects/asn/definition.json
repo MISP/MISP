@@ -1,0 +1,79 @@
+{
+  "attributes": {
+    "asn": {
+      "description": "Autonomous System Number",
+      "misp-attribute": "AS",
+      "ui-priority": 1
+    },
+    "country": {
+      "description": "Country code of the main location of the autonomous system",
+      "misp-attribute": "text",
+      "ui-priority": 1
+    },
+    "description": {
+      "description": "Description of the autonomous system",
+      "misp-attribute": "text",
+      "ui-priority": 1
+    },
+    "export": {
+      "description": "The outbound routing policy of the AS in RFC 2622 – Routing Policy Specification Language (RPSL) format",
+      "misp-attribute": "text",
+      "multiple": true,
+      "ui-priority": 0
+    },
+    "first-seen": {
+      "description": "First time the ASN was seen",
+      "disable_correlation": true,
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
+    "import": {
+      "description": "The inbound IPv4 routing policy of the AS in RFC 2622 – Routing Policy Specification Language (RPSL) format",
+      "misp-attribute": "text",
+      "multiple": true,
+      "ui-priority": 0
+    },
+    "last-seen": {
+      "description": "Last time the ASN was seen",
+      "disable_correlation": true,
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
+    "mp-export": {
+      "description": "This attribute performs the same function as the export attribute above. The difference is that mp-export allows both IPv4 and IPv6 address families to be specified. The export is described in RFC 4012 – Routing Policy Specification Language next generation (RPSLng), section 4.5. format",
+      "misp-attribute": "text",
+      "multiple": true,
+      "ui-priority": 0
+    },
+    "mp-import": {
+      "description": "The inbound IPv4 or IPv6 routing policy of the AS in RFC 4012 – Routing Policy Specification Language next generation (RPSLng), section 4.5. format",
+      "misp-attribute": "text",
+      "multiple": true,
+      "ui-priority": 0
+    },
+    "name": {
+      "description": "The official name of the autonomous system",
+      "misp-attribute": "text",
+      "ui-priority": 1
+    },
+    "organization": {
+      "description": "The organization who the ASN is registered to",
+      "misp-attribute": "text",
+      "ui-priority": 1
+    },
+    "subnet-announced": {
+      "description": "Subnet announced",
+      "misp-attribute": "ip-src",
+      "multiple": true,
+      "ui-priority": 0
+    }
+  },
+  "description": "Autonomous system object describing an autonomous system which can include one or more network operators managing an entity (e.g. ISP) along with their routing policy, routing prefixes or alike.",
+  "meta-category": "network",
+  "name": "asn",
+  "requiredOneOf": [
+    "asn"
+  ],
+  "uuid": "4ec55cc6-9e49-4c64-b794-03c25c1a6587",
+  "version": 6
+}

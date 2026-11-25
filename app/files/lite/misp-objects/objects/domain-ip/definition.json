@@ -1,0 +1,74 @@
+{
+  "attributes": {
+    "domain": {
+      "categories": [
+        "Network activity",
+        "External analysis"
+      ],
+      "description": "Domain name",
+      "misp-attribute": "domain",
+      "multiple": true,
+      "ui-priority": 1
+    },
+    "first-seen": {
+      "description": "First time the tuple has been seen",
+      "disable_correlation": true,
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
+    "hostname": {
+      "description": "Hostname related to the IP",
+      "misp-attribute": "hostname",
+      "ui-priority": 1
+    },
+    "ip": {
+      "categories": [
+        "Network activity",
+        "External analysis"
+      ],
+      "description": "IP Address",
+      "misp-attribute": "ip-dst",
+      "multiple": true,
+      "ui-priority": 1
+    },
+    "last-seen": {
+      "description": "Last time the tuple has been seen",
+      "disable_correlation": true,
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
+    "port": {
+      "categories": [
+        "Network activity",
+        "External analysis"
+      ],
+      "description": "Associated TCP port with the domain",
+      "misp-attribute": "port",
+      "multiple": true,
+      "ui-priority": 1
+    },
+    "registration-date": {
+      "description": "Registration date of domain",
+      "disable_correlation": false,
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
+    "text": {
+      "description": "A description of the tuple",
+      "disable_correlation": true,
+      "misp-attribute": "text",
+      "recommended": false,
+      "ui-priority": 1
+    }
+  },
+  "description": "A domain/hostname and IP address seen as a tuple in a specific time frame.",
+  "meta-category": "network",
+  "name": "domain-ip",
+  "requiredOneOf": [
+    "ip",
+    "domain",
+    "hostname"
+  ],
+  "uuid": "43b3b146-77eb-4931-b4cc-b66c60f28734",
+  "version": 11
+}
