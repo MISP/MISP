@@ -7,7 +7,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { suggest } from '../../webroot/js/mispql/suggest.mjs';
+import { suggest, lookupItems } from '../../webroot/js/mispql/suggest.mjs';
 
 const ALL_OPS = ['=', '!=', '>', '<', '>=', '<=', 'IN', 'NOT IN'];
 const STR_OPS = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
@@ -257,5 +257,149 @@ const FIXTURES = [
 describe('Suggestions', () => {
   FIXTURES.forEach(([text, check]) => {
     test(JSON.stringify(text), () => { check(at(text)); });
+  });
+});
+
+// The same pack, with the lists and lookups the server adds to it.
+const VPACK = structuredClone(PACK);
+VPACK.values = {
+  attribute_types: [
+    { value: 'domain', label: 'Network activity', description: 'A domain name used in the malware' },
+    { value: 'domain|ip', label: 'Network activity', description: 'A domain name and its IP address' },
+    { value: 'ip-dst', label: 'Network activity', description: 'A destination IP address' },
+    { value: 'ip-dst|port', label: 'Network activity', description: 'A destination IP address and a port' },
+    { value: 'md5', label: 'Payload delivery', description: 'A checksum in MD5 format' },
+  ],
+  distribution_inherit: [
+    { value: 0, label: 'Your organisation only' }, { value: 1, label: 'This community only' },
+    { value: 2, label: 'Connected communities' }, { value: 3, label: 'All communities' },
+    { value: 4, label: 'Sharing group' }, { value: 5, label: 'Inherited' },
+  ],
+  threat_levels: [{ value: 1, label: 'High' }, { value: 2, label: 'Medium' }, { value: 3, label: 'Low' }, { value: 4, label: 'Undefined' }],
+  object_templates: ['domain-ip', 'file', 'url'],
+};
+VPACK.sources = {
+  tags: [{ url: '/tags/pickerSearch', insert: 'value' }, { url: '/galaxy_clusters/pickerSearch', insert: 'value' }],
+  organisations: [{ url: '/organisations/pickerSearch', insert: 'label' }],
+  galaxy_names: [{ url: '/galaxies/pickerScopes', insert: 'name', whole: true }],
+};
+Object.assign(VPACK.tables.attributes.fields.type, { values: 'attribute_types' });
+Object.assign(VPACK.tables.attributes.fields.distribution, { values: 'distribution_inherit' });
+Object.assign(VPACK.tables.attributes.fields.threat_level_id, { values: 'threat_levels' });
+Object.assign(VPACK.tables.attributes.fields.tags, { lookup: 'tags' });
+Object.assign(VPACK.tables.attributes.fields.org, { lookup: 'organisations' });
+Object.assign(VPACK.tables.events.fields.type, { values: 'attribute_types' });
+Object.assign(VPACK.tables.events.fields.object_name, { values: 'object_templates' });
+VPACK.tables.galaxy_clusters.fields = { galaxy_name: { type: 'string', operators: STR_OPS, level: ['galaxy'], lookup: 'galaxy_names' } };
+
+function vat(textWithCaret) {
+  const caret = textWithCaret.indexOf('|');
+  const text = textWithCaret.slice(0, caret) + textWithCaret.slice(caret + 1);
+  const r = suggest(text, caret, VPACK);
+  r.text = text;
+  r.replaced = text.slice(r.from, r.to);
+  return r;
+}
+
+const ATTR = 'SELECT * FROM attributes WHERE ';
+
+const VALUE_FIXTURES = [
+  [ATTR + 'type = |', (r) => {
+    assert.deepEqual(labels(r), ['domain', 'domain|ip', 'ip-dst', 'ip-dst|port', 'md5']);
+    assert.deepEqual(kinds(r), ['value']);
+    assert.equal(r.items[2].insert, "'ip-dst' ");
+    assert.equal(r.items[2].detail, 'Network activity', 'the default category');
+    assert.equal(r.items[2].doc, 'A destination IP address', 'the type description');
+  }],
+  [ATTR + 'type != |', (r) => {
+    assert.equal(r.items.length, 5);
+    assert.equal(r.hint, '', 'named values need no type sentence');
+  }],
+  [ATTR + "tags = '|", (r) => { assert.equal(r.hint, 'Type 2 characters to look names up.'); }],
+  [ATTR + "tags = 'tl|", (r) => { assert.equal(r.hint, ''); }],
+  [ATTR + "eventinfo = '|", (r) => { assert.match(r.hint, /quoted/); }],
+  [ATTR + 'type = ip|', (r) => {
+    assert.deepEqual(labels(r), ['ip-dst', 'ip-dst|port', 'domain|ip']);
+    assert.equal(r.replaced, 'ip', 'a bare word is written over, quoted');
+  }],
+  [ATTR + "type = 'ip-d|", (r) => {
+    assert.equal(r.quoted, true);
+    assert.equal(r.prefix, 'ip-d');
+    assert.deepEqual(labels(r), ['ip-dst', 'ip-dst|port']);
+    assert.equal(r.replaced, "'ip-d");
+  }],
+  [ATTR + "type = 'ip|-src' LIMIT 5", (r) => {
+    assert.equal(r.replaced, "'ip-src'", 'the whole value, closing quote included');
+  }],
+  [ATTR + "type = 'ip| AND category = 'Network activity'", (r) => {
+    assert.equal(r.replaced, "'ip", 'a quote pairing with a later one keeps the text it swallowed');
+    assert.deepEqual(labels(r), ['ip-dst', 'ip-dst|port', 'domain|ip']);
+  }],
+  [ATTR + "type = 'domain|", (r) => {
+    assert.deepEqual(labels(r), ['domain', 'domain|ip'], 'a value named in full stays offered');
+  }],
+  [ATTR + "type IN ('domain', |", (r) => { assert.equal(r.items.length, 5); assert.equal(r.state, 'in_value'); }],
+  [ATTR + "type NOT IN ('md|", (r) => { assert.deepEqual(labels(r), ['md5']); }],
+  [ATTR + "type LIKE '|", (r) => { assert.equal(r.items.length, 0, 'a pattern, not a name'); }],
+  [ATTR + "type = 'ip-dst'|", (r) => { assert.equal(r.items.length, 0, 'past the closing quote'); }],
+  [ATTR + 'distribution = |', (r) => {
+    assert.deepEqual(labels(r), ['0', '1', '2', '3', '4', '5']);
+    assert.equal(r.items[0].insert, '0 ', 'a number stays bare');
+    assert.equal(r.items[0].detail, 'Your organisation only');
+  }],
+  [ATTR + 'distribution = 1|', (r) => {
+    assert.deepEqual(labels(r), ['1']);
+    assert.equal(r.replaced, '1');
+  }],
+  [ATTR + 'distribution = comm|', (r) => { assert.deepEqual(labels(r), ['1', '2', '3'], 'matched by name'); }],
+  [ATTR + 'distribution < |', (r) => { assert.equal(r.items.length, 0, 'levels are not typed by order'); }],
+  [ATTR + 'distribution IN (0, |', (r) => { assert.equal(r.items.length, 6); }],
+  [ATTR + "distribution = '|", (r) => { assert.equal(r.items.length, 0, 'a level is a number'); }],
+  [ATTR + 'threat_level_id != |', (r) => { assert.deepEqual(r.items.map((i) => i.detail), ['High', 'Medium', 'Low', 'Undefined']); }],
+  ["SELECT * FROM events WHERE object_name = 'fi|", (r) => {
+    assert.deepEqual(labels(r), ['file']);
+    assert.equal(r.items[0].detail, '', 'a bare list has no names');
+  }],
+  ['SELECT * FROM events LIMIT 1; ' + ATTR + "type = 'md|", (r) => { assert.deepEqual(labels(r), ['md5']); }],
+  [ATTR + "tags = 'tlp:a|", (r) => {
+    assert.equal(r.items.length, 0);
+    assert.deepEqual(r.lookup, { source: 'tags', prefix: 'tlp:a', min: 2 });
+    assert.equal(r.replaced, "'tlp:a");
+  }],
+  [ATTR + 'tags = tl|', (r) => { assert.deepEqual(r.lookup, { source: 'tags', prefix: 'tl', min: 2 }); }],
+  [ATTR + "tags IN ('tlp:red', 'tl|", (r) => { assert.equal(r.lookup.prefix, 'tl'); }],
+  [ATTR + "tags != 'O''Br|", (r) => { assert.equal(r.lookup.prefix, "O'Br", 'a doubled quote is one quote'); }],
+  [ATTR + "tags LIKE 'tlp|", (r) => { assert.equal(r.lookup, null); }],
+  [ATTR + "org = 'CI|", (r) => { assert.equal(r.lookup.source, 'organisations'); }],
+  [ATTR + "eventinfo = 'phish|", (r) => {
+    assert.equal(r.items.length, 0);
+    assert.equal(r.lookup, null, 'free text');
+  }],
+  ["SELECT * FROM galaxy_clusters WHERE galaxy_name = |", (r) => {
+    assert.deepEqual(r.lookup, { source: 'galaxy_names', prefix: '', min: 0 }, 'a whole list needs nothing typed');
+  }],
+];
+
+describe('Value suggestions', () => {
+  VALUE_FIXTURES.forEach(([text, check]) => {
+    test(JSON.stringify(text), () => { check(vat(text)); });
+  });
+
+  test('looked-up rows become quoted values, once each', () => {
+    const items = lookupItems([
+      { value: 'tlp:amber', detail: '', doc: 'Limited disclosure' },
+      { value: "O'Brien Ltd", detail: '' },
+      { value: 'tlp:amber' },
+      { value: '%wild' },
+      { value: '' },
+    ]);
+    assert.deepEqual(items.map((i) => i.insert), ["'tlp:amber' ", "'O''Brien Ltd' "]);
+    assert.equal(items[0].doc, 'Limited disclosure');
+    assert.equal(items[0].kind, 'value');
+  });
+
+  test('a pack without lists offers what it offered before', () => {
+    assert.equal(at(ATTR + 'distribution = |').items.length, 0);
+    assert.equal(at(ATTR + "tags = 'tlp|").lookup, null);
   });
 });

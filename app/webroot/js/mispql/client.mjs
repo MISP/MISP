@@ -2,11 +2,14 @@
  * MispQL console: the calls to MISP. Neither call rejects: a refusal, a
  * failure or no answer at all comes back as a reply the console can show.
  *
- * createClient({baseurl, csrfToken() -> string}) -> {
+ * createClient({baseurl, csrfToken() -> string, sources}) -> {
  *     explain(script) -> Promise<{status, body, failure?}>,
  *     run(statement, {remember}) -> Promise<result>,
- *     plan(statement) -> Promise<result>
+ *     plan(statement) -> Promise<result>,
+ *     lookup(source, prefix, signal) -> Promise<[{value, detail, doc}]>
  * }
+ * `sources` are the language pack's: lookup() asks their pickers and never
+ * rejects, except when aborted; a picker that fails answers nothing.
  * A result has a `kind`: rows, count, describe, tables, whoami (MISP's reply
  * in `reply`), export (MISP's own format, kept as a Blob), plan (explain's
  * entry for the statement, in `plan`), error (located errors, offsets
@@ -118,7 +121,83 @@ function createClient(options) {
         return r;
     }
 
-    return { explain: explain, run: run, plan: plan };
+    const sources = options.sources || {};
+    const wholeLists = {};
+
+    function getJson(path, signal) {
+        return fetch(base + path, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+            signal: signal,
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        });
+    }
+
+    /** A picker answering its whole list is asked once per page; its rows are matched here. */
+    function pickerRows(picker, prefix, signal) {
+        if (!picker.whole) {
+            return getJson(picker.url + '?q=' + encodeURIComponent(prefix), signal);
+        }
+        if (!wholeLists[picker.url]) {
+            wholeLists[picker.url] = getJson(picker.url).catch(function (e) {
+                delete wholeLists[picker.url];
+                throw e;
+            });
+        }
+        return wholeLists[picker.url].then(function (rows) {
+            return matching(rows, picker.insert, prefix);
+        });
+    }
+
+    async function lookup(source, prefix, signal) {
+        const found = await Promise.all((sources[source] || []).map(function (picker) {
+            return pickerRows(picker, prefix, signal).then(function (rows) {
+                return (Array.isArray(rows) ? rows : []).map(function (row) {
+                    return {
+                        value: textAt(row, picker.insert),
+                        detail: textAt(row, picker.detail),
+                        doc: textAt(row, picker.doc),
+                    };
+                }).filter(function (row) { return row.value !== ''; });
+            }).catch(function (e) {
+                if (signal && signal.aborted) {
+                    throw e;
+                }
+                return [];
+            });
+        }));
+        return [].concat.apply([], found);
+    }
+
+    return { explain: explain, run: run, plan: plan, lookup: lookup };
+}
+
+/** The text at a dotted key of a picker row, or ''. */
+function textAt(row, path) {
+    if (!path) {
+        return '';
+    }
+    const v = path.split('.').reduce(function (o, k) {
+        return o !== null && typeof o === 'object' ? o[k] : undefined;
+    }, row);
+    return typeof v === 'string' || typeof v === 'number' ? String(v) : '';
+}
+
+/** Rows whose key holds the prefix, those starting with it first. */
+function matching(rows, key, prefix) {
+    const p = prefix.toLowerCase();
+    return (Array.isArray(rows) ? rows : []).map(function (row, i) {
+        const v = textAt(row, key).toLowerCase();
+        return { row: row, at: p ? v.indexOf(p) : 0, i: i };
+    }).filter(function (m) {
+        return m.at !== -1;
+    }).sort(function (a, b) {
+        return (a.at === 0 ? 0 : 1) - (b.at === 0 ? 0 : 1) || a.i - b.i;
+    }).map(function (m) { return m.row; });
 }
 
 /** Errors with their code-point offsets converted to string indices of the text. */

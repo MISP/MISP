@@ -9,7 +9,9 @@ require_once __DIR__ . '/MispQLTables.php';
  * What the query console needs to colour and suggest statements for one
  * user: the keywords, the tables the user may query and, per table, its
  * fields, sort names, formats, default columns, aliases and linked columns;
- * and the pages those links open.
+ * the pages those links open; and the values it offers for a field, from
+ * a list (`values`, shared by every field naming it) or looked up through
+ * MISP's pickers (`sources`).
  */
 class MispQLLanguagePack
 {
@@ -20,20 +22,42 @@ class MispQLLanguagePack
      * @param MispQLBackend $backend
      * @param callable $formats given a table, the returnFormat names its
      *   restSearch accepts
+     * @param callable $values given a list's name, its rows:
+     *   [{value, label?, description?}], or bare values
      * @return array
      */
-    public static function build(MispQLTables $tables, MispQLBackend $backend, callable $formats)
+    public static function build(MispQLTables $tables, MispQLBackend $backend, callable $formats, callable $values)
     {
         $treeLimits = [];
         $packed = [];
+        $lists = [];
+        $sources = [];
         $names = $backend->tables();
         foreach ($names as $name) {
             $found = $backend->describe($name);
             $table = $tables->get($name);
+            $fields = $found['tables'][$name]['fields'];
+            foreach ($tables->values($name) as $field => $list) {
+                if (!isset($fields[$field])) {
+                    continue;
+                }
+                if (!array_key_exists($list, $lists)) {
+                    $lists[$list] = array_values($values($list));
+                }
+                if (!empty($lists[$list])) {
+                    $fields[$field]['values'] = $list;
+                }
+            }
+            foreach ($tables->lookups($name) as $field => $source) {
+                if (isset($fields[$field])) {
+                    $fields[$field]['lookup'] = $source;
+                    $sources[$source] = true;
+                }
+            }
             $packed[$name] = [
                 'endpoint' => $tables->search($name),
                 'description' => self::description($name),
-                'fields' => (object)$found['tables'][$name]['fields'],
+                'fields' => (object)$fields,
                 'order_by' => (object)$tables->sortable($name),
                 'formats' => array_values($formats($name)),
                 'default_columns' => $table['columns'],
@@ -53,6 +77,8 @@ class MispQLLanguagePack
             ]),
             'tables' => (object)$packed,
             'pages' => (object)$tables->pages($names),
+            'values' => (object)array_filter($lists),
+            'sources' => (object)$tables->sources(array_keys($sources)),
         ];
     }
 

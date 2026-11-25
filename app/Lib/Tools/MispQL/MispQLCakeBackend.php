@@ -52,6 +52,86 @@ class MispQLCakeBackend implements MispQLBackend
         return constant($model . '::REST_SEARCH_ORDER_FIELDS');
     }
 
+    /**
+     * For MispQLLanguagePack: one of MispQLTables::VALUE_LISTS, read from
+     * MISP.
+     *
+     * @param string $name
+     * @return array [{value, label?, description?}], or the bare values of
+     *   a list with neither
+     */
+    public static function valueList($name)
+    {
+        switch ($name) {
+            case 'attribute_types':
+                $types = ClassRegistry::init('MispAttribute')->typeDefinitions;
+                ksort($types);
+                $rows = [];
+                foreach ($types as $type => $def) {
+                    $rows[] = ['value' => $type, 'label' => $def['default_category'], 'description' => $def['desc']];
+                }
+                return $rows;
+            case 'categories':
+                $rows = [];
+                foreach (ClassRegistry::init('MispAttribute')->categoryDefinitions as $category => $def) {
+                    $rows[] = ['value' => $category, 'description' => $def['desc']];
+                }
+                return $rows;
+            case 'distribution':
+            case 'distribution_inherit':
+                App::uses('DistributionLevel', 'Tools');
+                $rows = [];
+                foreach (DistributionLevel::all() as $level => $meta) {
+                    if ($level < 5 || $name === 'distribution_inherit') {
+                        $rows[] = ['value' => (int)$level, 'label' => $meta['label'], 'description' => $meta['sub']];
+                    }
+                }
+                return $rows;
+            case 'threat_levels':
+                $rows = [];
+                $found = ClassRegistry::init('ThreatLevel')->find('all', [
+                    'fields' => ['id', 'name', 'description'],
+                    'order' => ['id'],
+                    'recursive' => -1,
+                ]);
+                foreach ($found as $r) {
+                    $rows[] = [
+                        'value' => (int)$r['ThreatLevel']['id'],
+                        'label' => $r['ThreatLevel']['name'],
+                        'description' => str_replace('*', '', (string)$r['ThreatLevel']['description']),
+                    ];
+                }
+                return $rows;
+            case 'analysis':
+                $Event = ClassRegistry::init('Event');
+                $rows = [];
+                foreach ($Event->analysisLevels as $level => $label) {
+                    $rows[] = [
+                        'value' => (int)$level,
+                        'label' => __($label),
+                        'description' => __($Event->analysisDescriptions[$level]['formdesc']),
+                    ];
+                }
+                return $rows;
+            case 'object_templates':
+                $names = ClassRegistry::init('ObjectTemplate')->find('list', [
+                    'conditions' => ['active' => 1],
+                    'fields' => ['name', 'name'],
+                    'order' => ['name'],
+                ]);
+                return array_values(array_unique($names));
+            case 'collection_types':
+                App::uses('Collection', 'Model');
+                return Collection::VALID_TYPES;
+            case 'collection_element_types':
+                return ClassRegistry::init('CollectionElement')->valid_types;
+            case 'analyst_data_targets':
+                App::uses('AnalystData', 'Model');
+                return AnalystData::valid_targets;
+        }
+        return [];
+    }
+
     public function validate($table, array $body)
     {
         list($tool, $orderFields, $defaultModel) = $this->tool($table);

@@ -2,7 +2,7 @@ import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient, failureMessage } from '../../webroot/js/mispql/client.mjs';
 import { snippets } from '../../webroot/js/mispql/snippets.mjs';
-import { cellLink, columnField, filterEntries, tagEntries, sortNameOf, nextOrder } from '../../webroot/js/mispql/results.mjs';
+import { cellLink, columnField, filterEntries, tagEntries, sortNameOf, nextOrder, levelNames } from '../../webroot/js/mispql/results.mjs';
 
 const f = (type, level, operators) => ({ type: type, level: [level], operators: operators });
 const EQ = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
@@ -162,6 +162,88 @@ describe('Explain', () => {
         const r = await client.plan('WHOAMI');
         assert.equal(r.kind, 'failure');
         assert.match(r.message, /did not answer/);
+    });
+});
+
+describe('Lookups', () => {
+    const realFetch = globalThis.fetch;
+    after(() => { globalThis.fetch = realFetch; });
+    const sources = {
+        tags: [
+            { url: '/tags/pickerSearch', insert: 'value', doc: 'taxonomy.expanded' },
+            { url: '/galaxy_clusters/pickerSearch', insert: 'value', detail: 'style.galaxy' },
+        ],
+        galaxy_names: [{ url: '/galaxies/pickerScopes', insert: 'name', detail: 'type', whole: true }],
+    };
+
+    test('a source asks each picker with the prefix and keeps their order', async () => {
+        const asked = [];
+        globalThis.fetch = async (url) => {
+            asked.push(url);
+            const rows = url.indexOf('/tags/') !== -1
+                ? [{ value: 'tlp:amber', label: 'tlp:amber', taxonomy: { expanded: 'Limited disclosure' } }]
+                : [{ value: 'misp-galaxy:threat-actor="APT 28"', label: 'APT 28', style: { galaxy: 'Threat Actor' } }];
+            return new Response(JSON.stringify(rows), { status: 200 });
+        };
+        const rows = await createClient({ baseurl: '/misp', csrfToken: () => '', sources }).lookup('tags', 'a b');
+        assert.deepEqual(asked, ['/misp/tags/pickerSearch?q=a%20b', '/misp/galaxy_clusters/pickerSearch?q=a%20b']);
+        assert.deepEqual(rows, [
+            { value: 'tlp:amber', detail: '', doc: 'Limited disclosure' },
+            { value: 'misp-galaxy:threat-actor="APT 28"', detail: 'Threat Actor', doc: '' },
+        ]);
+    });
+
+    test('a whole list is asked once and matched here, prefixes first', async () => {
+        let calls = 0;
+        globalThis.fetch = async () => {
+            calls++;
+            return new Response(JSON.stringify([
+                { name: 'Attack Pattern', type: 'mitre-attack-pattern' },
+                { name: 'Threat Actor', type: 'threat-actor' },
+                { name: 'Tool', type: 'tool' },
+            ]), { status: 200 });
+        };
+        const client = createClient({ csrfToken: () => '', sources });
+        assert.deepEqual((await client.lookup('galaxy_names', 'at')).map((r) => r.value), ['Attack Pattern', 'Threat Actor']);
+        assert.deepEqual((await client.lookup('galaxy_names', '')).length, 3);
+        assert.equal(calls, 1);
+    });
+
+    test('a picker that fails answers nothing; an aborted lookup rejects', async () => {
+        globalThis.fetch = async (url) => (url.indexOf('/tags/') !== -1
+            ? new Response('{}', { status: 500 })
+            : new Response(JSON.stringify([{ value: 'misp-galaxy:tool="x"' }]), { status: 200 }));
+        const client = createClient({ csrfToken: () => '', sources });
+        assert.deepEqual((await client.lookup('tags', 'xx')).map((r) => r.value), ['misp-galaxy:tool="x"']);
+        assert.deepEqual(await client.lookup('nothing', 'xx'), []);
+        const ctrl = new AbortController();
+        globalThis.fetch = async (url, init) => {
+            ctrl.abort();
+            throw Object.assign(new Error('aborted'), { name: 'AbortError', signal: init.signal });
+        };
+        await assert.rejects(client.lookup('tags', 'xx', ctrl.signal));
+    });
+});
+
+describe('Level names', () => {
+    test('a numbered level reads its name from the pack', () => {
+        const pack = {
+            values: {
+                threat_levels: [{ value: 1, label: 'Critical' }, { value: 2, label: 'Medium' }],
+                attribute_types: [{ value: 'md5', label: 'Payload delivery' }],
+            },
+            tables: {
+                events: {
+                    fields: {
+                        threat_level_id: { type: 'int', values: 'threat_levels' },
+                        type: { type: 'string', values: 'attribute_types' },
+                        id: { type: 'int' },
+                    },
+                },
+            },
+        };
+        assert.deepEqual(levelNames(pack, 'events'), { threat_level_id: { 1: 'Critical', 2: 'Medium' } });
+        assert.deepEqual(levelNames(pack, 'tags'), {});
     });
 });
 

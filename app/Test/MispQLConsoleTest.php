@@ -24,6 +24,9 @@ class MispQLConsoleTestBackend implements MispQLBackend
     /** @var string[] tables described, in order */
     public $described = [];
 
+    /** @var array table => fields beside `id` */
+    public $fields = [];
+
     public function validate($table, array $body)
     {
     }
@@ -39,7 +42,8 @@ class MispQLConsoleTestBackend implements MispQLBackend
         return [
             'tables' => [$table => [
                 'endpoint' => "/$table/queryDescribe",
-                'fields' => ['id' => ['type' => 'int', 'operators' => ['=', 'IN'], 'level' => ['attribute']]],
+                'fields' => ['id' => ['type' => 'int', 'operators' => ['=', 'IN'], 'level' => ['attribute']]]
+                    + ($this->fields[$table] ?? []),
                 'sortable' => ['id'],
             ]],
             'limits' => ['max_depth' => 5, 'max_nodes' => 50],
@@ -153,6 +157,94 @@ class MispQLConsoleTest extends TestCase
         }
     }
 
+    public function testPackOffersValuesFromListsSharedByName()
+    {
+        $string = ['type' => 'string', 'operators' => ['='], 'level' => ['attribute']];
+        $int = ['type' => 'int', 'operators' => ['='], 'level' => ['attribute']];
+        $backend = new MispQLConsoleTestBackend();
+        $backend->tables = ['attributes', 'events', 'galaxy_clusters'];
+        $backend->fields = [
+            'attributes' => ['type' => $string, 'distribution' => $int, 'threat_level_id' => $int],
+            'events' => ['type' => $string, 'distribution' => $int, 'analysis' => $int],
+            'galaxy_clusters' => ['type' => $string, 'distribution' => $int],
+        ];
+        $asked = [];
+        $pack = MispQLLanguagePack::build(MispQLFixtures::tables(), $backend, function () {
+            return ['json'];
+        }, function ($list) use (&$asked) {
+            $asked[] = $list;
+            return $list === 'analysis' ? [] : [['value' => "$list-1"], ['value' => "$list-2"]];
+        });
+        $attributes = $pack['tables']->attributes['fields'];
+        $events = $pack['tables']->events['fields'];
+        $this->assertSame('attribute_types', $attributes->type['values']);
+        $this->assertSame('attribute_types', $events->type['values']);
+        $this->assertSame('distribution_inherit', $attributes->distribution['values']);
+        $this->assertSame('distribution', $events->distribution['values'], 'an event cannot inherit');
+        $this->assertSame('distribution', $pack['tables']->galaxy_clusters['fields']->distribution['values']);
+        $this->assertSame('galaxy_types', $pack['tables']->galaxy_clusters['fields']->type['lookup']);
+        $clusters = $pack['tables']->galaxy_clusters['fields'];
+        $this->assertArrayNotHasKey('values', $clusters->type, 'a galaxy type, not an attribute type');
+        $this->assertArrayNotHasKey('values', $events->analysis, 'an empty list is not offered');
+        $this->assertArrayNotHasKey('values', $attributes->id);
+        $this->assertSame(
+            ['attribute_types', 'distribution_inherit', 'threat_levels', 'analysis', 'distribution'],
+            $asked,
+            'each list read once, and only for a field the user can query'
+        );
+        $this->assertSame(
+            ['attribute_types', 'distribution_inherit', 'threat_levels', 'distribution'],
+            array_keys((array)$pack['values'])
+        );
+        $this->assertSame(
+            [['value' => 'threat_levels-1'], ['value' => 'threat_levels-2']],
+            $pack['values']->threat_levels
+        );
+    }
+
+    public function testPackLooksUpThroughThePickers()
+    {
+        $string = ['type' => 'string', 'operators' => ['='], 'level' => ['event']];
+        $backend = new MispQLConsoleTestBackend();
+        $backend->tables = ['attributes', 'organisations'];
+        $backend->fields = [
+            'attributes' => ['tags' => $string, 'org' => $string],
+            'organisations' => ['name' => $string],
+        ];
+        $pack = $this->pack($backend);
+        $this->assertSame('tags', $pack['tables']->attributes['fields']->tags['lookup']);
+        $this->assertSame('organisations', $pack['tables']->attributes['fields']->org['lookup']);
+        $this->assertSame('organisations', $pack['tables']->organisations['fields']->name['lookup']);
+        $this->assertSame(['tags', 'organisations'], array_keys((array)$pack['sources']));
+        $this->assertSame(
+            ['/tags/pickerSearch', '/galaxy_clusters/pickerSearch'],
+            array_column($pack['sources']->tags, 'url'),
+            'tag names, then the clusters\' tag names'
+        );
+        $json = json_encode($this->pack(new MispQLConsoleTestBackend()));
+        $this->assertStringContainsString('"values":{},"sources":{}', $json);
+    }
+
+    public function testEveryListAndLookupExists()
+    {
+        $tables = MispQLFixtures::tables();
+        foreach ($tables->names() as $name) {
+            foreach ($tables->values($name) as $field => $list) {
+                $this->assertContains($list, MispQLTables::VALUE_LISTS, "$name.$field");
+            }
+            foreach ($tables->lookups($name) as $field => $source) {
+                $this->assertArrayHasKey($source, MispQLTables::SOURCES, "$name.$field");
+                $this->assertArrayNotHasKey($field, $tables->values($name), "$name.$field: a list or a lookup");
+            }
+        }
+        foreach (MispQLTables::SOURCES as $source => $pickers) {
+            foreach ($pickers as $picker) {
+                $this->assertRegExp('#^/[a-z_]+/picker[A-Z][a-z]+$#', $picker['url'], $source);
+                $this->assertIsString($picker['insert'], $source);
+            }
+        }
+    }
+
     public function testPackLanguage()
     {
         $pack = $this->pack(new MispQLConsoleTestBackend());
@@ -245,6 +337,8 @@ class MispQLConsoleTest extends TestCase
     {
         return MispQLLanguagePack::build(MispQLFixtures::tables(), $backend, function ($table) {
             return ['csv', 'json'];
+        }, function ($list) {
+            return [['value' => $list]];
         });
     }
 }

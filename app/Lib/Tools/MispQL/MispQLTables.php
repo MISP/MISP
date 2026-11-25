@@ -2,8 +2,9 @@
 
 /**
  * What MispQL knows of each table: its endpoints, where its rows sit, its
- * default columns, how it is counted, the names it can be sorted by and the
- * columns naming a record the console links to.
+ * default columns, how it is counted, the names it can be sorted by, the
+ * columns naming a record the console links to, and the fields whose values
+ * the console offers from a fixed list (`values`) or looks up (`lookups`).
  *
  * Sort names are read from the model's REST_SEARCH_ORDER_FIELDS: every field
  * of the table's own model sorts under its own name, except those listed in
@@ -42,6 +43,13 @@ class MispQLTables
                 'Object.id' => 'Object',
                 'Object.uuid' => 'Object',
             ],
+            'values' => [
+                'type' => 'attribute_types',
+                'category' => 'categories',
+                'distribution' => 'distribution_inherit',
+                'threat_level_id' => 'threat_levels',
+            ],
+            'lookups' => ['tags' => 'tags'],
         ],
         'events' => [
             'rowKey' => 'Event',
@@ -68,6 +76,14 @@ class MispQLTables
                 'uuid' => 'Event',
                 'extends_uuid' => 'Event',
             ],
+            'values' => [
+                'type' => 'attribute_types',
+                'category' => 'categories',
+                'threat_level_id' => 'threat_levels',
+                'analysis' => 'analysis',
+                'object_name' => 'object_templates',
+            ],
+            'lookups' => ['tags' => 'tags'],
         ],
         'objects' => [
             'rowKey' => 'Object',
@@ -92,6 +108,14 @@ class MispQLTables
                 'Event.id' => 'Event',
                 'Event.uuid' => 'Event',
             ],
+            'values' => [
+                'type' => 'attribute_types',
+                'category' => 'categories',
+                'distribution' => 'distribution_inherit',
+                'threat_level_id' => 'threat_levels',
+                'object_name' => 'object_templates',
+            ],
+            'lookups' => ['tags' => 'tags'],
         ],
         'galaxy_clusters' => [
             'rowKey' => 'GalaxyCluster',
@@ -116,6 +140,8 @@ class MispQLTables
                 'Galaxy.id' => 'Galaxy',
                 'Galaxy.uuid' => 'Galaxy',
             ],
+            'values' => [],
+            'lookups' => ['galaxy_name' => 'galaxy_names', 'type' => 'galaxy_types', 'value' => 'clusters'],
         ],
         'event_reports' => [
             'rowKey' => 'EventReport',
@@ -142,6 +168,12 @@ class MispQLTables
                 'Event.id' => 'Event',
                 'Event.uuid' => 'Event',
             ],
+            'values' => [
+                'distribution' => 'distribution_inherit',
+                'threat_level_id' => 'threat_levels',
+                'analysis' => 'analysis',
+            ],
+            'lookups' => ['tags' => 'tags'],
         ],
         'notes' => [
             'rowKey' => 'Note',
@@ -160,6 +192,8 @@ class MispQLTables
                 'object_uuid' => ['type_from' => 'object_type'],
                 'object_sha256' => ['type' => 'Value', 'by' => 'sha256'],
             ],
+            'values' => ['object_type' => 'analyst_data_targets'],
+            'lookups' => [],
         ],
         'opinions' => [
             'rowKey' => 'Opinion',
@@ -178,6 +212,8 @@ class MispQLTables
                 'object_uuid' => ['type_from' => 'object_type'],
                 'object_sha256' => ['type' => 'Value', 'by' => 'sha256'],
             ],
+            'values' => ['object_type' => 'analyst_data_targets'],
+            'lookups' => [],
         ],
         'relationships' => [
             'rowKey' => 'Relationship',
@@ -201,6 +237,11 @@ class MispQLTables
                 'related_object_uuid' => ['type_from' => 'related_object_type'],
                 'related_object_sha256' => ['type' => 'Value', 'by' => 'sha256'],
             ],
+            'values' => [
+                'object_type' => 'analyst_data_targets',
+                'related_object_type' => 'analyst_data_targets',
+            ],
+            'lookups' => [],
         ],
         'collections' => [
             'rowKey' => 'Collection',
@@ -214,6 +255,8 @@ class MispQLTables
             'metadata' => false,
             'path' => '/collections/%s',
             'links' => ['id' => 'Collection', 'uuid' => 'Collection'],
+            'values' => ['type' => 'collection_types', 'element_type' => 'collection_element_types'],
+            'lookups' => [],
         ],
         'tags' => [
             'rowKey' => 'Tag',
@@ -229,6 +272,8 @@ class MispQLTables
             'metadata' => false,
             'path' => '/tags/%s',
             'links' => ['id' => 'Tag'],
+            'values' => [],
+            'lookups' => ['name' => 'tags'],
         ],
         'organisations' => [
             'rowKey' => 'Organisation',
@@ -242,6 +287,8 @@ class MispQLTables
             'metadata' => false,
             'path' => '/organisations/%s',
             'links' => ['id' => 'Organisation', 'uuid' => 'Organisation'],
+            'values' => [],
+            'lookups' => ['name' => 'organisations'],
         ],
     ];
 
@@ -251,6 +298,55 @@ class MispQLTables
         'Org.id', 'Org.uuid', 'Orgc.id', 'Orgc.uuid',
         'Event.org_id', 'Event.orgc_id',
         'Event.Org.id', 'Event.Org.uuid', 'Event.Orgc.id', 'Event.Orgc.uuid',
+    ];
+
+    /** Fields offered from a list or looked up wherever a table has them. */
+    const FIELD_VALUES = ['distribution' => 'distribution'];
+
+    const FIELD_LOOKUPS = ['org' => 'organisations'];
+
+    /** The fixed lists a field can name; MispQLCakeBackend::valueList() fills them. */
+    const VALUE_LISTS = [
+        'attribute_types', 'categories', 'distribution', 'distribution_inherit', 'threat_levels', 'analysis',
+        'object_templates', 'collection_types', 'collection_element_types', 'analyst_data_targets',
+    ];
+
+    /**
+     * Where a lookup asks, through MISP's pickers: each source is one or
+     * more picker URLs, answering rows for `?q=`, unless `whole` (the
+     * picker answers its whole list, filtered by the console). `insert` is
+     * the row key written into the statement; `detail` and `doc` the keys,
+     * dotted for nested ones, shown beside it.
+     */
+    const SOURCES = [
+        'tags' => [
+            ['url' => '/tags/pickerSearch', 'insert' => 'value', 'doc' => 'taxonomy.expanded'],
+            [
+                'url' => '/galaxy_clusters/pickerSearch',
+                'insert' => 'value', 'detail' => 'style.galaxy', 'doc' => 'description',
+            ],
+        ],
+        'organisations' => [
+            ['url' => '/organisations/pickerSearch', 'insert' => 'label'],
+        ],
+        'galaxy_names' => [
+            [
+                'url' => '/galaxies/pickerScopes', 'whole' => true,
+                'insert' => 'name', 'detail' => 'type', 'doc' => 'description',
+            ],
+        ],
+        'galaxy_types' => [
+            [
+                'url' => '/galaxies/pickerScopes', 'whole' => true,
+                'insert' => 'type', 'detail' => 'name', 'doc' => 'description',
+            ],
+        ],
+        'clusters' => [
+            [
+                'url' => '/galaxy_clusters/pickerSearch',
+                'insert' => 'label', 'detail' => 'style.galaxy', 'doc' => 'description',
+            ],
+        ],
     ];
 
     /**
@@ -374,6 +470,33 @@ class MispQLTables
     public function links($name)
     {
         return self::TABLES[$name]['links'] + array_fill_keys(self::ORGANISATION_LINKS, 'Organisation');
+    }
+
+    /**
+     * @param string $name
+     * @return array field => the name of the list its values are offered from
+     */
+    public function values($name)
+    {
+        return self::TABLES[$name]['values'] + self::FIELD_VALUES;
+    }
+
+    /**
+     * @param string $name
+     * @return array field => the source its values are looked up from
+     */
+    public function lookups($name)
+    {
+        return self::TABLES[$name]['lookups'] + self::FIELD_LOOKUPS;
+    }
+
+    /**
+     * @param string[] $names
+     * @return array source => its pickers, for the sources named
+     */
+    public function sources(array $names)
+    {
+        return array_intersect_key(self::SOURCES, array_flip($names));
     }
 
     /**

@@ -307,6 +307,18 @@
     color: var(--bs-emphasis-color);
 }
 
+.mql-opt.mql-looking,
+.mql-opt.mql-looking:hover {
+    cursor: default;
+    background: none;
+    color: var(--bs-secondary-color);
+}
+
+.mql-looking .mql-label {
+    font-family: inherit;
+    font-style: italic;
+}
+
 .mql-kind {
     --k: #6c757d;
     flex: none;
@@ -405,6 +417,8 @@
 }
 
 .mql-info-head code {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-family: var(--cq-mono);
     font-size: 12.5px;
     font-weight: 600;
@@ -412,8 +426,10 @@
 }
 
 .mql-level {
+    flex: none;
     margin-left: auto;
     font-size: 11px;
+    white-space: nowrap;
     color: var(--bs-secondary-color);
 }
 

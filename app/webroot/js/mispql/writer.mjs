@@ -6,6 +6,7 @@
  *
  * new MispQLWriter(host, {
  *     pack, explain(script) -> Promise<{status, body}>,
+ *     lookup(source, prefix, signal) -> Promise<[{value, detail?, doc?}]>,
  *     onRun(statement) on Ctrl-Enter, onPlan(statement) on Ctrl-Shift-Enter, onExplain(reply),
  *     placeholder, minRows, maxRows, gutter, recall() -> [statements]
  * })
@@ -17,8 +18,11 @@ var AUTO_STATES = {
     from_table: 1, describe_table: 1, cond_start: 1, cond_field: 1, cond_not_op: 1, cond_value: 1,
     order_field: 1, format_name: 1, after_cols: 1, select_cols: 1, select_cols_more: 1,
     cond_field_dot: 1, col_dot: 1, after_table: 1, cond_done: 1, order_after_field: 1,
-    after_limit: 1, show_what: 1, order_by_kw: 1, in_after_value: 1
+    after_limit: 1, show_what: 1, order_by_kw: 1, in_after_value: 1, in_value: 1
 };
+
+var LOOKUP_DELAY = 150;
+var LOOKUP_KEEP = 100;
 
 var KIND_LABEL = {
     keyword: 'KW', statement: 'ST', client: 'CLI', table: 'TB', column: 'COL', field: 'FLD',
@@ -152,6 +156,8 @@ function MispQLWriter(host, options) {
     this.lastReply = null;
     this.sugg = null;
     this.suggIndex = 0;
+    this.looked = {};
+    this.lookedKeys = [];
     this.recallPos = -1;
     this.id = 'mqw' + (++uid);
     this.build();
@@ -276,10 +282,12 @@ MispQLWriter.prototype = {
         var data = e.data || '';
         if (e.inputType === 'insertText' && /^[A-Za-z0-9_`]$/.test(data)) {
             this.updateSuggestions('typing');
-        } else if (e.inputType === 'insertText' && /^[ .,(]$/.test(data)) {
+        } else if (e.inputType === 'insertText' && /^[ .,(']$/.test(data)) {
             this.updateSuggestions('auto');
         } else if (e.inputType === 'deleteContentBackward') {
             this.updateSuggestions('refresh');
+        } else if (e.inputType === 'insertText') {
+            this.updateSuggestions('quoted');
         } else {
             this.closeSuggestions();
         }
@@ -600,7 +608,8 @@ MispQLWriter.prototype = {
     /**
      * mode: typing (a word character: needs a prefix), auto (after a space
      * or punctuation: only where the next word is predictable), force
-     * (Ctrl-Space), refresh (only while the popover is open).
+     * (Ctrl-Space), refresh (only while the popover is open), quoted (any
+     * other character: only inside a quoted value).
      */
     updateSuggestions: function (mode) {
         var caret = this.ta.selectionStart;
@@ -611,9 +620,13 @@ MispQLWriter.prototype = {
             return;
         }
         var s = S.suggest(this.ta.value, caret, this.pack);
-        var show = s.items.length > 0 || (mode === 'force' && s.hint);
-        if (mode === 'typing') {
-            show = show && (s.prefix !== '' || this.sugg !== null);
+        if (mode === 'quoted' && !s.quoted) {
+            return this.closeSuggestions();
+        }
+        var look = this.lookupFor(s);
+        var show = s.items.length > 0 || look !== null || (mode === 'force' && s.hint);
+        if (mode === 'typing' || mode === 'quoted') {
+            show = show && (s.prefix !== '' || s.quoted || this.sugg !== null);
         } else if (mode === 'auto') {
             show = show && (s.prefix !== '' || AUTO_STATES[s.state] === 1);
         }
@@ -621,7 +634,14 @@ MispQLWriter.prototype = {
             return this.closeSuggestions();
         }
         var keep = this.sugg && this.sugg.items[this.suggIndex];
+        this.stopLookup();
         this.sugg = s;
+        if (look) {
+            this.startLookup(s, look);
+        }
+        if (!s.items.length && !s.loading && !(mode === 'force' && s.hint)) {
+            return this.closeSuggestions();
+        }
         this.suggIndex = 0;
         if (keep) {
             for (var i = 0; i < s.items.length; i++) {
@@ -635,10 +655,85 @@ MispQLWriter.prototype = {
     },
 
     closeSuggestions: function () {
+        this.stopLookup();
         this.sugg = null;
         this.pop.hidden = true;
         this.ta.setAttribute('aria-expanded', 'false');
         this.ta.removeAttribute('aria-activedescendant');
+    },
+
+    /** The lookup a suggestion asks for, once enough is typed for its source. */
+    lookupFor: function (s) {
+        var l = s.lookup;
+        return l && this.opts.lookup && l.prefix.length >= l.min ? l : null;
+    },
+
+    /**
+     * Asks the page for the names a value can take, after a pause in typing;
+     * answers are kept per source and prefix, and merged into the popover
+     * only if it still shows the suggestion that asked.
+     */
+    startLookup: function (s, look) {
+        var key = look.source + '\u0000' + look.prefix.toLowerCase();
+        if (this.looked[key]) {
+            this.mergeLookup(s, this.looked[key]);
+            return;
+        }
+        var self = this;
+        s.loading = true;
+        this.lookupTimer = setTimeout(function () {
+            var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+            self.lookupCtrl = ctrl;
+            Promise.resolve(self.opts.lookup(look.source, look.prefix, ctrl ? ctrl.signal : undefined)).then(function (rows) {
+                self.keepLookup(key, rows);
+                if (self.sugg === s) {
+                    self.mergeLookup(s, rows);
+                    self.redrawSuggestions();
+                }
+            }, function () {
+                if (self.sugg === s) {
+                    s.loading = false;
+                    self.redrawSuggestions();
+                }
+            });
+        }, LOOKUP_DELAY);
+    },
+
+    stopLookup: function () {
+        clearTimeout(this.lookupTimer);
+        if (this.lookupCtrl) {
+            this.lookupCtrl.abort();
+            this.lookupCtrl = null;
+        }
+    },
+
+    keepLookup: function (key, rows) {
+        if (!this.looked[key]) {
+            this.lookedKeys.push(key);
+            if (this.lookedKeys.length > LOOKUP_KEEP) {
+                delete this.looked[this.lookedKeys.shift()];
+            }
+        }
+        this.looked[key] = rows;
+    },
+
+    mergeLookup: function (s, rows) {
+        var have = {};
+        s.items.forEach(function (it) { have[it.insert] = true; });
+        s.items = s.items.concat(S.lookupItems(rows).filter(function (it) { return !have[it.insert]; }));
+        s.loading = false;
+    },
+
+    redrawSuggestions: function () {
+        if (!this.sugg) {
+            return;
+        }
+        if (!this.sugg.items.length && !this.sugg.loading) {
+            this.closeSuggestions();
+            return;
+        }
+        this.suggIndex = Math.min(this.suggIndex, Math.max(0, this.sugg.items.length - 1));
+        this.drawSuggestions();
     },
 
     drawSuggestions: function () {
@@ -659,9 +754,17 @@ MispQLWriter.prototype = {
                 (it.detail ? '<span class="mql-detail' + (it.kind === 'field' ? ' mql-type mql-type-' + esc(it.detail) : '') + '">' + esc(it.detail) + '</span>' : '') +
                 '</div>';
         }).join('');
+        if (s.loading) {
+            rows += '<div class="mql-opt mql-looking" aria-hidden="true"><span class="mql-kind mql-kind-value"><span class="mql-pulse"></span></span>' +
+                '<span class="mql-label">Looking up names…</span></div>';
+        }
         var cur = s.items[this.suggIndex];
         var info = '';
-        if (cur && cur.kind === 'field') {
+        if (cur && cur.named && (cur.doc || cur.detail)) {
+            info = '<div class="mql-info"><div class="mql-info-head"><code>' + esc(cur.label) + '</code>' +
+                (cur.detail ? '<span class="mql-level">' + esc(cur.detail) + '</span>' : '') + '</div>' +
+                (cur.doc ? '<div class="mql-doc">' + esc(cur.doc) + '</div>' : '') + '</div>';
+        } else if (cur && cur.kind === 'field') {
             info = '<div class="mql-info"><div class="mql-info-head"><code>' + esc(cur.label) + '</code>' +
                 '<span class="mql-type mql-type-' + esc(cur.detail) + '">' + esc(cur.detail) + '</span>' +
                 '<span class="mql-level">' + esc(cur.level.join(' · ')) + '</span></div>' +

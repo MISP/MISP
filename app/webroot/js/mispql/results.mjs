@@ -6,14 +6,8 @@
 import * as T from './tokens.mjs';
 import { highlightHTML } from './writer.mjs';
 import { addCondition, literal, fieldName, orderOf, setOrder, pagingOf, rewritePaging } from './rewrite.mjs';
-import { elementOnly } from './suggest.mjs';
+import { elementOnly, valueRows } from './suggest.mjs';
 import { el, esc, fmtInt, ago, bytes, download, jsonHTML, copyText } from './util.mjs';
-
-var DISTRIBUTION = ['Your organisation only', 'This community only', 'Connected communities', 'All communities', 'Sharing group', 'Inherit event'];
-
-var THREAT = { 1: 'High', 2: 'Medium', 3: 'Low', 4: 'Undefined' };
-
-var ANALYSIS = { 0: 'Initial', 1: 'Ongoing', 2: 'Complete' };
 
 var GRID_CAP = 500;
 
@@ -169,8 +163,35 @@ var BOOL_TRUE = '<span class="cq-bool is-true"><i class="fa-solid fa-check"></i>
 
 var BOOL_FALSE = '<span class="cq-bool">false</span>';
 
-function cell(column, value) {
+/**
+ * The names of a table's numbered levels (distribution, threat level,
+ * analysis), from the pack's lists: field => {number: name}.
+ */
+function levelNames(pack, tableName) {
+    var table = pack && pack.tables[tableName];
+    var names = {};
+    if (!table) {
+        return names;
+    }
+    Object.keys(table.fields).forEach(function (f) {
+        var def = table.fields[f];
+        if (def.type !== 'int' || !def.values) {
+            return;
+        }
+        var map = {};
+        valueRows(pack, def).forEach(function (row) {
+            if (row.label) {
+                map[row.value] = row.label;
+            }
+        });
+        names[f.toLowerCase()] = map;
+    });
+    return names;
+}
+
+function cell(column, value, levels) {
     var base = column.split('.').pop().toLowerCase();
+    var level = levels && levels[base] && !Array.isArray(value) ? levels[base][value] : undefined;
     if (value === null || value === undefined || value === '') {
         return '<span class="cq-null">—</span>';
     }
@@ -191,14 +212,11 @@ function cell(column, value) {
         var d = new Date(Number(value) * 1000).toISOString().replace('T', ' ');
         return '<span class="cq-time" title="' + esc(value) + ' · ' + esc(d.slice(0, 19)) + ' UTC · ' + esc(ago(Number(value))) + '">' + esc(d.slice(0, 16)) + '</span>';
     }
-    if (base === 'distribution' && DISTRIBUTION[value] !== undefined) {
-        return '<span class="cq-enum" title="' + esc(DISTRIBUTION[value]) + '"><b>' + esc(value) + '</b>' + esc(DISTRIBUTION[value]) + '</span>';
+    if (level !== undefined && base === 'threat_level_id') {
+        return '<span class="cq-threat cq-threat-' + esc(value) + '" title="' + esc(value) + ' · ' + esc(level) + '">' + esc(level) + '</span>';
     }
-    if (base === 'threat_level_id' && THREAT[value]) {
-        return '<span class="cq-threat cq-threat-' + esc(value) + '">' + esc(THREAT[value]) + '</span>';
-    }
-    if (base === 'analysis' && ANALYSIS[value] !== undefined) {
-        return '<span class="cq-enum"><b>' + esc(value) + '</b>' + esc(ANALYSIS[value]) + '</span>';
+    if (level !== undefined) {
+        return '<span class="cq-enum" title="' + esc(level) + '"><b>' + esc(value) + '</b>' + esc(level) + '</span>';
     }
     if (base === 'id' || base === 'event_id' || base === 'object_id') {
         return '<span class="cq-id">' + esc(value) + '</span>';
@@ -668,7 +686,7 @@ function renderRows(r, opts) {
             var row = model.rows[i];
             rowsHtml += '<tr data-r="' + i + '"><td class="cq-rn">' + fmtInt(paging.offset + i + 1) + '</td>' + model.columns.map(function (c, j) {
                 var v = rowValue(row, c);
-                var content = cell(c, v);
+                var content = cell(c, v, levels);
                 var link = cellLink(ctx, c, v, row);
                 if (link) {
                     content = '<a class="cq-link" href="' + esc(link.href) + '" target="_blank" rel="noopener" tabindex="-1" title="Open ' +
@@ -695,6 +713,7 @@ function renderRows(r, opts) {
         address: opts.valueAddress || null,
     };
     var tableDef = opts.pack && opts.pack.tables[r.table];
+    var levels = levelNames(opts.pack, r.table);
     var menu = cellMenu(root_);
     var order = orderOf(r.statement);
     var canSort = !!opts.onPage && !!tableDef;
@@ -1191,4 +1210,5 @@ export {
     tagEntries,
     sortNameOf,
     nextOrder,
+    levelNames,
 };

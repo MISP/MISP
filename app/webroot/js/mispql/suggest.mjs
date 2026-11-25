@@ -3,12 +3,17 @@
  * and the language pack embedded in the page, and only ever suggest:
  * errors come from explain.
  *
- * suggest(text, cursor, pack) -> {from, to, prefix, state, table, items, hint}
+ * suggest(text, cursor, pack) -> {from, to, prefix, state, table, items, hint,
+ *     quoted, lookup}
  * Item: {label, insert, kind, detail, doc, chain}. `kind` drives the badge:
  * keyword, statement, client, table, column, field, operator, value, sort,
  * format, symbol.
+ * Where a field's values are named rather than typed, they come from the
+ * pack's lists (`values`), or `lookup` says which source to ask, for the
+ * page to answer; lookupItems() turns its rows into items.
  */
 import * as T from './tokens.mjs';
+import { literal } from './rewrite.mjs';
 
 var TYPE_DOC = {
     int: 'a whole number',
@@ -20,6 +25,12 @@ var TYPE_DOC = {
 };
 
 var COMPARISONS = { '=': 1, '!=': 1, '<>': 1, '<': 1, '>': 1, '<=': 1, '>=': 1 };
+
+/** Comparisons after which a field's named values are offered. */
+var NAMING = { '=': 1, '!=': 1, '<>': 1 };
+
+/** Characters a search picker needs before it answers. */
+var LOOKUP_MIN = 2;
 
 function kw(word, detail, chain) {
     return { label: word, insert: word, kind: 'keyword', detail: detail || '', chain: chain !== false };
@@ -129,9 +140,63 @@ function today(offsetDays) {
     return d.toISOString().slice(0, 10);
 }
 
-function valueItems(def) {
+/** The rows of the list a field names, each as {value, label?, description?}. */
+function valueRows(pack, def) {
+    var rows = def && def.values && pack && pack.values ? pack.values[def.values] : null;
+    if (!Array.isArray(rows)) {
+        return [];
+    }
+    return rows.map(function (row) {
+        return row !== null && typeof row === 'object' ? row : { value: row };
+    });
+}
+
+/** A named value as an item; a level's name is matched as well as its number. */
+function namedItem(def, value, detail, doc) {
+    var written = literal(def.type, value);
+    if (written === null) {
+        return null;
+    }
+    return {
+        label: String(value),
+        insert: written + ' ',
+        kind: 'value',
+        detail: detail || '',
+        doc: doc || '',
+        alias: def.type === 'int' ? detail || '' : '',
+        named: true,
+        chain: true
+    };
+}
+
+function listedItems(pack, def) {
+    return valueRows(pack, def).map(function (row) {
+        return namedItem(def, row.value, row.label, row.description);
+    }).filter(Boolean);
+}
+
+/**
+ * Items for the rows a lookup answered, [{value, detail?, doc?}], in the
+ * order given; a value the statement cannot hold is left out.
+ */
+function lookupItems(rows) {
+    var seen = {};
+    var def = { type: 'string' };
+    return (rows || []).map(function (row) {
+        if (!row || typeof row.value !== 'string' || seen[row.value]) {
+            return null;
+        }
+        seen[row.value] = true;
+        return namedItem(def, row.value, row.detail, row.doc);
+    }).filter(Boolean);
+}
+
+function valueItems(def, pack, op) {
     if (!def) {
         return [];
+    }
+    if (def.values && NAMING[op]) {
+        return listedItems(pack, def);
     }
     function v(label, detail) {
         return { label: label, insert: label + ' ', kind: 'value', detail: detail, chain: true };
@@ -402,6 +467,56 @@ function matchScore(label, prefix) {
     return l.indexOf(p) !== -1 ? 1.5 : 0;
 }
 
+/**
+ * Where a value written over a string token at the caret ends: the rest of
+ * the word after the caret, and the closing quote when the word reaches it.
+ * A quote typed before other text pairs with the next one, so the token
+ * can hold more of the statement than the value; that part is kept.
+ */
+function valueEnd(text, t, cursor) {
+    var inner = t.closed ? t.end - 1 : t.end;
+    var word = /^[^\s']*/.exec(text.slice(cursor, inner))[0];
+    var end = cursor + word.length;
+    return t.closed && end === inner ? t.end : end;
+}
+
+/**
+ * The field a value at the end of these tokens is written for, when it is
+ * one a name can stand for (after =, != or in an IN list), or null.
+ */
+function valueSlot(sig, pack) {
+    var scanned = scan(sig);
+    if (scanned.state !== 'cond_value' && scanned.state !== 'in_value') {
+        return null;
+    }
+    if (scanned.state === 'cond_value' && !NAMING[scanned.ctx.op]) {
+        return null;
+    }
+    var name = scanned.ctx.table || lookAheadTable(sig);
+    var def = fieldDef(name && pack.tables[name] ? pack.tables[name] : null, scanned.ctx.field);
+    return def ? { state: scanned.state, def: def } : null;
+}
+
+/** The line under the items: the type's sentence, unless values are named. */
+function valueHint(def, listed, lookup) {
+    if (!def) {
+        return '';
+    }
+    if (lookup) {
+        return lookup.prefix.length < lookup.min ? 'Type ' + lookup.min + ' characters to look names up.' : '';
+    }
+    return listed ? '' : TYPE_DOC[def.type];
+}
+
+function lookupOf(pack, def, prefix) {
+    var pickers = def && def.lookup && pack.sources ? pack.sources[def.lookup] : null;
+    if (!Array.isArray(pickers) || !pickers.length) {
+        return null;
+    }
+    var whole = pickers.every(function (p) { return p.whole; });
+    return { source: def.lookup, prefix: prefix, min: whole ? 0 : LOOKUP_MIN };
+}
+
 function suggest(text, cursor, pack) {
     var all = T.tokenize(text);
     var from = cursor;
@@ -410,11 +525,16 @@ function suggest(text, cursor, pack) {
     var stmtStart = 0;
     var stmtTokens = [];
     var after = [];
+    var openString = null;
     for (var i = 0; i < all.length; i++) {
         var t = all[i];
-        if (t.start < cursor && cursor < t.end && (t.kind === 'string' || t.kind === 'comment' || t.kind === 'qname')) {
+        if (t.kind === 'string' && t.start < cursor && (cursor < t.end || (!t.closed && cursor === t.end))) {
+            openString = t;
+            continue;
+        }
+        if (t.start < cursor && cursor < t.end && (t.kind === 'comment' || t.kind === 'qname')) {
             if (t.kind !== 'qname' || t.closed) {
-                return { from: cursor, to: cursor, prefix: '', state: 'inside', items: [] };
+                return nothing(cursor, 'inside');
             }
         }
         if (t.end <= cursor || (t.start < cursor && t.end >= cursor && (t.kind === 'name' || t.kind === 'keyword'))) {
@@ -432,10 +552,21 @@ function suggest(text, cursor, pack) {
         }
     }
     var sig = T.significant(stmtTokens);
+    if (openString) {
+        return quotedValue(text, cursor, openString, sig, pack, stmtStart);
+    }
     var last = sig[sig.length - 1];
+    if (last && last.end >= cursor && last.kind === 'number') {
+        var numbered = valueSlot(sig.slice(0, -1), pack);
+        if (numbered && numbered.def.values) {
+            return finish(listedItems(pack, numbered.def), text.slice(last.start, cursor), {
+                from: last.start, to: last.end, state: numbered.state, statementStart: stmtStart
+            });
+        }
+    }
     if (last && last.end >= cursor && (last.kind === 'number' || last.kind === 'string' ||
         (last.kind === 'qname' && last.closed))) {
-        return { from: cursor, to: cursor, prefix: '', state: 'touching', items: [] };
+        return nothing(cursor, 'touching');
     }
     if (last && last.end >= cursor && (last.kind === 'name' || last.kind === 'keyword')) {
         prefix = text.slice(last.start, cursor);
@@ -451,6 +582,7 @@ function suggest(text, cursor, pack) {
     var table = tableName && pack.tables[tableName] ? pack.tables[tableName] : null;
     var items = [];
     var hint = '';
+    var lookup = null;
 
     switch (state) {
         case 'start':
@@ -540,8 +672,9 @@ function suggest(text, cursor, pack) {
             break;
         case 'cond_value':
             var vdef = fieldDef(table, ctx.field);
-            items = valueItems(vdef);
-            hint = vdef ? TYPE_DOC[vdef.type] : '';
+            items = valueItems(vdef, pack, ctx.op);
+            lookup = NAMING[ctx.op] ? lookupOf(pack, vdef, prefix) : null;
+            hint = valueHint(vdef, vdef && vdef.values && NAMING[ctx.op], lookup);
             break;
         case 'in_open':
             items = [sym('(', 'the list of values', false)];
@@ -551,6 +684,11 @@ function suggest(text, cursor, pack) {
             var ldef = fieldDef(table, ctx.field);
             hint = state === 'like_value' ? "A 'pattern' with % at the start, the end or both."
                 : (ldef ? TYPE_DOC[ldef.type] : '');
+            if (state === 'in_value' && ldef) {
+                items = ldef.values ? listedItems(pack, ldef) : [];
+                lookup = lookupOf(pack, ldef, prefix);
+                hint = valueHint(ldef, ldef.values, lookup);
+            }
             break;
         case 'in_after_value':
             items = [sym(',', 'another value', false), sym(')', 'close the list', true)];
@@ -586,36 +724,73 @@ function suggest(text, cursor, pack) {
             items = [];
     }
 
+    return finish(items, prefix, {
+        from: from,
+        to: to,
+        state: state,
+        table: tableName,
+        hint: hint,
+        lookup: lookup,
+        statementStart: stmtStart
+    });
+}
+
+/** A value written in quotes: the field's named values, or what to look up. */
+function quotedValue(text, cursor, t, sig, pack, stmtStart) {
+    var slot = valueSlot(sig, pack);
+    if (!slot || slot.def.type !== 'string') {
+        return nothing(cursor, 'inside');
+    }
+    var prefix = text.slice(t.start + 1, cursor).split("''").join("'");
+    var lookup = lookupOf(pack, slot.def, prefix);
+    return finish(slot.def.values ? listedItems(pack, slot.def) : [], prefix, {
+        from: t.start,
+        to: valueEnd(text, t, cursor),
+        state: slot.state,
+        hint: valueHint(slot.def, slot.def.values, lookup),
+        quoted: true,
+        lookup: lookup,
+        statementStart: stmtStart
+    });
+}
+
+/** Inside a comment, a quoted name or a string, or right after a literal. */
+function nothing(cursor, state) {
+    return finish([], '', { from: cursor, to: cursor, state: state });
+}
+
+/** Scores and orders the items against the prefix; a value named in full stays offered. */
+function finish(items, prefix, reply) {
     var upper = !/[a-z]/.test(prefix) || /[A-Z]/.test(prefix);
-    items = items.map(function (it, idx) {
-        var copy = Object.assign({}, it);
-        copy.score = matchScore(it.label, prefix);
-        copy.order = idx;
+    items = rank(items, prefix).map(function (it) {
         if (!upper && (it.kind === 'keyword' || it.kind === 'statement' || it.kind === 'client') && /^[A-Z(*) ]+$/.test(it.label)) {
-            copy.insert = it.insert.toLowerCase().replace('count(*)', 'count(*)');
+            it.insert = it.insert.toLowerCase();
         }
+        return it;
+    }).filter(function (it) {
+        return !(prefix && !it.named && it.label.toLowerCase() === prefix.toLowerCase() && it.kind !== 'table' && it.kind !== 'field');
+    });
+    return Object.assign({ prefix: prefix, table: null, items: items, hint: '', quoted: false, lookup: null }, reply);
+}
+
+function rank(items, prefix) {
+    return items.map(function (it, idx) {
+        var copy = Object.assign({}, it);
+        copy.score = Math.max(matchScore(it.label, prefix), it.alias && matchScore(it.alias, prefix) ? 1 : 0);
+        copy.order = idx;
         return copy;
     }).filter(function (it) {
-        return it.score > 0 && !(prefix && it.label.toLowerCase() === prefix.toLowerCase() && it.kind !== 'table' && it.kind !== 'field');
+        return it.score > 0;
     }).sort(function (a, b) {
         return b.score - a.score || a.order - b.order;
     });
-
-    return {
-        from: from,
-        to: to,
-        prefix: prefix,
-        state: state,
-        table: tableName,
-        items: items,
-        hint: hint,
-        statementStart: stmtStart
-    };
 }
 
 export {
     suggest,
     fieldDef,
     elementOnly,
+    valueRows,
+    lookupItems,
     TYPE_DOC,
 };

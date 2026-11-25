@@ -48,7 +48,8 @@ class MispqlController extends AppController
                 $model = $this->_restSearchModelName($tables->scope($table));
                 $this->loadModel($model);
                 return array_keys($this->$model->validFormats);
-            }
+            },
+            [MispQLCakeBackend::class, 'valueList']
         );
         $this->set('pack', $pack);
         $this->set('history', $this->__history($user));

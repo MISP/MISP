@@ -142,6 +142,7 @@ function boot() {
         csrfToken: function () {
             return typeof window.getCsrfToken === 'function' ? window.getCsrfToken() : window.csrfToken;
         },
+        sources: pack.sources,
     });
     const apiBase = publicBase(baseurl);
 
@@ -165,6 +166,7 @@ function boot() {
     const writer = new MispQLWriter(document.getElementById('wb-writer'), {
         pack: pack,
         explain: client.explain,
+        lookup: client.lookup,
         minRows: 6,
         maxRows: 18,
         gutter: true,
