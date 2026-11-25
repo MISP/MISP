@@ -171,6 +171,8 @@
 
         if (scope === 'tag') {
             if (!/^[^\n)]+$/.test(elementId)) { return false; }
+        } else if (scope === 'suggestion') {
+            if (!/^\d+$/.test(elementId)) { return false; }
         } else if (!UUID_RE.test(elementId)) {
             return false;
         }
@@ -263,6 +265,25 @@
 
     Renderer.prototype.hasProxy = function () {
         return this.proxy !== null;
+    };
+
+    /* After the server created attributes the report now cites. */
+    Renderer.prototype.reloadProxy = function () {
+        this.ready = this._loadProxy();
+        return this.ready;
+    };
+
+    Renderer.prototype.attribute = function (uuid) {
+        return this.proxy && this.proxy.attribute ? this.proxy.attribute[uuid] : undefined;
+    };
+
+    /**
+     * `@[suggestion](n)` is not report syntax: the manual extraction writes one
+     * per occurrence into the preview's copy of the text and draws them through
+     * this callback (n → HTML). Without one they render as invalid pills.
+     */
+    Renderer.prototype.setSuggestionRenderer = function (fn) {
+        this.suggestionRenderer = typeof fn === 'function' ? fn : null;
     };
 
     Renderer.prototype.setRenderingRule = function (name, enabled) {
@@ -370,6 +391,11 @@
         var scope = meta.scope;
         var elementId = meta.elementId;
 
+        if (scope === 'suggestion') {
+            return this.suggestionRenderer
+                ? this.suggestionRenderer(parseInt(elementId, 10))
+                : this._invalid(scope, elementId);
+        }
         if (SCOPES.indexOf(scope) === -1) {
             return this._invalid(scope, elementId);
         }

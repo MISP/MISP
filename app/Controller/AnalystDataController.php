@@ -329,6 +329,14 @@ class AnalystDataController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('id', $id);
+        $record = $this->viewVars['data'][$this->modelSelection] ?? [];
+        $targets = [];
+        foreach ([['object_type', 'object_uuid'], ['related_object_type', 'related_object_uuid']] as list($typeKey, $uuidKey)) {
+            if (!empty($record[$uuidKey])) {
+                $targets[] = ['type' => $record[$typeKey] ?? '', 'uuid' => $record[$uuidKey]];
+            }
+        }
+        $this->set('analystTargets', $this->AnalystData->describeTargets($this->Auth->user(), $targets));
         $this->loadModel('Event');
         $this->_setViewElements();
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -454,11 +462,15 @@ class AnalystDataController extends AppController
         foreach (['Note', 'Opinion', 'Relationship'] as $type) {
             $this->loadModel($type);
             $this->{$type}->current_user = $user;
-            // fetchRecursive → afterFind nests each item's own child notes/opinions
-            // (analyst data attached to analyst data), so the card can show the thread.
-            $this->{$type}->fetchRecursive = true;
+            $this->{$type}->fetchRecursive = false;
+        }
+        // afterFind's own recursion stops two levels down; walk the thread
+        // explicitly so replies to replies are shown too.
+        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
             $fetched = $this->{$type}->fetchForUuids([$object_uuid], $user);
-            $analystData[$type] = $fetched[$object_uuid][$type] ?? [];
+            foreach ($fetched[$object_uuid][$type] ?? [] as $item) {
+                $analystData[$type][] = $this->{$type}->fetchChildNotesAndOpinions($user, $item, false, 4);
+            }
         }
         $this->loadModel('Relationship');
         $this->Relationship->current_user = $user;

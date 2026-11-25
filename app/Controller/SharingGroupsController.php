@@ -196,7 +196,7 @@ class SharingGroupsController extends AppController
                 ),
             ),
         ));
-        if (empty($sharingGroup)) {
+        if (empty($sharingGroup) || !$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $sharingGroup['SharingGroup']['id'])) {
             throw new NotFoundException('Invalid sharing group.');
         }
 
@@ -264,12 +264,11 @@ class SharingGroupsController extends AppController
 
             $existingOrgIds    = array_column(array_column($sharingGroup['SharingGroupOrg'],    'Organisation'), 'id');
             $existingServerIds = array_column(array_column($sharingGroup['SharingGroupServer'], 'Server'),       'id');
-            $currentOrgId      = $this->Auth->user('org_id');
 
             $localOrgs = $this->SharingGroup->Organisation->find('all', [
                 'conditions' => [
                     'local'  => 1,
-                    'id !='  => array_merge([$currentOrgId], $existingOrgIds),
+                    'id !='  => $existingOrgIds,
                 ],
                 'recursive' => -1,
                 'fields'    => ['id', 'name', 'uuid'],

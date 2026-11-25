@@ -232,15 +232,12 @@ class WorkflowBaseModule
             });
             if ($operator == 'in_or') {
                 return !empty($matching);
-            } elseif ($operator == 'in_and') {
-                sort($matching);
-                sort($value);
-                return array_values($matching) == array_values($value);
             } elseif ($operator == 'not_in_or') {
                 return empty($matching);
-            } elseif ($operator == 'not_in_and') {
-                return array_values($matching) != array_values($value);
             }
+            // Set test: $data may list values in any order, and repeat them.
+            $allPresent = empty(array_diff($value, $matching));
+            return $operator == 'in_and' ? $allPresent : !$allPresent;
         }
         return false;
     }

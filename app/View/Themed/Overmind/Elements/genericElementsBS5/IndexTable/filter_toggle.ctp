@@ -20,6 +20,7 @@ $label = $label ?? __('More Filters');
         class="btn btn-outline-primary dropdown-toggle flex-shrink-0"
         data-bs-toggle="collapse"
         data-bs-target="#<?= h($target) ?>"
+        data-tour="index-filters"
         aria-expanded="<?= !empty($open) ? 'true' : 'false' ?>">
     <i class="fas fa-sliders-h me-1"></i><?= h($label) ?>
     <span class="badge bg-primary ms-1 filter-draft-count <?= !empty($count) ? '' : 'd-none' ?>"><?= (int)$count ?></span>

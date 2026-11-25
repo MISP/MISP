@@ -63,7 +63,7 @@ class PermissivePlyara():
                 fixed = _fix_illegal_chars(input_string)
                 fix_notes.add('Illegal characters')
             elif str_error.startswith('Unknown text { for token of type LBRACE') \
-                and input_string.lstrip().startswith \
+                and _starts_with_body(input_string) \
                 and input_string.rstrip().endswith('}'):
                 fixed = _fix_noname(input_string)
                 fix_notes.add('Missing rule name')
@@ -97,6 +97,11 @@ def _fix_capital(yara_src):
 def _fix_illegal_chars(yara_src):
     repaired = ''.join(filter(lambda x: x in string.printable, yara_src))
     return repaired
+
+def _starts_with_body(yara_src):
+    # a rule body with no header: the first thing after any comments is '{'
+    uncommented = re.sub(r'/\*.*?\*/|//[^\n]*', '', yara_src, flags=re.DOTALL)
+    return uncommented.lstrip().startswith('{')
 
 def _fix_noname(yara_src):
     repaired = 'rule UnnamedRule ' + yara_src

@@ -23,12 +23,20 @@ class AttributeFilterPanel
     {
         $any = ['' => __('Any')];
         $yesNo = $any + ['1' => __('Yes'), '2' => __('No')];
+        $distributions = [];
+        if ($inEvent) {
+            App::uses('DistributionLevel', 'Tools');
+            foreach (DistributionLevel::all() as $level => $meta) {
+                $distributions[(string)$level] = $meta['label'];
+            }
+        }
         $filters = array_merge($leading, [
             ['name' => 'category', 'label' => __('Category'), 'options' => $options['categoryOptions'] ?? null, 'col' => 3],
             ['name' => 'type', 'label' => __('Type'), 'options' => $options['typeOptions'] ?? null, 'col' => 3],
             ['name' => 'org', 'label' => __('Creator Org'), 'options' => $options['orgOptions'] ?? null],
             ['name' => 'tags', 'label' => __('Tags'), 'options' => $options['tagOptions'] ?? null],
             ['name' => 'galaxy', 'label' => __('Galaxy'), 'options' => $options['galaxyOptions'] ?? null],
+            ['name' => 'distribution', 'label' => __('Distribution'), 'options' => $distributions],
             ['name' => 'toIDS', 'label' => __('IDS'), 'options' => $yesNo],
             ['name' => 'correlation', 'label' => __('Related events'), 'options' => $inEvent ? $yesNo : null],
             ['name' => 'feed', 'label' => __('Feed hits'), 'options' => $inEvent ? $yesNo : null],

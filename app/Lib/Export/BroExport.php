@@ -163,7 +163,9 @@ class BroExport
             if (!isset($orgs[$item['Event']['orgc_id']])) {
                 continue;
             } else {
-                $orgName = $instanceString . ' (' . $item['Event']['uuid'] . ')' . ' - ' . $orgs[$item['Event']['orgc_id']];
+                $orgName = str_replace('%', '%%', self::replaceIllegalChars(
+                    $instanceString . ' (' . $item['Event']['uuid'] . ')' . ' - ' . $orgs[$item['Event']['orgc_id']]
+                ));
             }
             $ruleFormatReference = Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
             $ruleFormat = "%s\t%s\t" . $orgName . "\t%s. %s\t" . $ruleFormatReference . "\t%s\t%s";
@@ -221,7 +223,9 @@ class BroExport
                 "\r\n" => ' ',
                 "\n" => ' '
         );
-        return html_entity_decode(filter_var(strtr($value, $replace_pairs), FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH));
+        // entities such as &#9; decode into separators, so strip them again afterwards
+        $value = html_entity_decode(filter_var(strtr($value, $replace_pairs), FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH));
+        return strtr($value, $replace_pairs);
     }
 
     public function getMispTypes($type)

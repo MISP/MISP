@@ -13,8 +13,13 @@
  *                          open; a tab without one shows the page's own
  *                          `headerDescription`
  *     heading      string  sets the page's headerTitle
- *     left, right  array   element paths, ['element' => path] or
- *                          ['ajax' => url] for a lazy fragment
+ *     left, right  array   element paths, ['element' => path],
+ *                          ['ajax' => url] for a lazy fragment, or
+ *                          ['row' => [path, path]] for cards side by side
+ *                          (stacked below xl, stretched to one height)
+ *   $ownership  array  for a record with a creator org and a distribution:
+ *                      Cards/ownership_card's parameters; the card opens the
+ *                      first tab's left column
  *
  * Like an action declared with 'tab', the per-tab descriptions are all
  * rendered in the header and toggled by syncHeaderActions() below.
@@ -87,9 +92,28 @@ foreach ($tabs as $i => $tab) {
                     <!-- LEFT COLUMN -->
                     <div class="<?= !empty($tab['right']) ? 'col-lg-9' : 'col-12' ?>">
                         <?php
+                            if ($i === 0 && !empty($ownership)) {
+                                echo $this->element('genericElementsBS5/Cards/ownership_card', $ownership);
+                            }
                             if (!empty($tab['left'])) {
                                 foreach ($tab['left'] as $card) {
-                                    if (is_array($card)) {
+                                    if (is_array($card) && !empty($card['row'])) {
+                                        // An element that renders nothing leaves no empty column.
+                                        $cells = [];
+                                        foreach ($card['row'] as $cell) {
+                                            $html = $this->element($cell, ['data' => $data]);
+                                            if (trim($html) !== '') {
+                                                $cells[] = $html;
+                                            }
+                                        }
+                                        if (!empty($cells)) {
+                                            echo '<div class="row gx-3">';
+                                            foreach ($cells as $html) {
+                                                echo '<div class="col-12 col-xl d-flex flex-column">' . $html . '</div>';
+                                            }
+                                            echo '</div>';
+                                        }
+                                    } elseif (is_array($card)) {
 
                                         if (!empty($card['ajax'])) {
                                             echo '<div class="ajax-tab-content" data-url="' . h($card['ajax']) . '">';

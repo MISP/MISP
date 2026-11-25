@@ -1658,8 +1658,17 @@ function openPopover(clicked, data, hover, placement, callback) {
             container: 'body',
             template: '<div class="popover" role="tooltip" data-dismissId="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
         };
-        $clicked.popover(popoverOptions)
-        .on('shown.bs.popover', function() {
+        $clicked.popover(popoverOptions);
+        // html: true is for the content; Bootstrap would render the title as HTML too
+        var bootstrapPopover = $clicked.data('popover');
+        if (bootstrapPopover) {
+            var bootstrapTitle = bootstrapPopover.getTitle;
+            bootstrapPopover.getTitle = function () {
+                var title = bootstrapTitle.call(this);
+                return typeof title === 'string' ? escapeHtml(title) : title;
+            };
+        }
+        $clicked.on('shown.bs.popover', function() {
             var $this = $(this); // should be the same as $clicked
             var $popover = $this.data("popover").tip(); // should be the content of popover
             var title = $this.attr('title');
@@ -1674,6 +1683,8 @@ function openPopover(clicked, data, hover, placement, callback) {
                 // adjust popover position (title was empty)
                 var top = $popover.offset().top;
                 $popover.css('top', (top-17) + 'px');
+            } else if (typeof title === 'string') {
+                title = escapeHtml(title);
             }
             var popoverTitle = $popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
@@ -3410,7 +3421,7 @@ function testConnection(id) {
                 var compatibility_colour = "green";
                 var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
                 var issue_colour = "red";
-                if (result.mismatch == "hotfix") issue_colour = "orange";
+                if (result.mismatch == "hotfix" || result.mismatch == "major_compatible") issue_colour = "orange";
                 if (result.newer == "local") {
                     colours.remote = 'class="' + issue_colour + '"';
                     if (result.mismatch == "minor") {
@@ -3419,12 +3430,12 @@ function testConnection(id) {
                     } else if (result.mismatch == "major") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
-                    } else if (result.mismatch == "minor_compatible") {
+                    } else if (result.mismatch == "minor_compatible" || result.mismatch == "major_compatible") {
                         compatibility_colour = "green";
                     }
                 } else if (result.newer == "remote") {
                     colours.local = 'class="' + issue_colour + '"';
-                    if (result.mismatch != "hotfix") {
+                    if (result.mismatch != "hotfix" && result.mismatch != "major_compatible") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
                     }
@@ -3434,10 +3445,16 @@ function testConnection(id) {
                 }
                 if (result.mismatch != false && result.mismatch != "proposal") {
                     if (result.newer == "remote") {
-                        status_message = "Local instance outdated, update!";
+                        if (result.mismatch == "major_compatible") {
+                            status_message = "Local instance on 2.5, moving to 3.0 is recommended.";
+                        } else {
+                            status_message = "Local instance outdated, update!";
+                        }
                     } else if (result.newer == "local") {
                         if (result.mismatch == "minor_compatible") {
                             status_message = "Remote on 2.4, moving to 2.5 is recommended.";
+                        } else if (result.mismatch == "major_compatible") {
+                            status_message = "Remote on 2.5, moving to 3.0 is recommended.";
                         } else {
                             status_message = "Remote outdated, notify admin!";
                         }
@@ -4217,6 +4234,16 @@ function malwareCheckboxSetter(context) {
 
 function feedFormUpdate() {
     $('.optionalField').hide();
+    var gathering = $('#FeedInputSource').val() === 'misp-modules';
+    if (gathering) {
+        $('#FeedSourceFormat').val('misp');
+        $('#FeedCachingEnabled').prop('checked', false);
+    }
+    $('#FeedSourceFormat, #FeedCachingEnabled').prop('disabled', gathering);
+    $('#FeedUrl').prop('required', !gathering).closest('.input').toggle(!gathering);
+    if (gathering) {
+        $('#GatheringModuleDiv, #GatheringParametersDiv').show();
+    }
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
@@ -4243,7 +4270,9 @@ function feedFormUpdate() {
             $('#settingsCommonExcluderegexDiv').show();
             break;
     }
-    if ($('#FeedInputSource').val() == 'local') {
+    if (gathering) {
+        $('#DeleteLocalFileDiv, #HeadersDiv').hide();
+    } else if ($('#FeedInputSource').val() == 'local') {
         $('#DeleteLocalFileDiv').show();
         $('#HeadersDiv').hide();
     } else {
@@ -5078,8 +5107,10 @@ function insertRawRestResponse() {
 }
 
 function insertHTMLRestResponse() {
-    $('#rest-response-container').append('<div id="html-response-container" style="border: 1px solid blue; padding:5px;" />');
-    $('#html-response-container').html($('#rest-response-hidden-container').text());
+    // The response can be any server's: the empty sandbox keeps its scripts off this page
+    var $frame = $('<iframe id="html-response-container" sandbox="" style="border: 1px solid blue; padding:5px; width:100%; height:60vh; resize:vertical;" />');
+    $frame.attr('srcdoc', $('#rest-response-hidden-container').text());
+    $('#rest-response-container').append($frame);
 }
 
 function insertJSONRestResponse() {
@@ -5848,7 +5879,7 @@ function parseGpxToLayers(xmlString, map) {
         var nameEl = wpts[i].querySelector('name');
         var marker = L.marker(ll).addTo(map);
         if (nameEl && nameEl.textContent) {
-            marker.bindPopup(nameEl.textContent);
+            marker.bindPopup(escapeHtml(nameEl.textContent));
         }
         bounds.extend(ll);
         hasData = true;
@@ -6032,9 +6063,9 @@ $(document).on("click", ".geojson-map-icon", function() {
                             for (var key in feature.properties) {
                                 if (feature.properties[key] !== null) {
                                     props.push(
-                                        '<strong>' + key +
+                                        '<strong>' + escapeHtml(key) +
                                         '</strong>: ' +
-                                        feature.properties[key]
+                                        escapeHtml(String(feature.properties[key]))
                                     );
                                 }
                             }

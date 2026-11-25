@@ -69,6 +69,9 @@ class DATABASE_CONFIG {
 		'database' => 'misp',
 		'prefix' => '',
 		//'encoding' => 'utf8',
+		'flags' => array(
+			PDO::ATTR_STRINGIFY_FETCHES => true
+		),
 	);
 
 	/**
@@ -96,5 +99,8 @@ class DATABASE_CONFIG {
 		'password' => 'blah',
 		'database' => 'misp_legacy',
 		'prefix' => '',
+		'flags' => array(
+			PDO::ATTR_STRINGIFY_FETCHES => true
+		),
 	);
 }

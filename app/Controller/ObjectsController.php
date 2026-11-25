@@ -25,10 +25,10 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->Security->unlockedActions = array('revise_object', 'get_row', 'similar_objects');
         }
-        // The delete confirmation posts an empty body through fetch(), so there is
-        // no field hash for _validatePost() to compare and it can only blackhole.
-        // CSRF is still enforced, through the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['delete']);
+        // The delete confirmations post a hand-built body through fetch(), so
+        // there is no field hash for _validatePost() to compare and it can only
+        // blackhole. CSRF is still enforced, through the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection']);
     }
 
     public function revise_object($action, $event_id, $template_id, $object_id = false, $update_template_available = false, $similar_objects_display_threshold=15)
@@ -67,6 +67,7 @@ class ObjectsController extends AppController
 
         if (isset($this->request->data['Attribute'])) {
             foreach ($this->request->data['Attribute'] as &$attribute) {
+                unset($attribute['id'], $attribute['event_id'], $attribute['object_id']);
                 if (empty($attribute['uuid'])) {
                     $attribute['uuid'] = CakeText::uuid();
                 }
@@ -742,7 +743,8 @@ class ObjectsController extends AppController
             $this->set('updateable_attribute', $templateData['updateable_attribute']);
             $this->set('not_updateable_attribute', $templateData['not_updateable_attribute']);
             $this->set('original_template_unknown', $templateData['original_template_unknown']);
-            if (!empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
+            // The revision only pre-fills the form: a save must diff against the stored object alone
+            if (!$this->request->is('post') && !$this->request->is('put') && !empty($this->Session->read('object_being_created')) && !empty($this->params['named']['cur_object_tmp_uuid'])) {
                 $revisedObjectData = $this->Session->read('object_being_created');
                 if ($this->params['named']['cur_object_tmp_uuid'] == $revisedObjectData['cur_object_tmp_uuid']) { // ensure that the passed session data is for the correct object
                     $revisedObjectData = $revisedObjectData['data'];
@@ -940,8 +942,10 @@ class ObjectsController extends AppController
         if ((!$this->request->is('post') && !$this->request->is('put'))) {
             throw new MethodNotAllowedException(__('This function can only be accessed via POST or PUT'));
         }
+        $conditions = $this->MispObject->buildConditions($this->Auth->user());
+        $conditions['AND'][] = $this->__objectIdToConditions($id);
         $object = $this->MispObject->find('first', array(
-            'conditions' => $this->__objectIdToConditions($id),
+            'conditions' => $conditions,
             'contain' => 'Event',
             'recursive' => -1
         ));
@@ -1221,10 +1225,12 @@ class ObjectsController extends AppController
         if (!$this->userRole['perm_modify']) {
             throw new ForbiddenException(__('You don\'t have permissions to delete objects.'));
         }
+        $conditions = $this->MispObject->buildConditions($this->Auth->user());
+        $conditions['AND'][] = $this->__objectIdToConditions($id);
         $object = $this->MispObject->find('first', array(
             'recursive' => -1,
             'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id'),
-            'conditions' => $this->__objectIdToConditions($id),
+            'conditions' => $conditions,
             'contain' => array(
                 'Event'
             )
@@ -1337,9 +1343,19 @@ class ObjectsController extends AppController
             if (empty($idList) || !is_array($idList)) {
                 throw new NotFoundException(__('Invalid object ID.'));
             }
+            $idList = array_map('intval', $idList);
+            // A selection that is already soft-deleted can only go for good.
+            $deletedFlags = $this->MispObject->find('list', [
+                'conditions' => ['Object.id' => $idList],
+                'fields' => ['Object.id', 'Object.deleted'],
+                'recursive' => -1,
+            ]);
+            $alreadyDeleted = !empty($deletedFlags) && !in_array(
+                false, array_map('boolval', $deletedFlags), true
+            );
             $this->layout = false;
-            $this->set('idArray', array_map('intval', $idList));
-            $this->set('hard', (bool)$hard);
+            $this->set('idArray', $idList);
+            $this->set('hard', (bool)$hard || $alreadyDeleted);
             $this->render('ajax/objectDeleteSelectionForm');
             return;
         }

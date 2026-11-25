@@ -6,7 +6,7 @@ $uploadUrl = h($baseurl . '/attributes/add_attachment/' . $eventId);
 $mayModify = $this->Acl->canModifyEvent($data);
 ?>
 
-<div class="card shadow-sm mb-3" id="attachment-card">
+<div class="card shadow-sm mb-3 flex-grow-1" id="attachment-card">
 
     <!-- HEADER -->
     <div class="p-3 border-bottom">
@@ -41,25 +41,28 @@ $mayModify = $this->Acl->canModifyEvent($data);
                        aria-label="<?= __('Filter attachments') ?>">
             </div>
 
-            <!-- Upload -->
-            <?php if ($mayModify || $isSiteAdmin): ?>
-            <a href="<?= $uploadUrl ?>"
-               onclick="event.preventDefault(); openModal('<?= $uploadUrl ?>')"
-               class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
-                <i class="fas fa-upload"></i>
-                <?= __('Upload') ?>
-            </a>
-            <?php endif; ?>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0" data-card-actions>
+                <!-- Upload -->
+                <?php if ($mayModify || $isSiteAdmin): ?>
+                <a href="<?= $uploadUrl ?>"
+                   onclick="event.preventDefault(); openModal('<?= $uploadUrl ?>')"
+                   class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+                    <i class="fas fa-upload"></i>
+                    <?= __('Upload') ?>
+                </a>
+                <?php endif; ?>
 
-            <!-- Download All -->
-            <button type="button"
-                    id="<?= $uid ?>-dl-all"
-                    class="btn btn-sm btn-primary d-flex align-items-center gap-1"
-                    onclick="eaDownloadAll('<?= $uid ?>')"
-                    disabled>
-                <i class="fas fa-download"></i>
-                <?= __('Download All') ?>
-            </button>
+                <!-- Download All -->
+                <button type="button"
+                        id="<?= $uid ?>-dl-all"
+                        class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                        onclick="eaDownloadAll('<?= $uid ?>')"
+                        disabled>
+                    <i class="fas fa-download"></i>
+                    <?= __('Download All') ?>
+                </button>
+            </div>
+            <?= $this->element('genericElementsBS5/Cards/actions_overflow_menu') ?>
 
         </div>
     </div>

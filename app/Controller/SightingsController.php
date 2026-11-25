@@ -26,55 +26,36 @@ class SightingsController extends AppController
     {
         if ($this->request->is('post')) {
             $now = time();
-            $values = false;
-            $timestamp = false;
             $error = false;
-            if ($id === 'stix') {
-                $result = $this->Sighting->handleStixSighting(file_get_contents('php://input'));
-                if ($result['success']) {
-                    $result['data'] = json_decode($result['data'], true);
-                    $timestamp = isset($result['data']['timestamp']) ? strtotime($result['data']['timestamp']) : $now;
-                    $type = '0';
-                    $source = '';
-                    if (isset($result['data']['values'])) {
-                        $values = $result['data']['values'];
-                    } else {
-                        $error = 'No valid values found that could be extracted from the sightings document.';
-                    }
-                } else {
-                    $error = $result['message'];
-                }
+            if (isset($this->request->data['request'])) {
+                $this->request->data = $this->request->data['request'];
+            }
+            if (isset($this->request->data['Sighting'])) {
+                $this->request->data = $this->request->data['Sighting'];
+            }
+            if (!empty($this->request->data['date']) && !empty($this->request->data['time'])) {
+                $timestamp = DateTime::createFromFormat('Y-m-d:H:i:s', $this->request->data['date'] . ':' . $this->request->data['time']);
+                $timestamp = $timestamp->getTimestamp();
             } else {
-                if (isset($this->request->data['request'])) {
-                    $this->request->data = $this->request->data['request'];
-                }
-                if (isset($this->request->data['Sighting'])) {
-                    $this->request->data = $this->request->data['Sighting'];
-                }
-                if (!empty($this->request->data['date']) && !empty($this->request->data['time'])) {
-                    $timestamp = DateTime::createFromFormat('Y-m-d:H:i:s', $this->request->data['date'] . ':' . $this->request->data['time']);
-                    $timestamp = $timestamp->getTimestamp();
-                } else {
-                    $timestamp = isset($this->request->data['timestamp']) ? $this->request->data['timestamp'] : $now;
-                }
-                if (isset($this->request->data['value'])) {
-                    $this->request->data['values'] = array($this->request->data['value']);
-                }
-                $values = isset($this->request->data['values']) ? $this->request->data['values'] : false;
-                if (!$id && isset($this->request->data['uuid'])) {
-                    $id = $this->request->data['uuid'];
-                }
-                if (!$id && isset($this->request->data['id'])) {
-                    $id = $this->request->data['id'];
-                }
-                $type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
-                $source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
-                $filters = !empty($this->request->data['filters']) ? $this->request->data['filters'] : false;
-                if (is_string($filters)) {
-                    $filters = json_decode($filters, true);
-                    if (!is_array($filters)) {
-                        $error = __('The filters must be a JSON object.');
-                    }
+                $timestamp = isset($this->request->data['timestamp']) ? $this->request->data['timestamp'] : $now;
+            }
+            if (isset($this->request->data['value'])) {
+                $this->request->data['values'] = array($this->request->data['value']);
+            }
+            $values = isset($this->request->data['values']) ? $this->request->data['values'] : false;
+            if (!$id && isset($this->request->data['uuid'])) {
+                $id = $this->request->data['uuid'];
+            }
+            if (!$id && isset($this->request->data['id'])) {
+                $id = $this->request->data['id'];
+            }
+            $type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
+            $source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
+            $filters = !empty($this->request->data['filters']) ? $this->request->data['filters'] : false;
+            if (is_string($filters)) {
+                $filters = json_decode($filters, true);
+                if (!is_array($filters)) {
+                    $error = __('The filters must be a JSON object.');
                 }
             }
             if (!$error) {
