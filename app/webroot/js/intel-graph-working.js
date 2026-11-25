@@ -980,7 +980,7 @@
             failed(F, err, 'notAdded');
         });
     }
-    // Out of the collection, and off the graph laying it out (C14: one click).
+    // Out of the collection, and off the graph laying it out, in one click.
     function removeFromCollection(F, fit) {
         var rows = fit.filter(function (r) { return r.role === 'member' && r.key; });
         if (!rows.length) return Promise.resolve();

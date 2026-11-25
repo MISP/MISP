@@ -501,7 +501,7 @@ class AnalystDataController extends AppController
 
     /**
      * Each graph's node count as the user sees it, in place of the stored one
-     * (G6), its original when it is a fork, and no document.
+     * its original when it is a fork, and no document.
      *
      * @param array $data Graph rows
      * @return array

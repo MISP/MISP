@@ -189,6 +189,24 @@ class Collection extends AppModel
         ],
     ];
 
+    /**
+     * @return array Each of VALID_TYPES => its label
+     */
+    public static function typeLabels()
+    {
+        $labels = [
+            'campaign' => __('Campaign'),
+            'intrusion_set' => __('Intrusion set'),
+            'named_threat' => __('Named threat'),
+            'research' => __('Research'),
+            'other' => __('Other'),
+        ];
+        $out = [];
+        foreach (self::VALID_TYPES as $type) {
+            $out[$type] = $labels[$type] ?? ucfirst(str_replace('_', ' ', $type));
+        }
+        return $out;
+    }
 
     public function beforeValidate($options = array())
     {
@@ -1587,7 +1605,7 @@ class Collection extends AppModel
      * by $filters (e.g. the orgc_id OR/NOT pull-rules the controller builds from
      * orgc_name). Mirrors AnalystData::indexMinimal, flattened — a collection has no
      * analyst-data-style type dimension, so the shape is a single [uuid => modified] map.
-     * The remote side dedups against this by comparing `modified` (D6).
+     * The remote side dedups against this by comparing `modified`.
      *
      * @param array $user The requesting sync user.
      * @param array $filters Extra conditions ANDed onto the visibility gate.
@@ -1680,7 +1698,7 @@ class Collection extends AppModel
                 // Missing locally — fetch it.
                 $uuidsToFetch[] = $remoteUUID;
             } elseif (strtotime($localModified[$remoteUUID]) < strtotime($remoteModified)) {
-                // Strictly newer remote wins (skip-on-equal — D6).
+                // Strictly newer remote wins (skip-on-equal).
                 $uuidsToFetch[] = $remoteUUID;
             }
         }
@@ -1757,7 +1775,7 @@ class Collection extends AppModel
      *
      * A candidate is wanted when it is either missing locally, OR strictly newer than a
      * local copy that is itself synced-in (locked=1). A locally-created (locked=0)
-     * collection is authoritative and is never overwritten by a push (D6), so its uuid is
+     * collection is authoritative and is never overwritten by a push, so its uuid is
      * dropped from the wanted set even if the candidate looks newer.
      *
      * @param array $candidates {uuid: modified} offered by the pushing peer.
@@ -1788,7 +1806,7 @@ class Collection extends AppModel
     }
 
     /**
-     * D6 gate shared by filterCollectionsForPush: a candidate only wins against an existing
+     * The gate shared by filterCollectionsForPush: a candidate only wins against an existing
      * local row when that row is synced-in (locked=1) AND the candidate is strictly newer.
      * Mirrors AnalystData::isCandidateValidForPush.
      */

@@ -33,16 +33,8 @@ class CollectionsController extends AppController
     {
         $this->request->allowMethod(['get', 'post', 'put']);
         $user = $this->Auth->user();
-        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
-        $found = $this->Collection->find('first', [
-            'recursive' => -1,
-            'contain' => ['Orgc'],
-            'conditions' => ['Collection.id' => $id],
-        ]);
-        if (empty($found) || !$this->Collection->mayView($user['id'], $id)) {
-            throw new NotFoundException(__('Invalid %s.', 'Collection'));
-        }
-        $collection = $found['Collection'] + ['Orgc' => $found['Orgc']];
+        $collection = $this->__visibleCollection($user, $id);
+        $id = (int)$collection['id'];
         if (!$this->Collection->canPublish($user, $collection)) {
             throw new ForbiddenException(__('Publishing “%s” takes the right to publish and to edit it.', $collection['name']));
         }
@@ -142,12 +134,6 @@ class CollectionsController extends AppController
     }
 
     /**
-     * @param array $user
-     * @param string|int $id Its id or uuid
-     * @return array The collection, unwrapped, with its Orgc
-     * @throws NotFoundException
-     */
-    /**
      * What would go along with the collection shared as ?distribution= and
      * ?sharing_group_id=: its organisation's graphs on it and relationships
      * between its members that reach fewer. Takes the edit right.
@@ -220,6 +206,12 @@ class CollectionsController extends AppController
         return $done;
     }
 
+    /**
+     * @param array $user
+     * @param string|int $id Its id or uuid
+     * @return array The collection, unwrapped, with its Orgc
+     * @throws NotFoundException
+     */
     private function __visibleCollection(array $user, $id)
     {
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
@@ -975,7 +967,7 @@ class CollectionsController extends AppController
             // The sync pull fetches full collections by uuid through this action
             // (ServerSyncTool::fetchCollections -> GET /collections/index/uuid[]:...json).
             // The capture sink needs the element corpus — even when empty — to perform an
-            // authoritative replace (D5), so include CollectionElement for REST callers
+            // authoritative replace, so include CollectionElement for REST callers
             // only. The HTML index shows just element_count and must not eager-load every
             // element across the paginated list.
             $params['contain']['CollectionElement'] = Collection::servedElementOptions();

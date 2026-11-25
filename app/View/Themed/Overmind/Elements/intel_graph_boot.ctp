@@ -40,13 +40,8 @@ foreach (['pivotick', 'pivot-explorer', 'pivot-sidebar'] as $path) {
 }
 
 App::uses('AnalystGraphDocumentTool', 'Tools');
-$collectionTypes = [
-    'campaign' => __('Campaign'),
-    'intrusion_set' => __('Intrusion set'),
-    'named_threat' => __('Named threat'),
-    'research' => __('Research'),
-    'other' => __('Other'),
-];
+App::uses('Collection', 'Model');
+$collectionTypes = Collection::typeLabels();
 $config = [
     'baseurl' => $baseurl,
     'user' => isset($me['id']) ? (int)$me['id'] : null,

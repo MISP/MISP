@@ -344,6 +344,9 @@ A value or an answer may add `origin`: `{module, type, value, ran_at}`.
 | `POST /analyst_graphs/import` | Import graphs from an export | | `perm_add`, `perm_analyst_data` |
 
 The list of graphs of every record is also at `GET /analystData/index/Graph`.
+A graph is made with `POST /analystData/add/Graph/<uuid>/<type>` of the
+record it hangs on. Without `distribution`, a graph takes the distribution (and
+sharing group) of the record it hangs on, as a fork and an import do.
 
 ### Examples
 

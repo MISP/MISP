@@ -146,6 +146,7 @@ paths:
   /analystData/add/{analystType}/{analystObjectUUID}/{analystObjectType}:
     post:
       summary: "Add analyst data"
+      description: "Without `distribution`, a saved graph (`analystType` Graph) takes the distribution (and sharing group) of the record it hangs on."
       operationId: addAnalystData
       tags:
         - Analyst Data

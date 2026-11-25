@@ -151,7 +151,7 @@ class AnalystGraphsController extends AppController
         $document = json_decode($graph['Graph']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
         unset($graph['Graph']['content']);
         $payload = $this->AnalystGraphData->resolve($user, $document);
-        // Counted and measured as this user sees it (G6)
+        // Counted and measured as this user sees it
         $graph['Graph']['node_count'] = $payload['meta']['nodes'];
         unset($graph['Graph']['content_size']);
         $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));

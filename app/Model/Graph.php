@@ -456,7 +456,7 @@ class Graph extends AnalystData
     }
 
     /**
-     * The stored count includes nodes the user may not read (G6).
+     * The stored count includes nodes the user may not read.
      *
      * @param array $user
      * @param array $graphs Unwrapped, with `id`
