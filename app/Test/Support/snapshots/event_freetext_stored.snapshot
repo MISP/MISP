@@ -1,0 +1,14 @@
+[
+    {
+        "Attribute": {
+            "type": "ip-dst",
+            "value": "198.51.100.23"
+        }
+    },
+    {
+        "Attribute": {
+            "type": "domain",
+            "value": "freetext.example.com"
+        }
+    }
+]
