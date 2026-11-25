@@ -12387,12 +12387,16 @@ class Event extends AppModel
             $templateVersion = isset($object['template_version']) && ctype_digit((string)$object['template_version']) ? (int)$object['template_version'] : null;
             $templateKey = $name . '|' . $templateUuid . '|' . $templateVersion;
             if (!array_key_exists($templateKey, $templates)) {
-                $templates[$templateKey] = $objectTemplate->findForObject($name, $templateUuid, $templateVersion);
+                $disabled = false;
+                $found = $objectTemplate->findForObject($name, $templateUuid, $templateVersion, $disabled);
+                $templates[$templateKey] = $disabled ? false : $found;
             }
             if (empty($templates[$templateKey])) {
                 $results[$object['uuid']] = [
                     'state' => 'failed',
-                    'message' => __('No object template is named "%s".', $name),
+                    'message' => $templates[$templateKey] === false
+                        ? __('The object template “%s” is not enabled on this instance.', $name)
+                        : __('No object template is named "%s".', $name),
                 ];
                 continue;
             }

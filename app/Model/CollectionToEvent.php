@@ -329,9 +329,10 @@ class CollectionToEvent extends AppModel
                 $rows[$at] = self::row($key, $member ? 'standalone' : 'answer', null, $member ? __('Not found or not authorised.') : __('Not in this collection.')) + $rows[$at];
                 continue;
             }
-            $template = $this->model('ObjectTemplate')->findForObject($record['name'], $record['template_uuid'], $record['template_version']);
+            $disabled = false;
+            $template = $this->model('ObjectTemplate')->findForObject($record['name'], $record['template_uuid'], $record['template_version'], $disabled);
             $row = self::row($key, $member ? 'standalone' : 'answer', $template === null ? null : 'object',
-                $template === null ? __('No “%s” object template on this instance: it stays as it is.', $record['name']) : null
+                $template === null ? self::noTemplate($record['name'], $disabled) : null
             ) + self::objectFields($record['name'], $template, $record['meta_category'], $record['comment'], $record['attributes']);
             $rows[$at] = self::placed($row, $member, $target) + ['_record' => $record] + $rows[$at];
         }
@@ -462,13 +463,14 @@ class CollectionToEvent extends AppModel
                     '_reach' => $attributeReach,
                 ];
             }
-            $template = $this->model('ObjectTemplate')->findForObject($object['name'], $object['template_uuid'], $object['template_version']);
+            $disabled = false;
+            $template = $this->model('ObjectTemplate')->findForObject($object['name'], $object['template_uuid'], $object['template_version'], $disabled);
             $reason = $same ? __('Already in this event.') : null;
             if ($reason === null && empty($inside)) {
                 $reason = __('None of its attributes is yours to read.');
             }
             if ($reason === null && $template === null) {
-                $reason = __('No “%s” object template on this instance: it stays as it is.', $object['name']);
+                $reason = self::noTemplate($object['name'], $disabled);
             }
             $row = self::row($key, 'object', $reason === null ? 'object' : null, $reason)
                 + ['member' => isset($members[$key])]
@@ -1317,6 +1319,18 @@ class CollectionToEvent extends AppModel
             $row['why'] = $member['description'];
         }
         return $row;
+    }
+
+    /**
+     * @param string $name The object's
+     * @param bool $disabled Whether its template is here but disabled
+     * @return string Why it cannot become an object
+     */
+    private static function noTemplate($name, $disabled)
+    {
+        return $disabled
+            ? __('The object template “%s” is not enabled on this instance: it stays as it is.', $name)
+            : __('No “%s” object template on this instance: it stays as it is.', $name);
     }
 
     /**
