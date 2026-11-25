@@ -1201,10 +1201,28 @@ class Collection extends AppModel
         if (empty($org)) {
             return;
         }
-        $this->updateAll(
-            ['Collection.published' => false, 'Collection.modified' => "'" . date('Y-m-d H:i:s') . "'"],
-            ['AND' => [$conditions, ['Collection.orgc_id' => $org['Orgc']['id'], 'Collection.published' => true]]]
-        );
+        $this->markChanged(['AND' => [$conditions, ['Collection.orgc_id' => $org['Orgc']['id'], 'Collection.published' => true]]]);
+    }
+
+    /**
+     * These collections changed: partners lack the change until the next
+     * publish. A publish dates `modified` and `last_published` alike and an
+     * unpublish by hand keeps `modified`, so a change in the second of the
+     * last publish is dated a second later, never to read as one.
+     *
+     * @param array $conditions Which collections
+     */
+    public function markChanged(array $conditions)
+    {
+        $now = time();
+        $at = function ($stamp) {
+            return ['Collection.published' => false, 'Collection.modified' => "'" . date('Y-m-d H:i:s', $stamp) . "'"];
+        };
+        $this->updateAll($at($now + 1), ['AND' => [$conditions, ['Collection.last_published >=' => date('Y-m-d H:i:s', $now)]]]);
+        $this->updateAll($at($now), ['AND' => [$conditions, ['OR' => [
+            ['Collection.last_published' => null],
+            ['Collection.last_published <' => date('Y-m-d H:i:s', $now)],
+        ]]]]);
     }
 
     /**

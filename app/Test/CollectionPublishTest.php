@@ -509,23 +509,28 @@ class CollectionPublishTest extends TestCase
     }
 
     /**
-     * @param array $fields What unpublishFor() wrote
+     * markChanged() on these collections: unpublished, `modified` moved, in
+     * two writes split on the last publish's second.
+     *
+     * @param array $scope The collections it was asked for
      */
-    private function assertUnpublishedAndChanged(array $fields)
+    private function assertMarkedChanged(array $scope)
     {
-        $this->assertSame(false, $fields['Collection.published']);
-        $this->assertRegExp("/^'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'$/", $fields['Collection.modified'], 'a change partners lack, not unpublished by hand');
+        $this->assertCount(2, $this->collection->updates);
+        foreach ($this->collection->updates as $update) {
+            $this->assertSame(false, $update[0]['Collection.published']);
+            $this->assertRegExp("/^'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'$/", $update[0]['Collection.modified'], 'a change partners lack, not unpublished by hand');
+            $this->assertSame($scope, $update[1]['AND'][0]);
+        }
     }
 
     public function testAGraphSavedHereUnpublishesItsOrganisationsCollection()
     {
         $this->collection->graphSaved(array('object_type' => 'Collection', 'object_uuid' => 'C0000000-0000-4000-8000-00000000000A', 'orgc_uuid' => 'org-a', 'locked' => false, 'distribution' => '1'));
-        $this->assertCount(1, $this->collection->updates);
-        $this->assertUnpublishedAndChanged($this->collection->updates[0][0]);
-        $this->assertSame(array('AND' => array(
+        $this->assertMarkedChanged(array('AND' => array(
             array('Collection.uuid' => array(self::COLLECTION, strtoupper(self::COLLECTION))),
             array('Collection.orgc_id' => 9, 'Collection.published' => true),
-        )), $this->collection->updates[0][1]);
+        )));
 
         $this->collection->updates = array();
         $this->collection->graphSaved(array('object_type' => 'Collection', 'object_uuid' => self::COLLECTION, 'orgc_uuid' => 'org-a', 'locked' => true));
@@ -541,23 +546,37 @@ class CollectionPublishTest extends TestCase
         $this->elements->lists = array(array(10 => 1, 11 => 2), array(12 => 2, 13 => 3));
         $this->collection->relationshipSaved($this->link(self::EVENT, self::ATTRIBUTE));
         $this->assertSame(array('CollectionElement.element_uuid' => self::EVENT), $this->elements->asked[0], 'members are stored lowercase');
-        $this->assertUnpublishedAndChanged($this->collection->updates[0][0]);
-        $this->assertSame(array('AND' => array(
+        $this->assertMarkedChanged(array('AND' => array(
             array('Collection.id' => array(2)),
             array('Collection.orgc_id' => 9, 'Collection.published' => true),
-        )), $this->collection->updates[0][1]);
+        )));
 
         $this->collection->updates = array();
         $this->collection->listed = array(array(7 => 7));
         $this->elements->lists = array(array(14 => 7));
         $this->collection->relationshipSaved($this->link(self::COLLECTION, self::EVENT, 'org-a', 'Collection', 'Event'));
-        $this->assertSame(array(7), $this->collection->updates[0][1]['AND'][0]['Collection.id'], 'from the collection to a member');
+        $this->assertSame(array(7), $this->collection->updates[0][1]['AND'][0]['AND'][0]['Collection.id'], 'from the collection to a member');
 
         $this->collection->updates = array();
         $this->elements->lists = array(array(10 => 1), array(12 => 2));
         $this->collection->relationshipSaved($this->link(self::EVENT, self::ATTRIBUTE));
         $this->collection->relationshipSaved(array('locked' => true) + $this->link(self::EVENT, self::ATTRIBUTE));
         $this->assertSame(array(), $this->collection->updates, 'no collection holds both; a capture');
+    }
+
+    public function testAChangeInTheSecondOfTheLastPublishIsDatedAfterIt()
+    {
+        $this->collection->markChanged(array('Collection.id' => 7));
+
+        list($first, $second) = $this->collection->updates;
+        $now = trim($second[0]['Collection.modified'], "'");
+        $this->assertSame(array('Collection.last_published >=' => $now), $first[1]['AND'][1]);
+        $this->assertSame(strtotime($now) + 1, strtotime(trim($first[0]['Collection.modified'], "'")), 'a second later than a publish that second');
+        $this->assertSame(
+            array('OR' => array(array('Collection.last_published' => null), array('Collection.last_published <' => $now))),
+            $second[1]['AND'][1],
+            'any other one is dated now'
+        );
     }
 
     public function testWhatStaysOnThisInstanceLeavesTheCollectionPublished()

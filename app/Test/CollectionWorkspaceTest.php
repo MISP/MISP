@@ -225,6 +225,11 @@ class WorkspaceTestParent
         $this->touched[] = $conditions['Collection.id'];
         return true;
     }
+
+    public function markChanged(array $conditions)
+    {
+        $this->touched[] = $conditions['Collection.id'];
+    }
 }
 
 /** A CollectionElement with its storage in memory. */

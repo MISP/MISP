@@ -418,10 +418,7 @@ class CollectionElement extends AppModel
         if (empty($collectionId)) {
             return;
         }
-        $this->Collection->updateAll(
-            ['Collection.modified' => "'" . date('Y-m-d H:i:s') . "'", 'Collection.published' => false],
-            ['Collection.id' => $collectionId]
-        );
+        $this->Collection->markChanged(['Collection.id' => $collectionId]);
     }
 
     /**
