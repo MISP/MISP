@@ -307,6 +307,55 @@ class WorkspaceTestElement extends CollectionElement
     }
 }
 
+/** A collection's members in memory, read as drawnMembers() asks for them. */
+class WorkingTestElement extends CollectionElement
+{
+    public $rows = array();
+    public $rowsRead = 0;
+    /** @var array SHA-256 => the text an attribute the user can read holds */
+    public $readableTexts = array();
+
+    public function __construct()
+    {
+    }
+
+    public function find($type = 'first', $query = array())
+    {
+        $out = array();
+        foreach ($this->rows as $id => $row) {
+            $keep = true;
+            foreach ($query['conditions'] as $key => $wanted) {
+                if ($key === 'CollectionElement.created >') {
+                    $keep = $keep && $row['created'] > $wanted;
+                } elseif ($key === 'CollectionElement.collection_id') {
+                    $keep = $keep && in_array($row['collection_id'], (array)$wanted, false);
+                } else {
+                    $keep = $keep && in_array($row[substr($key, strlen('CollectionElement.'))], (array)$wanted, true);
+                }
+            }
+            if ($keep) {
+                $out[$id] = array('CollectionElement' => $row);
+            }
+        }
+        ksort($out);
+        if (isset($query['limit'])) {
+            $out = array_slice($out, 0, $query['limit'], true);
+        }
+        $this->rowsRead += count($out);
+        return array_values($out);
+    }
+
+    public function attachTargets(array $user, array $elements)
+    {
+        foreach ($elements as $i => $element) {
+            if (isset($this->readableTexts[$element['element_sha256']])) {
+                $elements[$i]['AttributeValue'] = array('value' => $this->readableTexts[$element['element_sha256']]);
+            }
+        }
+        return $elements;
+    }
+}
+
 /** captureElements() on an empty collection: every element it is sent is new. */
 class WorkspaceTestCaptureElement extends WorkspaceTestElement
 {
@@ -804,6 +853,142 @@ class CollectionWorkspaceTest extends TestCase
         ))), false, true);
 
         $this->assertSame(self::EVENT, $elements->saved[0]['element_uuid']);
+    }
+
+    /**
+     * A collection of 2,300 members of every kind, and a graph holding 25 of
+     * them (some joined early, some past the first 2,000) and 15 extras.
+     *
+     * @return array [WorkingTestElement, graph nodes]
+     */
+    private static function bigCollection()
+    {
+        $elements = new WorkingTestElement();
+        $types = array('Event', 'Attribute', 'Object', 'GalaxyCluster', 'StandaloneObject');
+        for ($i = 1; $i <= 2300; $i++) {
+            $row = array(
+                'uuid' => sprintf('row-%04d', $i), 'collection_id' => 7, 'element_type' => null, 'element_uuid' => null,
+                'element_sha256' => null, 'element_value' => null, 'description' => 'why ' . $i, 'user_id' => $i % 3,
+                'created' => sprintf('2026-11-%02d %02d:%02d:00', 1 + intdiv($i, 1000), intdiv($i % 1000, 60) % 24, $i % 60),
+                'origin' => null,
+            );
+            if ($i % 4 === 0) {
+                $text = 'value-' . $i . '.example';
+                $row['element_type'] = 'AttributeValue';
+                $row['element_sha256'] = hash('sha256', $text);
+                if ($i % 8 === 0) {
+                    $row['element_value'] = $text;
+                } elseif ($i % 3 === 0) {
+                    $elements->readableTexts[$row['element_sha256']] = $text;
+                }
+            } else {
+                $row['element_type'] = $types[$i % 5];
+                $row['element_uuid'] = sprintf('9b000000-0000-4000-8000-%012d', $i);
+            }
+            $elements->rows[$i] = $row;
+        }
+        $graph = array();
+        foreach (array(3, 4, 8, 12, 50, 51, 52, 99, 400, 1000, 1500, 1999, 2000, 2001, 2002, 2050, 2100, 2200, 2296, 2297, 2298, 2299, 2300, 7, 9) as $i) {
+            $row = $elements->rows[$i];
+            $graph[] = $row['element_type'] === 'AttributeValue'
+                ? array('type' => 'Value', 'value' => 'v', 'sha256' => $row['element_sha256'], 'x' => $i)
+                : array('type' => $row['element_type'], 'uuid' => $row['element_uuid'], 'x' => $i);
+        }
+        for ($i = 1; $i <= 15; $i++) {
+            $graph[] = array('type' => 'Event', 'uuid' => sprintf('9c000000-0000-4000-8000-%012d', $i));
+        }
+        return array($elements, $graph);
+    }
+
+    /**
+     * The members drawn as the working view drew them before it read in
+     * bounds: every member, then those the graph lacks while there is room.
+     *
+     * @return array [nodes, every member's element by key, left out]
+     */
+    private static function drawnReadingEveryMember(WorkingTestElement $elements, array $graph, $since = null)
+    {
+        $held = array();
+        foreach ($graph as $node) {
+            $held[AnalystGraphDocumentTool::nodeKey($node)] = true;
+        }
+        $room = max(0, AnalystGraphDocumentTool::MAX_NODES - count($graph));
+        $byKey = array();
+        $nodes = array();
+        $leftOut = 0;
+        foreach ($elements->rows as $element) {
+            if ($since !== null && !($element['created'] > $since)) {
+                continue;
+            }
+            $target = CollectionElement::itemTarget($element['element_type'] === 'AttributeValue'
+                ? array('type' => 'Value', 'sha256' => $element['element_sha256'])
+                : array('type' => $element['element_type'], 'uuid' => $element['element_uuid']));
+            $byKey[$target['key']] = $element;
+            if (isset($held[$target['key']])) {
+                continue;
+            }
+            if (count($nodes) >= $room) {
+                $leftOut++;
+                continue;
+            }
+            $held[$target['key']] = true;
+            if ($target['element_type'] === 'AttributeValue') {
+                $text = $element['element_value'] ?? ($elements->readableTexts[$target['address']] ?? null);
+                $nodes[] = $text === null ? null : array('type' => 'Value', 'value' => $text, 'sha256' => $target['address']);
+            } else {
+                $nodes[] = array('type' => $element['element_type'], 'uuid' => $target['address']);
+            }
+        }
+        return array(array_values(array_filter($nodes)), $byKey, $leftOut);
+    }
+
+    public function testAWorkingViewDrawsWhatItDidReadingAtMostMaxNodesBesidesTheGraph()
+    {
+        list($elements, $graph) = self::bigCollection();
+        list($nodes, $byKey, $leftOut) = self::drawnReadingEveryMember($elements, $graph);
+
+        $drawn = $elements->drawnMembers(self::user(), 7, $graph);
+
+        $this->assertSame($nodes, $drawn['nodes']);
+        $this->assertSame(25, $drawn['in_graph']);
+        $this->assertSame($leftOut, count($elements->rows) - $drawn['in_graph'] - $drawn['room'], 'members left out');
+        $drawnKeys = array();
+        foreach (array_merge($graph, $drawn['nodes']) as $node) {
+            $drawnKeys[AnalystGraphDocumentTool::nodeKey($node)] = true;
+        }
+        $expected = array_intersect_key($byKey, $drawnKeys);
+        ksort($expected);
+        $got = $drawn['elements'];
+        ksort($got);
+        $this->assertSame($expected, $got, 'the elements the marks read: every member drawn, no other');
+        $this->assertLessThanOrEqual(AnalystGraphDocumentTool::MAX_NODES + count($graph), $elements->rowsRead);
+    }
+
+    public function testMembersJoinedSinceAreDrawnAsBefore()
+    {
+        list($elements, $graph) = self::bigCollection();
+        $since = $elements->rows[1200]['created'];
+        list($nodes) = self::drawnReadingEveryMember($elements, $graph, $since);
+
+        $drawn = $elements->drawnMembers(self::user(), 7, $graph, $since);
+
+        $this->assertSame($nodes, $drawn['nodes']);
+        $this->assertLessThanOrEqual(AnalystGraphDocumentTool::MAX_NODES, $elements->rowsRead, 'the graph\'s own are not looked up');
+    }
+
+    public function testAFullGraphLeavesNoRoomAndReadsNoNewMember()
+    {
+        list($elements) = self::bigCollection();
+        $graph = array();
+        for ($i = 1; $i <= AnalystGraphDocumentTool::MAX_NODES; $i++) {
+            $graph[] = array('type' => 'Event', 'uuid' => sprintf('9c000000-0000-4000-8000-%012d', $i));
+        }
+
+        $drawn = $elements->drawnMembers(self::user(), 7, $graph);
+
+        $this->assertSame(array(), $drawn['nodes']);
+        $this->assertSame(0, $drawn['room']);
+        $this->assertSame(0, $elements->rowsRead);
     }
 
     public function testRemovingTakesKeysAndSaysWhatWasNotThere()

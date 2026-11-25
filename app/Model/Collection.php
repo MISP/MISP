@@ -153,8 +153,8 @@ class Collection extends AppModel
     /** Set while a publish, or a capture from another instance, writes the published state. */
     private $writingPublishState = false;
 
-    /** @var array|null withheldScopes(), read once for a request from another instance */
-    private $servedScopes = null;
+    /** @var array|null withheldCollections(), read once for a request from another instance */
+    private $servedWithheld = null;
 
     public $validate = [
         'uuid' => [
@@ -433,7 +433,7 @@ class Collection extends AppModel
 
     /**
      * The graphs its organisation drew on it and the relationships between
-     * its members: what withheldScopes() kept back until the publish.
+     * its members: what withheldScopesFor() kept back until the publish.
      *
      * @param array $found The collection, with its Orgc
      * @return array [type => conditions] for AnalystData::push(), empty for none
@@ -983,34 +983,101 @@ class Collection extends AppModel
     }
 
     /**
-     * What withheld collections keep from partners: per collection, its
-     * organisation and the addresses of its members, its own included.
+     * The shared collections not published since their last change.
      *
-     * @return array [{uuid, orgc_uuid, members: [address => true]}]
+     * @return array [{id, uuid, orgc_uuid}], lowercased
      */
-    public function withheldScopes()
+    public function withheldCollections()
     {
         $rows = $this->find('all', [
             'recursive' => -1,
             'contain' => ['Orgc'],
             'fields' => ['Collection.id', 'Collection.uuid', 'Orgc.uuid'],
-            'conditions' => ['Collection.distribution !=' => 0, 'Collection.published' => false],
+            'conditions' => self::withheldConditions(),
         ]);
-        if (empty($rows)) {
+        $collections = [];
+        foreach ($rows as $row) {
+            $collections[] = [
+                'id' => (int)$row['Collection']['id'],
+                'uuid' => strtolower($row['Collection']['uuid']),
+                'orgc_uuid' => strtolower((string)($row['Orgc']['uuid'] ?? '')),
+            ];
+        }
+        return $collections;
+    }
+
+    /**
+     * What withheld collections keep back of these relationships: per
+     * collection, its organisation and which of the addresses they name it
+     * holds, its own included. Only the ends of these rows are looked up,
+     * one indexed lookup per address column and chunk, so the cost follows
+     * the rows, not the size of the collections.
+     *
+     * @param array $relationships Unwrapped
+     * @param array|null $collections withheldCollections()'s, when read already
+     * @return array [{uuid, orgc_uuid, members: [address => true]}]
+     */
+    public function withheldScopesFor(array $relationships, $collections = null)
+    {
+        $collections = $collections ?? $this->withheldCollections();
+        if (empty($collections)) {
             return [];
         }
-        $members = $this->memberAddresses(Hash::extract($rows, '{n}.Collection.id'));
+        $orgs = [];
+        foreach ($collections as $collection) {
+            $orgs[$collection['orgc_uuid']] = true;
+        }
+        $wanted = ['element_uuid' => [], 'element_sha256' => []];
+        foreach ($relationships as $row) {
+            $orgc = strtolower((string)($row['orgc_uuid'] ?? ''));
+            if ($orgc === '' || !isset($orgs[$orgc])) {
+                continue;
+            }
+            foreach (['object', 'related_object'] as $end) {
+                $hex = $row[$end . '_sha256'] ?? null;
+                $uuid = $row[$end . '_uuid'] ?? null;
+                if (is_string($hex) && trim($hex) !== '') {
+                    $wanted['element_sha256'][strtolower(trim($hex))] = true;
+                } elseif (is_string($uuid) && trim($uuid) !== '') {
+                    $wanted['element_uuid'][strtolower(trim($uuid))] = true;
+                }
+            }
+        }
+        $ids = array_column($collections, 'id');
+        $members = [];
+        foreach ($wanted as $column => $addresses) {
+            // Separate statements: an OR across the two columns loses both indexes
+            foreach (array_chunk(array_map('strval', array_keys($addresses)), 500) as $chunk) {
+                $rows = $this->CollectionElement->find('all', [
+                    'recursive' => -1,
+                    'fields' => ['CollectionElement.collection_id', 'CollectionElement.' . $column],
+                    'conditions' => ['CollectionElement.' . $column => $chunk, 'CollectionElement.collection_id' => $ids],
+                ]);
+                foreach ($rows as $row) {
+                    $members[(int)$row['CollectionElement']['collection_id']][strtolower($row['CollectionElement'][$column])] = true;
+                }
+            }
+        }
         $scopes = [];
-        foreach ($rows as $row) {
-            $id = (int)$row['Collection']['id'];
-            $uuid = strtolower($row['Collection']['uuid']);
+        foreach ($collections as $collection) {
             $scopes[] = [
-                'uuid' => $uuid,
-                'orgc_uuid' => strtolower((string)($row['Orgc']['uuid'] ?? '')),
-                'members' => ($members[$id] ?? []) + [$uuid => true],
+                'uuid' => $collection['uuid'],
+                'orgc_uuid' => $collection['orgc_uuid'],
+                'members' => ($members[$collection['id']] ?? []) + [$collection['uuid'] => true],
             ];
         }
         return $scopes;
+    }
+
+    /**
+     * @param array $rows Relationship rows, wrapped or not
+     * @return array The same, unwrapped
+     */
+    private static function relationshipRows(array $rows)
+    {
+        return array_map(function ($row) {
+            return $row['Relationship'] ?? $row;
+        }, array_values($rows));
     }
 
     /**
@@ -1018,7 +1085,7 @@ class Collection extends AppModel
      * members, waits for the collection's publish when the collection's
      * organisation made it. Notes and opinions never wait.
      *
-     * @param array $scopes withheldScopes()'s
+     * @param array $scopes withheldScopesFor()'s
      * @param string $type
      * @param array $row Unwrapped analyst data
      * @return bool
@@ -1057,7 +1124,7 @@ class Collection extends AppModel
         if (empty($byType['Graph']) && empty($byType['Relationship'])) {
             return $byType;
         }
-        $scopes = $this->withheldScopes();
+        $scopes = $this->withheldScopesFor(self::relationshipRows($byType['Relationship'] ?? []));
         if (empty($scopes)) {
             return $byType;
         }
@@ -1084,13 +1151,13 @@ class Collection extends AppModel
         if (empty($rows) || !SyncTool::requesterIsMisp()) {
             return $rows;
         }
-        if ($this->servedScopes === null) {
-            $this->servedScopes = $this->withheldScopes();
+        if ($this->servedWithheld === null) {
+            $this->servedWithheld = $this->withheldCollections();
         }
-        if (empty($this->servedScopes)) {
+        if (empty($this->servedWithheld)) {
             return $rows;
         }
-        $scopes = $this->servedScopes;
+        $scopes = $this->withheldScopesFor(self::relationshipRows($rows), $this->servedWithheld);
         return array_values(array_filter($rows, function ($row) use ($scopes) {
             return !self::holdsBack($scopes, 'Relationship', $row['Relationship'] ?? $row);
         }));

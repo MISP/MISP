@@ -1282,6 +1282,128 @@ class CollectionElement extends AppModel
     }
 
     /**
+     * The members a working view draws besides a graph's nodes: which of
+     * those nodes are members, looked up by their keys, then the members the
+     * graph lacks, in the order they joined, as many as there is room for.
+     * Reads at most MAX_NODES rows besides the graph's own, however many
+     * members the collection holds: of the first MAX_NODES, at most one per
+     * graph node is drawn already. A value is drawn by the text it keeps;
+     * one kept without text only when the user can read an attribute
+     * holding it.
+     *
+     * @param array $user
+     * @param int $collectionId
+     * @param array $graphNodes The graph's stored nodes
+     * @param string|null $since Only the members that joined after it; the
+     *      graph's own members are then not looked up
+     * @return array {nodes: [document node], elements: {key: element} for
+     *      every member drawn, in_graph: members among the graph's nodes,
+     *      room: how many members the graph left room for}
+     */
+    public function drawnMembers(array $user, $collectionId, array $graphNodes, $since = null)
+    {
+        $fields = [
+            'CollectionElement.uuid', 'CollectionElement.element_type', 'CollectionElement.element_uuid',
+            'CollectionElement.element_sha256', 'CollectionElement.element_value', 'CollectionElement.description',
+            'CollectionElement.user_id', 'CollectionElement.created', 'CollectionElement.origin',
+        ];
+        $held = [];
+        $byColumn = [];
+        foreach ($graphNodes as $node) {
+            if (!is_array($node) || !isset($node['type'])) {
+                continue;
+            }
+            $key = AnalystGraphDocumentTool::nodeKey($node);
+            $held[$key] = true;
+            $target = self::itemTarget($key);
+            if ($target !== null && !isset($target['error'])) {
+                $byColumn[$target['column']][$target['address']] = true;
+            }
+        }
+        $elements = [];
+        if ($since === null) {
+            foreach ($byColumn as $column => $addresses) {
+                foreach (array_chunk(array_map('strval', array_keys($addresses)), 500) as $chunk) {
+                    $rows = $this->find('all', [
+                        'recursive' => -1,
+                        'fields' => $fields,
+                        'conditions' => ['CollectionElement.collection_id' => $collectionId, 'CollectionElement.' . $column => $chunk],
+                    ]);
+                    foreach ($rows as $row) {
+                        $key = self::memberTarget($row['CollectionElement'])['key'] ?? null;
+                        if ($key !== null && isset($held[$key])) {
+                            $elements[$key] = $row['CollectionElement'];
+                        }
+                    }
+                }
+            }
+        }
+        $inGraph = count($elements);
+        $room = max(0, AnalystGraphDocumentTool::MAX_NODES - count($graphNodes));
+        $conditions = ['CollectionElement.collection_id' => $collectionId];
+        if ($since !== null) {
+            $conditions['CollectionElement.created >'] = $since;
+        }
+        $rows = $room === 0 ? [] : $this->find('all', [
+            'recursive' => -1,
+            'fields' => $fields,
+            'conditions' => $conditions,
+            'order' => ['CollectionElement.id' => 'ASC'],
+            'limit' => AnalystGraphDocumentTool::MAX_NODES,
+        ]);
+        $nodes = [];
+        $values = [];
+        foreach ($rows as $row) {
+            $element = $row['CollectionElement'];
+            $target = self::memberTarget($element);
+            if ($target === null || isset($held[$target['key']])) {
+                continue;
+            }
+            if (count($nodes) >= $room) {
+                break;
+            }
+            $held[$target['key']] = true;
+            $elements[$target['key']] = $element;
+            if ($target['element_type'] === 'AttributeValue' && is_string($element['element_value'])) {
+                $nodes[] = ['type' => 'Value', 'value' => $element['element_value'], 'sha256' => $target['address']];
+            } elseif ($target['element_type'] === 'AttributeValue') {
+                $values[] = ['element_type' => 'AttributeValue', 'element_sha256' => $target['address'], 'at' => count($nodes), 'key' => $target['key']];
+                $nodes[] = null;
+            } else {
+                $nodes[] = ['type' => $element['element_type'], 'uuid' => $target['address']];
+            }
+        }
+        foreach ($this->attachTargets($user, $values) as $value) {
+            if (isset($value['AttributeValue']['value'])) {
+                $nodes[$value['at']] = [
+                    'type' => 'Value',
+                    'value' => $value['AttributeValue']['value'],
+                    'sha256' => $value['element_sha256'],
+                ];
+            } else {
+                unset($elements[$value['key']]);
+            }
+        }
+        return [
+            'nodes' => array_values(array_filter($nodes)),
+            'elements' => $elements,
+            'in_graph' => $inGraph,
+            'room' => $room,
+        ];
+    }
+
+    /**
+     * @param array $element A stored row, unwrapped
+     * @return array|null itemTarget()'s for the record it holds
+     */
+    private static function memberTarget(array $element)
+    {
+        return self::itemTarget($element['element_type'] === 'AttributeValue'
+            ? ['type' => 'Value', 'sha256' => $element['element_sha256']]
+            : ['type' => $element['element_type'], 'uuid' => $element['element_uuid']]);
+    }
+
+    /**
      * @param array $element
      * @return bool Whether a MISP older than 3.0 can hold the element
      */

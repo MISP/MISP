@@ -114,8 +114,8 @@ class PublishTestCollection extends Collection
 {
     public $saves = array();
     public $updates = array();
-    public $scopes = array();
-    public $scopeReads = 0;
+    public $withheld = array();
+    public $withheldReads = 0;
     public $listed = array();
     public $fields = array();
 
@@ -147,10 +147,10 @@ class PublishTestCollection extends Collection
         return array_shift($this->listed) ?? array();
     }
 
-    public function withheldScopes()
+    public function withheldCollections()
     {
-        $this->scopeReads++;
-        return $this->scopes;
+        $this->withheldReads++;
+        return $this->withheld;
     }
 }
 
@@ -274,6 +274,20 @@ class CollectionPublishTest extends TestCase
         ));
     }
 
+    /** The withheld collection, as withheldCollections() reads it. */
+    private function withheld()
+    {
+        return array(array('id' => 7, 'uuid' => self::COLLECTION, 'orgc_uuid' => 'org-a'));
+    }
+
+    /** Members of collection 7, as the element lookup answers them. */
+    private function held($column, array $addresses)
+    {
+        return array_map(function ($address) use ($column) {
+            return array('CollectionElement' => array('collection_id' => 7, $column => $address));
+        }, $addresses);
+    }
+
     private function link($from, $to, $orgc = 'org-a', $fromType = 'Event', $toType = 'Attribute')
     {
         $row = array('orgc_uuid' => $orgc, 'object_type' => $fromType, 'related_object_type' => $toType);
@@ -321,7 +335,8 @@ class CollectionPublishTest extends TestCase
 
     public function testWithoutHeldBackLeavesTheRestAlone()
     {
-        $this->collection->scopes = $this->scopes();
+        $this->collection->withheld = $this->withheld();
+        $this->elements->lists = array($this->held('element_uuid', array(self::EVENT, self::ATTRIBUTE)));
         $byType = array(
             'Note' => array(array('Note' => array('orgc_uuid' => 'org-a', 'object_uuid' => self::EVENT))),
             'Relationship' => array(
@@ -334,24 +349,51 @@ class CollectionPublishTest extends TestCase
         $this->assertSame($byType['Note'], $out['Note']);
         $this->assertSame(array('goes'), Hash::extract($out['Relationship'], '{n}.Relationship.uuid'));
         $this->assertSame(array(), $out['Graph']);
+        $this->assertSame(
+            array(array('CollectionElement.element_uuid' => array(self::EVENT, self::ATTRIBUTE), 'CollectionElement.collection_id' => array(7))),
+            $this->elements->asked,
+            'only the ends of the links of the withheld collection\'s organisation'
+        );
 
-        $this->collection->scopes = array();
+        $this->collection->withheld = array();
         $this->assertSame($byType, $this->collection->withoutHeldBack($byType), 'nothing withheld, nothing left out');
         $this->assertSame(array('Note' => array()), $this->collection->withoutHeldBack(array('Note' => array())));
-        $this->assertSame(2, $this->collection->scopeReads, 'no graph nor link: the scopes are not read');
+        $this->assertSame(2, $this->collection->withheldReads, 'no graph nor link: nothing is read');
+    }
+
+    public function testOfABatchOnlyTheLinkInsideAWithheldCollectionIsHeldBack()
+    {
+        $this->collection->withheld = $this->withheld();
+        $inside = array('uuid' => 'inside') + $this->link(self::EVENT, self::HASH, 'org-a', 'Event', 'AttributeValue');
+        $outside = array('uuid' => 'outside') + $this->link(self::EVENT, self::ELSEWHERE);
+        // the uuid ends, then the SHA-256 ones
+        $this->elements->lists = array($this->held('element_uuid', array(self::EVENT)), $this->held('element_sha256', array(self::HASH)));
+
+        $out = $this->collection->withoutHeldBack(array('Relationship' => array(array('Relationship' => $inside), array('Relationship' => $outside))));
+
+        $this->assertSame(array('outside'), Hash::extract($out['Relationship'], '{n}.Relationship.uuid'));
+        $this->assertSame(array(
+            array('CollectionElement.element_uuid' => array(self::EVENT, self::ELSEWHERE), 'CollectionElement.collection_id' => array(7)),
+            array('CollectionElement.element_sha256' => array(self::HASH), 'CollectionElement.collection_id' => array(7)),
+        ), $this->elements->asked, 'two statements, each on its unique index, for the batch\'s ends alone');
     }
 
     public function testOnlyAnotherInstanceIsServedWithoutWhatIsHeldBack()
     {
-        $this->collection->scopes = $this->scopes();
+        $this->collection->withheld = $this->withheld();
         $rows = array(array('Relationship' => $this->link(self::EVENT, self::ATTRIBUTE)));
         $this->assertSame($rows, $this->collection->servedRelationships($rows), 'an API client');
-        $this->assertSame(0, $this->collection->scopeReads);
+        $this->assertSame(0, $this->collection->withheldReads);
 
         Configure::write('CurrentRequesterMispVersion', '3.0.0');
+        $this->elements->lists = array(
+            $this->held('element_uuid', array(self::EVENT, self::ATTRIBUTE)),
+            $this->held('element_uuid', array(self::EVENT, self::ATTRIBUTE)),
+        );
         $this->assertSame(array(), $this->collection->servedRelationships($rows));
         $this->collection->servedRelationships($rows);
-        $this->assertSame(1, $this->collection->scopeReads, 'read once for the request');
+        $this->assertSame(1, $this->collection->withheldReads, 'the withheld collections are read once for the request');
+        $this->assertCount(2, $this->elements->asked, 'their members are asked per call, for its rows alone');
     }
 
     public function testAnotherInstanceIsServedAsAnyUserUnlessOlderThan30()

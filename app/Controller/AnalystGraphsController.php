@@ -187,7 +187,7 @@ class AnalystGraphsController extends AppController
         if (empty($collection)) {
             return null;
         }
-        list($joined) = $this->__memberNodes($user, $collection['Collection']['id'], $graphNodes, $graph['modified']);
+        $joined = ClassRegistry::init('CollectionElement')->drawnMembers($user, $collection['Collection']['id'], $graphNodes, $graph['modified'])['nodes'];
         if (empty($joined)) {
             return 0;
         }
@@ -239,15 +239,15 @@ class AnalystGraphsController extends AppController
             $summary = $this->Graph->typed($graph['Graph']);
         }
         $document['nodes'] = $this->__answersAsMembers($collection['id'], $document['nodes'] ?? []);
-        list($members, $elements, $leftOut) = $this->__memberNodes($user, $collection['id'], $document['nodes']);
-        $document['nodes'] = array_merge($document['nodes'], $members);
+        $drawn = ClassRegistry::init('CollectionElement')->drawnMembers($user, $collection['id'], $document['nodes']);
+        $document['nodes'] = array_merge($document['nodes'], $drawn['nodes']);
         $payload = $this->AnalystGraphData->resolve($user, $document);
         $summary['node_count'] = $payload['meta']['nodes'];
-        $payload['meta']['members'] = count($elements);
-        $payload['meta']['members_left_out'] = $leftOut;
+        $payload['meta']['members'] = (int)$collection['element_count'];
+        $payload['meta']['members_left_out'] = max(0, (int)$collection['element_count'] - $drawn['in_graph'] - $drawn['room']);
         $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
         $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($user, $payload['document']['nodes']);
-        $payload['working'] = $this->__workingMarks($user, $collection, $payload['document']['nodes'], $elements, $members);
+        $payload['working'] = $this->__workingMarks($user, $collection, $payload['document']['nodes'], $drawn['elements'], $drawn['nodes']);
         return $this->RestResponse->viewData(['Graph' => $summary, 'Collection' => $collection] + $payload, 'json');
     }
 
@@ -302,85 +302,6 @@ class AnalystGraphsController extends AppController
     }
 
     /**
-     * The collection's members as graph document nodes, in the order they
-     * joined, leaving out those the graph holds; no more than the graph
-     * would hold in all. A value is drawn by the text it keeps; one kept
-     * without text only when the user can read an attribute holding it.
-     *
-     * @param array $user
-     * @param int $collectionId
-     * @param array $graphNodes
-     * @param string|null $since Only the members that joined after it
-     * @return array [nodes, every member's element by node key, how many
-     *               found no room]
-     */
-    private function __memberNodes(array $user, $collectionId, array $graphNodes, $since = null)
-    {
-        $CollectionElement = ClassRegistry::init('CollectionElement');
-        $conditions = ['CollectionElement.collection_id' => $collectionId];
-        if ($since !== null) {
-            $conditions['CollectionElement.created >'] = $since;
-        }
-        $elements = $CollectionElement->find('all', [
-            'recursive' => -1,
-            'fields' => [
-                'CollectionElement.uuid', 'CollectionElement.element_type', 'CollectionElement.element_uuid',
-                'CollectionElement.element_sha256', 'CollectionElement.element_value', 'CollectionElement.description',
-                'CollectionElement.user_id', 'CollectionElement.created', 'CollectionElement.origin',
-            ],
-            'conditions' => $conditions,
-            'order' => ['CollectionElement.id' => 'ASC'],
-        ]);
-        $byKey = [];
-        $held = [];
-        foreach ($graphNodes as $node) {
-            if (is_array($node) && isset($node['type'])) {
-                $held[AnalystGraphDocumentTool::nodeKey($node)] = true;
-            }
-        }
-        $room = max(0, AnalystGraphDocumentTool::MAX_NODES - count($graphNodes));
-        $nodes = [];
-        $values = [];
-        $leftOut = 0;
-        foreach ($elements as $element) {
-            $element = $element['CollectionElement'];
-            $target = CollectionElement::itemTarget($element['element_type'] === 'AttributeValue'
-                ? ['type' => 'Value', 'sha256' => $element['element_sha256']]
-                : ['type' => $element['element_type'], 'uuid' => $element['element_uuid']]);
-            if ($target === null) {
-                continue;
-            }
-            $byKey[$target['key']] = $element;
-            if (isset($held[$target['key']])) {
-                continue;
-            }
-            if (count($nodes) >= $room) {
-                $leftOut++;
-                continue;
-            }
-            $held[$target['key']] = true;
-            if ($target['element_type'] === 'AttributeValue' && is_string($element['element_value'])) {
-                $nodes[] = ['type' => 'Value', 'value' => $element['element_value'], 'sha256' => $target['address']];
-            } elseif ($target['element_type'] === 'AttributeValue') {
-                $values[] = ['element_type' => 'AttributeValue', 'element_sha256' => $target['address'], 'at' => count($nodes)];
-                $nodes[] = null;
-            } else {
-                $nodes[] = ['type' => $element['element_type'], 'uuid' => $target['address']];
-            }
-        }
-        foreach ($CollectionElement->attachTargets($user, $values) as $value) {
-            if (isset($value['AttributeValue']['value'])) {
-                $nodes[$value['at']] = [
-                    'type' => 'Value',
-                    'value' => $value['AttributeValue']['value'],
-                    'sha256' => $value['element_sha256'],
-                ];
-            }
-        }
-        return [array_values(array_filter($nodes)), $byKey, $leftOut];
-    }
-
-    /**
      * What each node of the working view is to the collection: a member, or
      * an extra (anything else the graph holds: a record, a value, a module's
      * answer), with the item an add would send. A member says who added it,
@@ -392,7 +313,7 @@ class AnalystGraphsController extends AppController
      * @param array $user
      * @param array $collection Collection::workspaceSummaries()'s
      * @param array $nodes The resolved document's nodes
-     * @param array $elements Every member's element by node key
+     * @param array $elements The element of every member drawn, by node key
      * @param array $placed The members the graph lacked
      * @return array|stdClass node key => {role, placed?, missing?, origin?, element?, item?}
      */
