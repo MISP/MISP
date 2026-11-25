@@ -2695,7 +2695,7 @@ class AttributesController extends AppController
                 if ($temp['name'] === $type) {
                     $found = true;
                     $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
-                    $options = Module::moduleConfig($temp);
+                    $options = $this->Module->getModuleConfig($temp, 'Enrichment', $this->Auth->user());
                     break;
                 }
             }

@@ -2456,7 +2456,10 @@ class AdminShell extends AppShell
             $cerebrate = ClassRegistry::init('Cerebrate');
             $cerebrate->reencryptAuthKeys($old, $new);
 
-            ClassRegistry::init('UserSetting')->reencryptOidcRefreshTokens($old, $new);
+            /** @var UserSetting $userSetting */
+            $userSetting = ClassRegistry::init('UserSetting');
+            $userSetting->reencryptOidcRefreshTokens($old, $new);
+            $userSetting->reencryptModuleApiKeys($old, $new);
 
             $result = $this->Server->serverSettingsSaveValue('Security.encryption_key', $new, true);
 

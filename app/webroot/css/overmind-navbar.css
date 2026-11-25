@@ -42,6 +42,7 @@
     --rc-chip-empty-icon: var(--rc-bar-icon);
     --rc-count-bg: var(--misp-navbar-count-bg, rgba(51, 195, 238, .2));
     --rc-count-fg: var(--misp-navbar-count-fg, #b3eafb);
+    --rc-pending: #f2b544;
     --rc-avatar-ring: 0 0 0 1px rgba(255, 255, 255, .2);
     --rc-drawer-edge: rgba(255, 255, 255, .08);
     --rc-drawer-shadow: 0 16px 32px -8px rgba(0, 0, 0, .5);
@@ -135,6 +136,7 @@
     --rc-chip-empty-icon: #7a878d;
     --rc-count-bg: var(--rc-teal);
     --rc-count-fg: #fff;
+    --rc-pending: #a85f00;
     --rc-avatar-ring: 0 0 0 1px rgba(43, 27, 28, .14),
         0 1px 2px rgba(12, 58, 74, .14);
     --rc-drawer-edge: rgba(12, 58, 74, .08);
@@ -383,6 +385,30 @@
     line-height: 20px;
     text-align: center;
     font-variant-numeric: tabular-nums;
+}
+/* A shared workspace reaches partners once published: amber while it holds
+   changes they lack (intel-graph.js keeps it current) */
+.rc-shared {
+    flex: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    color: var(--rc-chip-empty-icon);
+    font-size: .6875rem;
+}
+.rc-shared[hidden] { display: none; }
+.rc-shared[data-pending] { color: var(--rc-pending, #d48a1c); }
+.rc-shared[data-pending]::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--rc-pending, #d48a1c);
 }
 /* intel-graph.js keeps data-state current */
 .rc-slot[data-state="none"] > .rc-chip {

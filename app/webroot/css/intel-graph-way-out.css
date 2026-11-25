@@ -1,0 +1,94 @@
+/* The dialog that makes an event of a workspace selection (intel-graph-way-out.js). */
+.igwo-modal .modal-content { background: var(--bs-body-bg); color: var(--bs-body-color); }
+.igwo-head { align-items: flex-start; }
+.igwo-eyebrow { display: block; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--bs-secondary-color); font-weight: 600; }
+.igwo-stepper-wrap { padding: .75rem 1rem; border-bottom: 1px solid var(--bs-border-color); background: var(--bs-tertiary-bg); }
+.igwo-stepper { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: .5rem; }
+.igwo-step-bar { flex: 1 1 auto; height: 2px; background: var(--bs-border-color); min-width: 1rem; }
+.igwo-step-btn { display: flex; align-items: center; gap: .5rem; border: 0; background: none; padding: .15rem .25rem; color: var(--bs-secondary-color); font-weight: 500; }
+.igwo-step-btn:not([disabled]) { cursor: pointer; }
+.igwo-step-btn:not([disabled]):hover .igwo-step-label { text-decoration: underline; }
+.igwo-step-num { width: 1.75rem; height: 1.75rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700;
+    border: 2px solid var(--bs-border-color); background: var(--bs-body-bg); color: var(--bs-secondary-color); }
+.igwo-step.is-current .igwo-step-btn { color: var(--bs-body-color); font-weight: 700; }
+.igwo-step.is-current .igwo-step-num { background: var(--bs-primary); border-color: var(--bs-primary); color: var(--bs-white); }
+.igwo-step.is-done .igwo-step-num { background: var(--bs-success-bg-subtle); border-color: var(--bs-success-border-subtle); color: var(--bs-success-text-emphasis); }
+.igwo-step.is-done .igwo-step-btn { color: var(--bs-body-color); }
+.igwo-body { padding: 1.25rem 1.5rem; min-width: 0; }
+.igwo-body section { min-width: 0; }
+.igwo-loading { display: flex; justify-content: center; padding: 3rem 0; }
+.igwo-loading-inline { display: flex; justify-content: center; padding: 1.5rem 0; }
+.igwo-sec-head { margin-bottom: 1rem; }
+.igwo-h { font-size: 1.15rem; margin: 0 0 .15rem; }
+.igwo-sub { margin: 0; color: var(--bs-secondary-color); font-size: .9rem; }
+
+.igwo-band { display: flex; align-items: center; gap: .6rem; padding: .55rem .8rem; margin-bottom: .75rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); min-width: 0; }
+.igwo-band > span:first-of-type { min-width: 0; }
+.igwo-narrower { display: flex; gap: .75rem; align-items: flex-start; margin-bottom: .75rem; }
+.igwo-narrower > i { margin-top: .2rem; }
+.igwo-vals { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .35rem; }
+.igwo-vals code { background: var(--bs-body-bg); color: var(--bs-body-color); border-radius: 4px; padding: .05rem .4rem; }
+
+.igwo-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); }
+.igwo-row { padding: .65rem .85rem; border-bottom: 1px solid var(--bs-border-color); min-width: 0; }
+.igwo-row:last-child { border-bottom: 0; }
+.igwo-row.is-out { background: var(--bs-tertiary-bg); }
+.igwo-row.is-out .igwo-item { color: var(--bs-secondary-color); }
+.igwo-line { display: flex; gap: .75rem; align-items: flex-start; min-width: 0; }
+.igwo-glyph { width: 1.5rem; flex: none; text-align: center; padding-top: .1rem; color: var(--bs-secondary-color); }
+.igwo-what { flex: 1 1 auto; min-width: 0; }
+.igwo-item { font-weight: 600; overflow-wrap: anywhere; }
+.igwo-item small { font-weight: 400; }
+.igwo-src { font-size: .78rem; color: var(--bs-secondary-color); }
+.igwo-note { font-size: .85rem; color: var(--bs-secondary-color); }
+.igwo-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; flex: 0 1 17rem; min-width: 0; }
+.igwo-tags .badge { font-weight: 500; white-space: normal; text-align: left; }
+.igwo-becomes { background: var(--bs-primary-bg-subtle); color: var(--bs-primary-text-emphasis); }
+.igwo-b-tag, .igwo-b-link { background: var(--bs-info-bg-subtle); color: var(--bs-info-text-emphasis); }
+.igwo-place { background: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis); }
+.igwo-cap { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.igwo-attrs { list-style: none; margin: .25rem 0 0; padding: 0; font-size: .82rem; }
+.igwo-attrs li { overflow-wrap: anywhere; }
+.igwo-controls { display: flex; flex-wrap: wrap; gap: .6rem; align-items: flex-end; margin-top: .45rem; }
+.igwo-ctl { display: flex; flex-direction: column; font-size: .72rem; color: var(--bs-secondary-color); gap: .1rem; }
+.igwo-ctl .form-select { min-width: 9rem; max-width: 14rem; }
+.igwo-ids { margin: 0 0 .3rem 1.5rem; font-size: .85rem; }
+
+.igwo-form { max-width: 46rem; display: flex; flex-direction: column; gap: 1rem; }
+.igwo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
+.igwo-label { display: block; font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--bs-secondary-color); margin-bottom: .3rem; }
+
+.igwo-search { position: relative; margin-bottom: .5rem; max-width: 32rem; }
+.igwo-search > i { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--bs-secondary-color); pointer-events: none; }
+.igwo-search .form-control { padding-left: 2.2rem; }
+.igwo-group { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--bs-secondary-color); margin: 1rem 0 .4rem; }
+.igwo-evs { display: flex; flex-direction: column; gap: .35rem; }
+.igwo-ev { display: flex; align-items: center; gap: .75rem; width: 100%; text-align: left; padding: .55rem .8rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: var(--bs-body-bg); color: var(--bs-body-color); }
+.igwo-ev:hover { background: var(--bs-tertiary-bg); }
+.igwo-ev.is-picked { border-color: var(--bs-primary); box-shadow: 0 0 0 1px var(--bs-primary); }
+.igwo-ev-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.igwo-ev-info { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.igwo-ev-meta { display: flex; gap: .9rem; font-size: .78rem; color: var(--bs-secondary-color); }
+
+.igwo-card { border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); padding: .65rem .85rem; margin-bottom: 1rem; background: var(--bs-tertiary-bg); }
+.igwo-card-head { display: flex; justify-content: space-between; gap: 1rem; }
+.igwo-card-title { font-weight: 600; overflow-wrap: anywhere; }
+.igwo-card-meta { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: center; font-size: .82rem; color: var(--bs-secondary-color); margin-top: .3rem; }
+.igwo-sentences { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+.igwo-sentences li { display: flex; gap: .75rem; align-items: flex-start; font-size: 1rem; }
+.igwo-sentences li > i { width: 1.4rem; text-align: center; margin-top: .25rem; color: var(--bs-secondary-color); flex: none; }
+.igwo-ongoing { margin-top: 1.5rem; padding: .9rem 1rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); }
+.igwo-ongoing-q { font-weight: 700; margin-bottom: .1rem; }
+
+.igwo-done-head { display: flex; gap: 1rem; align-items: flex-start; }
+.igwo-done-ico { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; background: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis); }
+.igwo-done-ico.is-warn { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.igwo-done-lead { font-size: 1.1rem; font-weight: 600; overflow-wrap: anywhere; }
+.igwo-done-list { margin: .4rem 0 0; padding-left: 1.1rem; }
+.igwo-failed { margin-top: 1.25rem; border: 1px solid var(--bs-warning-border-subtle); border-radius: var(--bs-border-radius); }
+.igwo-failed-head { padding: .55rem .85rem; background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); font-weight: 600; }
+.igwo-failed ul { list-style: none; margin: 0; padding: 0; }
+.igwo-failed li { display: flex; gap: 1rem; justify-content: space-between; padding: .5rem .85rem; border-top: 1px solid var(--bs-border-color); }
+.igwo-failmsg { color: var(--bs-danger-text-emphasis); text-align: right; }
+.igwo-foot { gap: .5rem; }
+@media (max-width: 900px) { .igwo-grid { grid-template-columns: minmax(0, 1fr); } .igwo-line { flex-wrap: wrap; } .igwo-tags { flex: 1 1 100%; justify-content: flex-start; padding-left: 2.25rem; } }

@@ -32,7 +32,7 @@ $kinds = [
     'Organisation' => ['misp-icon misp-icon-organisation misp-simple', 'primary', __('Organisation')],
     'SharingGroup' => ['misp-icon misp-icon-sharing-group misp-simple', 'primary', __('Sharing group')],
     'Collection' => ['fas fa-layer-group', 'primary', __('Collection')],
-    'Workspace' => ['misp-icon misp-icon-analyst-graph misp-simple', 'analystGraph', __('Workspace')],
+    'Graph' => ['misp-icon misp-icon-analyst-graph misp-simple', 'analystGraph', __('Saved graph')],
     'AttributeValue' => ['misp-icon misp-icon-value-intelligence misp-simple', 'valueIntelligence', __('Value')],
 ];
 list($icon, $colour, $kindLabel) = $kinds[$type] ?? ['fas fa-link', 'secondary', $type !== '' ? $type : __('Object')];
@@ -209,7 +209,7 @@ switch ($type) {
             'SharingGroup' => '/sharing_groups/view/' . ($record['id'] ?? ''),
             'Galaxy' => '/galaxies/view/' . ($record['id'] ?? ''),
             'Collection' => '/collections/view/' . $address,
-            'Workspace' => '/workspaces/view/' . $address,
+            'Graph' => '/analyst_graphs/view/' . $address,
         ];
         $main = sprintf(
             '<a class="adt-label" href="%s">%s</a>',

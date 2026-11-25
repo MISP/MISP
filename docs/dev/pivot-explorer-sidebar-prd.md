@@ -347,4 +347,6 @@ the failed state draws its Retry buttons, and Retry recovers.
 
 - Editing from the sidebar (tags, analyst data): the existing MISP forms do that.
 - Shared *values* across a multi-selection: needs a server read, a later step.
-- Saving a selection or a graph as a collection: parked, scope open.
+- Saving a selection or a graph as a collection: built later by the
+  workspace work — *New collection with the selection…* on the node menu,
+  *Save canvas as collection…* beside the graph save.

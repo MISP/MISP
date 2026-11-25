@@ -31,7 +31,7 @@ class OvermindPages
         'analystData' => array(
             'index', 'add', 'edit', 'view', 'delete', 'deleteSelection'
         ),
-        'workspaces' => array('view'),
+        'analystGraphs' => array('view'),
 
         // Taxonomy, galaxies and templates
         'tags' => array('index', 'add', 'edit', 'viewGraph'),

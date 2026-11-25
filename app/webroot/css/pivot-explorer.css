@@ -45,6 +45,9 @@
     gap: 8px;
     font-size: 13px;
 }
+.pe-save-graph-check[hidden] {
+    display: none;
+}
 .pe-save-graph-summary {
     margin: 0;
     font-size: 12px;
@@ -135,6 +138,15 @@
     margin-top: 4px;
     font-size: 12px;
     color: var(--pvt-text-color-5);
+}
+.pe-save-graph-wider {
+    margin-top: -4px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--bs-warning-text-emphasis, #997404);
+}
+.pe-save-graph-wider[hidden] {
+    display: none;
 }
 
 /* Pivotick's dialogs sit above the page's fixed navbar (1030) and sticky tab

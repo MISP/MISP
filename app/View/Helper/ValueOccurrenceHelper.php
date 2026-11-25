@@ -30,8 +30,7 @@ class ValueOccurrenceHelper extends AppHelper
         $baseurl = $view->viewVars['baseurl'] ?? '';
         $plan = $options['plan'] ?? null;
         $sortable = !empty($options['sortable']);
-        $canGraph = $view->Acl->canAccess('workspaces', 'addNodes');
-        $canCollect = $view->Acl->canAccess('collectionElements', 'addElementToCollection');
+        $canGraph = $view->Acl->canAccess('collectionElements', 'addItems');
         $sort = function ($column) use ($sortable) {
             return $sortable ? array('sort' => $column) : array();
         };
@@ -175,19 +174,8 @@ class ValueOccurrenceHelper extends AppHelper
                 ),
                 array(
                     'type' => 'divider',
-                    'requirement' => function ($row) use ($canGraph, $canCollect) {
-                        return ($canGraph || $canCollect) && empty($row['Attribute']['deleted']);
-                    },
-                ),
-                array(
-                    'type' => 'modal',
-                    'label' => __('Add to collection'),
-                    'icon' => 'folder-plus',
-                    'url' => $baseurl . '/collectionElements/addElementToCollection/Attribute/%uuid%',
-                    'url_params_data_paths' => array('uuid' => 'Attribute.uuid'),
-                    'size' => 'xl',
-                    'requirement' => function ($row) use ($canCollect) {
-                        return $canCollect && empty($row['Attribute']['deleted']);
+                    'requirement' => function ($row) use ($canGraph) {
+                        return $canGraph && empty($row['Attribute']['deleted']);
                     },
                 ),
                 array(

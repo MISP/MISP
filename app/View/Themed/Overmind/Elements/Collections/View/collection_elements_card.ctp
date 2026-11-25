@@ -1,7 +1,9 @@
 <?php
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 $collection = $data['Collection'] ?? $data;
 $elements = $collection['CollectionElement'] ?? [];
 $canEdit = !empty($isSiteAdmin) || !empty($mayModify);
+$adders = $elementAdders ?? [];
 $pageSize = 50;
 
 // element_type => [glyph, scope colour (a --bs-<scope>-rgb triplet), label]
@@ -9,6 +11,7 @@ $scopes = [
     'Event'         => ['misp-icon misp-icon-event misp-simple', 'event', __('Event')],
     'Attribute'     => ['misp-icon misp-icon-attribute misp-simple', 'attribute', __('Attribute')],
     'Object'        => ['misp-icon misp-icon-object misp-simple', 'object', __('Object')],
+    'AttributeValue' => ['misp-icon misp-icon-value-intelligence misp-simple', 'valueIntelligence', __('Value')],
     'Galaxy'        => ['misp-icon misp-icon-galaxy misp-simple', 'galaxy', __('Galaxy')],
     'GalaxyCluster' => ['misp-icon misp-icon-galaxy misp-simple', 'galaxy', __('Galaxy cluster')],
     'Note'          => ['misp-icon misp-icon-analyst-note misp-simple', 'analystData', __('Note')],
@@ -19,16 +22,81 @@ $scopes = [
 ];
 $fallbackScope = ['fas fa-cube', 'secondary', null];
 
+// An object named by its most telling value, as the working view names it
+$objectTitle = function ($name, array $attributes) {
+    $values = [];
+    foreach ($attributes as $attribute) {
+        $relation = $attribute['object_relation'] ?? $attribute['relation'] ?? null;
+        if ($relation !== null && !isset($values[$relation])) {
+            $values[$relation] = (string)$attribute['value'];
+        }
+    }
+    foreach (['domain', 'hostname', 'url', 'ip', 'ip-dst', 'ip-src'] as $relation) {
+        if (isset($values[$relation])) {
+            return $name . ': ' . $values[$relation];
+        }
+    }
+    return empty($values) ? (string)$name : $name . ': ' . reset($values);
+};
+$originText = function ($origin) {
+    if (!is_array($origin) || empty($origin['module'])) {
+        return null;
+    }
+    $text = !empty($origin['value'])
+        ? __('from %s on %s', $origin['module'], $origin['value'])
+        : __('from %s', $origin['module']);
+    return empty($origin['ran_at']) ? $text : $text . __(', %s', gmdate('Y-m-d', (int)$origin['ran_at']));
+};
+
 $rows = [];
 $typeCounts = [];
 foreach ($elements as $element) {
     $type = (string)($element['element_type'] ?? '');
     $uuid = (string)($element['element_uuid'] ?? '');
+    // A standalone object is counted and filtered with the objects
+    $kind = $type === 'StandaloneObject' ? 'Object' : $type;
     $title = null;
     $refId = null;
     $subtitle = null;
     $url = null;
-    if ($type === 'Event' && !empty($element['Event'])) {
+    $missing = false;
+    $record = null;
+    $key = $type . ':' . strtolower($uuid);
+    if ($type === 'Attribute' && !empty($element['Attribute'])) {
+        $attribute = $element['Attribute'];
+        $title = (string)$attribute['value'];
+        $refId = (int)$attribute['event_id'];
+        $subtitle = $attribute['type'] ?? null;
+        $url = $baseurl . '/attributes/view/' . $attribute['id'];
+    } elseif ($type === 'Object' && !empty($element['Object'])) {
+        $object = $element['Object'];
+        $title = $objectTitle($object['name'], $object['Attribute'] ?? []);
+        $refId = (int)$object['event_id'];
+        $subtitle = $object['meta-category'] ?? null;
+        $url = $baseurl . '/objects/view/' . $object['id'];
+        $record = [
+            'name' => $object['name'],
+            'template_uuid' => $object['template_uuid'] ?? null,
+            'template_version' => $object['template_version'] ?? null,
+            'attributes' => array_map(function ($attribute) {
+                return ['relation' => $attribute['object_relation'], 'type' => $attribute['type'] ?? '', 'value' => $attribute['value']];
+            }, $object['Attribute'] ?? []),
+        ];
+    } elseif ($type === 'AttributeValue') {
+        $sha256 = strtolower((string)($element['element_sha256'] ?? ''));
+        $key = 'Value:' . $sha256;
+        $uuid = $sha256;
+        if (!empty($element['AttributeValue'])) {
+            $uuid = '';
+            $title = (string)$element['AttributeValue']['value'];
+            $missing = empty($element['AttributeValue']['held']);
+            $url = $missing ? null : $baseurl . '/values/view/' . ValueUrlTool::address($title);
+        }
+    } elseif ($type === 'StandaloneObject' && !empty($element['StandaloneObject'])) {
+        $record = $element['StandaloneObject'];
+        $title = $objectTitle($record['name'], $record['attributes'] ?? []);
+        $missing = true;
+    } elseif ($type === 'Event' && !empty($element['Event'])) {
         $title = $element['Event']['info'];
         $refId = (int)$element['Event']['id'];
         $url = $baseurl . '/events/view/' . $element['Event']['id'];
@@ -52,16 +120,24 @@ foreach ($elements as $element) {
         }
     }
 
-    $typeCounts[$type] = ($typeCounts[$type] ?? 0) + 1;
+    $typeCounts[$kind] = ($typeCounts[$kind] ?? 0) + 1;
+    $origin = is_array($element['origin'] ?? null) ? $element['origin'] : null;
     $rows[] = [
         'id' => (int)$element['id'],
-        'type' => $type,
+        'type' => $kind,
+        'key' => $key,
         'uuid' => $uuid,
         'title' => $title,
         'rid' => $refId,
         'sub' => $subtitle,
         'url' => $url,
         'desc' => trim((string)($element['description'] ?? '')),
+        'missing' => $missing,
+        'origin' => $origin,
+        'from' => $originText($origin),
+        'record' => $record,
+        'who' => isset($element['user_id']) ? ($adders[$element['user_id']] ?? null) : null,
+        'when' => $element['created'] ?? null,
     ];
 }
 arsort($typeCounts);
@@ -77,6 +153,23 @@ foreach (array_keys($typeCounts) as $type) {
 $total = count($rows);
 $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
 ?>
+<style>
+[data-collection-elements] .ce-chip {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: .25rem; padding: 0 .45rem; border-radius: var(--bs-border-radius-pill);
+    font-size: .6875rem; font-weight: 600; line-height: 1.35rem; white-space: nowrap;
+    background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); border: 1px solid var(--bs-warning-border-subtle);
+}
+[data-collection-elements] .ce-chip > i { font-size: .625rem; }
+[data-collection-elements] .ce-open {
+    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 1.4rem; height: 1.4rem; padding: 0;
+    border: 0; border-radius: var(--bs-border-radius); background: transparent; color: var(--bs-secondary-color); font-size: .7rem;
+}
+[data-collection-elements] .ce-open:hover, [data-collection-elements] .ce-open:focus-visible, [data-collection-elements] .ce-open[aria-expanded="true"] {
+    background: var(--bs-secondary-bg); color: var(--bs-emphasis-color); outline: 0;
+}
+[data-collection-elements] .ce-origin { margin-top: .15rem; font-size: .8125rem; color: var(--bs-secondary-color); }
+[data-collection-elements] .ce-origin > i { margin-right: .35rem; font-size: .7rem; }
+</style>
 
 <div class="card mb-3 shadow-sm" data-collection-elements data-page-size="<?= (int)$pageSize ?>">
     <div class="p-3 border-bottom">
@@ -164,7 +257,7 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
                 <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3"
                       style="width:2.25rem;height:2.25rem;" data-ce-tile><i></i></span>
                 <div class="min-w-0 flex-grow-1 lh-sm">
-                    <div class="d-flex min-w-0" data-ce-title></div>
+                    <div class="d-flex align-items-center gap-2 min-w-0" data-ce-title></div>
                     <div class="small text-body-secondary text-truncate mt-1" data-ce-meta></div>
                 </div>
                 <div class="d-flex align-items-center gap-1 flex-shrink-0">
@@ -185,6 +278,8 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
             'i18n' => [
                 'shown' => __('%s of %s shown'),
                 'unresolved' => __('Not resolvable on this instance, or not visible to you'),
+                'missing' => __('not in MISP yet'),
+                'open' => __('Open'),
             ],
         ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
     <?php endif; ?>
@@ -210,9 +305,20 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
         var matching = [];
 
         payload.rows.forEach(function (row) {
-            row.haystack = [row.title, row.sub, row.uuid, row.desc, payload.types[row.type].label]
+            row.haystack = [row.title, row.sub, row.uuid, row.desc, row.from, row.missing ? i18n.missing : '', payload.types[row.type].label]
                 .filter(Boolean).join(' ').toLowerCase();
         });
+
+        // A standalone object has no page: it opens in the working view's popover
+        function openObject(row, anchor) {
+            if (!row.record || !window.IntelGraphWorking || !window.IntelGraphWorking.openObject) {
+                return;
+            }
+            window.IntelGraphWorking.openObject({
+                key: row.key, value: row.title, record: row.record, origin: row.origin,
+                who: row.who, when: row.when, why: row.desc
+            }, anchor, null);
+        }
 
         function el(tag, className, text) {
             var node = document.createElement(tag);
@@ -234,6 +340,7 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
             tile.title = meta.label;
             tile.firstElementChild.className = meta.icon;
 
+            node.setAttribute('data-ce-key', row.key);
             var label = row.title !== null ? row.title : row.uuid;
             var titleClass = row.title !== null ? 'fw-semibold text-truncate' : 'font-monospace small text-truncate';
             var title = row.url ? el('a', titleClass + ' text-decoration-none', label) : el('span', titleClass, label);
@@ -243,7 +350,26 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
                 title.classList.add('text-body-secondary');
                 title.title = i18n.unresolved;
             }
-            node.querySelector('[data-ce-title]').appendChild(title);
+            var titleLine = node.querySelector('[data-ce-title]');
+            titleLine.appendChild(title);
+            if (row.missing) {
+                var chip = el('span', 'ce-chip', i18n.missing);
+                chip.setAttribute('data-ce-missing', '');
+                chip.insertBefore(el('i', 'fas fa-circle-question'), chip.firstChild).setAttribute('aria-hidden', 'true');
+                titleLine.appendChild(chip);
+            }
+            // An object opens in the working view's popover from its caret only
+            if (row.record) {
+                var caret = el('button', 'ce-open');
+                caret.type = 'button';
+                caret.setAttribute('data-ce-open', '');
+                caret.setAttribute('aria-haspopup', 'dialog');
+                caret.setAttribute('aria-label', i18n.open + ': ' + label);
+                caret.title = i18n.open;
+                caret.appendChild(el('i', 'fas fa-chevron-down')).setAttribute('aria-hidden', 'true');
+                caret.addEventListener('click', function () { openObject(row, node); });
+                titleLine.appendChild(caret);
+            }
 
             var metaLine = node.querySelector('[data-ce-meta]');
             metaLine.appendChild(el('span', '', meta.label));
@@ -251,7 +377,7 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
                 metaLine.appendChild(document.createTextNode(' \u00b7 '));
                 metaLine.appendChild(el('span', 'fw-semibold', '#' + row.rid));
             }
-            if (row.title !== null && row.uuid) {
+            if (row.title !== null && row.uuid && !row.record) {
                 metaLine.appendChild(el('span', 'font-monospace ms-2 opacity-75', row.uuid));
             }
             if (row.sub) {
@@ -267,7 +393,13 @@ $addUrl = $baseurl . '/CollectionElements/add/' . $collection['id'];
                 desc.appendChild(document.createTextNode(row.desc));
                 metaLine.appendChild(desc);
             }
-
+            if (row.from) {
+                var from = el('div', 'ce-origin text-truncate', row.from);
+                from.title = row.from;
+                from.setAttribute('data-ce-origin', '');
+                from.insertBefore(el('i', 'fas fa-puzzle-piece'), from.firstChild).setAttribute('aria-hidden', 'true');
+                metaLine.insertAdjacentElement('afterend', from);
+            }
             var remove = node.querySelector('[data-ce-remove]');
             if (remove) {
                 remove.href = payload.removeUrl + row.id;

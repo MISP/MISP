@@ -45,11 +45,22 @@
     background: var(--bs-body-bg); color: var(--bs-body-color);
     border-left: 1px solid var(--bs-border-color);
     box-shadow: var(--bs-box-shadow-lg);
-    transform: translateX(0); transition: transform .18s ease;
+    /* none, not translateX(0): a transform would hold the canvas menus,
+       which are position: fixed, inside the panel */
+    transform: none; transition: transform .18s ease;
     font-size: .875rem;
 }
 .ig-so[hidden] { display: none; }
 .ig-so.is-off { transform: translateX(100%); }
+.ig-so.is-left:not(.is-floating) {
+    right: auto; left: 0;
+    border-left: 0; border-right: 1px solid var(--bs-border-color);
+}
+.ig-so.is-left:not(.is-floating).is-off { transform: translateX(-100%); }
+.ig-so.is-left:not(.is-floating)::before { left: auto; right: -1px; }
+.ig-so.is-left .ig-so-grip { left: auto; right: -6px; }
+/* moved to the other edge while out of sight */
+.ig-so.is-jumping { transition: none; }
 /* a page dropdown opening next to the dock shows over it */
 .ig-so.is-under { z-index: 999; }
 
@@ -142,6 +153,8 @@
 .ig-so-target strong { color: var(--bs-link-color); }
 .ig-so-target:hover, .ig-so-target:focus-visible { text-decoration: underline; text-decoration-color: var(--bs-link-color); }
 .ig-so-count { font-variant-numeric: tabular-nums; }
+.ig-so-publish.is-pending { color: var(--bs-warning-text-emphasis); }
+.ig-so-review { flex: none; margin-left: .15rem; font-weight: 600; color: var(--bs-link-color); }
 .ig-so-ro-chip { color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle); border: 1px solid var(--bs-warning-border-subtle); border-radius: var(--bs-border-radius-pill); padding: .05rem .5rem; font-size: .75rem; font-weight: 600; }
 
 .ig-so-banner { margin-top: .5rem; padding: .5rem .6rem; border-radius: var(--bs-border-radius); border: 1px solid; display: flex; gap: .55rem; align-items: flex-start; }
@@ -178,6 +191,26 @@
 .ig-so-new label { font-weight: 600; font-size: .8rem; margin-bottom: .25rem; }
 .ig-so-new .form-text { font-size: .75rem; margin-top: .3rem; }
 .ig-so-new .invalid-feedback { display: block; }
+.ig-so-new-change { font-size: inherit; text-decoration: underline; text-underline-offset: 2px; vertical-align: baseline; }
+.ig-so-new-options { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .45rem; }
+.ig-so-new-options[hidden] { display: none; }
+.ig-so-new-field .form-label { font-weight: 500; font-size: .75rem; margin-bottom: .15rem; color: var(--bs-secondary-color); }
+.ig-so-new-check { margin-top: .45rem; font-size: .8rem; }
+.ig-so-more { display: flex; align-items: center; gap: .55rem; padding: .4rem .9rem; color: var(--bs-secondary-color); font-size: .8rem; }
+.ig-so-more > i { width: 1rem; flex: 0 0 1rem; text-align: center; }
+.ig-so-count .text-warning-emphasis { margin-left: .25rem; }
+.ig-so-layout-btn {
+    display: inline-flex; align-items: center; gap: .35rem; min-width: 0; max-width: 100%; padding: .05rem .4rem; margin: -.05rem 0;
+    border: 1px solid transparent; border-radius: var(--bs-border-radius); background: none; color: inherit; font: inherit;
+}
+.ig-so-layout-btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ig-so-layout-btn strong { color: var(--bs-body-color); font-weight: 600; }
+.ig-so-layout-btn:hover, .ig-so-layout-btn[aria-expanded="true"] { border-color: var(--bs-border-color); background: var(--bs-body-bg); }
+.ig-so-layout-btn:focus-visible { outline: 0; box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .35); }
+.ig-so-layout-note { margin: 0 .9rem .35rem; padding: .3rem .5rem; border-radius: var(--bs-border-radius); font-size: .8rem; white-space: normal;
+    background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+a.ig-so-more { text-decoration: none; }
+.ig-so-layout-menu > .ig-so-list { min-height: 0; }
 
 .ig-so-stage { position: relative; flex: 1 1 auto; min-height: 240px; overflow: hidden; background: var(--bs-body-bg); }
 .ig-so-canvas, .ig-so-mount { position: absolute; inset: 0; }
@@ -253,6 +286,16 @@ a.ig-so-arr-title:hover, a.ig-so-arr-title:focus-visible, .ig-so-arr-link:hover,
 .ig-so-arr-acts { flex: 0 0 auto; display: flex; gap: .15rem; }
 .ig-so-arr-acts .btn { padding: .1rem .4rem; font-size: .75rem; }
 .ig-so-arr-hint { padding: .1rem 1rem .6rem; color: var(--bs-secondary-color); font-size: .8rem; }
+.ig-so-arr-why { display: block; font-size: .78rem; color: var(--bs-body-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ig-so-arr-why strong { color: var(--bs-secondary-color); font-weight: 600; }
+.ig-so-arr-narrow { display: flex; align-items: baseline; gap: .35rem; margin-top: .15rem; font-size: .75rem; line-height: 1.3; color: var(--bs-warning-text-emphasis); }
+.ig-so-arr-narrow > i { flex: 0 0 auto; font-size: .65rem; }
+.ig-so-arr-whyform { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin-top: .3rem; }
+.ig-so-arr-whyform .form-control { flex: 1 1 9rem; min-width: 0; font-size: .8rem; }
+.ig-so-arr-whyform .btn { padding: .1rem .5rem; font-size: .75rem; }
+.ig-so-arr-whyform .btn-link { text-decoration: none; }
+.ig-so-arr-whyerr { flex: 1 1 100%; font-size: .75rem; color: var(--bs-danger-text-emphasis); }
+.ig-so-arr-acts .ig-so-arr-ask { text-decoration: none; }
 
 .ig-so-foot {
     flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
@@ -265,6 +308,12 @@ a.ig-so-arr-title:hover, a.ig-so-arr-title:focus-visible, .ig-so-arr-link:hover,
 .ig-so-foot .btn { padding: .15rem .55rem; font-size: .8rem; }
 .ig-so-foot.is-dirty { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
 .ig-so-foot.is-conflict { background: var(--bs-danger-bg-subtle); color: var(--bs-danger-text-emphasis); }
+.ig-so-saveas { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .3rem; }
+.ig-so-saveas-row { display: flex; align-items: center; gap: .35rem; }
+.ig-so-saveas-row .form-control { flex: 1 1 auto; min-width: 0; font-size: .8rem; }
+.ig-so-saveas-note { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; font-size: .75rem; }
+.ig-so-saveas-note.is-error { color: var(--bs-danger-text-emphasis); }
+.ig-so-saveas-note .badge { font-size: .7rem; }
 
 @keyframes ig-so-land { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes ig-so-fresh { 0% { background: var(--bs-success-bg-subtle); } 100% { background: transparent; } }

@@ -4,7 +4,7 @@
     $canAnalyst = !empty($me['Role']['perm_add'])
         && !empty($me['Role']['perm_analyst_data']);
     $canGraph = $this->Acl->canAccess('analystData', 'add')
-        && $this->Acl->canAccess('workspaces', 'save');
+        && $this->Acl->canAccess('analystGraphs', 'save');
 
     // What a drawn analyst relationship or a saved graph can be shared with,
     // as the event page's explorer offers it.
@@ -32,8 +32,17 @@
         }
         if ($canGraph) {
             App::uses('AnalystGraphDocumentTool', 'Tools');
+            // A saved graph starts shared as the cluster it hangs on
+            $clusterSharingGroup = (int)($data['distribution'] ?? 0) === 4
+                ? (int)$data['sharing_group_id'] : null;
             $graphSharing = $sharing + [
-                'default' => (int)(Configure::read('MISP.default_analyst_data_distribution') ?? 1),
+                'default' => (int)($data['distribution'] ?? 0),
+                'sharingGroup' => $clusterSharingGroup,
+                'target' => [
+                    'type' => 'GalaxyCluster',
+                    'distribution' => (int)($data['distribution'] ?? 0),
+                    'sharing_group_id' => $clusterSharingGroup,
+                ],
                 'limits' => AnalystGraphDocumentTool::limits(),
             ];
         }

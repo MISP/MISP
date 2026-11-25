@@ -23,7 +23,7 @@ $facets = $profile['occurrence_facets'];
 $named = $this->request->params['named'] ?? array();
 $tabUrl = $baseurl . '/values/viewOccurrenceTable/' . $valueB64;
 $filterLabels = $filterLabels ?? array('tag' => array(), 'galaxy' => array());
-$canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
+$canGraph = $this->Acl->canAccess('collectionElements', 'addItems');
 
 $group = __('Occurrences');
 $set = function ($name) use ($named) {

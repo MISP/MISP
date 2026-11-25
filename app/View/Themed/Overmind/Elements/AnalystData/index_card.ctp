@@ -28,7 +28,7 @@ $kinds = [
     'Note' => ['misp-icon misp-icon-analyst-note misp-simple', 'primary'],
     'Opinion' => ['misp-icon misp-icon-analyst-opinion misp-simple', 'success'],
     'Relationship' => ['fas fa-diagram-project', 'correlation'],
-    'Workspace' => ['misp-icon misp-icon-analyst-graph misp-simple', 'analystGraph'],
+    'Graph' => ['misp-icon misp-icon-analyst-graph misp-simple', 'analystGraph'],
 ];
 list($icon, $colour) = $kinds[$m] ?? $kinds['Note'];
 
@@ -77,7 +77,7 @@ switch ($m) {
         $type = (string)($record['relationship_type'] ?? '');
         $head = $main(h($type === '' ? __('related') : $type), $type, 'adk-verb');
         break;
-    case 'Workspace':
+    case 'Graph':
         $head = sprintf(
             '<span class="adk-thumb" data-intel-graph-thumb="%s" data-revision="%s" data-surface="index" data-name="%s"></span>',
             h($record['uuid']),
@@ -89,7 +89,7 @@ switch ($m) {
             $kick = '<span class="adk-fork"><i class="fas fa-code-fork" aria-hidden="true"></i>'
                 . ($parent === null
                     ? h(__('A fork'))
-                    : sprintf('<a href="%s">%s</a>', h($baseurl . '/workspaces/view/' . $parent['uuid']), h($parent['name'])))
+                    : sprintf('<a href="%s">%s</a>', h($baseurl . '/analyst_graphs/view/' . $parent['uuid']), h($parent['name'])))
                 . '</span>';
         }
         break;

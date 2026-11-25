@@ -8,7 +8,7 @@
  *     {
  *       "version": 1,
  *       "nodes": [{"type": "Attribute", "uuid": "…", "x": 120, "y": -40, "pinned": true},
- *                 {"type": "Value", "sha256": "…", "value": "8.8.8.8"},
+ *                 {"type": "Value", "sha256": "…", "value": "8.8.8.8", "hidden": true},
  *                 {"type": "ModuleAnswer", "uuid": "…", "module": "dns", "modules": ["dns"],
  *                  "origins": [{"node": "Attribute:…", "module": "dns", "type": "domain",
  *                               "value": "example.com", "ran_at": 1791100000}],
@@ -20,14 +20,16 @@
  *                  "color": "#FDE68A", "surface": "jewel", "node": "Attribute:<uuid>"}]
  *     }
  *
- * A note is anchored to a node by its key, or to an edge by its id; `notes`
- * is left out while there are none.
+ * A hidden node keeps its place in the document and is not drawn. A note is
+ * anchored to a node by its key, or to an edge by its id; `notes` is left out
+ * while there are none.
  */
 class AnalystGraphDocumentTool
 {
     const VERSION = 1;
     const ANSWER = 'ModuleAnswer';
-    const NODE_TYPES = ['Event', 'Attribute', 'Object', 'GalaxyCluster', 'Value', self::ANSWER];
+    const STANDALONE = 'StandaloneObject';
+    const NODE_TYPES = ['Event', 'Attribute', 'Object', 'GalaxyCluster', 'Value', self::ANSWER, self::STANDALONE];
     const ORIGIN_TYPES = ['Attribute', 'Value', self::ANSWER];
     const MAX_NODES = 2000;
     const MAX_BYTES = 16777216;
@@ -127,17 +129,17 @@ class AnalystGraphDocumentTool
         if (is_string($content)) {
             $content = json_decode($content, true);
             if (!is_array($content)) {
-                return [null, [__('The workspace document is not valid JSON.')]];
+                return [null, [__('The graph document is not valid JSON.')]];
             }
         }
         if (!is_array($content)) {
-            return [null, [__('The workspace document must be an object.')]];
+            return [null, [__('The graph document must be an object.')]];
         }
 
         $errors = [];
         $version = $content['version'] ?? self::VERSION;
         if ($version !== self::VERSION) {
-            $errors[] = __('Unsupported workspace document version.');
+            $errors[] = __('Unsupported graph document version.');
         }
 
         $nodes = $content['nodes'] ?? [];
@@ -146,7 +148,7 @@ class AnalystGraphDocumentTool
             $nodes = [];
         }
         if (count($nodes) > self::MAX_NODES) {
-            $errors[] = __('A workspace holds at most %s nodes.', self::MAX_NODES);
+            $errors[] = __('A graph holds at most %s nodes.', self::MAX_NODES);
             $nodes = [];
         }
         $document = self::emptyDocument();
@@ -203,7 +205,7 @@ class AnalystGraphDocumentTool
             $notes = [];
         }
         if (count($notes) > self::MAX_NOTES) {
-            $errors[] = __('A workspace holds at most %s notes.', self::MAX_NOTES);
+            $errors[] = __('A graph holds at most %s notes.', self::MAX_NOTES);
             $notes = [];
         }
         $notes = self::normaliseNotes($notes, $errors);
@@ -215,7 +217,7 @@ class AnalystGraphDocumentTool
             return [null, $errors];
         }
         if (strlen(self::encode($document)) > self::MAX_BYTES) {
-            return [null, [__('A workspace document is at most %s bytes.', self::MAX_BYTES)]];
+            return [null, [__('A graph document is at most %s bytes.', self::MAX_BYTES)]];
         }
         return [$document, []];
     }
@@ -304,10 +306,6 @@ class AnalystGraphDocumentTool
         $nodes = isset($document['nodes']) && is_array($document['nodes']) ? $document['nodes'] : [];
         $seen = array_flip(self::nodeKeysOf($nodes));
         foreach (array_values($items) as $i => $item) {
-            if (is_array($item) && ($item['type'] ?? null) === self::ANSWER) {
-                $report['refused'][] = ['index' => $i, 'error' => __('A module answer is kept by saving the workspace, not added to it.')];
-                continue;
-            }
             $errors = [];
             $node = self::normaliseNode($item, $errors);
             if ($node === null) {
@@ -320,7 +318,7 @@ class AnalystGraphDocumentTool
                 continue;
             }
             if (count($nodes) >= self::MAX_NODES) {
-                $report['refused'][] = ['index' => $i, 'error' => __('A workspace holds at most %s nodes.', self::MAX_NODES)];
+                $report['refused'][] = ['index' => $i, 'error' => __('A graph holds at most %s nodes.', self::MAX_NODES)];
                 continue;
             }
             $seen[$key] = true;
@@ -328,6 +326,46 @@ class AnalystGraphDocumentTool
             $report['added'][] = $key;
         }
         $document['nodes'] = $nodes;
+        return [$document, $report];
+    }
+
+    /**
+     * Set or clear a flag (hidden) on the nodes named, keeping where they sit.
+     *
+     * @param array $document A stored document, decoded
+     * @param array $items Nodes or their keys
+     * @param string $flag
+     * @param bool $on
+     * @return array [array $document, array $report {changed: [key], absent: [key]}]
+     */
+    public static function flagNodes(array $document, array $items, $flag, $on)
+    {
+        $wanted = [];
+        foreach ($items as $item) {
+            $key = self::keyOf($item);
+            if ($key !== null) {
+                $wanted[$key] = true;
+            }
+        }
+        $report = ['changed' => [], 'absent' => []];
+        $found = [];
+        foreach ($document['nodes'] ?? [] as $i => $node) {
+            $key = self::nodeKey($node);
+            if (!isset($wanted[$key])) {
+                continue;
+            }
+            $found[$key] = true;
+            if (!empty($node[$flag]) === $on) {
+                continue;
+            }
+            if ($on) {
+                $document['nodes'][$i][$flag] = true;
+            } else {
+                unset($document['nodes'][$i][$flag]);
+            }
+            $report['changed'][] = $key;
+        }
+        $report['absent'] = array_keys(array_diff_key($wanted, $found));
         return [$document, $report];
     }
 
@@ -392,6 +430,66 @@ class AnalystGraphDocumentTool
         }
         $report['absent'] = array_keys($wanted);
         return [self::withNodes($document, $remaining), $report];
+    }
+
+    /**
+     * Put records where other nodes sit: each node named by a key of $map
+     * becomes the record its entry names, in the same place, with the same
+     * flags and groups. A node whose record the document already holds is
+     * dropped instead, the record staying where it is.
+     *
+     * @param array $document A stored document, decoded
+     * @param array $map `Type:address` => the record's node ({type, uuid})
+     * @return array [array $document, array $report {replaced: {old: new}, absent: [old]}]
+     */
+    public static function replaceNodes(array $document, array $map)
+    {
+        $report = ['replaced' => [], 'absent' => []];
+        $nodes = isset($document['nodes']) && is_array($document['nodes']) ? $document['nodes'] : [];
+        $present = array_flip(self::nodeKeysOf($nodes));
+        $renamed = [];
+        $out = [];
+        foreach ($nodes as $node) {
+            $key = self::nodeKeysOf([$node])[0] ?? null;
+            if ($key === null || !isset($map[$key])) {
+                $out[] = $node;
+                continue;
+            }
+            $errors = [];
+            $kept = array_intersect_key($node, array_flip(['x', 'y', 'pinned', 'collapsed', 'pulled_out', 'hidden']));
+            $record = self::normaliseNode(array_intersect_key((array)$map[$key], array_flip(['type', 'uuid', 'value'])) + $kept, $errors);
+            if ($record === null || self::isAnswer($record)) {
+                $out[] = $node;
+                continue;
+            }
+            $newKey = self::nodeKey($record);
+            $report['replaced'][$key] = $newKey;
+            $renamed[$key] = $newKey;
+            if ($newKey !== $key && isset($present[$newKey])) {
+                continue;
+            }
+            $present[$newKey] = true;
+            $out[] = $record;
+        }
+        foreach (array_keys($map) as $key) {
+            if (!isset($report['replaced'][$key])) {
+                $report['absent'][] = $key;
+            }
+        }
+        if (empty($renamed)) {
+            return [$document, $report];
+        }
+        foreach ($document['groups'] ?? [] as $i => $group) {
+            if (!isset($group['members']) || !is_array($group['members'])) {
+                continue;
+            }
+            $members = [];
+            foreach ($group['members'] as $member) {
+                $members[$renamed[$member] ?? $member] = true;
+            }
+            $document['groups'][$i]['members'] = array_keys($members);
+        }
+        return [self::withNodes($document, $out), $report];
     }
 
     /**
@@ -568,7 +666,7 @@ class AnalystGraphDocumentTool
             }
             $normalised[$axis] = $node[$axis];
         }
-        foreach (['pinned', 'collapsed', 'pulled_out'] as $flag) {
+        foreach (['pinned', 'collapsed', 'pulled_out', 'hidden'] as $flag) {
             if (!empty($node[$flag])) {
                 $normalised[$flag] = true;
             }
@@ -619,6 +717,31 @@ class AnalystGraphDocumentTool
     }
 
     /**
+     * The uuid of an object made by hand: derived from everything it holds,
+     * so the same object is one record, and one differing in anything, a
+     * comment included, is another.
+     *
+     * @param array $content Normalised, kind object
+     * @return string
+     */
+    public static function handMadeUuid(array $content)
+    {
+        $attributes = [];
+        foreach ($content['attributes'] as $attribute) {
+            $attributes[] = [
+                $attribute['relation'] ?? '', $attribute['type'], $attribute['value'],
+                $attribute['category'], $attribute['comment'], !empty($attribute['to_ids']),
+            ];
+        }
+        sort($attributes);
+        $hash = hash('sha256', json_encode(
+            [$content['name'], $content['meta_category'], $content['description'], $content['comment'], $attributes],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ));
+        return self::uuidV5('hand-obj:' . $hash);
+    }
+
+    /**
      * The uuid of the attribute or element answer holding this value.
      *
      * @param string $type
@@ -647,6 +770,62 @@ class AnalystGraphDocumentTool
             (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
             substr($hash, 20, 12)
         );
+    }
+
+    /**
+     * An object's content as an answer of kind object holds it.
+     *
+     * @param mixed $content
+     * @param string[] $errors
+     * @return array|null
+     */
+    public static function normaliseObjectContent($content, array &$errors)
+    {
+        if (!is_array($content) || ($content['kind'] ?? 'object') !== 'object') {
+            $errors[] = __('content is an object: kind object, a name and its attributes.');
+            return null;
+        }
+        return self::normaliseContent(['kind' => 'object'] + $content, $errors);
+    }
+
+    /**
+     * Where a collection member taken from a module answer came from: the
+     * module, what it was asked and when. The node asked is not kept.
+     *
+     * @param mixed $origin
+     * @param string|null $error
+     * @return array|null {module, type, value, ran_at}
+     */
+    public static function normaliseMemberOrigin($origin, &$error)
+    {
+        $error = null;
+        if (!is_array($origin)) {
+            $error = __('an origin is an object.');
+            return null;
+        }
+        $module = $origin['module'] ?? null;
+        if (!is_string($module) || !preg_match(self::MODULE_PATTERN, $module)) {
+            $error = __('an origin names the module asked.');
+            return null;
+        }
+        $out = ['module' => $module];
+        foreach (['type', 'value'] as $field) {
+            $out[$field] = self::answerString($origin[$field] ?? null, false, $error);
+            if ($out[$field] === null) {
+                $error = __('%s: %s', $field, $error);
+                return null;
+            }
+        }
+        $ranAt = $origin['ran_at'] ?? null;
+        if (is_string($ranAt) && ctype_digit($ranAt)) {
+            $ranAt = (int)$ranAt;
+        }
+        if (!is_int($ranAt) || $ranAt < 0) {
+            $error = __('ran_at must be a timestamp.');
+            return null;
+        }
+        $out['ran_at'] = $ranAt;
+        return $out;
     }
 
     /**

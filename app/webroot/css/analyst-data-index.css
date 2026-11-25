@@ -79,7 +79,7 @@
 .adk-card:hover :is(.adk-verb, .adk-name) { color: color-mix(in srgb, var(--dk-accent) 70%, var(--dk-ink)); }
 .adk-none { font-style: italic; color: var(--dk-ink3); }
 .adk-head > .adr-stance { font-size: .8rem; }
-.adk-card[data-kind="Workspace"] .adk-head {
+.adk-card[data-kind="Graph"] .adk-head {
     flex-direction: row;
     align-items: center;
     gap: 10px;

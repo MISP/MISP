@@ -11,8 +11,7 @@
  * Parameters:
  *   object             array  one entry of $objects
  *   canEdit            bool   may modify the object's event
- *   mayGraph           bool   may add to a workspace
- *   mayCollect         bool   may add to a collection
+ *   mayGraph           bool   may add to the workspace or a collection
  *   enrichmentEnabled  bool   Plugin.Enrichment_services_enable
  *
  * A soft-deleted object offers only Restore and Delete permanently, and no
@@ -25,11 +24,9 @@ $uuid = (string)($object['uuid'] ?? '');
 $isDeleted = !empty($object['deleted']);
 $canEdit = !empty($canEdit);
 $mayGraph = !empty($mayGraph);
-$mayCollect = !empty($mayCollect);
 $editUrl = $baseurl . '/objects/edit/' . $objId;
 $deleteUrl = $baseurl . '/objects/delete/' . $objId . ($isDeleted ? '/true' : '');
 $enrichUrl = $baseurl . '/events/queryEnrichment/' . $objId . '/0/Enrichment/Object';
-$collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . h($uuid);
 $restoreUrl = $baseurl . '/objects/restore/' . $objId;
 if ($isDeleted && !$canEdit) {
     return;
@@ -102,26 +99,14 @@ if ($isDeleted && !$canEdit) {
                 'mode' => 'menu_items',
                 'showView' => false,
             ]) ?>
-            <?php if ($mayGraph || $mayCollect): ?>
-            <li><hr class="dropdown-divider"></li>
-            <?php endif; ?>
             <?php if ($mayGraph): ?>
-            <li>
-                <a class="dropdown-item justify-content-start" href="#"
-                   data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $uuid, 'label' => $object['name']]])) ?>">
-                    <i class="text-analystGraph misp-icon misp-icon-analyst-graph misp-simple me-2"></i>
-                    <?= __('Add to workspace') ?>
-                </a>
-            </li>
-            <?php endif; ?>
-            <?php if ($mayCollect): ?>
-            <li>
-                <a class="dropdown-item justify-content-start" href="<?= $collectUrl ?>"
-                   onclick="event.preventDefault(); openModal('<?= $collectUrl ?>', 'xl');">
-                    <i class="fas fa-folder-plus me-2"></i>
-                    <?= __('Add to collection') ?>
-                </a>
-            </li>
+            <li><hr class="dropdown-divider"></li>
+            <?= $this->element('intel_graph_entries', [
+                'items' => [['type' => 'Object', 'uuid' => $uuid, 'label' => $object['name']]],
+                'itemClass' => 'dropdown-item justify-content-start',
+                'iconClass' => 'me-2',
+                'wrap' => true,
+            ]) ?>
             <?php endif; ?>
             <?php endif; ?>
         </ul>

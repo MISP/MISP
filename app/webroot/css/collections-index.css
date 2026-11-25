@@ -1,0 +1,23 @@
+/* Overmind collections index: the events index's publish glyph and counts
+   (events-index-table.css), with the tokens they read. */
+
+.ci-index {
+    --dk-ink: var(--bs-body-color);
+    --dk-amber-ink: #9a5b00;
+    --dk-amber-bg: #fff3d6;
+    --dk-amber-line: #f0b429;
+}
+[data-misp-mode="dark"] .ci-index {
+    --dk-amber-ink: #f0a02a;
+    --dk-amber-bg: #3a2c10;
+    --dk-amber-line: #a8741a;
+}
+
+.ci-index th.ci-c-state,
+.ci-index td.ci-c-state { width: 34px; text-align: center; }
+.ci-index th.ci-c-state .te-hicon i.fas { font-size: .78rem; }
+.ci-index th.te-num { text-align: right; }
+.ci-index td.te-num { font-weight: 600; }
+.ci-index .te-st.te-faint { cursor: default; }
+.ci-index .ci-tally { font-size: .8rem; color: var(--bs-secondary-color); white-space: nowrap; }
+.ci-index .ci-tally.te-zero { color: var(--bs-tertiary-color); }

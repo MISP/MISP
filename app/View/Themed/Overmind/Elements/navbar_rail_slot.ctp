@@ -11,6 +11,7 @@ $none = $item['count'] === null;
     <button type="button" class="rail-graph" data-intel-graph-toggle aria-label="<?= h($item['title']) ?>">
         <?= $this->element('navbar_rail_glyph', ['item' => $item]) ?>
         <span class="rail-graph-name" data-intel-graph-name><?= h($item['label']) ?></span>
+        <span class="rc-shared" data-intel-graph-shared aria-hidden="true"<?= empty($item['shared']) ? ' hidden' : '' ?><?= empty($item['pending']) ? '' : ' data-pending' ?>><i class="fas fa-share-nodes"></i></span>
         <span class="rail-count" data-intel-graph-count<?= $none ? ' hidden' : '' ?>><?= h((string)$item['count']) ?></span>
     </button>
 </div>

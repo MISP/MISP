@@ -1,4 +1,5 @@
 <?php
+App::uses('SyncTool', 'Tools');
 
 /**
  * Common functions for the 3 analyst objects
@@ -27,11 +28,15 @@ class AnalystDataBehavior extends ModelBehavior
         if (!empty($acl)) {
             $conditions['AND'][] = $acl;
         }
-        return $Model->find('all', [
+        $found = $Model->find('all', [
             'recursive' => -1,
             'conditions' => $conditions,
             'contain' => ['Org', 'Orgc', 'SharingGroup'],
         ]);
+        if ($Model->alias === 'Relationship' && SyncTool::requesterIsMisp()) {
+            $found = ClassRegistry::init('Collection')->servedRelationships($found);
+        }
+        return $found;
     }
 
     // Return the analystData of the current type for a given UUID (this only checks the ACL of the analystData, NOT of the parent.)
@@ -72,6 +77,9 @@ class AnalystDataBehavior extends ModelBehavior
             'conditions' => $conditions,
             'contain' => ['Org', 'Orgc', 'SharingGroup'],
         ]);
+        if ($Model->alias === 'Relationship' && SyncTool::requesterIsMisp()) {
+            $temp = ClassRegistry::init('Collection')->servedRelationships($temp);
+        }
         $results = [];
         foreach ($temp as $result) {
             $results[$result[$type][$column]][$type][] = $result[$type];

@@ -1402,6 +1402,40 @@
     vertical-align: -0.15em;
 }
 
+/* The add control: the workspace glyph and its caret, side by side. */
+.vi-acts .vi-add {
+    flex-wrap: nowrap;
+}
+
+/* The bar's hand-over, at the size of the strip's buttons (.ifp-fbtn). */
+.vi-handover .ig-add .btn {
+    --bs-btn-padding-y: 0;
+    --bs-btn-padding-x: 14px;
+    --bs-btn-font-size: .9rem;
+    --bs-btn-font-weight: 600;
+    --bs-btn-border-radius: .6rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+}
+
+.vi-handover .ig-add .ig-add-more {
+    padding-inline: 10px;
+}
+
+.vi-acts .vi-btn--caret {
+    width: 14px;
+}
+
+.vi-acts .vi-btn--caret::after {
+    margin-left: 0;
+    vertical-align: .15em;
+    border-top-width: .28em;
+    border-right-width: .24em;
+    border-left-width: .24em;
+}
+
 .vi-row:hover .vi-acts .vi-btn--icon,
 .vi-row.is-cursor .vi-acts .vi-btn--icon {
     border-color: transparent;
@@ -1949,6 +1983,35 @@
     border-top: 1px solid var(--bs-card-border-color, var(--bs-border-color));
     font-size: .75rem;
     color: var(--bs-secondary-color);
+}
+
+/* The hand-over: which values, then where they go. */
+.vi-done__handoff {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.vi-done__handoff .btn {
+    font-weight: 600;
+}
+
+.vi-seg:disabled,
+.vi-done__handoff .ifp-segv-btn:disabled {
+    cursor: default;
+    opacity: .5;
+}
+
+.vi-ws-name {
+    font-weight: 600;
+}
+
+.vi-done__handed {
+    margin: 8px 0 0;
+    font-size: .8125rem;
+    color: var(--bs-body-color);
 }
 
 .vi-shortlist {

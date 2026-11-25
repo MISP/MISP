@@ -104,6 +104,26 @@ class Relationship extends AnalystData
         return true;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        parent::afterSave($created, $options);
+        if (!empty($this->data[$this->alias]['locked'])) {
+            return;
+        }
+        $saved = $this->find('first', [
+            'conditions' => [$this->alias . '.id' => $this->id],
+            'fields' => [
+                'object_type', 'object_uuid', 'object_sha256', 'related_object_type',
+                'related_object_uuid', 'related_object_sha256', 'orgc_uuid', 'locked', 'distribution',
+            ],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        if (!empty($saved)) {
+            ClassRegistry::init('Collection')->relationshipSaved($saved[$this->alias]);
+        }
+    }
+
     /**
      * @param array $check
      * @return bool
@@ -305,6 +325,9 @@ class Relationship extends AnalystData
             'conditions' => $conditions,
             'contain' => ['Org', 'Orgc', 'SharingGroup'],
         ]);
+        if (SyncTool::requesterIsMisp()) {
+            $inboundRelations = ClassRegistry::init('Collection')->servedRelationships($inboundRelations);
+        }
 
         foreach ($inboundRelations as $i => $relationship) {
             $relationship = $relationship['Relationship'];

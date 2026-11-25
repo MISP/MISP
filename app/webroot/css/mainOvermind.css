@@ -324,7 +324,7 @@ body[data-controller="users"][data-action="password_reset"] {
 }
 html.misp-railed #flashOverlay { top: calc(var(--misp-rail-height) + .75rem); }
 /* Clear of the graph dock while it is open on the right. */
-html.ig-so-docked #flashOverlay {
+html.ig-so-docked:not(.ig-so-left) #flashOverlay {
     right: calc(var(--ig-so-w) + 1rem);
 }
 .ov-toast-stack { display: flex; flex-direction: column; gap: .5rem; }

@@ -59,7 +59,7 @@ class AuditLogBehavior extends ModelBehavior
         'Galaxy' => 'name',
         'GalaxyCluster' => 'value',
         'Warninglist' => 'name',
-        'Workspace' => 'name',
+        'Graph' => 'name',
     ];
 
     public function __construct()
@@ -421,7 +421,10 @@ class AuditLogBehavior extends ModelBehavior
                 }
             }
             $sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
-            if (in_array($key, $sanitiseFields) || ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting']))) {
+            if (in_array($key, $sanitiseFields) ||
+                ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting'])) ||
+                ($key === 'value' && $model->name === 'UserSetting' &&
+                    ($model->data[$model->alias]['setting'] ?? $oldData[$model->alias]['setting'] ?? null) === 'module_api_keys')) {
                 $value = '*****';
                 if ($old !== null) {
                     $old = $value;

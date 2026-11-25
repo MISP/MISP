@@ -50,7 +50,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'right' => array_merge([
                 'GalaxyClusters/View/galaxy_clusters_actions',
                 'GalaxyClusters/View/galaxy_clusters_analyst_data',
-                'GalaxyClusters/View/galaxy_clusters_graphs',
+                'GalaxyClusters/View/galaxy_clusters_investigations',
             ], $this->RailCard->rail($railCards, [
                 'cluster-facts', 'cluster-relations', 'cluster-activity', 'cluster-latest',
             ], 'general')),

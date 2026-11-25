@@ -2,7 +2,6 @@
 
 App::uses('AbstractMigration', 'Migration');
 App::uses('Validation', 'Utility');
-App::uses('Workspace', 'Model');
 
 /**
  * Carry what v3 Early Access stored under the analyst graph's names over to
@@ -27,6 +26,9 @@ class Migration_20261022_123413_early_access_workspace_names extends AbstractMig
     const NEW_TYPE = 'Workspace';
 
     const OLD_SETTING = 'intelligence_graph_active';
+
+    /** Written as `{workspace_uuid}`, the shape later migrations expect. */
+    const NEW_SETTING = 'active_workspace';
 
     /** The analyst-data columns that name the type of the record pointed at. */
     const TARGETS = array(
@@ -116,25 +118,33 @@ class Migration_20261022_123413_early_access_workspace_names extends AbstractMig
     private function moveActiveSettings()
     {
         $UserSetting = ClassRegistry::init('UserSetting');
-        $Workspace = ClassRegistry::init('Workspace');
         $rows = $UserSetting->find('all', array(
             'conditions' => array('UserSetting.setting' => self::OLD_SETTING),
             'fields' => array('UserSetting.user_id', 'UserSetting.value'),
             'recursive' => -1,
             'callbacks' => false,
         ));
-        foreach ($rows as $row) {
-            $userId = (int)$row['UserSetting']['user_id'];
-            $value = json_decode((string)$row['UserSetting']['value'], true);
-            $uuid = is_array($value) ? ($value['graph_uuid'] ?? null) : null;
-            if (!is_string($uuid) || !Validation::uuid($uuid)) {
-                continue;
+        // The legacy log's full-change entry would record each choice
+        $logged = $UserSetting->Behaviors->enabled('SysLogLogable.SysLogLogable');
+        $UserSetting->Behaviors->disable('SysLogLogable.SysLogLogable');
+        try {
+            foreach ($rows as $row) {
+                $userId = (int)$row['UserSetting']['user_id'];
+                $value = json_decode((string)$row['UserSetting']['value'], true);
+                $uuid = is_array($value) ? ($value['graph_uuid'] ?? null) : null;
+                if (!is_string($uuid) || !Validation::uuid($uuid)) {
+                    continue;
+                }
+                if ($UserSetting->getValueForUser($userId, self::NEW_SETTING) !== null) {
+                    continue;
+                }
+                if (!$UserSetting->setSettingInternal($userId, self::NEW_SETTING, array('workspace_uuid' => $uuid))) {
+                    return false;
+                }
             }
-            if ($UserSetting->getValueForUser($userId, Workspace::ACTIVE_SETTING) !== null) {
-                continue;
-            }
-            if (!$Workspace->storeActive(array('id' => $userId), $uuid)) {
-                return false;
+        } finally {
+            if ($logged) {
+                $UserSetting->Behaviors->enable('SysLogLogable.SysLogLogable');
             }
         }
         return (bool)$UserSetting->deleteAll(array('UserSetting.setting' => self::OLD_SETTING), false, false);

@@ -1,6 +1,7 @@
 <?php
 
 $m = $modelSelection;
+$workspaceGraphUuid = $workspaceGraphUuid ?? null;
 $viewUrl = $baseurl . '/analystData/view/' . $m . '/%id%';
 $canEdit = function ($row) use ($m) {
     return !empty($row[$m]['_canEdit']);
@@ -73,7 +74,7 @@ if ($m === 'Note') {
         'display_in' => ['table'],
     ];
     $order = ['checkbox', 'id', 'opinion', 'target', 'orgc', 'distribution'];
-} else if ($m === 'Workspace') {
+} else if ($m === 'Graph') {
     echo $this->element('genericElements/assetLoader', [
         'js' => ['intel-graph-thumb', 'intel-graph-thumbs'],
         'css' => ['intel-graph-thumbs'],
@@ -83,13 +84,23 @@ if ($m === 'Note') {
         'sort' => $m . '.name',
         'element' => 'custom',
         // The graph's picture (intel-graph-thumbs.js) beside its name
-        'function' => function ($row) {
+        'function' => function ($row) use ($workspaceGraphUuid) {
+            $mark = '';
+            if (!empty($workspaceGraphUuid) && strtolower($row['Graph']['uuid']) === $workspaceGraphUuid) {
+                $mark = sprintf(
+                    ' <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-semibold ms-1" title="%s">'
+                    . '<i class="fas fa-bullseye me-1" aria-hidden="true"></i>%s</span>',
+                    h(__('It lays out your workspace')),
+                    h(__('Workspace'))
+                );
+            }
             return sprintf(
-                '<div class="igt-cell" data-tour="graph-row"><span data-intel-graph-thumb="%s" data-revision="%s" data-surface="index" data-name="%s"></span><span>%s</span></div>',
-                h($row['Workspace']['uuid']),
-                h($row['Workspace']['revision'] ?? ''),
-                h($row['Workspace']['name']),
-                h($row['Workspace']['name'])
+                '<div class="igt-cell" data-tour="graph-row"><span data-intel-graph-thumb="%s" data-revision="%s" data-surface="index" data-name="%s"></span><span>%s%s</span></div>',
+                h($row['Graph']['uuid']),
+                h($row['Graph']['revision'] ?? ''),
+                h($row['Graph']['name']),
+                h($row['Graph']['name']),
+                $mark
             );
         },
         'class' => 'idx-col-wrap',
@@ -105,17 +116,17 @@ if ($m === 'Note') {
         'name' => __('Forked from'),
         'element' => 'custom',
         'function' => function ($row) use ($baseurl) {
-            if (empty($row['Workspace']['forked_from_uuid'])) {
+            if (empty($row['Graph']['forked_from_uuid'])) {
                 return '';
             }
             $icon = '<i class="fas fa-code-fork me-1 text-body-secondary" aria-hidden="true"></i>';
-            $parent = $row['Workspace']['forked_from'] ?? null;
+            $parent = $row['Graph']['forked_from'] ?? null;
             if ($parent === null) {
                 return $icon . '<span class="text-body-secondary">' . __('A fork') . '</span>';
             }
             return $icon . sprintf(
                 '<a href="%s">%s</a>',
-                h($baseurl . '/workspaces/view/' . $parent['uuid']),
+                h($baseurl . '/analyst_graphs/view/' . $parent['uuid']),
                 h($parent['name'])
             );
         },
@@ -163,16 +174,16 @@ $fields[] = [
             'type' => 'navigate',
             'label' => __('Export'),
             'icon' => 'file-export',
-            'url' => $baseurl . '/workspaces/export/%uuid%',
+            'url' => $baseurl . '/analyst_graphs/export/%uuid%',
             'url_params_data_paths' => ['uuid' => $m . '.uuid'],
-            'requirement' => $m === 'Workspace',
+            'requirement' => $m === 'Graph',
         ],
         [
             'type' => 'modal',
             'label' => __('Edit'),
             'icon' => 'pen-to-square',
             'url' => $baseurl . '/analystData/edit/' . $m . '/%id%',
-            'requirement' => $m === 'Workspace' ? false : $canEdit,
+            'requirement' => $m === 'Graph' ? false : $canEdit,
         ],
         [
             'type' => 'modal',
@@ -208,18 +219,18 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'mode' => 'quickFilter',
-                        'placeholder' => __('Search %s…', strtolower($m)),
+                        'placeholder' => $m === 'Graph' ? __('Search saved graphs…') : __('Search %s…', strtolower($m)),
                     ],
                 ],
                 // The type is baked into the URL so deleteSelection knows which model to hit.
                 'delete' => '/deleteSelection/' . $m,
-                'custom_actions' => $m !== 'Workspace' ? [] : [
+                'custom_actions' => $m !== 'Graph' ? [] : [
                     [
                         'id' => 'multi-export-graphs-button',
                         'label' => __('Export'),
                         'icon' => 'file-export',
                         'onclick' => sprintf(
-                            "if (selectedItems.size) { window.location = '%s/workspaces/export/' + JSON.stringify(Array.from(selectedItems.keys())); }",
+                            "if (selectedItems.size) { window.location = '%s/analyst_graphs/export/' + JSON.stringify(Array.from(selectedItems.keys())); }",
                             $baseurl
                         ),
                     ],

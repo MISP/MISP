@@ -574,13 +574,18 @@ class EventsController extends AppController
                     $pieces = explode('|', $v);
                     $test = array();
                     foreach ($pieces as $piece) {
+                        if ($piece === '') {
+                            continue; // an empty component, e.g. from "a||b", matches nothing and has no first character
+                        }
                         if ($piece[0] === '!') {
                             $this->paginate['conditions']['AND'][] = array('lower(Event.info) NOT LIKE' => '%' . mb_strtolower(substr($piece, 1)) . '%');
                         } else {
                             $test['OR'][] = array('lower(Event.info) LIKE' => '%' . mb_strtolower($piece) . '%');
                         }
                     }
-                    $this->paginate['conditions']['AND'][] = $test;
+                    if (!empty($test)) {
+                        $this->paginate['conditions']['AND'][] = $test;
+                    }
                     break;
                 case 'tag':
                 case 'tags':
@@ -1500,23 +1505,23 @@ class EventsController extends AppController
         $uuids = array_column(array_column($events, 'Event'), 'uuid');
 
         // Callbacks off: AnalystData::afterFind resolves orgs and child notes per row.
-        $Workspace = ClassRegistry::init('Workspace');
-        $graphRows = $Workspace->find('all', [
+        $Graph = ClassRegistry::init('Graph');
+        $graphRows = $Graph->find('all', [
             'conditions' => ['AND' => [
-                ['Workspace.object_type' => 'Event', 'Workspace.object_uuid' => $uuids],
-                $Workspace->buildConditions($user),
+                ['Graph.object_type' => 'Event', 'Graph.object_uuid' => $uuids],
+                $Graph->buildConditions($user),
             ]],
-            'fields' => ['Workspace.uuid', 'Workspace.name', 'Workspace.object_uuid', 'Workspace.revision'],
-            'order' => ['Workspace.modified' => 'DESC'],
+            'fields' => ['Graph.uuid', 'Graph.name', 'Graph.object_uuid', 'Graph.revision'],
+            'order' => ['Graph.modified' => 'DESC'],
             'recursive' => -1,
             'callbacks' => false,
         ]);
         $graphs = [];
         foreach ($graphRows as $row) {
-            $graphs[$row['Workspace']['object_uuid']][] = [
-                'uuid' => $row['Workspace']['uuid'],
-                'name' => $row['Workspace']['name'],
-                'revision' => (int)$row['Workspace']['revision'],
+            $graphs[$row['Graph']['object_uuid']][] = [
+                'uuid' => $row['Graph']['uuid'],
+                'name' => $row['Graph']['name'],
+                'revision' => (int)$row['Graph']['revision'],
             ];
         }
 
@@ -8961,7 +8966,7 @@ class EventsController extends AppController
                 if ($temp['name'] == $module) {
                     $moduleFound = true;
                     $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
-                    $options = Module::moduleConfig($temp, $type);
+                    $options = $this->Module->getModuleConfig($temp, $type, $this->Auth->user());
                     break;
                 }
             }
@@ -9251,9 +9256,9 @@ class EventsController extends AppController
                 'module' => $module['name'],
                 'event_id' => $eventId,
             );
-            $moduleConfig = Module::moduleConfig($module, 'Import');
-            if (!empty($moduleConfig)) {
-                $modulePayload['config'] = $moduleConfig;
+            $config = $this->Module->getModuleConfig($module, 'Import', $this->Auth->user());
+            if (!empty($config)) {
+                $modulePayload['config'] = $config;
             }
             if ($moduleName === 'csvimport') {
                 if (empty($requestData['config']['header']) && $requestData['config']['has_header'] === '1') {

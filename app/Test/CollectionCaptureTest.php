@@ -1,6 +1,6 @@
 <?php
 /**
- * Collection::captureCollection() unit tests (T2.2 — PRD §9.1).
+ * Collection::captureCollection() unit tests.
  *
  * Pure PHPUnit, no CakePHP bootstrap, no DB — the convention used by every
  * other test under app/Test/ (see DashboardURLValidatorTest). captureCollection
@@ -144,6 +144,7 @@ if (!class_exists('AppModel', false)) {
 require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/Collection.php';
+require_once __DIR__ . '/../Model/CollectionElement.php';
 
 use PHPUnit\Framework\TestCase;
 
@@ -185,6 +186,23 @@ class StubEvent
     }
 }
 
+/** The removal rows a release clears. */
+class StubRemovals
+{
+    public $deleted = array();
+
+    public function deleteAll($conditions, $cascade = true)
+    {
+        $this->deleted[] = $conditions;
+        return true;
+    }
+
+    public function find($type, $options = array())
+    {
+        return array();
+    }
+}
+
 /** CollectionElement::captureElements double: records the corpus it was handed. */
 class StubCollectionElement
 {
@@ -192,12 +210,31 @@ class StubCollectionElement
     public $callCount = 0;
     public $fromPre30 = null;
 
+    public $updates = array();
+
     public function captureElements($data, $fromPre30 = false)
     {
         $this->callCount++;
         $this->capturedData = $data;
         $this->fromPre30 = $fromPre30;
         return $data;
+    }
+
+    public function updateAll($fields, $conditions = true)
+    {
+        $this->updates[] = array($fields, $conditions);
+        return true;
+    }
+
+    /** Members still unreleased after the release, as pendingChanges() counts them. */
+    public $unreleased = 0;
+
+    public function find($type, $options = array())
+    {
+        if ($this->unreleased === 0) {
+            return array();
+        }
+        return array(array('CollectionElement' => array('collection_id' => 123), 0 => array('n' => $this->unreleased)));
     }
 }
 
@@ -239,6 +276,14 @@ class TestableCollection extends Collection
         $this->savedFieldList = $fieldList;
         return $this->saveReturn;
     }
+
+    public $updates = array();
+
+    public function updateAll($fields, $conditions = true)
+    {
+        $this->updates[] = array($fields, $conditions);
+        return true;
+    }
 }
 
 class CollectionCaptureTest extends TestCase
@@ -247,6 +292,7 @@ class CollectionCaptureTest extends TestCase
     private $orgc;
     private $event;
     private $element;
+    private $removals;
 
     protected function setUp(): void
     {
@@ -262,6 +308,16 @@ class CollectionCaptureTest extends TestCase
         $this->collection->Orgc = $this->orgc;
         $this->collection->CollectionElement = $this->element;
         ClassRegistry::$instances['Event'] = $this->event;
+        $this->removals = new StubRemovals();
+        ClassRegistry::$instances['CollectionElementRemoval'] = $this->removals;
+    }
+
+    /** Another capture, with the lookups counted afresh. */
+    private function freshCollection()
+    {
+        $this->collection = new TestableCollection();
+        $this->collection->Orgc = $this->orgc;
+        $this->collection->CollectionElement = $this->element;
     }
 
     private function syncUser()
@@ -320,7 +376,7 @@ class CollectionCaptureTest extends TestCase
 
         $saved = $this->collection->savedData['Collection'];
         $this->assertSame(1, $saved['locked'], 'synced-in ⇒ locked=1');
-        $this->assertSame(5, $saved['user_id'], 'user_id neutralised to sync user (D7)');
+        $this->assertSame(5, $saved['user_id'], 'user_id neutralised to sync user');
         $this->assertSame(9, $saved['org_id'], 'org_id = sync user org');
         $this->assertSame(42, $saved['orgc_id'], 'orgc_id resolved via captureOrg');
         $this->assertSame(0, $saved['distribution'], 'community(1) downgraded to org-only(0)');
@@ -393,7 +449,7 @@ class CollectionCaptureTest extends TestCase
         $this->assertSame(0, $this->collection->saveCallCount);
     }
 
-    // ---------------- 3. locked block (D6) ----------------
+    // ---------------- 3. locked block ----------------
 
     public function testLockedBlockOnLocalOriginalFromExternal(): void
     {
@@ -426,6 +482,66 @@ class CollectionCaptureTest extends TestCase
         );
 
         $this->assertSame(1, $res['imported'], 'internal server may overwrite a local original');
+    }
+
+    /**
+     * @return array The existing row, as the last save left it
+     */
+    private function storedAfterSave()
+    {
+        $stored = $this->collection->existingRow['Collection'];
+        foreach ($this->collection->savedFieldList as $field) {
+            if (array_key_exists($field, $this->collection->savedData['Collection'])) {
+                $stored[$field] = $this->collection->savedData['Collection'][$field];
+            }
+        }
+        return array('Collection' => $stored);
+    }
+
+    public function testALocalOriginalOverwrittenByAnInternalServerStaysThisInstancesOwn(): void
+    {
+        $this->collection->existingRow = array('Collection' => array(
+            'id' => 50, 'locked' => 0, 'modified' => '2000-01-01 00:00:00'
+        ));
+
+        $res = $this->collection->captureCollection(
+            $this->syncUser(),
+            $this->incoming(array('modified' => '2030-01-01 00:00:00', 'name' => 'Renamed there')),
+            $this->internalServer()
+        );
+        $stored = $this->storedAfterSave();
+
+        $this->assertSame(1, $res['imported']);
+        $this->assertSame('Renamed there', $stored['Collection']['name']);
+        $this->assertSame(0, $stored['Collection']['locked'], 'not turned into a copy');
+
+        $this->freshCollection();
+        $this->collection->existingRow = $stored;
+        $res = $this->collection->captureCollection(
+            $this->syncUser(),
+            $this->incoming(array('modified' => '2031-01-01 00:00:00')),
+            $this->externalServer()
+        );
+
+        $this->assertSame(1, $res['failed'], 'a partner still may not overwrite it');
+        $this->assertSame(0, $this->collection->saveCallCount);
+    }
+
+    public function testACopyTakesANewerVersionFromAnyServerAndStaysACopy(): void
+    {
+        foreach (array($this->externalServer(), $this->internalServer()) as $server) {
+            $this->freshCollection();
+            $this->collection->existingRow = array('Collection' => array(
+                'id' => 50, 'locked' => 1, 'modified' => '2000-01-01 00:00:00'
+            ));
+            $res = $this->collection->captureCollection(
+                $this->syncUser(),
+                $this->incoming(array('modified' => '2030-01-01 00:00:00')),
+                $server
+            );
+            $this->assertSame(1, $res['imported']);
+            $this->assertSame(1, $this->storedAfterSave()['Collection']['locked']);
+        }
     }
 
     // ---------------- 4. distribution downgrade ----------------
@@ -523,7 +639,7 @@ class CollectionCaptureTest extends TestCase
         $this->assertNull($this->collection->savedData['Collection']['sharing_group_id']);
     }
 
-    // ---------------- 6. element corpus (D5) ----------------
+    // ---------------- 6. element corpus ----------------
 
     public function testElementsCapturedWithLocalId(): void
     {
@@ -663,5 +779,105 @@ class CollectionCaptureTest extends TestCase
         $this->assertSame(1, $res['imported']);
         $this->assertSame(42, $this->collection->savedData['Collection']['orgc_id'], 'sibling Orgc hoisted and resolved');
         $this->assertSame(1, $this->element->callCount, 'sibling CollectionElement hoisted and captured');
+    }
+
+    // ---------------- published state ----------------
+
+    public function testWhatAnotherInstanceSendsIsStoredAsPublished(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('last_published' => '2026-10-20 08:00:00', 'analysis' => 2)), $this->externalServer());
+
+        $saved = $this->collection->savedData['Collection'];
+        $this->assertTrue($saved['published']);
+        $this->assertSame('2026-10-20 08:00:00', $saved['last_published'], 'when the sender published it');
+        $this->assertSame(2, $saved['analysis']);
+        foreach (array('published', 'last_published', 'analysis') as $field) {
+            $this->assertContains($field, $this->collection->savedFieldList, $field);
+        }
+    }
+
+    public function testASenderWithoutThePublishStateStillPublishes(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('last_published' => 'not a date', 'analysis' => 7)), $this->externalServer());
+
+        $saved = $this->collection->savedData['Collection'];
+        $this->assertTrue($saved['published']);
+        $this->assertRegExp('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $saved['last_published'], 'now, when the sender says nothing usable');
+        $this->assertArrayNotHasKey('analysis', $saved, 'an unknown level keeps ours');
+        $this->assertNotContains('analysis', $this->collection->savedFieldList);
+    }
+
+    public function testAPayloadSayingItIsUnpublishedWaitsForItsPublish(): void
+    {
+        $res = $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => false)), $this->externalServer());
+
+        $this->assertTrue($res['success']);
+        $this->assertSame(1, $res['ignored']);
+        $this->assertSame(0, $res['imported']);
+        $this->assertNull($this->collection->savedData, 'nothing written');
+        $this->assertSame(0, $this->element->callCount);
+
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => '0', 'distribution' => 4)), $this->externalServer());
+        $this->assertNull($this->collection->savedData, 'a sharing group too');
+    }
+
+    public function testAPublishedPayloadIsCaptured(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => true)), $this->externalServer());
+        $this->assertTrue($this->collection->savedData['Collection']['published']);
+    }
+
+    public function testAnOrganisationOnlyPayloadHasNothingToPublish(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('published' => false, 'distribution' => 0)), $this->externalServer());
+        $this->assertNotNull($this->collection->savedData);
+    }
+
+    public function testACaptureReleasesEveryMember(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer());
+
+        $this->assertSame(array(array(
+            array('CollectionElement.published' => true),
+            array('CollectionElement.collection_id' => 123, 'CollectionElement.published' => false),
+        )), $this->element->updates);
+        $this->assertSame(array(array('CollectionElementRemoval.collection_id' => 123)), $this->removals->deleted);
+    }
+
+    public function testASenderOlderThan30ReleasesOnlyTheTypesItHolds(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer(), false, true);
+
+        $this->assertSame(array(array(
+            array('CollectionElement.published' => true),
+            array(
+                'CollectionElement.collection_id' => 123,
+                'CollectionElement.published' => false,
+                'CollectionElement.element_type' => CollectionElement::PRE30_TYPES,
+            ),
+        )), $this->element->updates, 'members kept beyond its types keep their own state');
+        $this->assertSame(array(array(
+            'CollectionElementRemoval.collection_id' => 123,
+            'CollectionElementRemoval.element_type' => CollectionElement::PRE30_TYPES,
+        )), $this->removals->deleted);
+    }
+
+    public function testAnUnpublishedLocalChangeStaysWithheldAfterAPre30Capture(): void
+    {
+        $this->element->unreleased = 2;
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer(), false, true);
+
+        $this->assertSame(array(array(
+            array('Collection.published' => false),
+            array('Collection.id' => 123),
+        )), $this->collection->updates, 'nobody here published it: it waits for a publisher');
+    }
+
+    public function testAPre30CaptureWithNothingPendingStaysPublished(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer(), false, true);
+
+        $this->assertTrue($this->collection->savedData['Collection']['published']);
+        $this->assertSame(array(), $this->collection->updates);
     }
 }

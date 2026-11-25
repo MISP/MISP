@@ -30,7 +30,7 @@ class AnalystData extends AppModel
         'Organisation',
         'SharingGroup',
         'Collection',
-        'Workspace',
+        'Graph',
         'AttributeValue',
     ];
 
@@ -46,7 +46,7 @@ class AnalystData extends AppModel
     const NOTE = 0,
         OPINION = 1,
         RELATIONSHIP = 2,
-        WORKSPACE = 3;
+        GRAPH = 3;
 
     // The types embedded in the records they are attached to
     const ANALYST_DATA_TYPES = [
@@ -59,7 +59,7 @@ class AnalystData extends AppModel
         'Note',
         'Opinion',
         'Relationship',
-        'Workspace',
+        'Graph',
     ];
 
     // A graph pull fetches at most this many bytes, or graphs, per request
@@ -871,7 +871,7 @@ class AnalystData extends AppModel
             'Organisation' => ['Organisation', ['name', 'type'], 'name', ['id', 'uuid']],
             'SharingGroup' => ['SharingGroup', ['name'], 'name', ['id']],
             'Collection' => ['Collection', ['name', 'type'], 'name', ['id']],
-            'Workspace' => ['Workspace', ['name'], 'name', ['id']],
+            'Graph' => ['Graph', ['name'], 'name', ['id']],
         ];
         $visible = $this->existingTargets($user, $targets);
         $uuidsByType = [];
@@ -1528,10 +1528,11 @@ class AnalystData extends AppModel
      * 
      * @param array $user
      * @param ServerSyncTool $serverSync
+     * @param array|null $only [type => conditions]: these records alone, as a collection's publish sends them
      * @return array
      * @throws Exception
      */
-    public function push(array $user, ServerSyncTool $serverSync): array
+    public function push(array $user, ServerSyncTool $serverSync, ?array $only = null): array
     {
         $server = $serverSync->server();
 
@@ -1543,12 +1544,17 @@ class AnalystData extends AppModel
         $serverSync->debug("Starting Analyst Data sync");
 
         $types = self::ANALYST_DATA_TYPES;
-        // A peer that predates workspaces fails its whole analyst-data push on
-        // the key
-        if ($serverSync->isSupported(ServerSyncTool::FEATURE_WORKSPACE)) {
-            $types[] = 'Workspace';
+        // A peer that predates graphs fails its whole analyst-data push on the key
+        if ($serverSync->isSupported(ServerSyncTool::FEATURE_ANALYST_GRAPH)) {
+            $types[] = 'Graph';
         }
-        $analystData = $this->collectDataForPush($serverSync->server(), $types);
+        if ($only !== null) {
+            $types = array_values(array_intersect($types, array_keys($only)));
+            if (empty($types)) {
+                return [];
+            }
+        }
+        $analystData = $this->collectDataForPush($serverSync->server(), $types, $only ?? []);
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
             $analystData = self::withoutValueTargets($analystData);
         }
@@ -1593,9 +1599,10 @@ class AnalystData extends AppModel
      *
      * @param array $server
      * @param array $types
+     * @param array $only [type => conditions] narrowing what each type collects
      * @return array
      */
-    public function collectDataForPush(array $server, array $types = self::ANALYST_DATA_TYPES): array
+    public function collectDataForPush(array $server, array $types = self::ANALYST_DATA_TYPES, array $only = []): array
     {
         $sgIDs = $this->collectValidSharingGroupIDs($server);
         $options = [
@@ -1618,9 +1625,12 @@ class AnalystData extends AppModel
             ],
         ];
         $typeOptions = [];
-        if (in_array('Workspace', $types, true)) {
+        if (in_array('Graph', $types, true)) {
             // Content is read at upload, for the graphs the remote accepts
-            $typeOptions['Workspace']['fields'] = ClassRegistry::init('Workspace')->metadataFields();
+            $typeOptions['Graph']['fields'] = ClassRegistry::init('Graph')->metadataFields();
+        }
+        foreach ($only as $type => $conditions) {
+            $typeOptions[$type]['conditions'] = ['AND' => [$options['conditions'], $conditions]];
         }
         $dataForPush = $this->getAllAnalystData('all', $options, $types, $typeOptions);
         $this->Event = ClassRegistry::init('Event');
@@ -1679,7 +1689,7 @@ class AnalystData extends AppModel
             }
             $dataForPush[$type] = array_values($dataForPush[$type]);
         }
-        return $dataForPush;
+        return ClassRegistry::init('Collection')->withoutHeldBack($dataForPush);
     }
 
     /**
@@ -1845,7 +1855,7 @@ class AnalystData extends AppModel
      * @param array $user
      * @param array $filters
      * @param array $types
-     * @return array [type => [uuid => modified]]; a Workspace entry is
+     * @return array [type => [uuid => modified]]; a Graph entry is
      *               {modified, size}, its content size in bytes
      */
     public function indexMinimal(array $user, $filters = [], array $types = self::ANALYST_DATA_TYPES): array
@@ -1860,14 +1870,25 @@ class AnalystData extends AppModel
             ],
             'fields' => ['uuid', 'modified', 'locked']
         ];
-        $tmp = $this->getAllAnalystData('all', $options, $types, [
-            'Workspace' => ['fields' => ['uuid', 'modified', 'locked', 'content_size']],
-        ]);
+        $typeOptions = ['Graph' => ['fields' => ['uuid', 'modified', 'locked', 'content_size']]];
+        // Another instance gets nothing a withheld collection holds back
+        $toMisp = SyncTool::requesterIsMisp();
+        if ($toMisp) {
+            $typeOptions['Graph']['fields'] = array_merge($typeOptions['Graph']['fields'], ['orgc_uuid', 'object_type', 'object_uuid']);
+            $typeOptions['Relationship']['fields'] = [
+                'uuid', 'modified', 'locked', 'orgc_uuid', 'object_uuid', 'object_sha256',
+                'related_object_uuid', 'related_object_sha256',
+            ];
+        }
+        $tmp = $this->getAllAnalystData('all', $options, $types, $typeOptions);
+        if ($toMisp) {
+            $tmp = ClassRegistry::init('Collection')->withoutHeldBack($tmp);
+        }
         $allData = [];
         foreach ($tmp as $type => $entries) {
             foreach ($entries as $i => $entry) {
                 $entry = $entry[$type];
-                if ($type === 'Workspace') {
+                if ($type === 'Graph') {
                     $allData[$type][$entry['uuid']] = [
                         'modified' => $entry['modified'],
                         'size' => (int)$entry['content_size'],
@@ -2002,15 +2023,15 @@ class AnalystData extends AppModel
      */
     private function prepareEntryForUpload($type, array $analystData, array $server)
     {
-        if ($type === 'Workspace') {
-            $Workspace = ClassRegistry::init('Workspace');
-            $analystData = $Workspace->attachContent($analystData);
+        if ($type === 'Graph') {
+            $Graph = ClassRegistry::init('Graph');
+            $analystData = $Graph->attachContent($analystData);
             if ($analystData === null) {
-                return __('The workspace was deleted before it could be pushed.');
+                return __('The graph was deleted before it could be pushed.');
             }
-            if (is_array($analystData['Workspace']['content'])) {
-                $analystData['Workspace']['content'] = ClassRegistry::init('AnalystGraphData')
-                    ->documentForServer($analystData['Workspace']['content'], $server);
+            if (is_array($analystData['Graph']['content'])) {
+                $analystData['Graph']['content'] = ClassRegistry::init('AnalystGraphData')
+                    ->documentForServer($analystData['Graph']['content'], $server);
             }
         }
         return $this->prepareForPushToServer($type, $analystData, $server);
@@ -2241,7 +2262,7 @@ class AnalystData extends AppModel
             if (empty($entries)) {
                 continue;
             }
-            if ($type === 'Workspace') {
+            if ($type === 'Graph') {
                 $chunks = self::sizedBatches($entries, self::GRAPH_PULL_BATCH_BYTES, self::GRAPH_PULL_BATCH_COUNT);
             } else {
                 $chunks = array_chunk(array_keys($entries), 100);

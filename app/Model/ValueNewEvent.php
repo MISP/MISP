@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeText', 'Utility');
+App::uses('NewEventFormTool', 'Tools');
 App::uses('Value', 'Model');
 App::uses('ValueNewEventTool', 'Tools/ValueIntelligence');
 App::uses('ValueTypeGuessTool', 'Tools/ValueIntelligence');
@@ -136,36 +137,7 @@ class ValueNewEvent extends AppModel
             }
         }
 
-        $errors = [];
-        $info = trim((string)($event['info'] ?? ''));
-        if ($info === '') {
-            $errors['info'] = __('Please provide a name for the event.');
-        } elseif (strlen($info) > 65535) {
-            $errors['info'] = __('Event info is too long.');
-        }
-        $date = (string)($event['date'] ?? '');
-        $parsed = DateTime::createFromFormat('!Y-m-d', $date);
-        if (!$parsed || $parsed->format('Y-m-d') !== $date) {
-            $errors['date'] = __('Enter the event date.');
-        }
-        $distribution = (int)($event['distribution'] ?? 0);
-        $sharingGroupId = null;
-        if (!array_key_exists($distribution, $eventModel->distributionLevels)) {
-            $errors['distribution'] = __('Pick a distribution.');
-        } elseif ($distribution === 4) {
-            $sharingGroupId = (int)($event['sharing_group_id'] ?? 0);
-            if (!$this->model('SharingGroup')->canUse($user, $sharingGroupId)) {
-                $errors['sharing_group_id'] = __('Pick a sharing group you may use.');
-            }
-        }
-        $threatLevel = (int)($event['threat_level_id'] ?? 0);
-        if (!$eventModel->ThreatLevel->hasAny(['ThreatLevel.id' => $threatLevel])) {
-            $errors['threat_level_id'] = __('Pick a threat level.');
-        }
-        $analysis = (int)($event['analysis'] ?? -1);
-        if (!array_key_exists($analysis, $eventModel->analysisLevels)) {
-            $errors['analysis'] = __('Pick an analysis level.');
-        }
+        list($fields, $errors) = NewEventFormTool::fields($user, $event, $eventModel);
         $types = array_column($this->valueBlock($user, $value, $picks)['types'], null, 'type');
         $type = (string)($seed['type'] ?? '');
         $category = (string)($seed['category'] ?? '');
@@ -179,13 +151,7 @@ class ValueNewEvent extends AppModel
         }
 
         $valueUuid = CakeText::uuid();
-        $new = ['Event' => [
-            'info' => $info,
-            'date' => $date,
-            'distribution' => $distribution,
-            'threat_level_id' => $threatLevel,
-            'analysis' => $analysis,
-            'published' => 0,
+        $new = ['Event' => $fields + [
             'Attribute' => [[
                 'uuid' => $valueUuid,
                 'type' => $type,
@@ -196,9 +162,6 @@ class ValueNewEvent extends AppModel
                 'distribution' => 5,
             ]],
         ]];
-        if ($sharingGroupId !== null) {
-            $new['Event']['sharing_group_id'] = $sharingGroupId;
-        }
         $createdId = 0;
         $validationErrors = [];
         $result = $eventModel->_add($new, false, $user, 0, null, false, null, $createdId, $validationErrors);

@@ -44,6 +44,10 @@
     //                               this stored graph, and the Save pill writes it
     //   graphUuid()               → the stored graph the canvas draws: while it
     //                               is the active one, nothing is offered to it
+    //   collect: true             → "Save canvas as collection…"
+    //   copyOf()                  → { uuid, name, type }, the collection drawn,
+    //                               when the user cannot edit it: "Copy as my
+    //                               collection…"; null offers neither
     //
     // A hook left out keeps the event page's behaviour.
     function createExplorer(host) {
@@ -1236,7 +1240,8 @@
         }
 
         function nodeBadges(node) {
-            return analystBadges(node).concat(feedHitBadges(node), tagBadges(node), enrichmentBadges(node), originBadges(node));
+            return analystBadges(node).concat(feedHitBadges(node), tagBadges(node), enrichmentBadges(node), originBadges(node),
+                                              host.badges ? host.badges(node) : []);
         }
 
         function originBadges(node) {
@@ -3543,6 +3548,7 @@
         function graphItemOf(node) {
             if (!node || typeof node.getData !== 'function') return null;
             var d = node.getData() || {};
+            if (d.standalone_uuid) return { type: 'StandaloneObject', uuid: d.standalone_uuid, label: d.label || d.name };
             // A module answer saved into the event is the record it became
             var pivots = _graph && _graph.pivots;
             var id = (pivots && typeof pivots.canonicalId === 'function' && pivots.canonicalId(node)) || node.id;
@@ -3562,7 +3568,7 @@
         }
 
         /* ── the links MISP holds between what is on the canvas ── */
-        // An edge of /workspaces/data or /edges as the explorer draws it,
+        // An edge of /analyst_graphs/data or /edges as the explorer draws it,
         // its ends ("Type:uuid") resolved to node ids by endId; null when an
         // end is not drawn. Contains is the object drawing its attributes.
         function storedEdge(e, endId) {
@@ -3608,11 +3614,13 @@
                 }
                 idsOf[key].push(node.id);
             });
+            // What the workspace holds of it, for the node menu to say
+            if (window.IntelGraphActions && items.length) window.IntelGraphActions.lookup(items);
             // Only what landed can bring a link; a removal takes its own along.
             if (!fresh || items.length < 2) return;
             _linksAsked = {};
             Object.keys(idsOf).forEach(function (k) { _linksAsked[k] = true; });
-            postJson('/workspaces/edges.json', { nodes: items }).then(function (out) {
+            postJson('/analyst_graphs/edges.json', { nodes: items }).then(function (out) {
                 if (g !== _graph) return;
                 var valueOf = {};
                 (out.Value || []).forEach(function (v) { valueOf[v.sha256] = v.value; });
@@ -3656,38 +3664,58 @@
             soon();
         }
 
-        // The canvas is the active graph itself: all it draws is already there.
-        function drawsActive() {
-            var a = window.IntelGraph && window.IntelGraph.active();
-            var own = host.graphUuid ? host.graphUuid() : (_savedGraph && _savedGraph.uuid);
-            return !!a && !!own && String(a.uuid).toLowerCase() === String(own).toLowerCase();
-        }
-
-        // Offered where the page has IntelGraph: to a writer of graphs. The
-        // explorer is a graph itself, so it says which graph the add feeds.
-        function graphEntry(text) {
-            return {
-                text:      text,
-                title:     'Adds it to your active workspace, the one the navbar names',
-                iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
-                visible:   function (el) {
-                    return !!window.IntelGraphActions && !drawsActive() && graphItems(el).length > 0;
+        // The add control, offered where the page has IntelGraph: to whoever
+        // may add to a collection. Add to workspace, or In workspace ✓ and
+        // Remove from workspace; then Add to another collection… and New
+        // collection with this…. The explorer is a graph itself, so it says
+        // where the add goes.
+        function addEntries(several) {
+            function actions() { return window.IntelGraphActions; }
+            function usable(el) { return !!actions() && graphItems(el).length > 0; }
+            function held(el) { return usable(el) && actions().state(graphItems(el)) === 'in'; }
+            function at(e) { return e && { x: e.clientX, y: e.clientY }; }
+            return [
+                {
+                    text:      several ? 'Add the selection to the workspace' : 'Add to workspace',
+                    title:     'Adds it to your workspace, the collection the navbar names',
+                    iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
+                    visible:   function (el) { return usable(el) && !held(el); },
+                    onclick:   function (e, el) { actions().add(graphItems(el), at(e)); }
                 },
-                onclick:   function (e, el) {
-                    window.IntelGraphActions.add(graphItems(el), e && { x: e.clientX, y: e.clientY });
+                {
+                    text:      'In workspace ✓ — show in the dock',
+                    iconClass: 'fas fa-check',
+                    visible:   held,
+                    onclick:   function (e, el) { actions().reveal(graphItems(el)); }
+                },
+                {
+                    text:      'Remove from workspace',
+                    iconClass: 'fas fa-folder-minus',
+                    visible:   held,
+                    onclick:   function (e, el) { actions().remove(graphItems(el)); }
+                },
+                {
+                    text:      several ? 'Add the selection to another collection…' : 'Add to another collection…',
+                    iconClass: 'fas fa-folder-plus',
+                    visible:   usable,
+                    onclick:   function (e, el) { actions().other(graphItems(el), at(e)); }
+                },
+                {
+                    text:      several ? 'New collection with the selection…' : 'New collection with this…',
+                    iconClass: 'fas fa-circle-plus',
+                    visible:   usable,
+                    onclick:   function (e, el) { actions().newWith(graphItems(el), at(e)); }
                 }
-            };
+            ];
         }
 
         // The library's own menu for several selected nodes.
         function selectionMenu() {
-            return [saveEntry('Save selection'), graphEntry('Add selection to active workspace')];
+            return [saveEntry('Save selection')].concat(addEntries(true));
         }
 
         function nodeMenu() {
-            return [
-                saveEntry('Save this element'),
-                graphEntry('Add to active workspace'),
+            return [saveEntry('Save this element')].concat(addEntries(false), [
                 {
                     text:      'Open its event',
                     iconClass: 'fas fa-external-link-alt',
@@ -3715,7 +3743,7 @@
                     visible:   function (el) { var d = menuData(el); return !!d && d.type === 'attribute' && d.value !== ''; },
                     onclick:   function (e, el) { copyValue(menuData(el).value); }
                 }
-            ].concat(annotateMenu());
+            ], annotateMenu());
         }
 
         /* ── canvas menu: taking fetched correlations back off ─── */
@@ -3745,7 +3773,7 @@
                 iconClass: 'fas fa-eraser',
                 visible:   holdsFetchedCorrelations,
                 onclick:   removeFetchedCorrelations
-            }].concat(saveGraphMenu());
+            }].concat(saveGraphMenu(), [collectEntry()]);
         }
 
         /* ── the canvas kept as an analyst graph ───────────────── */
@@ -3955,11 +3983,15 @@
         // answers are kept whole unless `answers` is 'leave'; anything else
         // that is not a MISP record (a feed, a server, a tag) cannot be kept,
         // and is named in `dropped`, as is an answer over a limit; a child
-        // left out with its parent goes unnamed.
-        function canvasDocument(answers) {
+        // left out with its parent goes unnamed. `only`, canvas ids, keeps
+        // those nodes and what is drawn inside them, without the notes.
+        function canvasDocument(answers, only) {
             var nodes = [], dropped = [], answerCount = 0, sizes = {};
             var into = enrichmentEdgesByTarget(_graph);
-            var grouping = canvasGrouping();
+            var within = only ? function (node) {
+                return !!only[node.id] || !!(node.isChild && node.parentNode && only[node.parentNode.id]);
+            } : null;
+            var grouping = canvasGrouping(within);
             var refOf = {};
             function keep(out, node) {
                 if (grouping.pulledOut[node.id]) out.pulled_out = true;
@@ -3968,6 +4000,7 @@
                 refOf[node.id] = out;
             }
             _graph.getMutableNodes().forEach(function (node) {
+                if (within && !within(node)) return;
                 var item = graphItemOf(node);
                 if (!item && isAnswerNode(node)) {
                     answerCount++;
@@ -3987,7 +4020,7 @@
             });
             var doc = { version: 1, nodes: nodes, groups: grouping.groups };
             if (Object.keys(grouping.rules).length) doc.view = { rules: grouping.rules };
-            var notes = _graph.getNotes().map(function (note) {
+            var notes = within ? [] : _graph.getNotes().map(function (note) {
                 return noteItem(note, function (node) { return refOf[node.id] || null; });
             });
             if (notes.length) doc.notes = notes;
@@ -4136,8 +4169,8 @@
         // on what they are.
         function savedSummary(kept, dropped) {
             var text = plural(kept, 'element', 'elements') + ' kept.'
-                + (dropped.length === 1 ? ' 1 more cannot be kept in a workspace and is left out.'
-                    : dropped.length ? ' ' + dropped.length + ' more cannot be kept in a workspace and are left out.'
+                + (dropped.length === 1 ? ' 1 more cannot be kept in a graph and is left out.'
+                    : dropped.length ? ' ' + dropped.length + ' more cannot be kept in a graph and are left out.'
                     : '');
             if (!dropped.length) return el('p', 'pe-save-graph-summary', text);
             var notice = el('details', 'pe-save-graph-left-out');
@@ -4177,8 +4210,8 @@
             });
             _graph.notifier.success(title, '“' + saved.name + '”', {
                 action: {
-                    label:   'Open workspace',
-                    onClick: function () { openInTab('/workspaces/view/' + encodeURIComponent(saved.uuid)); }
+                    label:   'Open graph',
+                    onClick: function () { openInTab('/analyst_graphs/view/' + encodeURIComponent(saved.uuid)); }
                 }
             });
         }
@@ -4218,7 +4251,7 @@
         // Where the canvas's module answers go: into the graph, into this
         // event as records first, or nowhere.
         function answersChoice(count, onChange) {
-            var options = [['keep', 'Keep in the workspace']];
+            var options = [['keep', 'Keep in the graph']];
             if (eventId && canEdit) options.push(['event', 'Add to this event first']);
             options.push(['leave', 'Leave out']);
             var box = el('fieldset', 'pe-save-graph-answers');
@@ -4269,7 +4302,7 @@
             var doc = canvasDocument(answers);
             var kept = doc.document.nodes.length;
             if (!kept) {
-                _graph.notifier.warning('Nothing to save', 'No element on the canvas is a MISP record a workspace can hold.');
+                _graph.notifier.warning('Nothing to save', 'No element on the canvas is a MISP record a graph can hold.');
                 return Promise.resolve();
             }
 
@@ -4283,15 +4316,19 @@
             description.name = 'description';
             description.rows = 2;
             var dist = selectOf('distribution', graphSharing.levels, graphSharing.default);
-            var sg = selectOf('sharing_group_id', [['', '—']].concat(graphSharing.sharingGroups), '');
+            var sg = selectOf('sharing_group_id', [['', '—']].concat(graphSharing.sharingGroups), graphSharing.sharingGroup || '');
             var sgRow = formRow('Sharing group', sg);
+            var wider = el('div', 'pe-save-graph-wider');
+            wider.setAttribute('role', 'status');
+            // Only a collection can be the workspace
             var activate = el('input');
             activate.name = 'activate';
             activate.type = 'checkbox';
-            activate.checked = true;
+            activate.checked = target.type === 'Collection';
             var activateRow = el('label', 'pe-save-graph-check');
             activateRow.appendChild(activate);
-            activateRow.appendChild(document.createTextNode(' Make it my active workspace: “Add to workspace” feeds it'));
+            activateRow.appendChild(document.createTextNode(' Make this collection my workspace, laid out by this graph'));
+            activateRow.hidden = target.type !== 'Collection';
             var summary = savedSummary(kept, doc.dropped);
             var error = el('div', 'pvt-form-error');
 
@@ -4299,6 +4336,7 @@
             form.appendChild(formRow('Description', description));
             form.appendChild(formRow('Distribution', dist));
             form.appendChild(sgRow);
+            form.appendChild(wider);
             var size = sizeBlock(documentSize(doc.document, graphSharing.limits), []);
             var tooLarge = false;
             // The size, and whether Save may go on, for the document as it now stands
@@ -4329,14 +4367,30 @@
             form.appendChild(summary);
             form.appendChild(size);
             form.appendChild(error);
-            sgRow.hidden = dist.value !== '4';
-            dist.addEventListener('change', function () { sgRow.hidden = dist.value !== '4'; });
+            // Said when the graph would reach beyond the record it hangs on
+            function sharingChanged() {
+                sgRow.hidden = dist.value !== '4';
+                var words = window.IntelGraph && window.IntelGraph.widerNote
+                    ? window.IntelGraph.widerNote(graphSharing.target, { distribution: +dist.value, sharing_group_id: dist.value === '4' ? sg.value : null })
+                    : null;
+                wider.textContent = '';
+                wider.hidden = !words;
+                if (words) {
+                    var mark = el('i', 'fas fa-triangle-exclamation');
+                    mark.setAttribute('aria-hidden', 'true');
+                    wider.appendChild(mark);
+                    wider.appendChild(document.createTextNode(' ' + words));
+                }
+            }
+            sharingChanged();
+            dist.addEventListener('change', sharingChanged);
+            sg.addEventListener('change', sharingChanged);
 
             var busy = false;
             var closed;
             var whenClosed = new Promise(function (resolve) { closed = resolve; });
             var modal = _graph.UIManager.createModal({
-                header:  (host.savedGraph ? 'Save as new workspace' : 'Save as workspace') + ' on this '
+                header:  (host.savedGraph ? 'Save as new graph' : 'Save as graph') + ' on this '
                          + (TARGET_NAMES[target.type] || 'event'),
                 body:    form,
                 rawBody: true,
@@ -4361,7 +4415,7 @@
             function submit() {
                 if (busy || tooLarge) return;
                 var graphName = name.value.trim();
-                if (!graphName) { error.textContent = 'A workspace needs a name.'; return; }
+                if (!graphName) { error.textContent = 'A graph needs a name.'; return; }
                 if (dist.value === '4' && !sg.value) { error.textContent = 'Pick the sharing group to share it with.'; return; }
                 busy = true;
                 error.textContent = '';
@@ -4399,7 +4453,7 @@
                     };
                     // A stored graph's own canvas stays that graph.
                     if (!host.savedGraph) _savedGraph = saved;
-                    graphSaved('Saved as workspace', saved);
+                    graphSaved('Saved as graph', saved);
                     refreshSaveControls();
                 });
             }
@@ -4411,7 +4465,7 @@
             var saved = _savedGraph;
             return window.IntelGraph.save(saved.uuid, canvasDocument('keep').document, saved.revision).then(function (out) {
                 saved.revision = parseInt(out && out.revision, 10) || saved.revision;
-                graphSaved('Workspace updated', saved);
+                graphSaved('Graph updated', saved);
             }, function (err) {
                 if (err && err.status === 409) {
                     _graph.notifier.warning('Not updated', '“' + saved.name + '” was saved elsewhere since.', {
@@ -4431,35 +4485,42 @@
             if (host.savedGraph) {
                 var own = host.savedGraph;
                 return [{
-                    text:          'Save workspace',
-                    title:         'Writes the canvas into this workspace',
+                    text:          'Save graph',
+                    title:         'Writes the canvas into this graph',
                     iconClass:     'fas fa-floppy-disk',
                     dividerBefore: true,
                     visible:       function () { return own.dirty(); },
                     onclick:       saveOwnGraph
                 }, {
-                    text:          'Save as new workspace…',
+                    text:          'Save as new graph…',
                     iconClass:     'fas fa-plus',
                     visible:       function () { return !!graphTarget(); },
                     onclick:       saveGraphDialog
                 }];
             }
+            // Pivotick copies the entries it is given: the label is a node kept by reference
+            var saveAs = document.createElement('span');
             return [{
-                text:          'Save canvas as workspace…',
-                title:         'Keeps what is on the canvas as a workspace',
+                text:          saveAs,
+                title:         'Keeps what is on the canvas as a saved graph',
                 iconClass:     'misp-icon misp-icon-analyst-graph misp-simple',
                 dividerBefore: true,
-                visible:       function () { return !_savedGraph && !!graphTarget(); },
+                visible:       function () {
+                    var target = !_savedGraph && graphTarget();
+                    if (!target) return false;
+                    saveAs.textContent = 'Save as graph on this ' + (TARGET_NAMES[target.type] || 'record') + '…';
+                    return true;
+                },
                 onclick:       refreshingAfter(saveGraphDialog)
             }, {
-                text:          'Update workspace',
-                title:         'Writes the canvas into the workspace saved from it',
+                text:          'Update graph',
+                title:         'Writes the canvas into the graph saved from it',
                 iconClass:     'misp-icon misp-icon-analyst-graph misp-simple',
                 dividerBefore: true,
                 visible:       function () { return !!_savedGraph; },
                 onclick:       refreshingAfter(updateGraph)
             }, {
-                text:          'Save as new workspace…',
+                text:          'Save as new graph…',
                 iconClass:     'fas fa-plus',
                 visible:       function () { return !!_savedGraph; },
                 onclick:       refreshingAfter(saveGraphDialog)
@@ -4481,7 +4542,7 @@
                 onclick:   function () { return own.dirty() ? saveOwnGraph() : undefined; },
                 menu:      function () {
                     return graphTarget()
-                        ? [{ text: 'Save as new workspace…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
+                        ? [{ text: 'Save as new graph…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
                         : [];
                 }
             };
@@ -4491,21 +4552,117 @@
             if (host.savedGraph) return [ownGraphAction(host.savedGraph)];
             return [{
                 id:        'save-graph',
-                text:      function () { return _savedGraph ? 'Update workspace' : 'Save as workspace'; },
+                text:      function () { return _savedGraph ? 'Update graph' : 'Save as graph'; },
                 title:     function () {
                     return _savedGraph
                         ? 'Writes the canvas into “' + _savedGraph.name + '”'
-                        : 'Keeps what is on the canvas as a workspace';
+                        : 'Keeps what is on the canvas as a saved graph';
                 },
                 iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
                 visible:   function () { return !!graphTarget(); },
                 onclick:   function () { return _savedGraph ? updateGraph() : saveGraphDialog(); },
                 menu:      function () {
-                    return _savedGraph
-                        ? [{ text: 'Save as new workspace…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
+                    var entries = _savedGraph
+                        ? [{ text: 'Save as new graph…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
                         : [];
+                    if (collectMode() === 'save') {
+                        entries.push({ text: 'Save canvas as collection…', iconClass: 'fas fa-folder-plus', onclick: collectDialog });
+                    }
+                    return entries;
                 }
             }];
+        }
+
+        /* ── the canvas kept as a collection ───────────────────── */
+        // Save canvas as collection… where the host opts in (an event's or a
+        // cluster's explorer); Copy as my collection… where it draws a
+        // collection the user cannot edit (host.copyOf() → {uuid, name, type}).
+        // Either makes the collection and, for whoever may save graphs, its
+        // first graph laid out as the canvas; the add control's dialog asks.
+        function collectMode() {
+            if (!window.IntelGraphActions || !_graph) return null;
+            if (host.copyOf) return host.copyOf() ? 'copy' : null;
+            return host.collect ? 'save' : null;
+        }
+
+        function selectedNodes() {
+            try {
+                var bus = _graph.renderer.getGraphInteraction();
+                return (bus.getSelectedNodes() || []).map(function (x) { return x && x.node ? x.node : x; }).filter(Boolean);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // The records among these nodes, each once.
+        function recordsOf(nodes) {
+            var seen = {};
+            return graphItems(nodes).filter(function (item) {
+                var key = recordKey(item);
+                if (seen[key]) return false;
+                seen[key] = true;
+                return true;
+            });
+        }
+
+        // Every record its graph would draw is a member, an attribute drawn
+        // inside a picked object too: anything else would read as on the
+        // graph, not in the collection.
+        function collectSet(nodes, label) {
+            var only = null;
+            if (nodes) {
+                only = {};
+                nodes.forEach(function (n) { only[n.id] = true; });
+            }
+            var drawn = _graph.getMutableNodes().filter(function (n) {
+                return !only || !!only[n.id] || !!(n.isChild && n.parentNode && only[n.parentNode.id]);
+            });
+            var items = recordsOf(drawn);
+            return {
+                label:    label + ': ' + plural(items.length, 'record', 'records'),
+                items:    items,
+                answers:  canvasDocument('keep', only).answers,
+                graph:    function () { return canvasDocument('keep', only).document; }
+            };
+        }
+
+        function collectDialog() {
+            var mode = collectMode();
+            if (!mode) return;
+            var whole = collectSet(null, 'The whole canvas');
+            if (!whole.items.length) {
+                _graph.notifier.warning('Nothing to collect', 'No element on the canvas is a MISP record a collection can hold.');
+                return;
+            }
+            var sets = [whole];
+            var picked = selectedNodes();
+            var some = picked.length ? collectSet(picked, 'The selection') : null;
+            if (some && some.items.length && some.items.length < whole.items.length) sets.unshift(some);
+            var copyOf = mode === 'copy' ? host.copyOf() : null;
+            var target = graphTarget();
+            window.IntelGraphActions.newWith(whole.items, null, {
+                title:  copyOf ? 'Copy as my collection' : 'Save canvas as collection',
+                sets:   sets,
+                copyOf: copyOf,
+                name:   copyOf ? copyOf.name : ((target && target.label) || '')
+            });
+        }
+
+        function collectEntry() {
+            // Pivotick copies the entries it is given: the label is a node kept by reference
+            var label = document.createElement('span');
+            return {
+                text:          label,
+                iconClass:     'fas fa-folder-plus',
+                dividerBefore: true,
+                visible:       function () {
+                    var mode = collectMode();
+                    if (!mode) return false;
+                    label.textContent = mode === 'copy' ? 'Copy as my collection…' : 'Save canvas as collection…';
+                    return true;
+                },
+                onclick:       collectDialog
+            };
         }
 
         /* ── filter panel ──────────────────────────────────────── */
@@ -5878,7 +6035,7 @@
             }
         };
 
-        return { init: initGraph, kit: kit, graph: function () { return _graph; } };
+        return { init: initGraph, kit: kit, graph: function () { return _graph; }, collect: collectDialog };
     }
 
     /* ── boot ──────────────────────────────────────────────── */
@@ -5903,6 +6060,7 @@
             cardEl:      cardEl,
             loaderEl:    document.getElementById('pivot-explorer-loader'),
             containerEl: document.getElementById('pivot-explorer-graph'),
+            collect:     true,
             config: {
                 eventId:        d.peEventId || '',
                 baseurl:        d.peBaseurl || '',

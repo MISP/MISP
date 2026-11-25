@@ -1,20 +1,22 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystGraphDocumentTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
 App::uses('MispTheme', 'MispTheme');
-App::uses('Workspace', 'Model');
+App::uses('Graph', 'Model');
+App::uses('CollectionElement', 'Model');
 
 /**
- * The actions only a workspace has. Creating, editing, viewing and deleting
- * one go through AnalystDataController with the type `Workspace`.
+ * The actions only an analyst graph has. Creating, editing, viewing and
+ * deleting one go through AnalystDataController with the type `Graph`.
  */
-class WorkspacesController extends AppController
+class AnalystGraphsController extends AppController
 {
     public $components = ['Session', 'RequestHandler'];
 
-    public $uses = ['Workspace', 'AnalystGraphData'];
+    public $uses = ['Graph', 'AnalystGraphData'];
 
     /** The only theme that carries the graph page. */
     const THEME = 'Overmind';
@@ -36,13 +38,13 @@ class WorkspacesController extends AppController
         parent::beforeFilter();
         // Posted as hand-built JSON by the graph host, with the CSRF token
         // in the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['save', 'addNodes', 'removeNodes', 'fork', 'active', 'edges']);
+        $this->_csrfTokenHeaderOnly(['save', 'addNodes', 'removeNodes', 'hideNodes', 'fork', 'edges']);
     }
 
     public function beforeRender()
     {
         parent::beforeRender();
-        if (!MispTheme::carries($this->theme, 'Workspaces')) {
+        if (!MispTheme::carries($this->theme, 'AnalystGraphs')) {
             $this->theme = self::THEME;
             $this->viewClass = 'Theme';
         }
@@ -59,7 +61,7 @@ class WorkspacesController extends AppController
         $this->request->allowMethod(['get']);
         $user = $this->Auth->user();
         $graph = $this->__fetchGraph($uuid);
-        $summary = $this->Workspace->summaries($user, ['Workspace.id' => $graph['Workspace']['id']], ['parents' => true])[0];
+        $summary = $this->Graph->summaries($user, ['Graph.id' => $graph['Graph']['id']], ['parents' => true])[0];
 
         $canAnalyst = !empty($user['Role']['perm_site_admin'])
             || (!empty($user['Role']['perm_add']) && !empty($user['Role']['perm_analyst_data']));
@@ -68,7 +70,7 @@ class WorkspacesController extends AppController
         $this->set('canFork', $canAnalyst);
         $labels = ClassRegistry::init('AnalystProfile')->pivotLabels($user);
         $canGraph = $this->ACL->canUserAccess($user, 'analystData', 'add')
-            && $this->ACL->canUserAccess($user, 'workspaces', 'save');
+            && $this->ACL->canUserAccess($user, 'analystGraphs', 'save');
         $this->set('explorer', [
             'canEdit' => !empty($user['Role']['perm_site_admin']) || !empty($user['Role']['perm_modify']),
             'canAnalyst' => $canAnalyst,
@@ -89,34 +91,9 @@ class WorkspacesController extends AppController
         $this->set('title_for_layout', $summary['name']);
     }
     /**
-     * The workspace "Add to workspace" feeds. POST `{workspace_uuid}` sets it
-     * to a workspace the user may edit, or clears it with null.
-     */
-    public function active()
-    {
-        $this->request->allowMethod(['get', 'post']);
-        $user = $this->Auth->user();
-        if ($this->request->is('get')) {
-            return $this->RestResponse->viewData(['Workspace' => $this->Workspace->activeFor($user)], 'json');
-        }
-        $input = $this->__input();
-        if (!array_key_exists('workspace_uuid', $input) || ($input['workspace_uuid'] !== null && !is_string($input['workspace_uuid']))) {
-            throw new BadRequestException(__('Name the workspace to add to, or null for none.'));
-        }
-        $graph = null;
-        if ($input['workspace_uuid'] !== null) {
-            $graph = $this->__fetchEditableGraph($input['workspace_uuid']);
-            $graph = $this->Workspace->summaries($user, ['Workspace.id' => $graph['Workspace']['id']])[0];
-        }
-        if (!$this->Workspace->storeActive($user, $graph ? $graph['uuid'] : null)) {
-            throw new InternalErrorException(__('The active workspace could not be saved.'));
-        }
-        return $this->RestResponse->viewData(['Workspace' => $graph], 'json');
-    }
-
-    /**
-     * The graphs hung off one record that the user may read, newest first,
-     * and the user's active graph.
+     * The graphs hung off one record that the user may read, newest first;
+     * `pick`, the one a card opens on (Graph::pickFor()); and the graph
+     * laying out the user's workspace.
      *
      * @param string $type
      * @param string $uuid
@@ -124,22 +101,24 @@ class WorkspacesController extends AppController
     public function forTarget($type, $uuid)
     {
         $this->request->allowMethod(['get']);
-        if (!in_array($type, Workspace::VALID_TARGETS, true) || !Validation::uuid($uuid)) {
+        if (!in_array($type, Graph::VALID_TARGETS, true) || !Validation::uuid($uuid)) {
             throw new NotFoundException(__('Invalid target.'));
         }
         $user = $this->Auth->user();
         // Stored as each creator spelled it
         $spellings = array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]));
-        $graphs = $this->Workspace->summaries($user, [
-            'Workspace.object_type' => $type,
-            'Workspace.object_uuid' => $spellings,
+        $graphs = $this->Graph->summaries($user, [
+            'Graph.object_type' => $type,
+            'Graph.object_uuid' => $spellings,
         ], ['targets' => false, 'parents' => true, 'limit' => self::TARGET_LIMIT]);
-        $active = $this->ACL->canUserAccess($user, 'workspaces', 'active')
-            ? $this->Workspace->activeFor($user, false)
+        $workspace = $this->ACL->canUserAccess($user, 'collections', 'active')
+            ? ActiveWorkspaceTool::stored($user)
             : null;
+        $creator = empty($graphs) ? null : $this->AnalystGraphData->targetCreator($user, $type, $uuid);
         return $this->RestResponse->viewData([
-            'Workspace' => $graphs,
-            'active' => $active ? $active['uuid'] : null,
+            'Graph' => $graphs,
+            'pick' => Graph::pickFor($graphs, $user['Organisation']['uuid'] ?? null, $creator),
+            'active' => $workspace['graph_uuid'] ?? null,
         ], 'json');
     }
 
@@ -151,11 +130,10 @@ class WorkspacesController extends AppController
     {
         $this->request->allowMethod(['get']);
         $user = $this->Auth->user();
-        $active = $this->Workspace->activeFor($user, false);
         $mine = ($this->request->query['scope'] ?? null) === 'mine';
         return $this->RestResponse->viewData([
-            'Workspace' => $this->Workspace->editableBy($user, $mine),
-            'active' => $active ? $active['uuid'] : null,
+            'Graph' => $this->Graph->editableBy($user, $mine),
+            'active' => ActiveWorkspaceTool::stored($user)['graph_uuid'] ?? null,
         ], 'json');
     }
 
@@ -168,16 +146,257 @@ class WorkspacesController extends AppController
     public function data($uuid)
     {
         $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
         $graph = $this->__fetchGraph($uuid);
-        $document = json_decode($graph['Workspace']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
-        unset($graph['Workspace']['content']);
-        $payload = $this->AnalystGraphData->resolve($this->Auth->user(), $document);
-        // Counted and measured as this user sees it (G6)
-        $graph['Workspace']['node_count'] = $payload['meta']['nodes'];
-        unset($graph['Workspace']['content_size']);
+        $document = json_decode($graph['Graph']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
+        unset($graph['Graph']['content']);
+        $payload = $this->AnalystGraphData->resolve($user, $document);
+        // Counted and measured as this user sees it
+        $graph['Graph']['node_count'] = $payload['meta']['nodes'];
+        unset($graph['Graph']['content_size']);
         $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
-        $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($this->Auth->user(), $payload['document']['nodes']);
-        return $this->RestResponse->viewData(['Workspace' => $this->Workspace->typed($graph['Workspace'])] + $payload, 'json');
+        $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($user, $payload['document']['nodes']);
+        if ($graph['Graph']['object_type'] === 'Collection') {
+            $payload['meta']['joined_since'] = $this->__joinedSince($user, $graph['Graph'], $document['nodes'] ?? []);
+        }
+        return $this->RestResponse->viewData(['Graph' => $this->Graph->typed($graph['Graph'])] + $payload, 'json');
+    }
+
+    /**
+     * How many members joined the collection a graph is kept on after the
+     * graph was last saved, of those it lacks and the user can draw; null
+     * when the user cannot read the collection.
+     *
+     * @param array $user
+     * @param array $graph
+     * @param array $graphNodes The stored document's
+     * @return int|null
+     */
+    private function __joinedSince(array $user, array $graph, array $graphNodes)
+    {
+        $Collection = ClassRegistry::init('Collection');
+        $uuid = $graph['object_uuid'];
+        $collection = $Collection->find('first', [
+            'conditions' => ['AND' => [
+                ['Collection.uuid' => array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]))],
+                $Collection->buildConditions($user),
+            ]],
+            'fields' => ['Collection.id'],
+            'recursive' => -1,
+        ]);
+        if (empty($collection)) {
+            return null;
+        }
+        $joined = ClassRegistry::init('CollectionElement')->drawnMembers($user, $collection['Collection']['id'], $graphNodes, $graph['modified'])['nodes'];
+        if (empty($joined)) {
+            return 0;
+        }
+        return $this->AnalystGraphData->visibleCounts($user, [['nodes' => $joined]])[0] ?? 0;
+    }
+
+    /**
+     * A collection as the workspace draws it: the nodes of the graph laying
+     * it out (`?graph=<uuid>`, one on this collection), then every member
+     * the graph lacks, shaped as data() shapes a graph. Without a graph,
+     * `Graph` stands in for one that cannot be saved.
+     *
+     * @param string $uuid The collection's
+     */
+    public function working($uuid)
+    {
+        $this->request->allowMethod(['get']);
+        // Read-only, and asked after every add to the workspace
+        $user = $this->_closeSession();
+        if (!Validation::uuid($uuid)) {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        $Collection = ClassRegistry::init('Collection');
+        $found = $Collection->workspaceSummaries($user, [
+            'Collection.uuid' => array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)])),
+        ], 1);
+        if (empty($found)) {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        $collection = $found[0];
+        $document = AnalystGraphDocumentTool::emptyDocument();
+        $summary = [
+            'uuid' => null,
+            'name' => $collection['name'],
+            'object_type' => 'Collection',
+            'object_uuid' => $collection['uuid'],
+            'revision' => 0,
+            '_canEdit' => false,
+            'Orgc' => $collection['Orgc'],
+        ];
+        $graphUuid = $this->request->query['graph'] ?? null;
+        if ($graphUuid !== null && $graphUuid !== '') {
+            $graph = $this->__fetchGraph($graphUuid);
+            if ($graph['Graph']['object_type'] !== 'Collection' || strtolower($graph['Graph']['object_uuid']) !== $collection['uuid']) {
+                throw new NotFoundException(__('Invalid graph.'));
+            }
+            $document = json_decode($graph['Graph']['content'], true) ?: $document;
+            unset($graph['Graph']['content']);
+            $summary = $this->Graph->typed($graph['Graph']);
+        }
+        $document['nodes'] = $this->__answersAsMembers($collection['id'], $document['nodes'] ?? []);
+        $drawn = ClassRegistry::init('CollectionElement')->drawnMembers($user, $collection['id'], $document['nodes']);
+        $document['nodes'] = array_merge($document['nodes'], $drawn['nodes']);
+        $payload = $this->AnalystGraphData->resolve($user, $document);
+        $summary['node_count'] = $payload['meta']['nodes'];
+        $payload['meta']['members'] = (int)$collection['element_count'];
+        $payload['meta']['members_left_out'] = max(0, (int)$collection['element_count'] - $drawn['in_graph'] - $drawn['room']);
+        $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
+        $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($user, $payload['document']['nodes']);
+        $payload['working'] = $this->__workingMarks($user, $collection, $payload['document']['nodes'], $drawn['elements'], $drawn['nodes']);
+        return $this->RestResponse->viewData(['Graph' => $summary, 'Collection' => $collection] + $payload, 'json');
+    }
+
+    /**
+     * A module's object answer the collection now holds as a standalone
+     * object is that member, drawn where the answer sat.
+     *
+     * @param int $collectionId
+     * @param array $nodes The graph's
+     * @return array
+     */
+    private function __answersAsMembers($collectionId, array $nodes)
+    {
+        $answers = [];
+        $present = [];
+        foreach ($nodes as $i => $node) {
+            if (!is_array($node) || !isset($node['type'])) {
+                continue;
+            }
+            if (AnalystGraphDocumentTool::isAnswer($node) && ($node['content']['kind'] ?? null) === 'object') {
+                $answers[$i] = strtolower((string)$node['uuid']);
+            } elseif ($node['type'] === AnalystGraphDocumentTool::STANDALONE) {
+                $present[strtolower((string)$node['uuid'])] = true;
+            }
+        }
+        if (empty($answers)) {
+            return $nodes;
+        }
+        $held = ClassRegistry::init('CollectionElement')->find('list', [
+            'recursive' => -1,
+            'fields' => ['CollectionElement.id', 'CollectionElement.element_uuid'],
+            'conditions' => [
+                'CollectionElement.collection_id' => $collectionId,
+                'CollectionElement.element_type' => AnalystGraphDocumentTool::STANDALONE,
+                'CollectionElement.element_uuid' => array_values(array_unique($answers)),
+            ],
+        ]);
+        $held = array_flip(array_map('strtolower', $held));
+        foreach ($answers as $i => $uuid) {
+            if (!isset($held[$uuid])) {
+                continue;
+            }
+            if (isset($present[$uuid])) {
+                unset($nodes[$i]);
+                continue;
+            }
+            $present[$uuid] = true;
+            $nodes[$i] = ['type' => AnalystGraphDocumentTool::STANDALONE, 'uuid' => $uuid]
+                + array_intersect_key($nodes[$i], array_flip(['x', 'y', 'pinned', 'collapsed', 'pulled_out', 'hidden']));
+        }
+        return array_values($nodes);
+    }
+
+    /**
+     * What each node of the working view is to the collection: a member, or
+     * an extra (anything else the graph holds: a record, a value, a module's
+     * answer), with the item an add would send. A member says who added it,
+     * when and why, who only to the collection's organisation; `missing`
+     * when MISP holds it nowhere the user can see (a value no attribute they
+     * can read carries, a standalone object); `origin` when a module's
+     * answer brought it.
+     *
+     * @param array $user
+     * @param array $collection Collection::workspaceSummaries()'s
+     * @param array $nodes The resolved document's nodes
+     * @param array $elements The element of every member drawn, by node key
+     * @param array $placed The members the graph lacked
+     * @return array|stdClass node key => {role, placed?, missing?, origin?, element?, item?}
+     */
+    private function __workingMarks(array $user, array $collection, array $nodes, array $elements, array $placed)
+    {
+        $placedKeys = array_flip(array_map(['AnalystGraphDocumentTool', 'nodeKey'], $placed));
+        $adders = [];
+        if (Collection::showsAdders($user, ['orgc_id' => $collection['Orgc']['id']])) {
+            $ids = array_values(array_unique(array_filter(array_column($elements, 'user_id'))));
+            $adders = empty($ids) ? [] : ClassRegistry::init('User')->find('list', [
+                'recursive' => -1,
+                'fields' => ['User.id', 'User.email'],
+                'conditions' => ['User.id' => $ids],
+            ]);
+        }
+        $values = [];
+        foreach ($elements as $element) {
+            if ($element['element_type'] === 'AttributeValue') {
+                $values[] = $element['element_sha256'];
+            }
+        }
+        $held = empty($values) ? [] : array_flip(ClassRegistry::init('CollectionElement')->readableUuids($user, 'AttributeValue', $values));
+        $marks = [];
+        foreach ($nodes as $node) {
+            $key = AnalystGraphDocumentTool::nodeKey($node);
+            if (!isset($elements[$key])) {
+                $marks[$key] = ['role' => 'extra', 'item' => self::__itemOf($node)];
+                continue;
+            }
+            $element = $elements[$key];
+            $userId = (int)$element['user_id'];
+            $mark = ['role' => 'member'];
+            if (isset($placedKeys[$key])) {
+                $mark['placed'] = true;
+            }
+            $type = $element['element_type'];
+            if ($type === AnalystGraphDocumentTool::STANDALONE || ($type === 'AttributeValue' && !isset($held[$element['element_sha256']]))) {
+                $mark['missing'] = true;
+            }
+            $origin = CollectionElement::decodedOrigin($element['origin'] ?? null);
+            if ($origin !== null) {
+                $mark['origin'] = $origin;
+            }
+            $mark['element'] = [
+                'uuid' => $element['uuid'],
+                'created' => $element['created'],
+                'description' => (string)$element['description'],
+                'user' => isset($adders[$userId]) ? ['id' => $userId, 'email' => $adders[$userId]] : null,
+            ];
+            $marks[$key] = $mark;
+        }
+        return $marks ?: new stdClass();
+    }
+
+    /**
+     * What an add sends for a node the collection does not hold: a module's
+     * answer as the value or the object it holds, with where it came from.
+     *
+     * @param array $node A resolved document node
+     * @return array
+     */
+    private static function __itemOf(array $node)
+    {
+        if ($node['type'] === 'Value') {
+            return ['type' => 'Value', 'value' => $node['value']];
+        }
+        if (!AnalystGraphDocumentTool::isAnswer($node)) {
+            return ['type' => $node['type'], 'uuid' => $node['uuid']];
+        }
+        $content = $node['content'];
+        $origin = $node['origins'][0] ?? null;
+        $item = $content['kind'] === 'object'
+            ? ['type' => AnalystGraphDocumentTool::STANDALONE, 'module' => $node['module'], 'content' => $content]
+            : ['type' => 'Value', 'value' => $content['value']];
+        if ($origin !== null) {
+            $item['origin'] = [
+                'module' => $origin['module'],
+                'type' => $origin['type'],
+                'value' => $origin['value'],
+                'ran_at' => $origin['ran_at'],
+            ];
+        }
+        return $item;
     }
 
     /**
@@ -212,10 +431,10 @@ class WorkspacesController extends AppController
         // as it found it
         $user = $this->_closeSession();
         $graph = $this->__fetchGraph($uuid);
-        $document = json_decode($graph['Workspace']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
+        $document = json_decode($graph['Graph']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
         return $this->RestResponse->viewData([
-            'uuid' => $graph['Workspace']['uuid'],
-            'revision' => (int)$graph['Workspace']['revision'],
+            'uuid' => $graph['Graph']['uuid'],
+            'revision' => (int)$graph['Graph']['revision'],
         ] + $this->AnalystGraphData->thumbnail($user, $document), 'json');
     }
 
@@ -235,12 +454,12 @@ class WorkspacesController extends AppController
             throw new BadRequestException(__('A save names the revision it started from.'));
         }
         if (!isset($input['content']) || (!is_array($input['content']) && !is_string($input['content']))) {
-            throw new BadRequestException(__('A save carries the workspace document as content.'));
+            throw new BadRequestException(__('A save carries the graph document as content.'));
         }
         $content = $input['content'];
         $user = $this->Auth->user();
-        $result = $this->Workspace->writeContent($graph['Workspace']['id'], function (array $stored) use ($content, $user) {
-            return $this->Workspace->contentForWrite($user, $content, $stored);
+        $result = $this->Graph->writeContent($graph['Graph']['id'], function (array $stored) use ($content, $user) {
+            return $this->Graph->contentForWrite($user, $content, $stored);
         }, (int)$revision);
         return $this->__writeResponse($graph, $result);
     }
@@ -255,10 +474,45 @@ class WorkspacesController extends AppController
         $this->request->allowMethod(['post']);
         $graph = $this->__fetchEditableGraph($uuid);
         $items = $this->__items();
+        $user = $this->Auth->user();
         $report = null;
-        $result = $this->Workspace->writeContent($graph['Workspace']['id'], function (array $document) use ($items, &$report) {
-            list($document, $report) = AnalystGraphDocumentTool::addNodes($document, $items);
-            return empty($report['added']) ? null : $document;
+        $result = $this->Graph->writeContent($graph['Graph']['id'], function (array $document) use ($items, $user, &$report) {
+            list($added, $report) = AnalystGraphDocumentTool::addNodes($document, $items);
+            if (empty($report['added'])) {
+                return null;
+            }
+            // An answer is kept under the rules a save applies to it
+            if (preg_grep('/^' . AnalystGraphDocumentTool::ANSWER . ':/', $report['added'])) {
+                $added = $this->AnalystGraphData->documentForWrite($user, $added, $document);
+                $kept = array_flip(array_map(['AnalystGraphDocumentTool', 'nodeKey'], $added['nodes']));
+                $report['added'] = array_values(array_filter($report['added'], function ($key) use ($kept) {
+                    return isset($kept[$key]);
+                }));
+            }
+            return empty($report['added']) ? null : $added;
+        });
+        return $this->__writeResponse($graph, $result, $report);
+    }
+
+    /**
+     * Hide nodes on the graph, or show them again: {items, hidden}. A hidden
+     * node keeps its place in the document.
+     *
+     * @param string $uuid
+     */
+    public function hideNodes($uuid)
+    {
+        $this->request->allowMethod(['post']);
+        $graph = $this->__fetchEditableGraph($uuid);
+        $items = $this->__items();
+        $hidden = $this->__input()['hidden'] ?? true;
+        if (!is_bool($hidden)) {
+            throw new BadRequestException(__('hidden is true or false.'));
+        }
+        $report = null;
+        $result = $this->Graph->writeContent($graph['Graph']['id'], function (array $document) use ($items, $hidden, &$report) {
+            list($document, $report) = AnalystGraphDocumentTool::flagNodes($document, $items, 'hidden', $hidden);
+            return empty($report['changed']) ? null : $document;
         });
         return $this->__writeResponse($graph, $result, $report);
     }
@@ -275,7 +529,7 @@ class WorkspacesController extends AppController
         $items = $this->__items();
         $user = $this->Auth->user();
         $report = null;
-        $result = $this->Workspace->writeContent($graph['Workspace']['id'], function (array $document) use ($items, $user, &$report) {
+        $result = $this->Graph->writeContent($graph['Graph']['id'], function (array $document) use ($items, $user, &$report) {
             // An answer the user cannot see is not theirs to remove
             $seen = [];
             foreach ($this->AnalystGraphData->visibleNodes($user, $document['nodes'] ?? []) as $node) {
@@ -295,7 +549,7 @@ class WorkspacesController extends AppController
 
     /**
      * A copy of the graph owned by the user's organisation, holding the nodes
-     * they can see. Its distribution is the analyst-data default.
+     * they can see, shared as the record it is forked onto.
      *
      * @param string $uuid
      */
@@ -305,26 +559,26 @@ class WorkspacesController extends AppController
         $user = $this->Auth->user();
         $original = $this->__fetchGraph($uuid);
         $input = $this->__input();
-        $document = json_decode($original['Workspace']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
-        $document = $this->Workspace->contentForWrite($user, $this->AnalystGraphData->documentFor($user, $document));
+        $document = json_decode($original['Graph']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
+        $document = $this->Graph->contentForWrite($user, $this->AnalystGraphData->documentFor($user, $document));
         $target = isset($input['target']) && is_array($input['target']) ? $input['target'] : [];
-        $fork = ['Workspace' => [
-            'name' => isset($input['name']) && is_string($input['name']) ? $input['name'] : $original['Workspace']['name'],
-            'description' => $original['Workspace']['description'],
-            'object_uuid' => $target['uuid'] ?? $original['Workspace']['object_uuid'],
-            'object_type' => $target['type'] ?? $original['Workspace']['object_type'],
+        $fork = ['Graph' => [
+            'name' => isset($input['name']) && is_string($input['name']) ? $input['name'] : $original['Graph']['name'],
+            'description' => $original['Graph']['description'],
+            'object_uuid' => $target['uuid'] ?? $original['Graph']['object_uuid'],
+            'object_type' => $target['type'] ?? $original['Graph']['object_type'],
             'content' => $document,
-            'forked_from_uuid' => $original['Workspace']['uuid'],
+            'forked_from_uuid' => $original['Graph']['uuid'],
         ]];
-        $this->Workspace->current_user = $user;
-        $this->Workspace->create();
-        if (!$this->Workspace->save($fork)) {
-            return $this->RestResponse->saveFailResponse('Workspaces', 'fork', false, $this->Workspace->validationErrors, 'json');
+        $this->Graph->current_user = $user;
+        $this->Graph->create();
+        if (!$this->Graph->save($fork)) {
+            return $this->RestResponse->saveFailResponse('AnalystGraphs', 'fork', false, $this->Graph->validationErrors, 'json');
         }
-        $id = $this->Workspace->id;
-        $created = $this->Workspace->summaries($user, ['Workspace.id' => $id])[0];
-        $created['content'] = $this->AnalystGraphData->documentFor($user, AnalystGraphDocumentTool::decode($this->Workspace->storedContents([$id])[$id]));
-        return $this->RestResponse->viewData(['Workspace' => $created], 'json');
+        $id = $this->Graph->id;
+        $created = $this->Graph->summaries($user, ['Graph.id' => $id])[0];
+        $created['content'] = $this->AnalystGraphData->documentFor($user, AnalystGraphDocumentTool::decode($this->Graph->storedContents([$id])[$id]));
+        return $this->RestResponse->viewData(['Graph' => $created], 'json');
     }
 
     /**
@@ -340,38 +594,38 @@ class WorkspacesController extends AppController
         $user = $this->Auth->user();
         $single = Validation::uuid($ref);
         if ($single) {
-            $conditions = ['Workspace.uuid' => $ref];
+            $conditions = ['Graph.uuid' => $ref];
         } else {
             $ids = json_decode($ref, true);
             if (!is_array($ids) || empty($ids)) {
-                throw new BadRequestException(__('Name a workspace, or a list of workspace ids.'));
+                throw new BadRequestException(__('Name a graph, or a list of graph ids.'));
             }
             foreach ($ids as $id) {
                 if (!is_int($id) && !(is_string($id) && ctype_digit($id))) {
-                    throw new BadRequestException(__('Name a workspace, or a list of workspace ids.'));
+                    throw new BadRequestException(__('Name a graph, or a list of graph ids.'));
                 }
             }
             if (count($ids) > self::TRANSFER_LIMIT) {
-                throw new BadRequestException(__('At most %s workspaces at once.', self::TRANSFER_LIMIT));
+                throw new BadRequestException(__('At most %s graphs at once.', self::TRANSFER_LIMIT));
             }
-            $conditions = ['Workspace.id' => array_map('strval', array_values($ids))];
+            $conditions = ['Graph.id' => array_map('strval', array_values($ids))];
         }
-        $this->Workspace->current_user = $user;
-        $rows = $this->Workspace->find('all', [
-            'conditions' => ['AND' => [$conditions, $this->Workspace->buildConditions($user)]],
+        $this->Graph->current_user = $user;
+        $rows = $this->Graph->find('all', [
+            'conditions' => ['AND' => [$conditions, $this->Graph->buildConditions($user)]],
             'contain' => ['Orgc'],
-            'order' => ['Workspace.id' => 'ASC'],
+            'order' => ['Graph.id' => 'ASC'],
         ]);
         if (empty($rows)) {
-            throw new NotFoundException(__('Invalid workspace.'));
+            throw new NotFoundException(__('Invalid graph.'));
         }
         $graphs = $this->__exported($user, $rows);
         if ($single) {
             $payload = $graphs[0];
-            $filename = 'workspace-' . (trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($payload['Workspace']['name'])), '-') ?: $payload['Workspace']['uuid']) . '.json';
+            $filename = 'analyst-graph-' . (trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($payload['Graph']['name'])), '-') ?: $payload['Graph']['uuid']) . '.json';
         } else {
             $payload = $graphs;
-            $filename = 'workspaces-' . date('Y-m-d') . '.json';
+            $filename = 'analyst-graphs-' . date('Y-m-d') . '.json';
         }
         $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
         return $this->RestResponse->viewData($json, 'application/json', false, true, $filename);
@@ -395,7 +649,7 @@ class WorkspacesController extends AppController
             return;
         }
         $posted = $this->request->data;
-        $form = isset($posted['Workspace']['import']) && is_array($posted['Workspace']['import']) ? $posted['Workspace']['import'] : null;
+        $form = isset($posted['Graph']['import']) && is_array($posted['Graph']['import']) ? $posted['Graph']['import'] : null;
         try {
             if ($form !== null) {
                 $options = $form;
@@ -406,9 +660,9 @@ class WorkspacesController extends AppController
                 } else {
                     unset($options['target']);
                 }
-            } elseif (is_array($posted) && array_key_exists('workspaces', $posted)) {
+            } elseif (is_array($posted) && array_key_exists('graphs', $posted)) {
                 $options = $posted;
-                $graphs = $this->__graphsIn($posted['workspaces']);
+                $graphs = $this->__graphsIn($posted['graphs']);
             } else {
                 $options = [];
                 $graphs = $this->__graphsIn($posted);
@@ -419,7 +673,7 @@ class WorkspacesController extends AppController
                 throw $e;
             }
             $this->Flash->error($e->getMessage());
-            return $this->redirect($this->referer(['controller' => 'analyst_data', 'action' => 'index', 'Workspace'], true));
+            return $this->redirect($this->referer(['controller' => 'analyst_data', 'action' => 'index', 'Graph'], true));
         }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($report, 'json');
@@ -429,23 +683,23 @@ class WorkspacesController extends AppController
 
     /**
      * @param array $user
-     * @param array $rows Workspace rows, with their document and Orgc
-     * @return array [{Workspace: {...}}]
+     * @param array $rows Graph rows, with their document and Orgc
+     * @return array [{Graph: {...}}]
      */
     private function __exported(array $user, array $rows)
     {
         $documents = $nodes = [];
         foreach ($rows as $i => $row) {
-            $documents[$i] = AnalystGraphDocumentTool::decode($row['Workspace']['content']) ?: AnalystGraphDocumentTool::emptyDocument();
+            $documents[$i] = AnalystGraphDocumentTool::decode($row['Graph']['content']) ?: AnalystGraphDocumentTool::emptyDocument();
             $nodes[$i] = $documents[$i]['nodes'] ?? [];
         }
         $visible = $this->AnalystGraphData->visibleNodeLists($user, $nodes);
         $graphs = [];
         foreach ($rows as $i => $row) {
-            $graph = $row['Workspace'];
+            $graph = $row['Graph'];
             $document = AnalystGraphDocumentTool::withNodes($documents[$i], $visible[$i]);
             $document['view'] = (object)($document['view'] ?? []);
-            $graphs[] = ['Workspace' => [
+            $graphs[] = ['Graph' => [
                 'uuid' => $graph['uuid'],
                 'name' => $graph['name'],
                 'description' => $graph['description'],
@@ -504,22 +758,22 @@ class WorkspacesController extends AppController
      */
     private function __graphsIn($payload)
     {
-        if (is_array($payload) && isset($payload['Workspace']) && is_array($payload['Workspace'])) {
-            $payload = $payload['Workspace'];
+        if (is_array($payload) && isset($payload['Graph']) && is_array($payload['Graph'])) {
+            $payload = $payload['Graph'];
         }
         if (!is_array($payload) || empty($payload)) {
-            throw new BadRequestException(__('This is not a workspace export.'));
+            throw new BadRequestException(__('This is not a saved graph export.'));
         }
         if (array_keys($payload) !== range(0, count($payload) - 1)) {
             $payload = [$payload];
         }
         if (count($payload) > self::TRANSFER_LIMIT) {
-            throw new BadRequestException(__('At most %s workspaces at once.', self::TRANSFER_LIMIT));
+            throw new BadRequestException(__('At most %s graphs at once.', self::TRANSFER_LIMIT));
         }
         $graphs = [];
         foreach ($payload as $item) {
-            if (is_array($item) && isset($item['Workspace']) && is_array($item['Workspace'])) {
-                $item = $item['Workspace'];
+            if (is_array($item) && isset($item['Graph']) && is_array($item['Graph'])) {
+                $item = $item['Graph'];
             }
             $graphs[] = is_array($item) ? $item : [];
         }
@@ -538,7 +792,7 @@ class WorkspacesController extends AppController
         $target = null;
         if (isset($options['target'])) {
             $target = $options['target'];
-            if (!is_array($target) || !in_array($target['type'] ?? null, Workspace::VALID_TARGETS, true) || !is_string($target['uuid'] ?? null) || !Validation::uuid($target['uuid'])) {
+            if (!is_array($target) || !in_array($target['type'] ?? null, Graph::VALID_TARGETS, true) || !is_string($target['uuid'] ?? null) || !Validation::uuid($target['uuid'])) {
                 throw new BadRequestException(__('A target is a collection, an event or a galaxy cluster, named by its uuid.'));
             }
         }
@@ -553,7 +807,7 @@ class WorkspacesController extends AppController
             }
         }
         $imported = $failed = $ids = [];
-        $this->Workspace->current_user = $user;
+        $this->Graph->current_user = $user;
         $blocklist = ClassRegistry::init('AnalystDataBlocklist');
         foreach ($graphs as $index => $graph) {
             $name = isset($graph['name']) && is_string($graph['name']) ? $graph['name'] : '';
@@ -568,12 +822,12 @@ class WorkspacesController extends AppController
                 }
                 // Stored as each creator spelled it
                 $spellings = array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]));
-                if ($this->Workspace->find('count', ['conditions' => ['Workspace.uuid' => $spellings], 'callbacks' => false])) {
-                    $refuse('uuid', __('A workspace with this uuid already exists.'));
+                if ($this->Graph->find('count', ['conditions' => ['Graph.uuid' => $spellings], 'callbacks' => false])) {
+                    $refuse('uuid', __('A graph with this uuid already exists.'));
                     continue;
                 }
                 if ($blocklist->hasAny(['AnalystDataBlocklist.analyst_data_uuid' => $spellings])) {
-                    $refuse('uuid', __('A workspace with this uuid is blocklisted.'));
+                    $refuse('uuid', __('A graph with this uuid is blocklisted.'));
                     continue;
                 }
                 $uuid = strtolower($uuid);
@@ -593,21 +847,21 @@ class WorkspacesController extends AppController
                 $record['authors'] = $graph['authors'];
             }
             if (array_key_exists('content', $graph)) {
-                $record['content'] = $this->Workspace->contentForWrite($user, $graph['content']);
+                $record['content'] = $this->Graph->contentForWrite($user, $graph['content']);
             }
             if (empty($record['object_type']) || empty($record['object_uuid'])) {
-                $refuse('object_uuid', __('This workspace names no target; choose one to import it onto.'));
+                $refuse('object_uuid', __('This graph names no target; choose one to import it onto.'));
                 continue;
             }
-            $this->Workspace->create();
-            if ($this->Workspace->save(['Workspace' => $record])) {
-                $ids[] = $this->Workspace->id;
+            $this->Graph->create();
+            if ($this->Graph->save(['Graph' => $record])) {
+                $ids[] = $this->Graph->id;
             } else {
-                $failed[] = ['index' => $index, 'name' => $name, 'errors' => $this->Workspace->validationErrors];
+                $failed[] = ['index' => $index, 'name' => $name, 'errors' => $this->Graph->validationErrors];
             }
         }
         if (!empty($ids)) {
-            $imported = $this->Workspace->summaries($user, ['Workspace.id' => $ids]);
+            $imported = $this->Graph->summaries($user, ['Graph.id' => $ids]);
         }
         return ['imported' => $imported, 'failed' => $failed];
     }
@@ -628,23 +882,23 @@ class WorkspacesController extends AppController
                 $errors = Hash::flatten((array)$failure['errors']);
                 $reasons[] = sprintf(
                     '%s: %s',
-                    $failure['name'] !== '' ? $failure['name'] : __('Workspace #%s', $failure['index'] + 1),
+                    $failure['name'] !== '' ? $failure['name'] : __('Graph #%s', $failure['index'] + 1),
                     implode(' ', array_slice(array_values($errors), 0, 3))
                 );
             }
             $message = empty($imported)
-                ? __('No workspace was imported. %s', implode(' — ', $reasons))
-                : __('%s workspace(s) imported, %s not. %s', count($imported), count($report['failed']), implode(' — ', $reasons));
+                ? __('No graph was imported. %s', implode(' — ', $reasons))
+                : __('%s graph(s) imported, %s not. %s', count($imported), count($report['failed']), implode(' — ', $reasons));
             $this->Flash->error($message);
         } else {
             $this->Flash->success(count($imported) === 1
-                ? __('Workspace "%s" imported.', $imported[0]['name'])
-                : __('%s workspaces imported.', count($imported)));
+                ? __('Graph "%s" imported.', $imported[0]['name'])
+                : __('%s graphs imported.', count($imported)));
         }
         if (count($imported) === 1 && empty($report['failed'])) {
-            return $this->redirect('/workspaces/view/' . $imported[0]['uuid']);
+            return $this->redirect('/analyst_graphs/view/' . $imported[0]['uuid']);
         }
-        return $this->redirect(['controller' => 'analyst_data', 'action' => 'index', 'Workspace']);
+        return $this->redirect(['controller' => 'analyst_data', 'action' => 'index', 'Graph']);
     }
 
     /**
@@ -662,7 +916,6 @@ class WorkspacesController extends AppController
         }
         $this->set('distributionLevels', $levels);
         $this->set('sharingGroups', ClassRegistry::init('SharingGroup')->fetchAllAuthorised($user, 'name', 1));
-        $this->set('defaultDistribution', (int)(Configure::read('MISP.default_analyst_data_distribution') ?? 1));
         $this->set('collections', $this->__orgCollections($user));
         $this->set('transferLimit', self::TRANSFER_LIMIT);
     }
@@ -675,21 +928,21 @@ class WorkspacesController extends AppController
     private function __fetchGraph($uuid)
     {
         if (!Validation::uuid($uuid)) {
-            throw new NotFoundException(__('Invalid workspace.'));
+            throw new NotFoundException(__('Invalid graph.'));
         }
         $user = $this->Auth->user();
-        $this->Workspace->current_user = $user;
-        $graph = $this->Workspace->find('first', [
+        $this->Graph->current_user = $user;
+        $graph = $this->Graph->find('first', [
             'conditions' => [
                 'AND' => [
-                    ['Workspace.uuid' => $uuid],
-                    $this->Workspace->buildConditions($user),
+                    ['Graph.uuid' => $uuid],
+                    $this->Graph->buildConditions($user),
                 ],
             ],
             'contain' => ['Org', 'Orgc'],
         ]);
         if (empty($graph)) {
-            throw new NotFoundException(__('Invalid workspace.'));
+            throw new NotFoundException(__('Invalid graph.'));
         }
         return $graph;
     }
@@ -702,8 +955,8 @@ class WorkspacesController extends AppController
     private function __fetchEditableGraph($uuid)
     {
         $graph = $this->__fetchGraph($uuid);
-        if (empty($graph['Workspace']['_canEdit'])) {
-            throw new ForbiddenException(__('Only the organisation that created this workspace can change it. Fork it instead.'));
+        if (empty($graph['Graph']['_canEdit'])) {
+            throw new ForbiddenException(__('Only the organisation that created this graph can change it. Fork it instead.'));
         }
         return $graph;
     }
@@ -730,11 +983,17 @@ class WorkspacesController extends AppController
         foreach ($authorised as $id => $name) {
             $sharingGroups[] = [(int)$id, $name];
         }
+        $target = $this->Graph->targetSharing($graph['object_type'] ?? null, $graph['object_uuid'] ?? null);
         return [
             'levels' => $levels,
             'sharingGroups' => $sharingGroups,
             'default' => (int)$graph['distribution'],
             'sharingGroup' => $graph['sharing_group_id'],
+            'target' => $target === null ? null : [
+                'type' => $graph['object_type'],
+                'distribution' => (int)$target['distribution'],
+                'sharing_group_id' => $target['sharing_group_id'],
+            ],
             'authors' => $user['email'] ?? '',
         ];
     }
@@ -828,7 +1087,7 @@ class WorkspacesController extends AppController
         if (!is_array($input)) {
             return [];
         }
-        return isset($input['Workspace']) && is_array($input['Workspace']) ? $input['Workspace'] : $input;
+        return isset($input['Graph']) && is_array($input['Graph']) ? $input['Graph'] : $input;
     }
 
     /**
@@ -849,7 +1108,7 @@ class WorkspacesController extends AppController
 
     /**
      * @param array $graph
-     * @param array $result Workspace::writeContent()'s
+     * @param array $result Graph::writeContent()'s
      * @param array|null $report What addNodes() or removeNodes() did
      * @return CakeResponse
      */
@@ -857,27 +1116,27 @@ class WorkspacesController extends AppController
     {
         switch ($result['status']) {
             case 'missing':
-                throw new NotFoundException(__('Invalid workspace.'));
+                throw new NotFoundException(__('Invalid graph.'));
             case 'conflict':
                 $this->response->statusCode(409);
                 $this->response->type('json');
                 $this->response->body(JsonTool::encode([
                     'saved' => false,
-                    'name' => __('The workspace was saved since you loaded it.'),
-                    'message' => __('The workspace was saved since you loaded it.'),
+                    'name' => __('The graph was saved since you loaded it.'),
+                    'message' => __('The graph was saved since you loaded it.'),
                     'url' => $this->request->here,
                     'revision' => $result['revision'],
                 ]));
                 return $this->response;
             case 'invalid':
-                return $this->RestResponse->saveFailResponse('Workspaces', $this->request->params['action'], $graph['Workspace']['id'], $result['errors'], 'json');
+                return $this->RestResponse->saveFailResponse('AnalystGraphs', $this->request->params['action'], $graph['Graph']['id'], $result['errors'], 'json');
         }
-        $id = $graph['Workspace']['id'];
-        $visible = $this->AnalystGraphData->visibleCounts($this->Auth->user(), $this->Workspace->storedContents([$id]));
+        $id = $graph['Graph']['id'];
+        $visible = $this->AnalystGraphData->visibleCounts($this->Auth->user(), $this->Graph->storedContents([$id]));
         $response = [
             'saved' => true,
             'changed' => $result['status'] === 'saved',
-            'uuid' => $graph['Workspace']['uuid'],
+            'uuid' => $graph['Graph']['uuid'],
             'revision' => $result['revision'],
             'node_count' => $visible[$id] ?? 0,
         ];

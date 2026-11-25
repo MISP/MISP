@@ -6055,7 +6055,7 @@ class Server extends AppModel
                 ),
                 'unpublishedprivate' => array(
                     'level' => 2,
-                    'description' => __('True will deny access to unpublished events to users outside the organization of the submitter except site admins.'),
+                    'description' => __('True will deny access to unpublished events and collections to users outside the organization of the submitter except site admins.'),
                     'value' => '',
                     'test' => 'testBool',
                     'type' => 'boolean'
@@ -7332,6 +7332,7 @@ class Server extends AppModel
                         $cerebrate->reencryptAuthKeys($old, $new);
 
                         ClassRegistry::init('UserSetting')->reencryptOidcRefreshTokens($old, $new);
+                        ClassRegistry::init('UserSetting')->reencryptModuleApiKeys($old, $new);
                         return true;
                     },
                     'type' => 'string',
@@ -8250,6 +8251,13 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
+                'Modules_allow_personal_credentials' => array(
+                    'level' => 2,
+                    'description' => __('Let users set their own credentials (API keys, account names, passwords) for the Enrichment, Import and Export modules they may use, in their module_api_keys user setting. Their module queries then use their own account instead of the instance one. When disabled, saved personal credentials are ignored.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
                 'Gathering_services_url' => array(
                     'level' => 1,
                     'description' => __('URL of the misp-modules gathering service.'),
@@ -8811,6 +8819,7 @@ class Server extends AppModel
                     'Publish event' => 'MISP/app/Console/cake Event publish [event_id] [pass_along] [job_id] [user_id]',
                     'Publish sightings' => 'MISP/app/Console/cake Event publish_sightings [event_id] [pass_along] [job_id] [user_id]',
                     'Publish Galaxy clusters' => 'MISP/app/Console/cake Event publish_galaxy_clusters [cluster_id] [job_id] [user_id] [pass_along]',
+                    'Publish collection' => 'MISP/app/Console/cake Event publish_collection [collection_id] [job_id] [user_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
                     'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',

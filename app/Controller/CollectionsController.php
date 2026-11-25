@@ -1,7 +1,10 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystData', 'Model');
+App::uses('AnalystGraphDocumentTool', 'Tools');
 App::uses('Collection', 'Model');
+App::uses('CollectionElement', 'Model');
 App::uses('CollectionRailCards', 'Tools/RailCards');
 App::uses('SyncTool', 'Tools');
 App::uses('ComplexQueryTool', 'Tools');
@@ -14,9 +17,455 @@ class CollectionsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // Posted by hand-built AJAX from the event and index collection panels,
-        // which sends the CSRF token as the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['getCollectionsForElements']);
+        // Posted by hand-built AJAX from the event and index collection panels
+        // and by the workspace, which send the CSRF token as the X-CSRF-Token header;
+        // publish's review form carries a choice of its own markup.
+        $this->_csrfTokenHeaderOnly(['getCollectionsForElements', 'active', 'quickAdd', 'publish', 'analysis']);
+        $this->Collection->CollectionElement->current_user = $this->Auth->user();
+    }
+
+    /**
+     * Review and publish. GET: what the publish releases (the modal, or its
+     * lists as JSON); POST {analysis?}: release it, saying how far the
+     * investigation went.
+     */
+    public function publish($id)
+    {
+        $this->request->allowMethod(['get', 'post', 'put']);
+        $user = $this->Auth->user();
+        $collection = $this->__visibleCollection($user, $id);
+        $id = (int)$collection['id'];
+        if (!$this->Collection->canPublish($user, $collection)) {
+            throw new ForbiddenException(__('Publishing “%s” takes the right to publish and to edit it.', $collection['name']));
+        }
+        if ((int)$collection['distribution'] === 0) {
+            throw new BadRequestException(__('“%s” is shared with your organisation only: there is nothing to publish.', $collection['name']));
+        }
+        if ($this->request->is('get')) {
+            $review = $this->Collection->publishReview($user, $collection);
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $id), 'review' => $review], 'json');
+            }
+            $who = array_filter(array_merge(
+                Hash::extract($review['added']['items'], '{n}.user_id'),
+                Hash::extract($review['removed']['items'], '{n}.user_id')
+            ));
+            $this->loadModel('User');
+            $this->set('reviewers', empty($who) ? [] : $this->User->find('list', [
+                'recursive' => -1,
+                'fields' => ['User.id', 'User.email'],
+                'conditions' => ['User.id' => array_values(array_unique($who))],
+            ]));
+            $this->set('collection', $collection);
+            $this->set('publishState', $this->__publishState($user, $id));
+            $this->set('review', $review);
+            $this->layout = false;
+            return $this->render('ajax/publishReview');
+        }
+        $input = $this->request->data['Collection'] ?? $this->request->data;
+        $analysis = is_array($input) && isset($input['analysis']) && $input['analysis'] !== '' ? $input['analysis'] : null;
+        if ($analysis !== null && (!is_numeric($analysis) || !in_array((int)$analysis, Collection::ANALYSIS_LEVELS, true))) {
+            throw new BadRequestException(__('Say how far the investigation went: 0 Initial, 1 Ongoing or 2 Completed.'));
+        }
+        if (!$this->Collection->publish($id, $analysis === null ? null : (int)$analysis)) {
+            return $this->RestResponse->saveFailResponse('Collections', 'publish', $id, $this->Collection->validationErrors, $this->response->type());
+        }
+        $this->Collection->publishRouter($user, $id);
+        $message = __('“%s” is published: it is on its way to partners with its members, graphs and links.', $collection['name']);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $id), 'message' => $message], 'json');
+        }
+        $this->Flash->success($message);
+        return $this->redirect(['action' => 'view', $id]);
+    }
+
+    /**
+     * Unpublish, as for events. GET: the confirmation; POST: withdraw it
+     * from partners until it is published again.
+     */
+    public function unpublish($id)
+    {
+        $this->request->allowMethod(['get', 'post', 'put']);
+        $user = $this->Auth->user();
+        $collection = $this->__visibleCollection($user, $id);
+        if (!$this->Collection->canPublish($user, $collection)) {
+            throw new ForbiddenException(__('Unpublishing “%s” takes the right to publish and to edit it.', $collection['name']));
+        }
+        if ((int)$collection['distribution'] === 0) {
+            throw new BadRequestException(__('“%s” is shared with your organisation only: there is nothing to unpublish.', $collection['name']));
+        }
+        if ($this->request->is('get')) {
+            $this->set('collection', $collection);
+            $this->layout = false;
+            return $this->render('ajax/unpublishConfirm');
+        }
+        if (!$this->Collection->unpublish($collection['id'])) {
+            return $this->RestResponse->saveFailResponse('Collections', 'unpublish', $collection['id'], $this->Collection->validationErrors, $this->response->type());
+        }
+        $message = __('“%s” is unpublished: partners keep the version they last received until it is published again.', $collection['name']);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $collection['id']), 'message' => $message], 'json');
+        }
+        $this->Flash->success($message);
+        return $this->redirect(['action' => 'view', $collection['id']]);
+    }
+
+    /**
+     * How far the investigation went: POST {analysis}, 0 Initial, 1 Ongoing
+     * or 2 Completed. Takes the edit right.
+     */
+    public function analysis($id)
+    {
+        $this->request->allowMethod(['post', 'put']);
+        $user = $this->Auth->user();
+        $collection = $this->__visibleCollection($user, $id);
+        if (!$this->Collection->canModify($user, $collection)) {
+            throw new ForbiddenException(__('You cannot change the collection “%s”.', $collection['name']));
+        }
+        $input = $this->request->data['Collection'] ?? $this->request->data;
+        $analysis = is_array($input) ? ($input['analysis'] ?? null) : null;
+        if (!is_numeric($analysis) || !in_array((int)$analysis, Collection::ANALYSIS_LEVELS, true)) {
+            throw new BadRequestException(__('Say how far the investigation went: 0 Initial, 1 Ongoing or 2 Completed.'));
+        }
+        if (!$this->Collection->setAnalysis($collection['id'], (int)$analysis)) {
+            return $this->RestResponse->saveFailResponse('Collections', 'analysis', $collection['id'], $this->Collection->validationErrors, 'json');
+        }
+        return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $collection['id'])], 'json');
+    }
+
+    /**
+     * What would go along with the collection shared as ?distribution= and
+     * ?sharing_group_id=: its organisation's graphs on it and relationships
+     * between its members that reach fewer. Takes the edit right.
+     */
+    public function shareAlong($id)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $collection = $this->__visibleCollection($user, $id);
+        if (!$this->Collection->mayModify($user['id'], $collection['id'])) {
+            throw new ForbiddenException(__('Invalid Collection or insufficient privileges'));
+        }
+        $distribution = (string)$this->request->query('distribution');
+        if (!in_array($distribution, ['0', '1', '2', '3', '4'], true)) {
+            throw new BadRequestException(__('Distribution is one of 0, 1, 2, 3 or 4.'));
+        }
+        $to = [(int)$distribution, $distribution === '4' ? (int)$this->request->query('sharing_group_id') : null];
+        return $this->RestResponse->viewData($this->Collection->shareAlong($user, $collection, $to), 'json');
+    }
+
+    /**
+     * @param mixed $input share_along as posted: {graphs, relationships}, or
+     *   that as a JSON string
+     * @return array|null {graphs: [uuid], relationships: [uuid]}
+     */
+    private function __shareAlongInput($input)
+    {
+        if (is_string($input) && $input !== '') {
+            $input = json_decode($input, true);
+        }
+        if (!is_array($input)) {
+            return null;
+        }
+        $picked = [];
+        foreach (['graphs', 'relationships'] as $kind) {
+            $picked[$kind] = array_values(array_filter((array)($input[$kind] ?? []), function ($uuid) {
+                return is_string($uuid) && Validation::uuid($uuid);
+            }));
+        }
+        return $picked;
+    }
+
+    /**
+     * @param array $before The collection as stored before the edit
+     * @param array $saved The collection as saved
+     * @param array $picked __shareAlongInput()'s
+     * @return array Collection::applyShareAlong()'s
+     */
+    private function __applyShareAlong(array $before, array $saved, array $picked)
+    {
+        $stored = $this->Collection->find('first', [
+            'recursive' => -1,
+            'fields' => ['Collection.distribution', 'Collection.sharing_group_id'],
+            'conditions' => ['Collection.id' => (int)$saved['id']],
+        ]);
+        $to = [(int)$stored['Collection']['distribution'], $stored['Collection']['sharing_group_id']];
+        $done = $this->Collection->applyShareAlong($this->Auth->user(), $before, $to, $picked);
+        if (!$this->IndexFilter->isRest() && ($done['graphs'] || $done['relationships'])) {
+            $this->Flash->info(__(
+                'Shared along with the collection: %s.',
+                implode(__(' and '), array_filter([
+                    $done['graphs'] ? __n('%s saved graph', '%s saved graphs', $done['graphs'], $done['graphs']) : null,
+                    $done['relationships'] ? __n('%s link between members', '%s links between members', $done['relationships'], $done['relationships']) : null,
+                ]))
+            ));
+        }
+        if (!$this->IndexFilter->isRest() && !empty($done['failed'])) {
+            $this->Flash->error(__n('One graph or link could not be shared along.', '%s graphs or links could not be shared along.', count($done['failed']), count($done['failed'])));
+        }
+        return $done;
+    }
+
+    /**
+     * @param array $user
+     * @param string|int $id Its id or uuid
+     * @return array The collection, unwrapped, with its Orgc
+     * @throws NotFoundException
+     */
+    private function __visibleCollection(array $user, $id)
+    {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
+        $found = $this->Collection->find('first', [
+            'recursive' => -1,
+            'contain' => ['Orgc'],
+            'conditions' => ['Collection.id' => $id],
+        ]);
+        if (empty($found) || !$this->Collection->mayView($user['id'], $id)) {
+            throw new NotFoundException(__('Invalid %s.', 'Collection'));
+        }
+        return $found['Collection'] + ['Orgc' => $found['Orgc']];
+    }
+
+    /**
+     * @param array $user
+     * @param int $id
+     * @return array|null The collection as the workspace chip reads it
+     */
+    private function __publishState(array $user, $id)
+    {
+        return $this->Collection->workspaceSummaries($user, ['Collection.id' => (int)$id], 1)[0] ?? null;
+    }
+
+    /**
+     * For the index page: the saved graphs the user may see on each
+     * collection, and what waits for a publish on the shared ones.
+     *
+     * @param array $user
+     * @param array $collections A page of the index
+     * @return array The same, with graph_count, changes and _canPublish
+     */
+    private function __withIndexTallies(array $user, array $collections)
+    {
+        if (empty($collections)) {
+            return $collections;
+        }
+        $uuids = [];
+        $withheld = [];
+        foreach ($collections as $collection) {
+            $uuids[] = (string)$collection['Collection']['uuid'];
+            $uuids[] = strtolower((string)$collection['Collection']['uuid']);
+            if (Collection::isWithheld($collection['Collection'])) {
+                $withheld[] = (int)$collection['Collection']['id'];
+            }
+        }
+        $Graph = ClassRegistry::init('Graph');
+        $rows = $Graph->find('all', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['Graph.object_uuid', 'COUNT(*) AS graph_count'],
+            'conditions' => ['AND' => [
+                ['Graph.object_type' => 'Collection', 'Graph.object_uuid' => array_values(array_unique($uuids))],
+                $Graph->buildConditions($user),
+            ]],
+            'group' => ['Graph.object_uuid'],
+        ]);
+        $graphs = [];
+        foreach ($rows as $row) {
+            $key = strtolower($row['Graph']['object_uuid']);
+            $graphs[$key] = ($graphs[$key] ?? 0) + (int)$row[0]['graph_count'];
+        }
+        $changes = $this->Collection->pendingChanges($withheld);
+        foreach ($collections as $k => $collection) {
+            $id = (int)$collection['Collection']['id'];
+            $collections[$k]['Collection']['graph_count'] = $graphs[strtolower((string)$collection['Collection']['uuid'])] ?? 0;
+            $collections[$k]['Collection']['changes'] = $changes[$id] ?? null;
+            $collections[$k]['Collection']['_canPublish'] = $this->Collection->canPublish($user, $collection['Collection']);
+        }
+        return $collections;
+    }
+
+    /**
+     * The user's workspace. POST {collection_uuid, graph_uuid?} makes a
+     * collection they may edit their workspace, laid out by one of their
+     * organisation's graphs on it, or by none when graph_uuid is null; left
+     * out, the newest of them. A null collection ends it.
+     */
+    public function active()
+    {
+        $this->request->allowMethod(['get', 'post']);
+        $user = $this->Auth->user();
+        if ($this->request->is('get')) {
+            return $this->RestResponse->viewData(ActiveWorkspaceTool::forUser($user), 'json');
+        }
+        $input = is_array($this->request->data) ? $this->request->data : [];
+        $collection = array_key_exists('collection_uuid', $input) ? $input['collection_uuid'] : false;
+        if ($collection === false || ($collection !== null && !is_string($collection))) {
+            throw new BadRequestException(__('Name the collection to work in, or null for none.'));
+        }
+        $graph = $input['graph_uuid'] ?? null;
+        if ($graph !== null && !is_string($graph)) {
+            throw new BadRequestException(__('Name the graph by its uuid, or null for none.'));
+        }
+        list($workspace, $refusal) = ActiveWorkspaceTool::choose($user, $collection, $graph, array_key_exists('graph_uuid', $input));
+        switch ($refusal) {
+            case 'collection':
+                throw new NotFoundException(__('Invalid %s.', 'Collection'));
+            case 'edit':
+                throw new ForbiddenException(__('Only a collection you can edit can be your workspace, and “%s” is not one.', $workspace['Collection']['name']));
+            case 'graph':
+                throw new BadRequestException(__('That graph is not one of your organisation’s graphs on “%s”.', $workspace['Collection']['name']));
+        }
+        return $this->RestResponse->viewData($workspace, 'json');
+    }
+
+    /**
+     * New collection…: {name, type?, distribution?, sharing_group_id?,
+     * description?, workspace?, items?, graph?, copied_from?}. Research, for
+     * the organisation only, unless the request says otherwise; with
+     * `workspace` true it becomes the user's workspace in the same request.
+     * `items`, as addItems takes them, join it at once, and `report` answers
+     * for them. `graph` {name, description?, content} is its first graph,
+     * shared as the collection is, laying the workspace out. `copied_from`, a
+     * collection the user can see, gets a copied-from relationship from the
+     * new one, whose type it gives unless the request names one.
+     */
+    public function quickAdd()
+    {
+        $this->request->allowMethod(['post']);
+        $user = $this->Auth->user();
+        $input = is_array($this->request->data) ? $this->request->data : [];
+        if (!is_string($input['name'] ?? null)) {
+            throw new BadRequestException(__('A collection needs a name.'));
+        }
+        $items = $input['items'] ?? [];
+        if (!is_array($items) || ($items !== [] && array_keys($items) !== range(0, count($items) - 1))) {
+            throw new BadRequestException(__('Items are a list.'));
+        }
+        if (count($items) > CollectionElement::ITEM_LIMIT) {
+            throw new BadRequestException(__('At most %s items at once.', CollectionElement::ITEM_LIMIT));
+        }
+        $graph = $input['graph'] ?? null;
+        $copiedFrom = $input['copied_from'] ?? null;
+        if (($graph !== null || $copiedFrom !== null) && !$this->ACL->canUserAccess($user, 'analystData', 'add')) {
+            throw new ForbiddenException(__('You may not save a graph or a relationship.'));
+        }
+        if ($graph !== null) {
+            if (!is_array($graph) || !is_string($graph['name'] ?? null) || trim($graph['name']) === '') {
+                throw new BadRequestException(__('A graph needs a name.'));
+            }
+            $content = $graph['content'] ?? AnalystGraphDocumentTool::emptyDocument();
+            list(, $errors) = AnalystGraphDocumentTool::normalise($content);
+            if (!empty($errors)) {
+                throw new BadRequestException(__('The graph is not valid: %s', implode(' ', (array)$errors)));
+            }
+        }
+        $original = null;
+        if ($copiedFrom !== null) {
+            if (!is_string($copiedFrom) || !Validation::uuid($copiedFrom)) {
+                throw new BadRequestException(__('Invalid collection.'));
+            }
+            $original = $this->Collection->workspaceSummaries($user, [
+                'Collection.uuid' => array_values(array_unique([$copiedFrom, strtolower($copiedFrom), strtoupper($copiedFrom)])),
+            ], 1)[0] ?? null;
+            if ($original === null) {
+                throw new NotFoundException(__('Invalid %s.', 'Collection'));
+            }
+        }
+        $record = [
+            'name' => trim($input['name']),
+            'type' => is_string($input['type'] ?? null) ? $input['type'] : ($original['type'] ?? 'research'),
+            'distribution' => isset($input['distribution']) && is_scalar($input['distribution']) ? (string)$input['distribution'] : '0',
+            'description' => is_string($input['description'] ?? null) ? $input['description'] : '',
+        ];
+        if ($record['distribution'] === '4') {
+            $record['sharing_group_id'] = $input['sharing_group_id'] ?? null;
+            $canUse = $this->Collection->SharingGroup->checkIfCanBeUsed($user, false, $record);
+            if ($canUse !== true) {
+                throw new MethodNotAllowedException($canUse);
+            }
+        }
+        $this->Collection->current_user = $user;
+        $this->Collection->create();
+        if (!$this->Collection->save(['Collection' => $record])) {
+            return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $this->Collection->validationErrors, 'json');
+        }
+        $id = $this->Collection->id;
+        $uuid = strtolower($this->Collection->field('uuid'));
+        $sharing = [
+            'distribution' => $record['distribution'],
+            'sharing_group_id' => $record['sharing_group_id'] ?? null,
+        ];
+        $created = null;
+        if ($graph !== null) {
+            $Graph = ClassRegistry::init('Graph');
+            $Graph->current_user = $user;
+            $Graph->create();
+            $saved = $Graph->save(['Graph' => [
+                'name' => trim($graph['name']),
+                'description' => is_string($graph['description'] ?? null) ? $graph['description'] : '',
+                'object_type' => 'Collection',
+                'object_uuid' => $uuid,
+                'content' => $Graph->contentForWrite($user, $content),
+            ] + $sharing]);
+            if (!$saved) {
+                $this->Collection->delete($id);
+                return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $Graph->validationErrors, 'json');
+            }
+            $created = $Graph->summaries($user, ['Graph.id' => $Graph->id])[0] ?? null;
+        }
+        if ($original !== null) {
+            $Relationship = ClassRegistry::init('Relationship');
+            $Relationship->current_user = $user;
+            $Relationship->create();
+            $saved = $Relationship->save(['Relationship' => [
+                'object_type' => 'Collection',
+                'object_uuid' => $uuid,
+                'related_object_type' => 'Collection',
+                'related_object_uuid' => $original['uuid'],
+                'relationship_type' => 'copied-from',
+            ] + $sharing]);
+            if (!$saved) {
+                if ($created !== null) {
+                    ClassRegistry::init('Graph')->delete($created['id']);
+                }
+                $this->Collection->delete($id);
+                return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $Relationship->validationErrors, 'json');
+            }
+        }
+        $report = null;
+        if (!empty($items)) {
+            $report = $this->Collection->CollectionElement->addItems($user, $id, $items);
+            if ($original !== null && !empty($report['added'])) {
+                $this->Collection->CollectionElement->copyOrigins($original['id'], $id, $report['added']);
+            }
+        }
+        $collection = $this->Collection->workspaceSummaries($user, ['Collection.id' => $id], 1)[0] ?? null;
+        $workspace = null;
+        if (!empty($input['workspace']) && $collection !== null) {
+            list($workspace) = ActiveWorkspaceTool::choose($user, $collection['uuid'], $created['uuid'] ?? null);
+        }
+        return $this->RestResponse->viewData([
+            'Collection' => $collection,
+            'Graph' => $created,
+            'copied_from' => $original === null ? null : ['uuid' => $original['uuid'], 'name' => $original['name']],
+            'workspace' => $workspace,
+            'report' => $report,
+        ], 'json');
+    }
+
+    /**
+     * The collections the user may make their workspace, the ones they used
+     * last first; `?scope=mine` keeps those they created.
+     */
+    public function editable()
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $scope = ($this->request->query['scope'] ?? null) === 'mine' ? 'mine' : 'org';
+        return $this->RestResponse->viewData([
+            'Collection' => ActiveWorkspaceTool::editable($user, $scope),
+            'active' => ActiveWorkspaceTool::stored($user),
+        ], 'json');
     }
 
     public $paginate = [
@@ -254,6 +703,9 @@ class CollectionsController extends AppController
     {
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->Collection->current_user = $this->Auth->user();
+        if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
+        }
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
@@ -265,11 +717,13 @@ class CollectionsController extends AppController
                 'conditions' => ['Collection.id' => intval($id)]
             ]);
             if (empty($oldCollection)) {
-                throw new NotFoundException(__('Invalid collection.'));
+                throw new NotFoundException(__('Invalid %s.', 'Collection'));
             }
             if (empty($this->request->data['Collection'])) {
                 $this->request->data = ['Collection' => $this->request->data];
             }
+            $shareAlong = $this->__shareAlongInput($this->request->data['Collection']['share_along'] ?? null);
+            unset($this->request->data['Collection']['share_along']);
             $data = $this->request->data;
             // The sharing-group authorisation check must run against the EFFECTIVE distribution
             // and sharing group after the edit, not only when 'distribution' is present in the
@@ -321,8 +775,11 @@ class CollectionsController extends AppController
                     $this->__assertCanUseNestedElements($collection, (int)$id);
                     return $collection;
                 },
-                'afterSave' => function (array &$collection) use ($data) {
+                'afterSave' => function (array &$collection) use ($data, $oldCollection, $shareAlong) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
+                    if ($shareAlong !== null) {
+                        $collection['share_along'] = $this->__applyShareAlong($oldCollection['Collection'], $collection['Collection'], $shareAlong);
+                    }
                     return $collection;
                 }
             ];
@@ -350,6 +807,9 @@ class CollectionsController extends AppController
     public function delete($id)
     {
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
+        if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
+        }
         if (!$this->Collection->mayModify($this->Auth->user('id'), $id)) {
             throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
         }
@@ -380,7 +840,8 @@ class CollectionsController extends AppController
         $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
         $this->set('mayModify', $this->Collection->mayModify($this->Auth->user('id'), $id));
         if (!$this->Collection->mayView($this->Auth->user('id'), $id)) {
-            throw new MethodNotAllowedException(__('Invalid Collection or insufficient privileges'));
+            // As for a uuid that does not exist: a hidden collection is not confirmed
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'view'));
         $user = $this->Auth->user();
@@ -393,7 +854,7 @@ class CollectionsController extends AppController
                 'Orgc',
                 'Org',
                 'User',
-                'CollectionElement'
+                'CollectionElement' => Collection::servedElementOptions(),
             ],
             'afterFind' => function (array $collection) use ($user) {
                 return $this->Collection->rearrangeCollection($collection, $user);
@@ -401,6 +862,10 @@ class CollectionsController extends AppController
         ];
         if (!$this->IndexFilter->isRest()) {
             $params['contain'][] = 'SharingGroup';
+        }
+        $served = Collection::servedConditions();
+        if (!empty($served)) {
+            $params['conditions'] = $served;
         }
         $this->CRUD->view($id, $params);
         if ($this->IndexFilter->isRest()) {
@@ -421,6 +886,14 @@ class CollectionsController extends AppController
         $elements = $this->Collection->CollectionElement->attachTargets($user, $elements);
         $data['Collection']['CollectionElement'] = $elements;
         $this->set('data', $data);
+        // Who added each member, where the user may see it (rearrangeCollection
+        // drops user_id otherwise)
+        $adderIds = array_values(array_unique(array_filter(array_column($elements, 'user_id'))));
+        $this->set('elementAdders', empty($adderIds) ? [] : ClassRegistry::init('User')->find('list', [
+            'recursive' => -1,
+            'fields' => ['User.id', 'User.email'],
+            'conditions' => ['User.id' => $adderIds],
+        ]));
 
         $totalElements = count($elements);
         $this->request->params['paging']['CollectionElement'] = [
@@ -445,6 +918,7 @@ class CollectionsController extends AppController
         }
 
         $this->set('id', $id);
+        $this->set('publishState', $this->__publishState($user, $id));
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->render('view');
@@ -458,6 +932,7 @@ class CollectionsController extends AppController
             'quickFilters' => ['Collection.name'],
             'contain' => ['Orgc', 'SharingGroup'],
             'afterFind' => function($collections) {
+                $user = $this->Auth->user();
                 foreach ($collections as $k => $collection) {
                     if ($collection['Collection']['distribution'] != 4) {
                         unset($collections[$k]['SharingGroup']);
@@ -466,6 +941,15 @@ class CollectionsController extends AppController
                         'recursive' => -1,
                         'conditions' => ['CollectionElement.collection_id' => $collection['Collection']['id']]
                     ]);
+                    if (!empty($collection['CollectionElement']) && !Collection::showsAdders($user, $collection['Collection'])) {
+                        $collections[$k]['CollectionElement'] = Collection::withoutAdders($collection['CollectionElement']);
+                    }
+                    if (!empty($collections[$k]['CollectionElement'])) {
+                        $collections[$k]['CollectionElement'] = $this->Collection->CollectionElement->withRecords($collections[$k]['CollectionElement']);
+                    }
+                }
+                if (!$this->_isRest()) {
+                    $collections = $this->__withIndexTallies($user, $collections);
                 }
                 return $collections;
             }
@@ -483,14 +967,10 @@ class CollectionsController extends AppController
             // The sync pull fetches full collections by uuid through this action
             // (ServerSyncTool::fetchCollections -> GET /collections/index/uuid[]:...json).
             // The capture sink needs the element corpus — even when empty — to perform an
-            // authoritative replace (D5), so include CollectionElement for REST callers
+            // authoritative replace, so include CollectionElement for REST callers
             // only. The HTML index shows just element_count and must not eager-load every
             // element across the paginated list.
-            if (SyncTool::valueTargetsWithheld()) {
-                $params['contain']['CollectionElement'] = ['conditions' => ['CollectionElement.element_sha256' => null]];
-            } else {
-                $params['contain'][] = 'CollectionElement';
-            }
+            $params['contain']['CollectionElement'] = Collection::servedElementOptions();
             // The generic index filter list registers the fully-qualified 'Collection.uuid'
             // key, but harvestParameters only matches a named param whose key is literally
             // 'Collection.uuid'. The sync client sends bare uuid[] named params, so harvest
@@ -499,6 +979,10 @@ class CollectionsController extends AppController
             $uuidFilter = $this->request->params['named']['uuid'] ?? null;
             if (!empty($uuidFilter)) {
                 $params['conditions']['AND'][] = ['Collection.uuid' => (array)$uuidFilter];
+            }
+            $served = Collection::servedConditions();
+            if (!empty($served)) {
+                $params['conditions']['AND'][] = $served;
             }
         }
         $this->loadModel('Event');
@@ -539,6 +1023,10 @@ class CollectionsController extends AppController
             $filters = $this->request->data;
         }
         $options = [];
+        // As the event pull asks for published events: 1 released, 0 withheld
+        if (isset($filters['published']) && $filters['published'] !== '' && !is_array($filters['published'])) {
+            $options[]['AND'][] = $filters['published'] ? Collection::releasedConditions() : Collection::withheldConditions();
+        }
         if (!empty($filters['orgc_name'])) {
             // Resolve names through a canonically-aliased Organisation model: fetchOrg()
             // hardcodes a `LOWER(Organisation.name)` condition, so calling it via the
@@ -688,6 +1176,53 @@ class CollectionsController extends AppController
     }
 
     /**
+     * The collections holding a record that the user can see, as the
+     * workspace chooser describes them, each with `element.created`, when
+     * the record joined; and `active`, the workspace's collection.
+     *
+     * GET /collections/holding/Event/<uuid>.json, a value by its SHA-256
+     *
+     * @param string $type An item type, as addItems takes them
+     * @param string $address
+     */
+    public function holding($type, $address)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $target = CollectionElement::itemTarget($type === 'Value'
+            ? ['type' => $type, 'sha256' => $address]
+            : ['type' => $type, 'uuid' => $address]);
+        if ($target === null) {
+            throw new NotFoundException(__('Invalid record.'));
+        }
+        $joined = $this->Collection->CollectionElement->find('list', [
+            'recursive' => -1,
+            'conditions' => [
+                'CollectionElement.element_type' => $target['element_type'],
+                'CollectionElement.' . $target['column'] => $target['address'],
+            ],
+            'fields' => ['CollectionElement.collection_id', 'CollectionElement.created'],
+        ]);
+        $collections = [];
+        if (!empty($joined)) {
+            $collections = $this->Collection->workspaceSummaries($user, [
+                'Collection.id' => array_map('strval', array_keys($joined)),
+            ]);
+            foreach ($collections as &$collection) {
+                $collection['element'] = ['created' => $joined[$collection['id']] ?? null];
+            }
+            unset($collection);
+        }
+        $workspace = $this->ACL->canUserAccess($user, 'collections', 'active')
+            ? ActiveWorkspaceTool::stored($user)
+            : null;
+        return $this->RestResponse->viewData([
+            'Collection' => $collections,
+            'active' => $workspace['collection_uuid'] ?? null,
+        ], 'json');
+    }
+
+    /**
      * Only the collections' own ACL applies, not the elements' targets.
      *
      * @param string $elementType
@@ -706,13 +1241,18 @@ class CollectionsController extends AppController
         if (empty($uuids)) {
             return [];
         }
+        // Stored lowercase; answered under the spelling asked
+        $asked = [];
+        foreach ($uuids as $uuid) {
+            $asked[strtolower($uuid)] = $asked[strtolower($uuid)] ?? $uuid;
+        }
 
         $this->loadModel('CollectionElement');
         $elements = $this->CollectionElement->find('all', [
             'recursive' => -1,
             'conditions' => [
                 'CollectionElement.element_type' => $elementType,
-                'CollectionElement.' . $column => $uuids
+                'CollectionElement.' . $column => array_map('strval', array_keys($asked))
             ],
             'fields' => ['CollectionElement.collection_id', 'CollectionElement.' . $column]
         ]);
@@ -741,7 +1281,7 @@ class CollectionsController extends AppController
 
         foreach ($elements as $element) {
             $collectionId = $element['CollectionElement']['collection_id'];
-            $elementUuid = $element['CollectionElement'][$column];
+            $elementUuid = $asked[strtolower($element['CollectionElement'][$column])] ?? $element['CollectionElement'][$column];
             if (!isset($collectionsById[$collectionId])) {
                 continue;
             }

@@ -344,6 +344,20 @@ class EventShell extends AppShell
         $log->createLogEntry($user, 'publish_sightings', 'Event', $id, $title, 'publish_sightings updated');
     }
 
+    public function publish_collection()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish collection']);
+        }
+
+        $collectionId = $this->args[0];
+        $jobId = $this->args[1];
+        $user = $this->getUser($this->args[2]);
+        $Collection = ClassRegistry::init('Collection');
+        $reached = $Collection->uploadToServers($user, $collectionId);
+        $this->Job->saveStatus($jobId, true, __n('Collection sent to %s server.', 'Collection sent to %s servers.', $reached, $reached));
+    }
+
     public function publish_galaxy_clusters()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || !array_key_exists(3, $this->args)) {

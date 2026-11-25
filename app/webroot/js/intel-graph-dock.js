@@ -1,18 +1,20 @@
-// The workspace dock: the active workspace, over whatever page the analyst is
-// on (phase 6's pick, mockups/dock.html in the PRD). Docked, it is a drawer
-// against the right edge, full height under the navbar, as wide as the
-// analyst drags it; it covers the page's right edge and never reflows the
-// page. Undocked, it is a window moved by its head and resized from its
-// edges, kept as the corner it is nearest to so it stays put when the browser
-// window changes size. Closing is the only way out of the way.
+// The workspace dock: the collection the analyst works in, drawn over
+// whatever page they are on and laid out by the workspace's graph. Docked,
+// it is a drawer against the right or the left edge, full height under the
+// navbar, as wide as the analyst drags it; it covers that edge of the page
+// and never reflows it. Undocked, it is a window moved by its head and resized
+// from its edges, kept as the corner it is nearest to so it stays put when
+// the browser window changes size. Closing is the only way out of the way.
 //
-// Opened by the navbar slot (IntelGraph.registerDock). It mounts the graph in
-// Pivotick's viewer mode on first open only, keeps the adds made on the page
-// underneath as they land, and saves layout only when asked. Open or closed,
-// docked or floating, the drawer's width and the window's rectangle are
-// remembered per viewer in localStorage, as is a short log of arrivals.
+// Opened by the navbar slot (IntelGraph.registerDock). It mounts the
+// workspace in Pivotick's viewer mode on first open only, draws what is added
+// on the page underneath as it lands, and saves the layout into the
+// workspace's graph only when asked. Open or closed, docked or floating, the
+// drawer's width and the window's rectangle are remembered per viewer in
+// localStorage, as is a short log of arrivals.
 //
-// Markup: Elements/intel_graph_dock.ctp. Needs intel-graph.js.
+// Markup: Elements/intel_graph_dock.ctp. Needs intel-graph.js and
+// intel-graph-working.js, which draws the list beside the canvas.
 (function () {
     'use strict';
 
@@ -30,7 +32,7 @@
     var switchBtn = find('[data-ig-switch]');
     var menu = find('[data-ig-menu]');
     var nameEl = find('[data-ig-name]');
-    var widenBtn = find('[data-ig-widen]');
+    var sideBtn = find('[data-ig-side]');
     var undockBtn = find('[data-ig-undock]');
     var dockBtn = find('[data-ig-dock]');
     var moveHandle = find('[data-ig-move]');
@@ -53,13 +55,26 @@
     var footEl = find('[data-ig-foot]');
     var sayEl = find('[data-ig-say]');
 
+    // The list beside the canvas, its menus and its badges
+    var W = window.IntelGraphWorking;
+    var working = W.frame('dock', { body: find('[data-igw-body]'), stage: stage });
+    var t = W.t, tn = W.tn;
+
     function IG() { return window.IntelGraph; }
     function baseurl() { return (window.IntelGraphConfig && window.IntelGraphConfig.baseurl) || ''; }
-    function pageRecord() { return IG().page(); }
+    // The page draws the workspace in full: the graph laying it out, or the
+    // collection page opened on its Pivot Explorer tab.
     function pageShowsActive() {
-        var shown = window.IntelGraphConfig && window.IntelGraphConfig.shown;
         var a = IG().active();
-        return !!shown && !!a && lower(a.uuid) === lower(shown);
+        if (!a || !a.Collection) return false;
+        var shown = window.IntelGraphConfig && window.IntelGraphConfig.shown;
+        if (shown) return !!a.Graph && lower(a.Graph.uuid) === lower(shown);
+        var page = document.querySelector('[data-igw-page]');
+        if (!page || lower(page.getAttribute('data-igw-collection')) !== lower(a.Collection.uuid)) return false;
+        // The hash picks the tab once the page has loaded
+        if (window.location.hash) return window.location.hash === '#tab-pivot-explorer';
+        var pane = document.getElementById('tab-pivot-explorer');
+        return !!pane && pane.classList.contains('active');
     }
     function lower(s) { return String(s || '').toLowerCase(); }
 
@@ -94,8 +109,9 @@
     function write(key, value) {
         try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* kept for this page only */ }
     }
-    var prefs = Object.assign({ open: false, width: 0, wide: false, tray: true, mode: 'docked', win: null, scope: 'org' }, read(KEY, {}));
+    var prefs = Object.assign({ open: false, width: 0, wide: false, side: 'right', tray: true, mode: 'docked', win: null, scope: 'org' }, read(KEY, {}));
     if (prefs.mode !== 'floating') prefs.mode = 'docked';
+    if (prefs.side !== 'left') prefs.side = 'right';
     if (prefs.scope !== 'mine') prefs.scope = 'org';
     if (!validWin(prefs.win)) prefs.win = null;
     function validWin(w) {
@@ -104,7 +120,7 @@
         });
     }
     function remember() {
-        write(KEY, { open: prefs.open, width: prefs.width, wide: prefs.wide, tray: prefs.tray, mode: prefs.mode, win: prefs.win, scope: prefs.scope });
+        write(KEY, { open: prefs.open, width: prefs.width, wide: prefs.wide, side: prefs.side, tray: prefs.tray, mode: prefs.mode, win: prefs.win, scope: prefs.scope });
     }
 
     // Recent arrivals, per graph: what the analyst sent while browsing,
@@ -125,7 +141,8 @@
         Object.keys(log).forEach(function (uuid) {
             out[uuid] = log[uuid].slice(0, LOG_MAX).map(function (e) {
                 return { id: e.id, kind: e.kind, keys: e.keys, present: e.present, labels: e.labels,
-                         count: e.count, refused: e.refused, message: e.message, at: e.at };
+                         count: e.count, refused: e.refused, narrower: e.narrower, narrowerAsked: e.narrowerAsked,
+                         message: e.message, at: e.at, why: e.why };
             });
         });
         write(LOG_KEY, out);
@@ -210,12 +227,15 @@
         return { left: left, top: top, w: right - left, h: bottom - top };
     }
 
+    function onLeft() { return prefs.side === 'left'; }
     function place() {
-        var b = bounds(), w = width(), float = floating();
+        var b = bounds(), w = width(), float = floating(), left = onLeft();
         html.style.setProperty('--ig-so-w', w + 'px');
         html.style.setProperty('--ig-so-top', measureNav() + 'px');
         panel.classList.toggle('is-floating', float);
+        panel.classList.toggle('is-left', left);
         html.classList.toggle('ig-so-docked', opened && !float);
+        html.classList.toggle('ig-so-left', left);
         if (float) {
             var rect = drag || winRect();
             panel.style.setProperty('--ig-fw-left', rect.left + 'px');
@@ -224,7 +244,7 @@
             panel.style.setProperty('--ig-fw-h', rect.h + 'px');
         }
         grip.hidden = float;
-        widenBtn.hidden = float;
+        sideBtn.hidden = float;
         undockBtn.hidden = float;
         dockBtn.hidden = !float;
         moveHandle.hidden = !float;
@@ -233,9 +253,10 @@
         grip.setAttribute('aria-valuemax', String(b.max));
         grip.setAttribute('aria-valuenow', String(w));
         grip.setAttribute('aria-valuetext', w + ' pixels; ' + Math.max(0, b.vw - w) + ' pixels of the page left uncovered');
-        widenBtn.setAttribute('aria-pressed', prefs.wide ? 'true' : 'false');
-        widenBtn.title = prefs.wide ? 'Back to your width' : 'Widen the panel';
-        widenBtn.setAttribute('aria-label', widenBtn.title);
+        sideBtn.title = left ? 'Move to the right' : 'Move to the left';
+        sideBtn.setAttribute('aria-label', sideBtn.title);
+        dockBtn.title = left ? 'Dock to the left' : 'Dock to the right';
+        dockBtn.setAttribute('aria-label', dockBtn.title);
     }
     var placing = 0;
     function placeSoon() {
@@ -264,7 +285,7 @@
         slotButtons().forEach(function (b) {
             b.setAttribute('aria-expanded', opened ? 'true' : 'false');
             var side = b.querySelector('.ig-slot-side');
-            if (side) side.className = 'fas ' + (floating() ? 'fa-window-restore' : 'fa-angles-left') + ' ig-slot-side';
+            if (side) side.className = 'fas ' + (floating() ? 'fa-window-restore' : onLeft() ? 'fa-angles-right' : 'fa-angles-left') + ' ig-slot-side';
             var n = b.querySelector('[data-ig-unseen]');
             if (!n) return;
             var show = !opened && (unseen.added > 0 || unseen.refused);
@@ -360,13 +381,16 @@
     }
     // Side panels (side-panel.js) share the right edge and give way.
     function announceDocked() {
-        if (opened && !floating()) document.dispatchEvent(new CustomEvent('intel-graph:docked'));
+        if (opened && !floating() && !onLeft()) document.dispatchEvent(new CustomEvent('intel-graph:docked'));
     }
+    // keepOpen: shut on this page only, still open on the next
     function closeDock(opts) {
         if (!opened) return;
         opened = false;
-        prefs.open = false;
-        remember();
+        if (!(opts && opts.keepOpen)) {
+            prefs.open = false;
+            remember();
+        }
         hideMenu();
         place();
         syncSlot();
@@ -409,7 +433,8 @@
         emptyState: { render: emptyCard }
     };
     var current = null;     // the handle drawn in the panel
-    var mountingUuid = null;
+    var currentKey = null;  // what it draws, drawKey()
+    var mountingKey = null;
     var currentReady = false;
     var mountStarted = 0;
     var token = 0;         // the latest mount; an older one that resolves is dropped
@@ -417,29 +442,39 @@
     var layoutWhy = '';
     var conflictRevision = null;
     var notice = null;      // { kind, text } shown in the banner once
-    var pending = null;     // items an add with no graph left waiting (intel-graph:pick)
+    var pending = null;     // items an add with no workspace left waiting (intel-graph:pick)
+    var saveAs = null;      // { name, busy, error } while the foot asks a new graph's name
+    var trayWhy = null;     // { id, draft, busy, error } while an arrival's why is asked
 
-    function drawnUuid() { return current ? current.uuid() : null; }
-    // The summary says so, or the graph as mounted does.
-    function readOnly(a) {
-        return !a._canEdit || (currentReady && current.uuid() === lower(a.uuid) && !current.canEdit());
+    // What the panel draws of a workspace: its collection, laid out by its graph.
+    function drawKey(a) {
+        return a && a.Collection ? lower(a.Collection.uuid) + '/' + lower(a.Graph ? a.Graph.uuid : '') : null;
+    }
+    function drawnCollection() { return current && currentKey ? currentKey.split('/')[0] : null; }
+    // Moves are kept only on a workspace graph the analyst may save.
+    function layoutLocked(a) {
+        return !a || !a.Graph || (currentReady && currentKey === drawKey(a) && !current.canEdit());
     }
     function teardown() {
         token++;
         var h = current;
         current = null;
+        currentKey = null;
         layout = 'clean';
         conflictRevision = null;
         clearCallouts();
-        mountingUuid = null;
+        mountingKey = null;
         currentReady = false;
+        saveAs = null;
+        working.detach();
         if (h) { try { h.destroy(); } catch (e) { /* already gone */ } }
         canvas.innerHTML = '';
     }
     function ensureMounted() {
         var a = IG().active();
-        if (a && current && current.uuid() === lower(a.uuid)) { fitSoon(); return; }
-        if (a && !current && mountingUuid === lower(a.uuid)) return;
+        var key = drawKey(a);
+        if (a && current && currentKey === key) { fitSoon(); return; }
+        if (a && !current && mountingKey === key) return;
         if (!a && !current && !noneEl.hidden) return;
         mountActive();
     }
@@ -449,42 +484,45 @@
         var a = IG().active();
         render();
         if (!a) { showNone(); return Promise.resolve(null); }
-        mountingUuid = lower(a.uuid);
+        mountingKey = drawKey(a);
         mountStarted = Date.now();
         noneEl.hidden = true;
+        working.none(false);
         showLoading('Loading the graph tools…');
         var box = el('div', 'ig-so-mount');
         canvas.appendChild(box);
-        // The page's boot summary carries no target (AppController asks
-        // activeFor() for none, to save a query on every page): one GET
-        // labels it.
-        var labelled = a.target ? Promise.resolve(a) : IG().refreshActive().catch(function () { return a; });
-        return Promise.all([IG().load(), labelled]).then(function () {
+        return IG().load().then(function () {
             if (mine !== token) return null;
             var b = IG().active();
-            if (!b || lower(b.uuid) !== mountingUuid) return null;
+            if (drawKey(b) !== mountingKey) return null;
             render();
-            showLoading('Loading “' + b.name + '”…');
-            return window.IntelGraph.mount(box, { graph: b.uuid, ui: UI });
+            showLoading('Loading “' + b.Collection.name + '”…');
+            return IG().mount(box, Object.assign({
+                graph: b.Graph ? b.Graph.uuid : null,
+                source: IG().workingPath(b.Collection.uuid, b.Graph && b.Graph.uuid)
+            }, working.mountOptions(UI)));
         }).then(function (h) {
             if (!h) return null;
             if (mine !== token) { dispose(h); return null; }
             current = h;
+            currentKey = mountingKey;
+            working.bind(h);
             return h.ready;
         }).then(function (h) {
             if (!h || mine !== token) return null;
             loadingEl.hidden = true;
             currentReady = true;
+            working.attach(h);
             watch(h);
             describeKnown();
             render();
-            var waiting = entriesOf(h.uuid()).filter(function (e) { return e.unlanded; });
+            var waiting = entriesOf(drawnCollection()).filter(function (e) { return e.unlanded; });
             waiting.forEach(function (e) { delete e.unlanded; });
-            if (waiting.length) landAll(waiting, h.uuid());
+            if (waiting.length) landAll(waiting);
             return h;
         }).catch(function (err) {
             if (mine !== token) return;
-            mountingUuid = null;
+            mountingKey = null;
             showFailure(err);
         });
     }
@@ -560,35 +598,14 @@
         Attribute:     { label: 'Attribute', icon: 'misp-icon misp-icon-attribute misp-simple', color: 'var(--bs-attribute)' },
         Object:        { label: 'Object', icon: 'misp-icon misp-icon-object misp-simple', color: 'var(--bs-object)' },
         GalaxyCluster: { label: 'Galaxy cluster', icon: 'misp-icon misp-icon-galaxy misp-simple', color: 'var(--bs-galaxy)' },
-        Value:         { label: 'Value', icon: 'misp-icon misp-icon-value-intelligence misp-simple', color: 'var(--bs-valueIntelligence)' }
+        Value:         { label: 'Value', icon: 'misp-icon misp-icon-value-intelligence misp-simple', color: 'var(--bs-valueIntelligence)' },
+        StandaloneObject: { label: 'Object', icon: 'misp-icon misp-icon-object misp-simple', color: 'var(--bs-object)' }
     };
     function typeOf(t) { return TYPE[t] || { label: t || 'Record', icon: 'fas fa-circle' }; }
-    var TARGET_PAGE = { Event: '/events/view/', Collection: '/collections/view/', GalaxyCluster: '/galaxy_clusters/view/' };
-
-    // A target as type and label; a target the reader cannot read is its
-    // type alone. A summary with no target at all is not labelled yet.
-    function targetFact(target, typeHint) {
-        var t = typeOf((target && target.type) || typeHint);
-        var f = el('span', 'ig-so-fact');
-        f.title = 'Target';
-        f.appendChild(icon(t.icon));
-        var s = el('span');
-        s.appendChild(document.createTextNode(t.label));
-        if (!target) s.appendChild(document.createTextNode(' · …'));
-        else if (target.label) {
-            s.appendChild(document.createTextNode(' · '));
-            var href = TARGET_PAGE[target.type] && target.id != null
-                ? baseurl() + TARGET_PAGE[target.type] + encodeURIComponent(target.id) : null;
-            var name = el('strong', null, target.label);
-            if (href) {
-                var a = link('ig-so-target', '', href);
-                a.title = 'Open the ' + t.label.toLowerCase();
-                a.appendChild(name);
-                s.appendChild(a);
-            } else s.appendChild(name);
-        }
-        f.appendChild(s);
-        return f;
+    // A collection type as the collection form names it.
+    function collectionType(type) {
+        var hit = IG().collectionTypes().filter(function (t) { return t[0] === type; })[0];
+        return hit ? hit[1] : (type || '');
     }
     function distributionBadge(level) {
         var d = IG().distribution(level);
@@ -612,63 +629,195 @@
         renderTray();
         renderFoot();
     }
+    function members(n) { return n + (n === 1 ? ' member' : ' members'); }
+    // A collection shared beyond the organisation reaches partners once published.
+    function publishFact(c) {
+        var fact = el('span', 'ig-so-fact ig-so-publish' + (c.withheld ? ' is-pending' : ''));
+        fact.appendChild(icon('fas fa-share-nodes'));
+        if (!c.withheld) {
+            fact.title = 'Partners hold this collection as it is';
+            fact.appendChild(el('span', null, 'Published'));
+            return fact;
+        }
+        var n = c.changes ? c.changes.added + c.changes.removed : 0;
+        var waiting = c._canPublish === false;
+        var label = n
+            ? n + (n === 1 ? ' change ' : ' changes ') + (waiting ? 'waiting for a publisher' : 'not yet shared')
+            : (waiting ? 'Waiting for a publisher' : 'Changes not yet shared');
+        fact.title = 'Partners keep the version they last received until the collection is published'
+            + (c.changes ? ' (+' + c.changes.added + ' added, −' + c.changes.removed + ' removed)' : '');
+        fact.appendChild(el('span', null, label));
+        if (!waiting) {
+            var review = link('ig-so-target ig-so-review', 'Review', baseurl() + '/collections/view/' + encodeURIComponent(c.uuid) + '?review=1');
+            review.title = 'Review what goes out, and publish';
+            fact.appendChild(review);
+        }
+        return fact;
+    }
     function renderHead() {
         var a = IG().active();
-        nameEl.textContent = a ? a.name : 'Pick a workspace';
-        switchBtn.title = a ? 'Switch workspace' + (a.description ? ' — ' + a.description : '') : '';
-        switchBtn.disabled = !a;
-        switchBtn.querySelector('.ig-so-caret').hidden = !a;
-        fullLink.hidden = !a;
-        fullLink.href = a ? baseurl() + '/workspaces/view/' + encodeURIComponent(a.uuid) : '#';
+        var c = a && a.Collection;
+        nameEl.textContent = c ? c.name : 'Pick a workspace';
+        switchBtn.title = c ? 'Switch workspace' : '';
+        switchBtn.disabled = !c;
+        switchBtn.querySelector('.ig-so-caret').hidden = !c;
+        fullLink.hidden = !c;
+        fullLink.href = c ? baseurl() + '/collections/view/' + encodeURIComponent(c.uuid) + '#tab-pivot-explorer' : '#';
         metaEl.textContent = '';
-        if (!a) return;
-        metaEl.appendChild(targetFact(a.target, a.object_type));
+        if (!c) return;
+        var kind = el('span', 'ig-so-fact');
+        kind.title = 'Collection';
+        kind.appendChild(icon('fas fa-folder'));
+        kind.appendChild(el('span', null, 'Collection · ' + collectionType(c.type)));
+        metaEl.appendChild(kind);
         var org = el('span', 'ig-so-fact');
         org.title = 'Creator organisation';
         org.appendChild(icon('misp-icon misp-icon-organisation misp-simple'));
-        org.appendChild(el('span', null, (a.Orgc && a.Orgc.name) || ''));
+        org.appendChild(el('span', null, (c.Orgc && c.Orgc.name) || ''));
         metaEl.appendChild(org);
-        var badge = distributionBadge(a.distribution);
+        var badge = distributionBadge(c.distribution);
         if (badge) metaEl.appendChild(badge);
-        var n = current && current.uuid() === lower(a.uuid) ? drawnCount() : null;
+        if (c.distribution) metaEl.appendChild(publishFact(c));
         var count = el('span', 'ig-so-fact ig-so-count');
         count.appendChild(icon('fas fa-circle-nodes'));
-        count.appendChild(el('span', null, n == null ? '…' : n + (n === 1 ? ' node' : ' nodes')));
-        count.setAttribute('data-ig-count', n == null ? '' : String(n));
+        count.appendChild(el('span', null, members(c.element_count)));
+        count.setAttribute('data-ig-count', String(c.element_count));
+        var p = currentReady && currentKey === drawKey(a) ? current.payload() : null;
+        var left = p && p.meta ? (p.meta.skipped || []).length + (p.meta.members_left_out || 0) : 0;
+        if (left) {
+            count.title = left + ' not drawn: more than the panel draws at once';
+            count.appendChild(el('span', 'text-warning-emphasis', '· ' + left + ' not drawn'));
+        }
         metaEl.appendChild(count);
-        if (readOnly(a)) {
+        metaEl.appendChild(layoutSwitch(a));
+        if (a.Graph && layoutLocked(a)) {
             var ro = el('span', 'ig-so-ro-chip');
             ro.appendChild(icon('fas fa-lock me-1'));
-            ro.appendChild(document.createTextNode('Read-only'));
+            ro.appendChild(document.createTextNode('Layout read-only'));
             metaEl.appendChild(ro);
         }
     }
 
-    /* ── the banner: read-only, a conflict, what just happened ─ */
-    function renderBanner() {
+    /* ── the graph laying the workspace out ────────────────── */
+    // One of the organisation's graphs on the collection, or none. Kept
+    // across head renders so a count moving does not close it.
+    var layoutDd = null;
+    function layoutSwitch(a) {
+        if (!layoutDd) {
+            layoutDd = el('div', 'dropdown ig-so-fact ig-so-layout');
+            var opener = el('button', 'ig-so-layout-btn');
+            opener.type = 'button';
+            opener.setAttribute('data-bs-toggle', 'dropdown');
+            opener.setAttribute('aria-expanded', 'false');
+            opener.setAttribute('data-bs-popper-config', '{"strategy":"fixed"}');
+            opener.setAttribute('data-ig-layout', '');
+            var list = el('div', 'dropdown-menu ig-so-menu ig-so-layout-menu');
+            list.setAttribute('data-ig-layout-menu', '');
+            layoutDd.appendChild(opener);
+            layoutDd.appendChild(list);
+            opener.addEventListener('show.bs.dropdown', function () { fillLayouts(list); });
+            opener.addEventListener('shown.bs.dropdown', function () {
+                var mark = list.querySelector('[aria-current="true"]') || list.querySelector('.ig-so-pick');
+                if (mark) mark.focus();
+            });
+        }
+        var b = layoutDd.firstChild;
+        b.textContent = '';
+        b.title = t('layoutTitle');
+        b.appendChild(icon('misp-icon misp-icon-analyst-graph misp-simple'));
+        var s = el('span');
+        s.appendChild(document.createTextNode(t('layout') + ' · '));
+        s.appendChild(el('strong', null, a.Graph ? a.Graph.name : t('layoutAuto')));
+        b.appendChild(s);
+        b.appendChild(icon('fas fa-chevron-down ig-so-caret'));
+        return layoutDd;
+    }
+    function layoutRow(g, a) {
+        var inUse = g ? !!a.Graph && lower(a.Graph.uuid) === lower(g.uuid) : !a.Graph;
+        var b = el('button', 'dropdown-item ig-so-pick' + (g ? '' : ' ig-so-pick-none'));
+        b.type = 'button';
+        if (inUse) b.setAttribute('aria-current', 'true');
+        var mark = el('span', 'ig-so-pick-mark');
+        mark.appendChild(icon(inUse ? 'fas fa-check' : (g ? 'misp-icon misp-icon-analyst-graph misp-simple' : 'fas fa-wand-magic-sparkles')));
+        b.appendChild(mark);
+        var bodyEl = el('span', 'ig-so-pick-body');
+        bodyEl.appendChild(el('span', 'ig-so-pick-name', g ? g.name : t('noGraph')));
+        var sub = el('span', 'ig-so-pick-sub');
+        sub.appendChild(el('span', null, g
+            ? tn('layoutNodes', g.node_count || 0) + (g.modified ? ' · ' + String(g.modified).slice(0, 10) : '')
+            : t('noGraphSub')));
+        bodyEl.appendChild(sub);
+        b.appendChild(bodyEl);
+        b.addEventListener('click', function () { pickLayout(g); });
+        return b;
+    }
+    function fillLayouts(into) {
         var a = IG().active();
+        into.textContent = '';
+        if (!a) return;
+        into.appendChild(el('h6', 'dropdown-header', t('layoutPick')));
+        if (layout === 'dirty') into.appendChild(el('p', 'dropdown-item-text ig-so-layout-note', t('layoutUnsaved')));
+        var list = el('div', 'ig-so-list');
+        list.appendChild(el('p', 'dropdown-item-text ig-so-more', t('layoutLoading')));
+        into.appendChild(list);
+        into.appendChild(layoutRow(null, a));
+        if (a.Graph) {
+            into.appendChild(el('div', 'dropdown-divider'));
+            var open = link('dropdown-item ig-so-more', '', baseurl() + '/analyst_graphs/view/' + encodeURIComponent(a.Graph.uuid));
+            open.appendChild(icon('fas fa-up-right-from-square'));
+            open.appendChild(el('span', null, t('pageOpenGraph')));
+            into.appendChild(open);
+            if (canSaveGraph() && current && currentReady) {
+                var again = el('button', 'dropdown-item ig-so-more');
+                again.type = 'button';
+                again.setAttribute('data-ig-save-new', '');
+                again.title = t('saveAsNewTitle');
+                again.appendChild(icon('fas fa-plus'));
+                again.appendChild(el('span', null, t('saveAsNewGraph')));
+                again.addEventListener('click', openSaveAs);
+                into.appendChild(again);
+            }
+        }
+        var org = lower(window.IntelGraphConfig && window.IntelGraphConfig.explorer && window.IntelGraphConfig.explorer.orgUuid);
+        IG().request('GET', '/analyst_graphs/forTarget/Collection/' + encodeURIComponent(a.Collection.uuid) + '.json').then(function (out) {
+            var waiting = into.contains(document.activeElement);
+            list.textContent = '';
+            var mine = ((out && out.Graph) || []).filter(function (g) { return lower(g.orgc_uuid) === org; });
+            if (!mine.length) list.appendChild(el('p', 'dropdown-item-text ig-so-more', t('layoutNone')));
+            mine.forEach(function (g) { list.appendChild(layoutRow(g, a)); });
+            // Opened before the graphs came: focus moves to the one in use
+            var mark = waiting && into.querySelector('[aria-current="true"]');
+            if (mark) mark.focus();
+        }, function () {
+            list.textContent = '';
+            list.appendChild(el('p', 'dropdown-item-text ig-so-more text-danger-emphasis', t('layoutListFailed')));
+        });
+    }
+    function pickLayout(g) {
+        var a = IG().active();
+        if (!a) return;
+        var want = g ? lower(g.uuid) : null;
+        if ((a.Graph ? lower(a.Graph.uuid) : null) === want) return;
+        IG().setActive(a.Collection.uuid, want).catch(function (err) {
+            notice = { kind: 'error', text: t('switchFailed', (err && err.message) || '') };
+            renderBanner();
+        });
+    }
+
+    /* ── the banner: a conflict, what is waiting, what just happened ─ */
+    function renderBanner() {
         bannerEl.className = 'ig-so-banner';
         bannerEl.textContent = '';
         var kind = null, iconCls = null, body = el('div');
-        if (a && readOnly(a)) {
-            kind = 'readonly'; iconCls = 'fas fa-lock';
-            var org = (a.Orgc && a.Orgc.name) || 'another organisation';
-            var p = el('p');
-            p.appendChild(el('strong', null, org + '’s workspace. '));
-            p.appendChild(document.createTextNode('Only ' + org + ' can change it, so “Add to workspace” is refused here. Fork it to keep working on your own copy.'));
-            body.appendChild(p);
-            var acts = el('div', 'ig-so-actions');
-            forkButtons(null).forEach(function (b) { acts.appendChild(b); });
-            body.appendChild(acts);
-        } else if (layout === 'conflict') {
+        if (layout === 'conflict') {
             kind = 'conflict'; iconCls = 'fas fa-code-compare';
-            body.appendChild(el('p', null, 'Layout not saved: this workspace was saved somewhere else since it opened here'
+            body.appendChild(el('p', null, 'Layout not saved: the workspace’s graph was saved somewhere else since it opened here'
                 + (conflictRevision != null ? ' (it is now at revision ' + conflictRevision + ')' : '') + '.'));
-            body.appendChild(el('p', 'mt-1', 'Save your layout over that version — what it added is kept, and placed — or reload it and drop your moves. Adds were never at risk: they were saved as they landed.'));
-            var acts2 = el('div', 'ig-so-actions');
-            acts2.appendChild(button('btn btn-sm btn-danger', 'Save my layout over it', rebaseAndSave, 'fas fa-code-merge'));
-            acts2.appendChild(button('btn btn-sm btn-outline-danger', 'Reload the workspace', function () { notice = null; mountActive(); }, 'fas fa-rotate'));
-            body.appendChild(acts2);
+            body.appendChild(el('p', 'mt-1', 'Save your layout over that version — what it holds is kept, and placed — or reload it and drop your moves. Adds were never at risk: they went to the collection as they landed.'));
+            var acts = el('div', 'ig-so-actions');
+            acts.appendChild(button('btn btn-sm btn-danger', 'Save my layout over it', rebaseAndSave, 'fas fa-code-merge'));
+            acts.appendChild(button('btn btn-sm btn-outline-danger', 'Reload the workspace', function () { notice = null; mountActive(); }, 'fas fa-rotate'));
+            body.appendChild(acts);
         } else if (pending) {
             kind = 'pending'; iconCls = 'fas fa-inbox';
             body.appendChild(el('p', null, describeItems(pending) + ' waiting: pick the workspace it goes to, or start one.'));
@@ -691,50 +840,8 @@
         void bannerEl.offsetWidth;
         bannerEl.classList.add('is-shaking');
     }
-    // Where a fork can land: the original's target when the analyst can read
-    // it, and the record on screen when that is another one (Q8).
-    function forkTargets() {
-        var a = IG().active();
-        var out = [];
-        if (a && a.target && a.target.label != null) {
-            out.push({ type: a.target.type, uuid: a.target.uuid, label: a.target.label, same: true });
-        }
-        var page = pageRecord();
-        if (page && !(a && a.target && lower(a.target.uuid) === lower(page.uuid))) {
-            out.push({ type: page.type, uuid: page.uuid, label: page.label, same: false });
-        }
-        return out;
-    }
-    function forkButtons(thenAdd) {
-        var targets = forkTargets();
-        if (!targets.length) {
-            return [el('span', 'small', 'To fork it, open the collection, event or galaxy cluster your copy should hang off.')];
-        }
-        return targets.map(function (t, i) {
-            var label = (thenAdd ? 'Fork, then add it' : 'Fork') + (t.same ? '' : ' onto ' + typeOf(t.type).label + ' · ' + t.label);
-            var b = button(i ? 'btn btn-sm btn-outline-primary' : (thenAdd ? 'btn btn-sm btn-outline-primary' : 'btn btn-sm btn-primary'), label, function () {
-                b.disabled = true;
-                forkActive(thenAdd, t);
-            }, 'fas fa-code-fork');
-            return b;
-        });
-    }
     function deliver(items, uuid) {
-        return IG().add(items, { graph: uuid }).catch(function () { /* the refusal lands in the tray */ });
-    }
-    function forkActive(thenAdd, target) {
-        var a = IG().active();
-        if (!a) return;
-        IG().fork(a.uuid, { target: { type: target.type, uuid: target.uuid } }).then(function (fork) {
-            notice = { kind: 'done', text: 'Forked onto ' + typeOf(target.type).label + ' · ' + target.label
-                + '. This copy is your organisation’s: adds go to it now.' };
-            return IG().setActive(fork.uuid);
-        }).then(function (fork) {
-            if (thenAdd && fork) return deliver(thenAdd, fork.uuid);
-        }).catch(function (err) {
-            notice = { kind: 'error', text: 'Could not fork: ' + ((err && err.message) || 'unknown error') };
-            renderBanner();
-        });
+        return IG().add(items, { collection: uuid }).catch(function () { /* the refusal lands in the tray */ });
     }
 
     /* ── the switcher ──────────────────────────────────────── */
@@ -749,50 +856,20 @@
         if (mark) mark.focus();
     });
 
-    function graphRow(g, isActive, asDropdown, onPick) {
-        var b = el('button', asDropdown ? 'dropdown-item ig-so-pick' : 'list-group-item list-group-item-action ig-so-pick');
-        b.type = 'button';
-        if (isActive) b.setAttribute('aria-current', 'true');
-        var mark = el('span', 'ig-so-pick-mark');
-        if (isActive) mark.appendChild(icon('fas fa-check'));
-        b.appendChild(mark);
-        // Where the graph's picture goes (intel-graph-thumbs.js)
-        b.setAttribute('data-intel-graph-row', '');
-        var thumb = el('span');
-        thumb.setAttribute('data-intel-graph-thumb', g.uuid);
-        thumb.setAttribute('data-revision', String(g.revision));
-        thumb.setAttribute('data-surface', 'switcher');
-        thumb.setAttribute('data-name', g.name);
-        b.appendChild(thumb);
-        var bodyEl = el('span', 'ig-so-pick-body');
-        bodyEl.appendChild(el('span', 'ig-so-pick-name', g.name));
-        var sub = el('span', 'ig-so-pick-sub');
-        var t = typeOf(g.target && g.target.type);
-        sub.appendChild(icon(t.icon));
-        sub.appendChild(el('span', null, t.label + (g.target && g.target.label ? ' · ' + g.target.label : '')));
-        bodyEl.appendChild(sub);
-        b.appendChild(bodyEl);
-        var n = isActive && drawnUuid() === lower(g.uuid) ? drawnCount() : g.node_count;
-        var c = el('span', 'badge rounded-pill text-bg-secondary', String(n == null ? '' : n));
-        c.title = n + (n === 1 ? ' node' : ' nodes');
-        b.appendChild(c);
-        b.addEventListener('click', function () { onPick(g); });
-        return b;
-    }
-    function pick(g) {
+    function pick(c) {
         hideMenu();
         var a = IG().active();
         notice = null;
         var items = pending;
         pending = null;
-        if (a && lower(a.uuid) === lower(g.uuid)) {
+        if (a && lower(a.Collection.uuid) === lower(c.uuid)) {
             closeChooser();
             ensureMounted();
-            if (items) deliver(items, g.uuid);
+            if (items) deliver(items, c.uuid);
             return;
         }
-        IG().setActive(g.uuid).then(function () {
-            if (items) return deliver(items, g.uuid);
+        IG().setActive(c.uuid).then(function () {
+            if (items) return deliver(items, c.uuid);
         }).catch(function (err) {
             notice = { kind: 'error', text: 'Could not switch: ' + ((err && err.message) || 'unknown error') };
             renderBanner();
@@ -805,8 +882,8 @@
         mark.appendChild(icon('fas fa-ban'));
         b.appendChild(mark);
         var bodyEl = el('span', 'ig-so-pick-body');
-        bodyEl.appendChild(el('span', 'ig-so-pick-name', 'No active workspace'));
-        bodyEl.appendChild(el('span', 'ig-so-pick-sub', '“Add to workspace” asks which workspace next time'));
+        bodyEl.appendChild(el('span', 'ig-so-pick-name', 'No workspace'));
+        bodyEl.appendChild(el('span', 'ig-so-pick-sub', '“Add to workspace” asks where to add next time'));
         b.appendChild(bodyEl);
         b.addEventListener('click', clearActive);
         return b;
@@ -815,146 +892,51 @@
         hideMenu();
         notice = null;
         IG().setActive(null).catch(function (err) {
-            notice = { kind: 'error', text: 'Could not clear the active workspace: ' + ((err && err.message) || 'unknown error') };
+            notice = { kind: 'error', text: 'Could not leave the workspace: ' + ((err && err.message) || 'unknown error') };
             renderBanner();
         });
     }
-    var SCOPES = [
-        { key: 'mine', label: 'Mine', head: 'Your workspaces', empty: 'No workspace names you among its authors yet.' },
-        { key: 'org', label: 'Organisation', head: 'Your organisation’s workspaces', empty: 'Your organisation has no workspace yet.' }
-    ];
-    function scopeOf(key) {
-        return SCOPES.filter(function (s) { return s.key === key; })[0] || SCOPES[1];
-    }
-    var listSeq = 0;
     function fillSwitcher(into, asDropdown) {
-        into.textContent = '';
-        var head = el('div', 'ig-so-scope' + (asDropdown ? ' dropdown-header' : ''));
-        var title = el(asDropdown ? 'h6' : 'p', asDropdown ? 'mb-0' : 'small text-body-secondary mb-0');
-        head.appendChild(title);
-        var toggle = el('div', 'btn-group btn-group-sm');
-        toggle.setAttribute('role', 'group');
-        toggle.setAttribute('aria-label', 'Whose workspaces');
-        head.appendChild(toggle);
-        into.appendChild(head);
-        var holder = el('div', asDropdown ? 'ig-so-list' : 'list-group');
-        into.appendChild(holder);
-        var buttons = SCOPES.map(function (s) {
-            var b = el('button', 'btn btn-outline-primary', s.label);
-            b.type = 'button';
-            b.addEventListener('click', function () {
-                if (prefs.scope === s.key) return;
-                prefs.scope = s.key;
+        window.IntelGraphChooser.fill(into, {
+            asDropdown: asDropdown,
+            scope: prefs.scope,
+            onScope: function (scope) {
+                prefs.scope = scope;
                 remember();
-                load();
-            });
-            toggle.appendChild(b);
-            return b;
-        });
-        function load() {
-            var scope = scopeOf(prefs.scope);
-            title.textContent = scope.head;
-            SCOPES.forEach(function (s, i) {
-                buttons[i].classList.toggle('active', s.key === scope.key);
-                buttons[i].setAttribute('aria-pressed', s.key === scope.key ? 'true' : 'false');
-            });
-            var seq = ++listSeq;
-            holder.textContent = '';
-            holder.appendChild(el('div', 'px-3 py-2 text-body-secondary small', 'Loading…'));
-            IG().list(scope.key).then(function (out) {
-                if (seq !== listSeq) return;
-                holder.textContent = '';
-                var a = IG().active();
-                var activeUuid = lower((a && a.uuid) || out.active);
-                var listed = out.graphs.some(function (g) { return lower(g.uuid) === activeUuid; });
-                if (a && !listed) {
-                    if (scope.key === 'mine' && lower(out.active) === lower(a.uuid)) {
-                        holder.appendChild(graphRow(a, true, asDropdown, pick));
-                    } else {
-                        var cur = graphRow(a, true, asDropdown, function () { hideMenu(); });
-                        cur.disabled = true;
-                        cur.querySelector('.ig-so-pick-name').textContent = a.name + ' — read-only';
-                        holder.appendChild(cur);
-                    }
-                }
-                out.graphs.forEach(function (g) { holder.appendChild(graphRow(g, lower(g.uuid) === activeUuid, asDropdown, pick)); });
-                if (!out.graphs.length) holder.appendChild(el('div', 'px-3 py-2 text-body-secondary small', scope.empty));
+            },
+            onPick: pick,
+            after: function (holder, a) {
                 if (asDropdown && a) holder.appendChild(noneRow());
-            }, function (err) {
-                if (seq !== listSeq) return;
-                holder.textContent = '';
-                holder.appendChild(el('div', 'px-3 py-2 text-danger small', 'Could not list the workspaces: ' + ((err && err.message) || 'error')));
-            });
-        }
-        load();
-        if (asDropdown) into.appendChild(el('div', 'dropdown-divider'));
-        into.appendChild(newGraphForm(asDropdown));
-    }
-    var formSeq = 0;
-    function newGraphForm(asDropdown) {
-        var page = pageRecord();
-        var id = 'ig-so-new-' + (++formSeq);
-        var form = el('form', 'ig-so-new');
-        form.noValidate = true;
-        var label = el('label', 'form-label', 'New workspace');
-        label.htmlFor = id;
-        form.appendChild(label);
-        var group = el('div', 'input-group input-group-sm');
-        var input = el('input', 'form-control');
-        input.id = id;
-        input.name = 'name';
-        input.placeholder = 'Name it';
-        input.autocomplete = 'off';
-        input.required = true;
-        group.appendChild(input);
-        var submit = el('button', 'btn btn-primary', 'Create');
-        submit.type = 'submit';
-        group.appendChild(submit);
-        form.appendChild(group);
-        var feedback = el('div', 'invalid-feedback');
-        form.appendChild(feedback);
-        var help = el('div', 'form-text');
-        if (page) {
-            help.appendChild(document.createTextNode('On '));
-            help.appendChild(el('strong', null, typeOf(page.type).label + ' · ' + page.label));
-            help.appendChild(document.createTextNode(', the page you are on. It becomes your active workspace.'));
-        } else {
-            help.textContent = 'Open an event, a collection or a cluster to start a workspace on it.';
-            input.disabled = submit.disabled = true;
-        }
-        form.appendChild(help);
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            var name = input.value.trim();
-            input.classList.remove('is-invalid');
-            if (!name) { input.classList.add('is-invalid'); feedback.textContent = 'A workspace needs a name.'; input.focus(); return; }
-            if (!page) { input.classList.add('is-invalid'); feedback.textContent = 'This page is not a record a workspace can hang off.'; return; }
-            submit.disabled = true;
-            IG().create({ name: name, target: { type: page.type, uuid: page.uuid } }).then(function (created) {
-                hideMenu();
-                notice = { kind: 'done', text: '“' + name + '” created on ' + typeOf(page.type).label + ' · ' + page.label + ', and active.' };
-                if (pending && created) { var items = pending; pending = null; closeChooser(); return deliver(items, created.uuid); }
-            }).catch(function (err) {
-                submit.disabled = false;
-                input.classList.add('is-invalid');
-                var errs = err && err.body && err.body.errors;
-                feedback.textContent = (errs && errs.name && errs.name[0]) || (err && err.message) || 'Could not create the workspace.';
-            });
+            },
+            form: {
+                done: function (created, activate, name) {
+                    hideMenu();
+                    notice = { kind: 'done', text: '“' + name + '” created' + (activate ? '. It is your workspace.' : '.') };
+                    if (pending && created) {
+                        var items = pending;
+                        pending = null;
+                        closeChooser();
+                        deliver(items, created.uuid);
+                        return;
+                    }
+                    renderBanner();
+                }
+            }
         });
-        return form;
     }
 
-    /* ── no active graph ───────────────────────────────────── */
+    /* ── no workspace ──────────────────────────────────────── */
     function showNone() {
         loadingEl.hidden = true;
         noneEl.hidden = false;
+        working.none(true);
         noneEl.textContent = '';
         if (pending) {
             noneEl.appendChild(el('h2', null, 'Add to which workspace?'));
-            noneEl.appendChild(el('p', null, 'The one you pick becomes your active workspace: later adds go to it too.'));
+            noneEl.appendChild(el('p', null, 'The collection you pick becomes your workspace: later adds go to it too.'));
         } else {
-            noneEl.appendChild(el('h2', null, 'No active workspace'));
-            noneEl.appendChild(el('p', null, '“Add to workspace” on the pages you browse feeds one workspace at a time. Pick the one you are working on, or start one; nothing loads until you do.'));
+            noneEl.appendChild(el('h2', null, 'No workspace'));
+            noneEl.appendChild(el('p', null, '“Add to workspace” on the pages you browse feeds one collection at a time, your workspace. Pick the one you are working in, or start one; nothing loads until you do.'));
         }
         var choices = el('div', 'd-flex flex-column gap-3');
         noneEl.appendChild(choices);
@@ -967,7 +949,7 @@
         }
         render();
     }
-    // Back to the graph, or to "no active graph".
+    // Back to the workspace, or to "no workspace".
     function closeChooser() {
         if (!IG().active()) { showNone(); return; }
         noneEl.hidden = true;
@@ -983,7 +965,7 @@
         var p = el('p');
         p.appendChild(document.createTextNode('Use '));
         p.appendChild(el('kbd', null, 'Add to workspace'));
-        p.appendChild(document.createTextNode(' on the pages you browse — an event, an attribute, an object, a value. Each one lands here as you add it, and stays.'));
+        p.appendChild(document.createTextNode(' on the pages you browse — an event, an attribute, an object, a value. Each one joins the collection and lands here as you add it.'));
         box.appendChild(p);
         return box;
     }
@@ -1018,7 +1000,21 @@
             (p.GalaxyCluster || []).forEach(function (r) { if (lower(r.uuid) === uuid) hit = r; });
             return hit && { type: type, title: hit.value, sub: hit.type ? hit.type + ' cluster' : 'galaxy cluster' };
         }
+        if (type === 'StandaloneObject') {
+            (p.StandaloneObject || []).forEach(function (r) { if (lower(r.uuid) === uuid) hit = r; });
+            return hit && { type: type, title: tellingValue(hit), sub: hit.name + ' object' };
+        }
         return null;
+    }
+    // A standalone object read by its most telling value
+    function tellingValue(rec) {
+        var attrs = rec.attributes || [];
+        var order = ['domain', 'hostname', 'url', 'ip', 'ip-dst', 'ip-src'];
+        for (var i = 0; i < order.length; i++) {
+            var hit = attrs.filter(function (a) { return a.relation === order[i]; })[0];
+            if (hit) return hit.value;
+        }
+        return attrs.length ? attrs[0].value : rec.name;
     }
     function describeItems(items) {
         var values = (items || []).filter(function (i) { return i.type === 'Value'; }).map(function (i) { return i.value; });
@@ -1029,7 +1025,7 @@
     // On a mount: name what the log only knew by key, and mark what the
     // graph no longer holds (removed since, on this page or another).
     function describeKnown() {
-        var a = drawnUuid();
+        var a = drawnCollection();
         var p = (current && current.payload()) || {};
         var held = {};
         ((p.document && p.document.nodes) || []).forEach(function (n) {
@@ -1067,9 +1063,16 @@
 
     IG().on('added', function (d) {
         var r = d.report || {};
+        // Every item turned down on its own, such as an object a template refuses
+        if (!(r.added || []).length && !(r.present || []).length && (r.refused || []).length) {
+            if (!d.tellsRefusals) refuse({ collection: d.collection, items: d.items, message: r.refused[0].error || 'Not added' });
+            return;
+        }
         var entry = {
             id: String(++seq), keys: (r.added || []).slice(), present: (r.present || []).slice(),
-            count: (r.added || []).length, refused: (r.refused || []).length, labels: {}, at: Date.now(), fresh: true
+            count: (r.added || []).length, refused: (r.refused || []).length, labels: {}, at: Date.now(), fresh: true,
+            narrower: (r.narrower || []).length,
+            narrowerAsked: Object.keys(r.narrower_origins || {}).length
         };
         entry.kind = entry.keys.length ? 'added' : 'present';
         var only = (d.items || []).length === 1 ? d.items[0] : null;
@@ -1081,7 +1084,7 @@
             }
         });
         if (d.undo) undos[entry.id] = d.undo;
-        push(d.graph, entry);
+        push(d.collection, entry);
         if (!opened) unseen.added += entry.count;
         fly(d.origin).then(function () {
             if (opened) return;
@@ -1089,45 +1092,60 @@
             pulseSlot();
         });
         var a = IG().active();
-        if (a && lower(a.uuid) === lower(d.graph)) {
+        if (a && lower(a.Collection.uuid) === lower(d.collection)) {
+            renderHead();
             renderTray();
             // Not drawn yet (closed, or never opened on this page): it is
-            // pointed at when the graph next mounts.
-            if (current && current.uuid() === lower(d.graph)) land(entry, lower(d.graph));
+            // pointed at when the workspace next mounts.
+            if (current && drawnCollection() === lower(d.collection)) follow(entry);
             else entry.unlanded = true;
         }
     });
 
+    // Draws what the collection holds now, then points at what came.
+    function follow(entry) {
+        var h = current;
+        h.ready.then(function () { return h.refresh(); }).then(function () {
+            if (h !== current) return;
+            renderHead();
+            if (entry) land(entry);
+        }, function () { /* drawn on the next add or mount */ });
+    }
+
     IG().on('removed', function (d) {
         var gone = (d.report && d.report.removed) || [];
-        entriesOf(d.graph).forEach(function (e) {
+        entriesOf(d.collection).forEach(function (e) {
             if (e.kind === 'added' && e.keys.length && e.keys.every(function (k) { return gone.indexOf(k) !== -1; })) {
                 e.kind = 'undone';
                 delete undos[e.id];
             }
         });
         saveLog();
-        if (drawnUuid() === lower(d.graph)) {
-            waitFor(function () { return gone.every(function (k) { return !nodeFor(k); }); }, 4000).then(function () { renderHead(); });
-        }
+        if (current && drawnCollection() === lower(d.collection)) follow(null);
+        renderHead();
         renderTray();
     });
 
-    document.addEventListener('intel-graph:refused', function (e) {
-        var d = e.detail || {};
-        if (!d.graph) return;
+    IG().on('replaced', function (d) {
+        if (current && drawnCollection() === lower(d.collection)) follow(null);
+        renderHead();
+    });
+
+    document.addEventListener('intel-graph:refused', function (e) { if (!(e.detail || {}).tellsRefusals) refuse(e.detail || {}); });
+    function refuse(d) {
+        if (!d.collection) return;
         var entry = { id: String(++seq), kind: 'refused', keys: [], present: [], labels: {}, at: Date.now(),
                       count: 0, items: d.items, message: d.message || ('HTTP ' + d.status), status: d.status, fresh: true };
         var one = (d.items || []).length === 1 ? d.items[0] : null;
         entry.labels._ = { title: 'Not added: ' + describeItems(d.items).replace(/^The value /, ''), sub: entry.message,
                            href: one ? hrefOf(one.type, one.uuid, one.value) : null };
-        push(d.graph, entry);
+        push(d.collection, entry);
         if (!opened) { unseen.refused = true; syncSlot(); pulseSlot(); return; }
         flash('is-refusing');
         renderTray();
         shakeBanner();
         say('Not added. ' + entry.message);
-    });
+    }
 
     IG().on('pick', function (d) {
         pending = d.items || null;
@@ -1135,21 +1153,46 @@
         showNone();
     });
 
-    // A save made elsewhere on the page, now drawn here: the count moved.
-    IG().on('drawn', function (d) {
-        if (d && drawnUuid() === lower(d.graph)) renderHead();
+    // Show in the dock: the records pointed at once they are drawn.
+    IG().on('reveal', function (d) {
+        var a = IG().active();
+        if (!a || !d || !d.keys || !d.keys.length) return;
+        var want = lower(a.Collection.uuid);
+        if (!opened) openDock({ focus: false });
+        else ensureMounted();
+        var entry = { kind: 'present', keys: [], present: d.keys.slice(), labels: Object.assign({}, d.labels), at: Date.now() };
+        waitFor(function () {
+            if (!current || drawnCollection() !== want) return null;
+            var nodes = d.keys.map(nodeFor);
+            return nodes.every(Boolean) ? nodes : null;
+        }, 10000).then(function (nodes) {
+            if (!nodes) {
+                say(d.keys.length === 1 ? 'It is in the workspace but not drawn here.' : 'They are in the workspace but not all drawn here.');
+                return;
+            }
+            d.keys.forEach(function (k) { if (!entry.labels[k]) { var dsc = describe(k); if (dsc) entry.labels[k] = dsc; } });
+            locate(entry);
+        });
     });
 
+    // A save made elsewhere on the page, now drawn here.
+    IG().on('drawn', function (d) {
+        if (d && current && current.uuid() && current.uuid() === lower(d.graph)) renderHead();
+    });
+
+    // Another tab, or an add, moved the member count.
+    IG().on('count', function () { renderHead(); });
+
     IG().on('active', function (d) {
-        var g = d && d.graph;
+        var a = d && d.workspace;
         if (!opened) {
-            if (current && (!g || current.uuid() !== lower(g.uuid))) teardown();
+            if (current && drawKey(a) !== currentKey) teardown();
             render();
             return;
         }
-        if (!g) { teardown(); showNone(); return; }
-        var showing = current ? current.uuid() : mountingUuid;
-        if (showing !== lower(g.uuid)) mountActive();
+        if (!a) { teardown(); showNone(); return; }
+        var showing = current ? currentKey : mountingKey;
+        if (showing !== drawKey(a)) mountActive();
         else render();
     });
 
@@ -1164,21 +1207,18 @@
         setTimeout(function () { sayEl.textContent = text; }, 30);
     }
 
-    function land(entry, uuid) {
+    function land(entry) {
         var keys = entry.keys.length ? entry.keys : entry.present;
         if (!keys.length) return;
+        var h = current;
         waitFor(function () {
-            if (!current || current.uuid() !== uuid) return null;
+            if (!current || current !== h) return null;
             var nodes = keys.map(nodeFor);
             return nodes.every(Boolean) ? nodes : null;
         }, 8000).then(function (nodes) {
             if (!nodes) { renderTray(); return; }
             keys.forEach(function (k) { if (!entry.labels[k]) { var dsc = describe(k); if (dsc) entry.labels[k] = dsc; } });
             saveLog();
-            if (entry.kind === 'added' && current.canEdit() && layout !== 'conflict') {
-                layout = 'dirty';
-                layoutWhy = 'placed';
-            }
             render();
             if (!opened) return;
             flash('is-landing');
@@ -1187,8 +1227,8 @@
         });
     }
 
-    // What arrived while the graph was not drawn, pointed at together.
-    function landAll(entries, uuid) {
+    // What arrived while the workspace was not drawn, pointed at together.
+    function landAll(entries) {
         var keys = [], labels = {};
         entries.forEach(function (e) {
             if (e.kind !== 'added') return;
@@ -1200,7 +1240,7 @@
             });
         });
         saveLog();
-        if (keys.length) land({ kind: 'added', keys: keys, present: [], labels: labels, at: Date.now() }, uuid);
+        if (keys.length) land({ kind: 'added', keys: keys, present: [], labels: labels, at: Date.now() });
     }
 
     var emphasis = 0;
@@ -1384,17 +1424,89 @@
     trayClear.addEventListener('click', function () {
         var a = IG().active();
         if (!a) return;
-        entriesOf(a.uuid).forEach(function (e) { delete undos[e.id]; });
-        delete log[lower(a.uuid)];
+        entriesOf(a.Collection.uuid).forEach(function (e) { delete undos[e.id]; });
+        delete log[lower(a.Collection.uuid)];
         saveLog();
         renderTray();
         trayToggle.focus({ preventScroll: true });
     });
+    // One line saying why an arrival joins the workspace, kept as each of its
+    // members' description.
+    function openArrivalWhy(e) {
+        trayWhy = { id: e.id, draft: e.why || '', busy: false, error: null };
+        if (!prefs.tray) { prefs.tray = true; remember(); }
+        renderTray();
+        var input = trayList.querySelector('.ig-so-arr-whyform input');
+        if (input) { input.focus(); input.select(); }
+    }
+    function closeArrivalWhy(id) {
+        trayWhy = null;
+        renderTray();
+        var back = trayList.querySelector('[data-ig-arrival="' + id + '"] [data-ig-arrival-why]');
+        if (back) back.focus({ preventScroll: true });
+    }
+    function arrivalWhyForm(e) {
+        var form = el('form', 'ig-so-arr-whyform');
+        form.noValidate = true;
+        var input = el('input', 'form-control form-control-sm');
+        input.type = 'text';
+        input.maxLength = 255;
+        input.autocomplete = 'off';
+        input.placeholder = t('arrivalWhyPlaceholder');
+        input.setAttribute('aria-label', t('arrivalWhyTitle'));
+        input.value = trayWhy.draft;
+        input.disabled = trayWhy.busy;
+        input.addEventListener('input', function () { trayWhy.draft = input.value; });
+        input.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Escape') return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            closeArrivalWhy(e.id);
+        });
+        var go = el('button', 'btn btn-primary', t('save'));
+        go.type = 'submit';
+        go.disabled = trayWhy.busy;
+        form.appendChild(input);
+        form.appendChild(go);
+        form.appendChild(button('btn btn-link', t('cancel'), function () { closeArrivalWhy(e.id); }));
+        if (trayWhy.error) {
+            var err = el('span', 'ig-so-arr-whyerr', trayWhy.error);
+            err.setAttribute('role', 'alert');
+            form.appendChild(err);
+        }
+        form.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            saveArrivalWhy(e);
+        });
+        return form;
+    }
+    function saveArrivalWhy(e) {
+        var a = IG().active();
+        if (!a || !trayWhy || trayWhy.busy) return;
+        var said = trayWhy.draft.replace(/\s+/g, ' ').trim();
+        trayWhy.busy = true;
+        trayWhy.error = null;
+        renderTray();
+        var uuid = a.Collection.uuid;
+        Promise.all(e.keys.map(function (k) { return IG().describe(k, said, { collection: uuid }); })).then(function () {
+            e.why = said;
+            saveLog();
+            closeArrivalWhy(e.id);
+        }, function (err) {
+            if (!trayWhy || trayWhy.id !== e.id) return;
+            trayWhy.busy = false;
+            trayWhy.error = t('arrivalWhyFailed', (err && err.message) || '');
+            renderTray();
+            var input = trayList.querySelector('.ig-so-arr-whyform input');
+            if (input) input.focus();
+        });
+    }
     function renderTray() {
         var a = IG().active();
         trayEl.hidden = !a;
         if (!a) return;
-        var list = entriesOf(a.uuid);
+        var typing = document.activeElement && trayList.contains(document.activeElement) && document.activeElement.matches('.ig-so-arr-whyform input');
+        var list = entriesOf(a.Collection.uuid);
         var fresh = list.filter(function (e) { return e.fresh; }).length;
         trayClear.hidden = !list.length;
         trayToggle.setAttribute('aria-expanded', prefs.tray ? 'true' : 'false');
@@ -1404,20 +1516,41 @@
         trayList.textContent = '';
         if (!list.length) {
             var hint = el('li', 'ig-so-arr-hint');
-            hint.textContent = !readOnly(a)
-                ? 'What you send with “Add to workspace” lands here, page after page.'
-                : 'Nothing can be added to this workspace.';
+            hint.textContent = 'What you send with “Add to workspace” lands here, page after page.';
             trayList.appendChild(hint);
             return;
         }
-        var mounted = drawnUuid() === lower(a.uuid);
+        var mounted = drawnCollection() === lower(a.Collection.uuid);
         list.forEach(function (e) {
             var li = el('li', 'ig-so-arr' + (e.fresh && prefs.tray ? ' is-fresh' : ''));
             li.setAttribute('data-kind', e.kind);
+            li.setAttribute('data-ig-arrival', e.id);
             li.appendChild(arrivalIcon(e));
             var bodyEl = el('div', 'ig-so-arr-body');
             bodyEl.appendChild(link('ig-so-arr-title', titleOf(e), entryHref(e)));
             bodyEl.appendChild(subEl(e));
+            if (e.narrower && e.kind !== 'undone' && e.kind !== 'gone') {
+                var narrow = el('span', 'ig-so-arr-narrow');
+                narrow.setAttribute('data-ig-arrival-narrower', '');
+                narrow.appendChild(icon('fas fa-triangle-exclamation'));
+                narrow.appendChild(document.createTextNode(e.count === 1 && e.narrower === 1 ? t('narrowerOne') : tn('narrowerN', e.narrower)));
+                bodyEl.appendChild(narrow);
+            }
+            if (e.narrowerAsked && e.kind !== 'undone' && e.kind !== 'gone') {
+                var asked = el('span', 'ig-so-arr-narrow');
+                asked.setAttribute('data-ig-arrival-narrower-asked', '');
+                asked.appendChild(icon('fas fa-triangle-exclamation'));
+                asked.appendChild(document.createTextNode(e.count === 1 && e.narrowerAsked === 1 ? t('narrowerAskedOne') : tn('narrowerAskedN', e.narrowerAsked)));
+                bodyEl.appendChild(asked);
+            }
+            if (e.why && !(trayWhy && trayWhy.id === e.id)) {
+                var said = el('span', 'ig-so-arr-why');
+                said.appendChild(el('strong', null, t('arrivalWhy') + ' '));
+                said.appendChild(document.createTextNode(e.why));
+                said.title = e.why;
+                bodyEl.appendChild(said);
+            }
+            if (trayWhy && trayWhy.id === e.id) bodyEl.appendChild(arrivalWhyForm(e));
             li.appendChild(bodyEl);
             var acts = el('div', 'ig-so-arr-acts');
             if (mounted && (e.kind === 'added' || e.kind === 'present')) {
@@ -1425,6 +1558,12 @@
                 loc.title = 'Show it on the graph';
                 loc.setAttribute('aria-label', 'Show ' + titleOf(e) + ' on the graph');
                 acts.appendChild(loc);
+            }
+            if (mounted && e.kind === 'added' && e.keys.length && !(trayWhy && trayWhy.id === e.id)) {
+                var ask = button('btn btn-link ig-so-arr-ask', e.why ? t('editWhy') : t('arrivalWhy'), function () { openArrivalWhy(e); });
+                ask.title = t('arrivalWhyTitle');
+                ask.setAttribute('data-ig-arrival-why', '');
+                acts.appendChild(ask);
             }
             if (e.kind === 'added' && undos[e.id]) {
                 var un = button('btn btn-outline-secondary', 'Undo', function () {
@@ -1438,37 +1577,63 @@
                 un.setAttribute('aria-label', 'Undo adding ' + titleOf(e));
                 acts.appendChild(un);
             }
-            if (e.kind === 'refused' && e.items && readOnly(a) && e.status === 403) {
-                forkButtons(e.items).forEach(function (b) { if (b.tagName === 'BUTTON') acts.appendChild(b); });
-            }
             li.appendChild(acts);
             trayList.appendChild(li);
             e.fresh = false;
         });
+        if (typing) {
+            var input = trayList.querySelector('.ig-so-arr-whyform input');
+            if (input) {
+                input.focus({ preventScroll: true });
+                input.setSelectionRange(input.value.length, input.value.length);
+            }
+        }
     }
     setInterval(function () { if (opened) renderTray(); }, 30000);
 
     /* ── the foot: what is kept ────────────────────────────── */
+    function canSaveGraph() { return !!(window.IntelGraphConfig && window.IntelGraphConfig.canSaveGraph); }
     function renderFoot() {
         var a = IG().active();
         footEl.hidden = !a;
         if (!a) return;
+        var typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('.ig-so-saveas input');
         footEl.className = 'ig-so-foot';
         footEl.textContent = '';
+        var mounted = current && currentKey === drawKey(a);
+        if (saveAs && mounted && currentReady) {
+            renderSaveAs(a, typing);
+            return;
+        }
         var text = el('div', 'ig-so-foot-text');
         footEl.appendChild(text);
-        var mounted = current && current.uuid() === lower(a.uuid);
-        if (readOnly(a)) {
+        if (!a.Graph) {
+            var keepable = canSaveGraph() && mounted && currentReady;
+            text.appendChild(icon('fas fa-wand-magic-sparkles me-1'));
+            text.appendChild(el('strong', null, 'Automatic layout. '));
+            text.appendChild(document.createTextNode(layout === 'moved-ro'
+                ? (keepable ? 'Your moves are kept once you save this layout as a graph.' : 'Moves here are not kept: no saved graph lays this workspace out.')
+                : 'Adds go to the collection as they land; moves are not kept.'));
+            if (keepable) {
+                if (layout === 'moved-ro') footEl.classList.add('is-dirty');
+                var go = button('btn ' + (layout === 'moved-ro' ? 'btn-primary' : 'btn-outline-primary'), t('saveAsGraph'), openSaveAs, 'fas fa-floppy-disk');
+                go.title = t('saveAsTitle');
+                go.setAttribute('data-ig-save-as', '');
+                footEl.appendChild(go);
+            }
+            return;
+        }
+        if (layoutLocked(a)) {
             text.appendChild(icon('fas fa-lock me-1'));
             text.appendChild(document.createTextNode(layout === 'moved-ro'
-                ? 'Moves here are not kept: this workspace is read-only.'
-                : 'Read-only: nothing you add or move here is kept.'));
+                ? 'Moves here are not kept: you cannot save this workspace’s graph.'
+                : 'Adds go to the collection as they land; you cannot save its layout.'));
             return;
         }
         if (layout === 'dirty' && mounted) {
             footEl.classList.add('is-dirty');
             text.appendChild(icon('fas fa-up-down-left-right me-1'));
-            text.appendChild(el('strong', null, layoutWhy === 'placed' ? 'New nodes placed here. ' : 'Layout changed here. '));
+            text.appendChild(el('strong', null, 'Layout changed here. '));
             text.appendChild(document.createTextNode('Positions are not saved until you save them.'));
             footEl.appendChild(button('btn btn-outline-secondary', 'Discard', function () { mountActive(); }));
             footEl.appendChild(button('btn btn-primary', 'Save layout', saveLayout, 'fas fa-floppy-disk'));
@@ -1495,6 +1660,98 @@
         text.appendChild(icon((layout === 'saved' ? 'fas fa-check' : 'fas fa-cloud') + ' me-1'));
         text.appendChild(el('strong', null, layout === 'saved' ? 'Layout saved. ' : 'Adds are saved as they land. '));
         text.appendChild(document.createTextNode(layout === 'saved' ? 'It opens like this on every page.' : 'Moves are kept once you save the layout.'));
+    }
+    // The canvas as it stands becomes the workspace's graph, shared like
+    // the collection it hangs on.
+    function openSaveAs() {
+        saveAs = { name: '', busy: false, error: null };
+        renderFoot();
+        var input = footEl.querySelector('.ig-so-saveas input');
+        if (input) input.focus();
+    }
+    function renderSaveAs(a, typing) {
+        footEl.classList.add('is-form');
+        var form = el('form', 'ig-so-saveas');
+        form.noValidate = true;
+        form.setAttribute('aria-label', t(a.Graph ? 'saveAsNewTitle' : 'saveAsTitle'));
+        var row = el('div', 'ig-so-saveas-row');
+        var label = el('label', 'visually-hidden', t('graphName'));
+        label.htmlFor = 'ig-so-saveas-name';
+        var input = el('input', 'form-control form-control-sm');
+        input.id = 'ig-so-saveas-name';
+        input.type = 'text';
+        input.maxLength = 255;
+        input.autocomplete = 'off';
+        input.placeholder = t('graphNamePlaceholder');
+        input.value = saveAs.name;
+        input.disabled = saveAs.busy;
+        if (saveAs.error) input.setAttribute('aria-invalid', 'true');
+        input.addEventListener('input', function () { saveAs.name = input.value; });
+        input.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            e.preventDefault();
+            e.stopPropagation();
+            saveAs = null;
+            renderFoot();
+        });
+        var go = el('button', 'btn btn-primary', saveAs.busy ? t('creating') : t('save'));
+        go.type = 'submit';
+        go.disabled = saveAs.busy;
+        row.appendChild(label);
+        row.appendChild(input);
+        row.appendChild(go);
+        row.appendChild(button('btn btn-outline-secondary', t('cancel'), function () { saveAs = null; renderFoot(); }));
+        form.appendChild(row);
+        form.appendChild(W.sharingPicker(a.Collection, saveAs));
+        if (saveAs.error) {
+            var note = el('div', 'ig-so-saveas-note is-error');
+            note.setAttribute('role', 'alert');
+            note.textContent = saveAs.error;
+            form.appendChild(note);
+        }
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            createGraph();
+        });
+        footEl.appendChild(form);
+        if (typing) {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
+    }
+    function createGraph() {
+        var a = IG().active(), h = current;
+        if (!a || !h || !saveAs || saveAs.busy) return;
+        var name = saveAs.name.trim();
+        if (!name) {
+            saveAs.error = t('nameNeeded');
+            renderFoot();
+            footEl.querySelector('.ig-so-saveas input').focus();
+            return;
+        }
+        saveAs.busy = true;
+        saveAs.error = null;
+        renderFoot();
+        var c = a.Collection;
+        var sharing = saveAs.sharing || { distribution: c.distribution, sharing_group_id: c.sharing_group_id };
+        IG().create({
+            name: name,
+            target: { type: 'Collection', uuid: c.uuid },
+            distribution: sharing.distribution,
+            sharing_group_id: +sharing.distribution === 4 ? sharing.sharing_group_id : null,
+            content: h.documentOf()
+        }, { activate: true }).then(function () {
+            saveAs = null;
+            notice = { kind: 'done', text: t('graphSaved', name) };
+            render();
+        }, function (err) {
+            if (!saveAs) return;
+            saveAs.busy = false;
+            saveAs.error = t('createFailed', (err && err.message) || '');
+            renderFoot();
+            var input = footEl.querySelector('.ig-so-saveas input');
+            if (input) input.focus();
+        });
     }
     function rebaseAndSave() {
         var h = current;
@@ -1542,11 +1799,11 @@
         e.preventDefault();
         grip.setPointerCapture(e.pointerId);
         panel.classList.add('is-resizing');
-        var startX = e.clientX, startW = width();
+        var startX = e.clientX, startW = width(), out = onLeft() ? -1 : 1;
         function move(ev) {
             prefs.wide = false;
             var b = bounds();
-            prefs.width = Math.min(b.max, Math.max(b.min, startW + (startX - ev.clientX)));
+            prefs.width = Math.min(b.max, Math.max(b.min, startW + out * (startX - ev.clientX)));
             placeSoon();
         }
         function up() {
@@ -1565,8 +1822,9 @@
     grip.addEventListener('dblclick', toggleWide);
     grip.addEventListener('keydown', function (e) {
         var b = bounds(), w = width(), step = e.shiftKey ? STEP * 4 : STEP;
-        if (e.key === 'ArrowLeft') w += step;
-        else if (e.key === 'ArrowRight') w -= step;
+        var wider = onLeft() ? 'ArrowRight' : 'ArrowLeft', narrower = onLeft() ? 'ArrowLeft' : 'ArrowRight';
+        if (e.key === wider) w += step;
+        else if (e.key === narrower) w -= step;
         else if (e.key === 'Home') w = b.min;
         else if (e.key === 'End') w = b.max;
         else return;
@@ -1582,8 +1840,44 @@
         remember();
         place();
     }
-    widenBtn.addEventListener('click', toggleWide);
     window.addEventListener('resize', placeSoon);
+
+    /* ── left or right ─────────────────────────────────────── */
+    // Out of one edge and in from the other; the graph stays mounted.
+    var flipping = false;
+    function flipSide() {
+        if (flipping) return;
+        hideMenu();
+        clearCallouts();
+        var swap = function () {
+            prefs.side = onLeft() ? 'right' : 'left';
+            remember();
+            place();
+            announceDocked();
+            syncSlot();
+            say(onLeft() ? 'Moved to the left.' : 'Moved to the right.');
+        };
+        if (reducedMotion()) { swap(); return; }
+        flipping = true;
+        panel.classList.add('is-off');
+        setTimeout(function () {
+            panel.classList.add('is-jumping');
+            swap();
+            void panel.offsetWidth;
+            panel.classList.remove('is-jumping');
+            if (opened) panel.classList.remove('is-off');
+            flipping = false;
+        }, 180);
+    }
+    sideBtn.addEventListener('click', flipSide);
+
+    // Already on the collection page, the link only switches its tab
+    fullLink.addEventListener('click', function (e) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+        var to = new URL(fullLink.href, window.location.href), here = window.location;
+        if (to.origin + to.pathname + to.search !== here.origin + here.pathname + here.search) return;
+        closeDock({ keepOpen: true });
+    });
 
     /* ── undocking ─────────────────────────────────────────── */
     // The graph stays mounted: only its container changes, and the stage's
@@ -1598,7 +1892,7 @@
         place();
         announceDocked();
         syncSlot();
-        say(mode === 'floating' ? 'Undocked into a window.' : 'Docked to the right.');
+        say(mode === 'floating' ? 'Undocked into a window.' : onLeft() ? 'Docked to the left.' : 'Docked to the right.');
         (mode === 'floating' ? moveHandle : undockBtn).focus({ preventScroll: true });
     }
     undockBtn.addEventListener('click', function () { setMode('floating'); });
@@ -1667,10 +1961,17 @@
     // defaultPrevented says nothing here.
     panel.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
-        if (menu.classList.contains('show')) return;
+        if (menu.classList.contains('show') || panel.querySelector('[data-ig-layout-menu].show')) return;
         e.preventDefault();
+        if (hideCanvasMenu()) return;
         closeDock({ focusSlot: true });
     });
+    // The canvas's own node menu does not close on Escape
+    function hideCanvasMenu() {
+        if (!panel.querySelector('.pvt-contextmenu.shown')) return false;
+        try { current.graph().UIManager.contextMenu.hide(); } catch (err) { /* no menu to hide */ }
+        return !panel.querySelector('.pvt-contextmenu.shown');
+    }
     find('[data-ig-close]').addEventListener('click', function () { closeDock({ focusSlot: true }); });
 
     // G shows or hides the dock, unless the key is typed into a field, taken
@@ -1691,8 +1992,8 @@
     IG().registerDock({ toggle: toggle, shortcut: SHORTCUT });
     decorateSlot();
     render();
-    // The active graph's own page draws it in full: the dock stays shut
-    // there, and is still remembered open for the next page.
+    // The page of the graph laying the workspace out draws it in full: the
+    // dock stays shut there, and is still remembered open for the next page.
     if (prefs.open && !pageShowsActive()) {
         // The dock is drawn at once where it was left; the graph once the
         // page itself has loaded.
@@ -1712,6 +2013,7 @@
         open: openDock, close: closeDock, toggle: toggle, handle: function () { return current; },
         isOpen: function () { return opened; },
         prefs: function () { return Object.assign({}, prefs); }, width: width, bounds: bounds,
-        mode: function () { return prefs.mode; }, setMode: setMode, rect: winRect
+        mode: function () { return prefs.mode; }, setMode: setMode, rect: winRect,
+        side: function () { return prefs.side; }, flipSide: flipSide
     };
 }());

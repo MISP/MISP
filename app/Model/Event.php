@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 App::uses('AttachmentTool', 'Tools');
+App::uses('DistributionLevel', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 App::uses('ProcessTool', 'Tools');
@@ -10827,9 +10828,9 @@ class Event extends AppModel
             throw new NotFoundException('Invalid event.');
         }
         $modulePayload = array('module' => $module['name']);
-        $moduleConfig = Module::moduleConfig($module, 'Export');
-        if (!empty($moduleConfig)) {
-            $modulePayload['config'] = $moduleConfig;
+        $config = $this->Module->getModuleConfig($module, 'Export', $user);
+        if (!empty($config)) {
+            $modulePayload['config'] = $config;
         }
         $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
@@ -11215,9 +11216,7 @@ class Event extends AppModel
             return true;
         }
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $enabledModules['modules'][$k]['config'] = Module::moduleConfig($temp);
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
 
         $attributes_added = 0;
@@ -11249,10 +11248,10 @@ class Event extends AppModel
                         $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                         if ($result === false) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
-                        } else if (!is_array($result)) {
-                            continue 2;
-                        } else if (!isset($result['results'])) {
-                            return 0;
+                        } else if (!is_array($result) || !isset($result['results'])) {
+                            // A module error (e.g. NXDOMAIN) only applies to
+                            // this lookup, not the remaining enrichment batch.
+                            continue;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
@@ -12332,7 +12331,9 @@ class Event extends AppModel
      *   `ObjectReference[]`), and `ObjectReference[]` from an object the
      *   event already holds; every element carries a client uuid, and a result
      *   may carry `origins`, the uuids of the attributes it was asked about,
-     *   whose distribution caps its own
+     *   whose distribution caps its own, and `cap` {distribution,
+     *   sharing_group_id}, which caps it too. An object may name its
+     *   `template_uuid` and `template_version`.
      * @return array `results`: sent uuid => `state` saved|existing|failed,
      *   the `uuid` the event holds it under, a `message` when failed; and
      *   the overall `message`
@@ -12341,7 +12342,11 @@ class Event extends AppModel
     {
         $eventId = $event['Event']['id'];
         $distribution = $this->Attribute->defaultDistribution();
-        $sharingFor = $this->__enrichmentSharing($eventId, $distribution, $data);
+        $origins = $this->__enrichmentSharing($eventId, $distribution, $data);
+        $capped = $this->__enrichmentCap($eventId);
+        $sharingFor = function ($result) use ($origins, $capped) {
+            return $capped($origins($result), $result['cap'] ?? null);
+        };
         $attributeFields = array_flip(['uuid', 'type', 'category', 'value', 'to_ids', 'comment', 'object_relation']);
         $types = $this->Attribute->typeDefinitions;
         // The category MISP would give it on save, so the duplicate check
@@ -12378,27 +12383,30 @@ class Event extends AppModel
                 continue;
             }
             $name = (string)($object['name'] ?? '');
-            if (!array_key_exists($name, $templates)) {
-                $templates[$name] = $objectTemplate->find('first', [
-                    'recursive' => -1,
-                    'conditions' => ['name' => $name, 'active' => 1],
-                    'fields' => ['uuid', 'version', 'meta-category'],
-                    'order' => ['version DESC'],
-                ]);
+            $templateUuid = is_string($object['template_uuid'] ?? null) && Validation::uuid($object['template_uuid']) ? $object['template_uuid'] : null;
+            $templateVersion = isset($object['template_version']) && ctype_digit((string)$object['template_version']) ? (int)$object['template_version'] : null;
+            $templateKey = $name . '|' . $templateUuid . '|' . $templateVersion;
+            if (!array_key_exists($templateKey, $templates)) {
+                $disabled = false;
+                $found = $objectTemplate->findForObject($name, $templateUuid, $templateVersion, $disabled);
+                $templates[$templateKey] = $disabled ? false : $found;
             }
-            if (empty($templates[$name])) {
+            if (empty($templates[$templateKey])) {
                 $results[$object['uuid']] = [
                     'state' => 'failed',
-                    'message' => __('No object template is named "%s".', $name),
+                    'message' => $templates[$templateKey] === false
+                        ? __('The object template “%s” is not enabled on this instance.', $name)
+                        : __('No object template is named "%s".', $name),
                 ];
                 continue;
             }
-            $template = $templates[$name]['ObjectTemplate'];
+            $template = $templates[$templateKey]['ObjectTemplate'];
+            $name = $template['name'];
             $sharing = $sharingFor($object);
             $attributes = [];
             foreach ($object['Attribute'] ?? [] as $attribute) {
                 if (is_array($attribute) && Validation::uuid($attribute['uuid'] ?? '')) {
-                    $attributes[] = $shape($attribute, $sharing);
+                    $attributes[] = $shape($attribute, $capped($sharing, $attribute['cap'] ?? null));
                 }
             }
             $references = [];
@@ -12585,9 +12593,8 @@ class Event extends AppModel
             'recursive' => -1,
         ]), '{n}.Object.id', '{n}.Object');
 
-        // From narrowest to widest: your organisation, a sharing group, then community upward
         $rank = function (array $level) {
-            return [0 => 0, 4 => 1, 1 => 2, 2 => 3, 3 => 4][$level[0]] ?? 4;
+            return DistributionLevel::reachRank($level);
         };
         $narrowest = function (array $levels) use ($rank) {
             $out = null;
@@ -12624,14 +12631,52 @@ class Event extends AppModel
             if ($origin === null) {
                 return $defaultSharing;
             }
-            $narrower = $rank($origin) < $rank($defaultLevel)
-                || ($origin[0] === 4 && $defaultLevel[0] === 4 && (string)$origin[1] !== (string)$defaultLevel[1]);
-            if (!$narrower) {
+            if (!DistributionLevel::reachesFewer($origin, $defaultLevel)) {
                 return $defaultSharing;
             }
             return $origin[0] === 4
                 ? ['distribution' => 4, 'sharing_group_id' => $origin[1]]
                 : ['distribution' => $origin[0]];
+        };
+    }
+
+    /**
+     * A result's `cap`, {distribution, sharing_group_id}, narrows the sharing
+     * it would get otherwise, as a narrower origin does.
+     *
+     * @param int $eventId
+     * @return callable Given a result's sharing and its cap, returns its sharing
+     */
+    private function __enrichmentCap($eventId)
+    {
+        $eventLevel = null;
+        return function (array $sharing, $cap) use ($eventId, &$eventLevel) {
+            if (!is_array($cap) || !isset($cap['distribution']) || !in_array((int)$cap['distribution'], [0, 1, 2, 3, 4], true)) {
+                return $sharing;
+            }
+            $limit = [(int)$cap['distribution'], null];
+            if ($limit[0] === 4) {
+                $group = $cap['sharing_group_id'] ?? null;
+                $limit = is_scalar($group) && ctype_digit((string)$group) && (int)$group > 0 ? [4, (string)(int)$group] : [0, null];
+            }
+            $level = [(int)$sharing['distribution'], $sharing['sharing_group_id'] ?? null];
+            if ($level[0] === 5) {
+                if ($eventLevel === null) {
+                    $event = $this->find('first', [
+                        'conditions' => ['Event.id' => $eventId],
+                        'fields' => ['Event.distribution', 'Event.sharing_group_id'],
+                        'recursive' => -1,
+                    ]);
+                    $eventLevel = [(int)$event['Event']['distribution'], $event['Event']['sharing_group_id']];
+                }
+                $level = $eventLevel;
+            }
+            if (!DistributionLevel::reachesFewer($limit, $level)) {
+                return $sharing;
+            }
+            return $limit[0] === 4
+                ? ['distribution' => 4, 'sharing_group_id' => $limit[1]]
+                : ['distribution' => $limit[0]];
         };
     }
 

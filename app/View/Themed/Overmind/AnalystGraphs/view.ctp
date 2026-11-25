@@ -1,6 +1,6 @@
 <?php
 /**
- * A workspace's own page (PRD §8.2): the explorer at full size. Its
+ * A saved graph's own page: the explorer at full size. Its
  * editors keep pivoted-in nodes, remove nodes, hide links, draw edges and
  * save; everyone else sees it read-only and may fork it.
  *
@@ -32,12 +32,21 @@ $description = [
     $this->element('genericElementsBS5/Badges/distribution', ['distribution' => $graph['distribution']]),
 ];
 if (!empty($graph['forked_from'])) {
-    $parentLink = '<a href="' . h($baseurl . '/workspaces/view/' . $graph['forked_from']['uuid']) . '">'
+    $parentLink = '<a href="' . h($baseurl . '/analyst_graphs/view/' . $graph['forked_from']['uuid']) . '">'
         . h($graph['forked_from']['name']) . '</a>';
     $description[] = '<span class="ms-3" data-ig-forked-from><i class="fas fa-code-fork me-1"></i>'
         . __('Forked from %s', $parentLink) . '</span>';
 } elseif (!empty($graph['forked_from_uuid'])) {
     $description[] = '<span class="ms-3"><i class="fas fa-code-fork me-1"></i>' . __('A fork') . '</span>';
+}
+if ($target['type'] === 'Collection' && $target['id'] !== null) {
+    // Filled once drawn: the members this picture lacks
+    $description[] = '<span class="ms-3 d-none" data-ig-joined-since'
+        . ' data-one="' . h(__('%s member joined the collection since')) . '"'
+        . ' data-more="' . h(__('%s members joined the collection since')) . '">'
+        . '<i class="fas fa-user-plus me-1"></i><span data-ig-joined-text></span> · '
+        . '<a href="' . h($baseurl . '/collections/view/' . $target['id'] . '#tab-pivot-explorer') . '">' . __('See them in its Pivot Explorer') . '</a>'
+        . '</span>';
 }
 if (!empty($graph['description'])) {
     $description[] = '<div class="mt-1">' . h($graph['description']) . '</div>';
@@ -68,7 +77,7 @@ $this->set('headerDescription', implode('', $description));
 $this->set('headerCount', $graph['node_count']);
 $this->set('headerBreadcrumb', [
     ['label' => __('Analyst data'), 'url' => '/analystData/index'],
-    ['label' => __('Workspaces'), 'url' => '/analystData/index/Workspace'],
+    ['label' => __('Saved graphs'), 'url' => '/analystData/index/Graph'],
 ]);
 $this->set('headerActions', $headerActions);
 
@@ -100,7 +109,7 @@ echo $this->element('genericElements/assetLoader', [
         <div class="alert alert-warning d-flex align-items-start gap-2 py-2" role="status" data-ig-page-readonly>
             <i class="fas fa-lock mt-1"></i>
             <div>
-                <strong><?= __('%s’s workspace.', h($graph['Orgc']['name'] ?? '')) ?></strong>
+                <strong><?= __('%s’s graph.', h($graph['Orgc']['name'] ?? '')) ?></strong>
                 <?= __('Only its organisation can change it: what you move, keep or hide here is not kept.') ?>
                 <?php if ($canFork): ?>
                     <?= __('Fork it to work on your own copy.') ?>
@@ -117,13 +126,13 @@ echo $this->element('genericElements/assetLoader', [
         <div class="dropdown" data-ig-page-size-wrap hidden>
             <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
                     data-bs-auto-close="outside" aria-expanded="false" data-ig-page-size-toggle
-                    title="<?= __('The size of the workspace you would save, against what a save can carry') ?>">
+                    title="<?= __('The size of the graph you would save, against what a save can carry') ?>">
                 <i class="fas fa-weight-hanging me-1" aria-hidden="true"></i><span data-ig-page-size-label></span>
             </button>
             <div class="dropdown-menu dropdown-menu-end ig-page-size-menu" data-ig-page-size-menu></div>
         </div>
         <button type="button" class="btn btn-sm btn-outline-secondary" data-ig-page-keep hidden
-                title="<?= __('Nodes a pivot brought onto the canvas stay out of the workspace until kept') ?>">
+                title="<?= __('Nodes a pivot brought onto the canvas stay out of the graph until kept') ?>">
             <i class="fas fa-thumbtack me-1"></i><span data-ig-page-keep-label></span>
         </button>
         <div class="dropdown" data-ig-page-hidden-wrap hidden>
@@ -160,7 +169,7 @@ echo $this->element('genericElements/assetLoader', [
     <div class="modal-dialog">
         <form class="modal-content" data-ig-page-fork-form novalidate>
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="ig-page-fork-title"><i class="fas fa-code-fork me-2"></i><?= __('Fork this workspace') ?></h2>
+                <h2 class="modal-title fs-5" id="ig-page-fork-title"><i class="fas fa-code-fork me-2"></i><?= __('Fork this graph') ?></h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
             </div>
             <div class="modal-body">
@@ -187,7 +196,7 @@ echo $this->element('genericElements/assetLoader', [
     <div class="modal-dialog">
         <form class="modal-content" data-ig-page-settings-form novalidate>
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="ig-page-settings-title"><i class="fas fa-sliders me-2"></i><?= __('Workspace settings') ?></h2>
+                <h2 class="modal-title fs-5" id="ig-page-settings-title"><i class="fas fa-sliders me-2"></i><?= __('Graph settings') ?></h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
             </div>
             <div class="modal-body">
@@ -198,11 +207,12 @@ echo $this->element('genericElements/assetLoader', [
                 <label class="form-label fw-semibold" for="ig-page-settings-distribution"><?= __('Distribution') ?></label>
                 <select class="form-select mb-2" id="ig-page-settings-distribution"></select>
                 <select class="form-select mb-2" id="ig-page-settings-sg" hidden aria-label="<?= __('Sharing group') ?>"></select>
+                <div class="small text-warning-emphasis mb-2" data-ig-page-settings-wider role="status" hidden></div>
                 <div class="invalid-feedback d-block" data-ig-page-settings-error></div>
             </div>
             <div class="modal-footer justify-content-between">
                 <button type="button" class="btn btn-outline-danger" data-ig-page-delete>
-                    <i class="fas fa-trash me-1"></i><?= __('Delete workspace') ?>
+                    <i class="fas fa-trash me-1"></i><?= __('Delete graph') ?>
                 </button>
                 <div>
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?= __('Cancel') ?></button>

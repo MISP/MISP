@@ -989,14 +989,16 @@ class NavbarHelper extends AppHelper {
      */
     private function buildIntelGraphItem(array $context)
     {
-        $graph = $context['intelGraph']['active'] ?? null;
+        $collection = $context['intelGraph']['active']['Collection'] ?? null;
         return [
             'type' => 'intelGraph',
             'id' => 'intel-graph',
             'requirement' => !empty($context['intelGraph']),
-            'label' => $graph ? $graph['name'] : __('No workspace'),
-            'count' => $graph ? (int)$graph['node_count'] : null,
-            'title' => __('Workspace'),
+            'label' => $collection ? $collection['name'] : __('No workspace'),
+            'count' => $collection ? (int)$collection['element_count'] : null,
+            'shared' => $collection && !empty($collection['distribution']),
+            'pending' => $collection && !empty($collection['withheld']),
+            'title' => $collection ? __('Workspace: %s (collection)', $collection['name']) : __('No workspace'),
             'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
         ];
     }

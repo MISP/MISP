@@ -16,7 +16,7 @@ $filterState = new IndexFilterState(
 );
 $filterLabels = $filterLabels ?? ['org' => [], 'sharinggroup' => []];
 
-$canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
+$canGraph = $this->Acl->canAccess('collectionElements', 'addItems');
 
 $fields = [
     [

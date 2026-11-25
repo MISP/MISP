@@ -219,6 +219,58 @@ class ObjectTemplate extends AppModel
         return $result;
     }
 
+    /**
+     * The template an object is saved under: the version it names when this
+     * instance has it, else the newest of that template, else the newest
+     * active template of its name. A template this instance holds but an
+     * admin disabled is not used.
+     *
+     * @param string $name
+     * @param string|null $uuid
+     * @param int|null $version
+     * @param bool $disabled Set when the template named by $uuid is disabled
+     * @return array|null {ObjectTemplate: {uuid, version, meta-category, name}}
+     */
+    public function findForObject($name, $uuid = null, $version = null, &$disabled = false)
+    {
+        $disabled = false;
+        $fields = ['uuid', 'version', 'meta-category', 'name'];
+        if ($uuid !== null) {
+            $uuids = array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]));
+            // Disabling a template sets every version of its uuid inactive
+            if ($this->hasAny(['uuid' => $uuids, 'active' => 1])) {
+                if ($version !== null) {
+                    $exact = $this->find('first', [
+                        'recursive' => -1,
+                        'conditions' => ['uuid' => $uuids, 'version' => (int)$version],
+                        'fields' => $fields,
+                    ]);
+                    if (!empty($exact)) {
+                        return $exact;
+                    }
+                }
+                $newest = $this->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['uuid' => $uuids, 'active' => 1],
+                    'fields' => $fields,
+                    'order' => ['version DESC'],
+                ]);
+                return empty($newest) ? null : $newest;
+            }
+            if ($this->hasAny(['uuid' => $uuids])) {
+                $disabled = true;
+                return null;
+            }
+        }
+        $named = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['name' => (string)$name, 'active' => 1],
+            'fields' => $fields,
+            'order' => ['version DESC'],
+        ]);
+        return empty($named) ? null : $named;
+    }
+
     public function checkTemplateConformity($template, $attributes)
     {
         if (!empty($template['ObjectTemplate']['requirements'])) {

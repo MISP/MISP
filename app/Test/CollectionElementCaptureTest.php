@@ -140,6 +140,10 @@ class CollectionElementCaptureTest extends TestCase
 
     const OTHER_EVENT = 'c3d4e5f6-0718-4293-a4b5-c6d7e8f90a33';
 
+    const ATTRIBUTE = 'd4e5f607-1829-43a4-b5c6-d7e8f90a1b44';
+
+    const OBJECT = 'e5f60718-293a-44b5-c6d7-e8f90a1b2c55';
+
     const VALUE = '3cbad7bc936718f07fa8665bc64ce46986142bea60f86fd0c05cd2a4a8ea2bc4';
 
     /** @var CollectionElementCaptureProbe */
@@ -242,6 +246,44 @@ class CollectionElementCaptureTest extends TestCase
         ]);
         $this->assertSame(['stored-cluster', 'stored-event'], array_keys($rows));
         $this->assertSame([102], $this->elements->deleted);
+    }
+
+    private function storeAttributeAndObject()
+    {
+        foreach ([103 => ['stored-attribute', 'Attribute', self::ATTRIBUTE], 104 => ['stored-object', 'Object', self::OBJECT]] as $id => $row) {
+            $this->elements->rows[$id] = [
+                'id' => $id,
+                'uuid' => $row[0],
+                'element_type' => $row[1],
+                'element_uuid' => $row[2],
+                'element_sha256' => null,
+                'collection_id' => self::COLLECTION,
+                'description' => 'stored',
+            ];
+        }
+    }
+
+    public function testACopyFromAMispOlderThan30KeepsTheAttributeAndObjectElements()
+    {
+        $this->storeAttributeAndObject();
+        $rows = $this->capture([
+            ['uuid' => 'stored-event', 'element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['uuid' => 'remote-attribute', 'element_type' => 'Attribute', 'element_uuid' => 'f6071829-3a4b-45c6-87e8-f90a1b2c3d66'],
+        ], true);
+        $this->assertSame(['stored-attribute', 'stored-event', 'stored-object', 'stored-value'], array_keys($rows));
+        $this->assertSame([101], $this->elements->deleted, 'an absent cluster element is still culled');
+    }
+
+    public function testACopyFrom30WithoutTheAttributeAndObjectElementsCullsThem()
+    {
+        $this->storeAttributeAndObject();
+        $rows = $this->capture([
+            ['uuid' => 'stored-event', 'element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['uuid' => 'stored-cluster', 'element_type' => 'GalaxyCluster', 'element_uuid' => self::CLUSTER],
+            ['uuid' => 'stored-value', 'element_type' => 'AttributeValue', 'element_sha256' => self::VALUE],
+        ]);
+        $this->assertSame(['stored-cluster', 'stored-event', 'stored-value'], array_keys($rows));
+        $this->assertSame([103, 104], $this->elements->deleted);
     }
 
     public function testOneStoredRowServesOneResentElement()

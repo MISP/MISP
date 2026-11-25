@@ -144,6 +144,8 @@ if (!class_exists('AppModel', false)) {
 }
 
 require_once __DIR__ . '/../Lib/Tools/ServerSyncTool.php';
+require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
+require_once __DIR__ . '/../Model/CollectionElement.php';
 require_once __DIR__ . '/../Lib/Tools/ComplexQueryTool.php';
 require_once __DIR__ . '/../Model/Collection.php';
 
@@ -283,18 +285,23 @@ class CollectionPushTestable extends Collection
     public $uploadResults = null;              // queue of return strings; null ⇒ real method
     public $uploadCalls = array();
     public $lastException = null;
+    public $findOptions = array();
 
     public function find($type, $options = array())
     {
+        $this->findOptions[] = $options;
         return $this->findAllResult;
     }
 
-    public function collectDataForPush(array $server): array
+    public $collectedOnly = array();
+
+    public function collectDataForPush(array $server, $onlyId = null): array
     {
+        $this->collectedOnly[] = $onlyId;
         if ($this->collectDataForPushReturn !== null) {
             return $this->collectDataForPushReturn;
         }
-        return parent::collectDataForPush($server);
+        return parent::collectDataForPush($server, $onlyId);
     }
 
     public function uploadCollectionToServer(array $collection, array $server, ServerSyncTool $serverSync, array $user)
@@ -329,6 +336,14 @@ class CollectionPushFakeLog
     }
 }
 
+class CollectionPushFakeElement
+{
+    public function withRecords(array $elements)
+    {
+        return $elements;
+    }
+}
+
 class CollectionPushTest extends TestCase
 {
     private $collection;
@@ -339,6 +354,7 @@ class CollectionPushTest extends TestCase
         Configure::reset();
         ClassRegistry::reset();
         $this->collection = new CollectionPushTestable();
+        $this->collection->CollectionElement = new CollectionPushFakeElement();
         $this->sync = new CollectionPushTestServerSync();
     }
 
@@ -375,6 +391,29 @@ class CollectionPushTest extends TestCase
     {
         $this->collection->collectDataForPushReturn = array();
         $this->assertSame(0, $this->collection->push($this->user(), $this->sync));
+    }
+
+    public function testAPublishPushesThatCollectionAlone(): void
+    {
+        $this->collection->collectDataForPushReturn = array();
+        $this->collection->push($this->user(), $this->sync, 42);
+        $this->collection->push($this->user(), $this->sync);
+
+        $this->assertSame(array(42, null), $this->collection->collectedOnly);
+    }
+
+    public function testCollectForOneCollectionNarrowsTheQuery(): void
+    {
+        ClassRegistry::$instances['Event'] = new CollectionPushFakeEvent();
+        ClassRegistry::$instances['SharingGroup'] = new CollectionPushFakeSharingGroup();
+        $this->collection->findAllResult = array();
+
+        $this->collection->collectDataForPush($this->collectServer(), 42);
+        $this->collection->collectDataForPush($this->collectServer());
+
+        $this->assertSame(42, $this->collection->findOptions[0]['conditions']['Collection.id']);
+        $this->assertTrue($this->collection->findOptions[0]['conditions']['Collection.published'], 'still published ones only');
+        $this->assertArrayNotHasKey('Collection.id', $this->collection->findOptions[1]['conditions']);
     }
 
     public function testPushRemoteWantsNothingReturnsZero(): void
@@ -599,6 +638,18 @@ class CollectionPushTest extends TestCase
         $this->assertSame(2, $prepared['Collection']['distribution'], 'distribution NOT downgraded on push (RAW)');
     }
 
+    public function testPrepareKeepsWhoAddedAMemberAtHome(): void
+    {
+        $collection = array('Collection' => array('id' => 111, 'uuid' => 'u1', 'distribution' => 2, 'CollectionElement' => array(
+            array('uuid' => 'e1', 'element_type' => 'Event', 'user_id' => 3, 'created' => '2026-10-28 10:00:00', 'published' => true),
+        )));
+        $prepared = $this->prepare($collection, $this->server());
+
+        $this->assertArrayNotHasKey('user_id', $prepared['Collection']['CollectionElement'][0], 'who stays here');
+        $this->assertArrayNotHasKey('published', $prepared['Collection']['CollectionElement'][0], 'whether partners hold it too');
+        $this->assertSame('2026-10-28 10:00:00', $prepared['Collection']['CollectionElement'][0]['created'], 'when travels');
+    }
+
     public function testPrepareBlockedByCheckDistribution(): void
     {
         ClassRegistry::$instances['Event'] = new CollectionPushFakeEvent();
@@ -670,6 +721,17 @@ class CollectionPushTest extends TestCase
         $this->assertSame('ev1', $c['CollectionElement'][0]['element_uuid']);
     }
 
+    public function testCollectLeavesWithheldCollectionsHome(): void
+    {
+        ClassRegistry::$instances['Event'] = new CollectionPushFakeEvent();
+        ClassRegistry::$instances['SharingGroup'] = new CollectionPushFakeSharingGroup();
+        $this->collection->findAllResult = array();
+
+        $this->collection->collectDataForPush($this->collectServer());
+
+        $this->assertTrue($this->collection->findOptions[0]['conditions']['Collection.published'], 'only published collections leave');
+    }
+
     public function testCollectExcludedByCheckDistribution(): void
     {
         $event = new CollectionPushFakeEvent();
@@ -739,20 +801,20 @@ class CollectionPushTest extends TestCase
         $this->assertArrayNotHasKey('SharingGroup', $out[0]['Collection'], 'a stale SG never travels below dist=4');
     }
 
-    // ============ push() — value elements by remote version ============
+    // ============ push() — elements by remote version ============
 
     public function valueVersionProvider()
     {
         return array(
             'MISP 2.5' => array('2.5.50', array('mixed' => array('e-event', 'e-cluster'), 'values-only' => array())),
-            'MISP 3.0' => array('3.0.0', array('mixed' => array('e-event', 'e-value', 'e-cluster'), 'values-only' => array('e-value-2'))),
+            'MISP 3.0' => array('3.0.0', array('mixed' => array('e-event', 'e-value', 'e-attribute', 'e-object', 'e-cluster'), 'values-only' => array('e-value-2'))),
         );
     }
 
     /**
      * @dataProvider valueVersionProvider
      */
-    public function testPushLeavesValueElementsOutForAMispOlderThan30($version, $expected): void
+    public function testPushSendsAMispOlderThan30OnlyEventAndClusterElements($version, $expected): void
     {
         $this->sync = new CollectionPushVersionedServerSync();
         $this->sync->version = $version;
@@ -764,6 +826,8 @@ class CollectionPushTest extends TestCase
             $this->nested('mixed', '2026-01-01 00:00:00', array('CollectionElement' => array(
                 $element('e-event', 'Event', 'b2c3d4e5-f607-4182-93a4-b5c6d7e8f922', null),
                 $element('e-value', 'AttributeValue', null, $value),
+                $element('e-attribute', 'Attribute', 'd4e5f607-1829-43a4-b5c6-d7e8f90a1b44', null),
+                $element('e-object', 'Object', 'e5f60718-293a-44b5-c6d7-e8f90a1b2c55', null),
                 $element('e-cluster', 'GalaxyCluster', 'c3d4e5f6-0718-4293-a4b5-c6d7e8f90a33', null),
             ))),
             $this->nested('values-only', '2026-01-01 00:00:00', array('CollectionElement' => array(
@@ -779,5 +843,15 @@ class CollectionPushTest extends TestCase
             $uploaded[$collection['Collection']['uuid']] = array_column($collection['Collection']['CollectionElement'], 'uuid');
         }
         $this->assertSame($expected, $uploaded);
+    }
+
+    public function testAMispOlderThan30IsServedOnlyEventAndClusterElements(): void
+    {
+        $onlyHeld = array('conditions' => array('CollectionElement.element_type' => array('Event', 'GalaxyCluster')));
+        foreach (array('2.4.155' => $onlyHeld, '2.5.50' => $onlyHeld, '3.0.0' => array(), '' => array()) as $version => $expected) {
+            Configure::write('CurrentRequesterMispVersion', $version === '' ? null : (string)$version);
+            $this->assertSame($expected, Collection::servedElementOptions(), $version ?: 'an API client');
+        }
+        Configure::write('CurrentRequesterMispVersion', null);
     }
 }

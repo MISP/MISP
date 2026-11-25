@@ -119,6 +119,32 @@ class DistributionLevel
     }
 
     /**
+     * Where a record's sharing sits when one caps another, narrowest first:
+     * your organisation, a sharing group, then community upward. Unlike
+     * narrowerThan(), a sharing group ranks below "this community only".
+     *
+     * @param array $level [distribution, sharing_group_id]; 5 is not a reach
+     * @return int
+     */
+    public static function reachRank(array $level)
+    {
+        $ranks = array(0 => 0, 4 => 1, 1 => 2, 2 => 3, 3 => 4);
+        return $ranks[(int)$level[0]] ?? 4;
+    }
+
+    /**
+     * @param array $level [distribution, sharing_group_id]
+     * @param array $than [distribution, sharing_group_id]
+     * @return bool Whether $level reaches fewer than $than, by reachRank();
+     *   another sharing group counts as fewer
+     */
+    public static function reachesFewer(array $level, array $than)
+    {
+        return self::reachRank($level) < self::reachRank($than)
+            || ((int)$level[0] === 4 && (int)$than[0] === 4 && (string)$level[1] !== (string)$than[1]);
+    }
+
+    /**
      * The whole table, keyed by level. Safe to json_encode for the templates
      * that render distribution badges client-side.
      *

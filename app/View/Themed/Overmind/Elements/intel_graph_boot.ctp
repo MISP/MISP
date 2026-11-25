@@ -5,7 +5,7 @@
  * so its scripts and stylesheets are only listed here, at the URLs the asset
  * loader would give them.
  *
- * @var array $intelGraph `active`: the active graph's summary, or null
+ * @var array $intelGraph `active`: the workspace, {Collection, Graph}
  * @var array|null $intelGraphPage The record on screen a graph can hang off,
  *                                 {type, uuid, label}, set by the view
  * @var string|null $intelGraphShown The graph the page draws in full
@@ -40,14 +40,19 @@ foreach (['pivotick', 'pivot-explorer', 'pivot-sidebar'] as $path) {
 }
 
 App::uses('AnalystGraphDocumentTool', 'Tools');
+App::uses('Collection', 'Model');
+$collectionTypes = Collection::typeLabels();
 $config = [
     'baseurl' => $baseurl,
+    'user' => isset($me['id']) ? (int)$me['id'] : null,
     'limits' => AnalystGraphDocumentTool::limits(),
     'active' => $intelGraph['active'] ?? null,
     'page' => $intelGraphPage ?? null,
     'shown' => $intelGraphShown ?? null,
     'distributionLevels' => $this->DistributionLevel->all(),
+    'collectionTypes' => array_map(null, array_keys($collectionTypes), array_values($collectionTypes)),
     'assets' => ['js' => $js, 'css' => $css],
+    'canSaveGraph' => $this->Acl->canAccess('analystData', 'add') && $this->Acl->canAccess('analystGraphs', 'save'),
     'explorer' => [
         'orgUuid' => $me['Organisation']['uuid'] ?? '',
         'siteAdmin' => !empty($me['Role']['perm_site_admin']),
@@ -60,6 +65,11 @@ $config = [
     ],
     'text' => [
         'none' => __('No workspace'),
+        'wider' => [
+            'Collection' => __('Wider than this collection: people who can’t see it will see which records are in it.'),
+            'Event' => __('Wider than this event: people who can’t see it will see which records are on this graph.'),
+            'GalaxyCluster' => __('Wider than this cluster: people who can’t see it will see which records are on this graph.'),
+        ],
     ],
 ];
 ?>
@@ -68,9 +78,30 @@ $config = [
 </script>
 <?php if ($withDock ?? true): ?>
     <?= $this->element('intel_graph_dock') ?>
+    <?= $this->element('intel_graph_working_text') ?>
+    <template id="ig-collect-dialog">
+        <div class="modal fade ig-collect" tabindex="-1" aria-hidden="true" aria-labelledby="ig-collect-title">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <?= $this->element('genericElementsBS5/Forms/modal_header', [
+                        'accent' => 'primary',
+                        'eyebrow' => __('Collections'),
+                        'title' => '',
+                        'titleId' => 'ig-collect-title',
+                        'titleIcon' => 'fas fa-folder-plus',
+                        'titleBadge' => '<span data-ig-collect-title></span>',
+                        'description' => __('Collections group the records of an investigation.'),
+                        'descriptionClass' => 'ig-collect-sub',
+                        'close' => true,
+                    ]) ?>
+                    <div class="modal-body" data-ig-collect-body></div>
+                </div>
+            </div>
+        </div>
+    </template>
     <?= $this->element('genericElements/assetLoader', [
-        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-dock', 'intel-graph-actions'],
-        'css' => ['intel-graph-dock', 'intel-graph-thumbs'],
+        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-chooser', 'intel-graph-way-out', 'intel-graph-working', 'intel-graph-dock', 'intel-graph-actions'],
+        'css' => ['intel-graph-dock', 'intel-graph-thumbs', 'intel-graph-actions', 'intel-graph-working', 'intel-graph-way-out'],
     ]) ?>
 <?php else: ?>
     <?= $this->element('genericElements/assetLoader', ['js' => ['intel-graph']]) ?>

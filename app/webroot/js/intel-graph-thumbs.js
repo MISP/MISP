@@ -10,7 +10,7 @@
 // Every such element is mounted once, when the page has it: on load, and as
 // rows are drawn later (the Graphs card, the dock's switcher, an index reload).
 // Its picture comes from IntelGraph.thumbnail() where the page has the client,
-// from workspaces/thumbnail otherwise; four requests at a time, once per
+// from analyst_graphs/thumbnail otherwise; four requests at a time, once per
 // revision, what is on screen first. IntelGraphThumb.layout() places it.
 //
 // The tile says data-thumb-state="loading|ready|empty|error". On the card and
@@ -47,14 +47,15 @@
     var LONG_PRESS = 450;
     var AT_ONCE = 4;
     // Drawn bottom to top: the hubs (events, clusters) stay visible on a crowd
-    var ORDER = { Attribute: 0, Value: 1, ModuleAnswer: 1, Object: 2, GalaxyCluster: 3, Event: 4 };
+    var ORDER = { Attribute: 0, Value: 1, ModuleAnswer: 1, Object: 2, StandaloneObject: 2, GalaxyCluster: 3, Event: 4 };
     var TYPES = [
         { type: 'Event', one: 'event', many: 'events' },
         { type: 'Object', one: 'object', many: 'objects' },
         { type: 'Attribute', one: 'attribute', many: 'attributes' },
         { type: 'GalaxyCluster', one: 'cluster', many: 'clusters' },
         { type: 'Value', one: 'value', many: 'values' },
-        { type: 'ModuleAnswer', one: 'module answer', many: 'module answers' }
+        { type: 'ModuleAnswer', one: 'module answer', many: 'module answers' },
+        { type: 'StandaloneObject', one: 'standalone object', many: 'standalone objects' }
     ];
     // Never over the row the preview belongs to
     var SIDES = {
@@ -74,7 +75,7 @@
             return window.IntelGraph.thumbnail(uuid, revision);
         }
         var base = typeof window.baseurl === 'string' ? window.baseurl : '';
-        return fetch(base + '/workspaces/thumbnail/' + encodeURIComponent(uuid) + '.json', {
+        return fetch(base + '/analyst_graphs/thumbnail/' + encodeURIComponent(uuid) + '.json', {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (r) {
@@ -167,7 +168,7 @@
         if (type === 'Event') {
             return svgEl('circle', { cx: x, cy: y, r: round(hubRadius(r, side)), class: cls }, parent);
         }
-        if (type === 'Object') {
+        if (type === 'Object' || type === 'StandaloneObject') {
             var s = round(r * 1.75);
             return svgEl('rect', { x: round(x - s / 2), y: round(y - s / 2), width: s, height: s, class: cls }, parent);
         }
@@ -339,7 +340,7 @@
             var total = typeof thumb.total === 'number' ? thumb.total : nodes.length;
             tile.legend.textContent = '';
             if (!nodes.length) {
-                stage(tile, message('empty', 'No nodes yet', 'Records sent with “Add to workspace” appear here.'), 'This workspace has no nodes yet');
+                stage(tile, message('empty', 'No nodes yet', 'Records sent with “Add to workspace” appear here.'), 'This graph has no nodes yet');
                 tile.countEl.textContent = '0 nodes';
                 return;
             }

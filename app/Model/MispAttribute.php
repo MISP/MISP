@@ -310,6 +310,9 @@ class MispAttribute extends AppModel
     // An attachment whose file name carries one of these is shown as a picture
     const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
+    // Most attributes a tag-only filter inlines as id lists
+    const TAG_FILTER_ID_LIST_LIMIT = 10000;
+
     const NON_CORRELATING_TYPES = [
         'comment',
         'http-method',
@@ -1491,6 +1494,72 @@ class MispAttribute extends AppModel
         return $data;
     }
 
+    /**
+     * Tag-only positive filter. OR-ed IN subqueries can't be semi-joined, so
+     * a rare tag made the database probe every attribute. When the tags match
+     * few attributes, their ids go in as literal lists instead (an index
+     * merge); the lists are complete or not used, so both forms match the
+     * same rows.
+     *
+     * @param int[] $tagIds
+     * @return array|string
+     */
+    private function __tagOnlyCondition(array $tagIds)
+    {
+        $inList = implode(',', $tagIds);
+        $subqueries = "(Attribute.id IN (
+                SELECT at.attribute_id FROM attribute_tags at WHERE at.tag_id IN ({$inList})
+            )
+            OR Attribute.event_id IN (
+                SELECT et.event_id FROM event_tags et WHERE et.tag_id IN ({$inList})
+            ))";
+
+        $budget = self::TAG_FILTER_ID_LIST_LIMIT;
+        $events = $this->Event->EventTag->find('all', [
+            'recursive' => -1,
+            'conditions' => ['EventTag.tag_id' => $tagIds],
+            'fields' => ['EventTag.event_id', 'Event.attribute_count'],
+            'joins' => [[
+                'table' => 'events',
+                'alias' => 'Event',
+                'type' => 'INNER',
+                'conditions' => ['Event.id = EventTag.event_id'],
+            ]],
+            'limit' => $budget + 1,
+        ]);
+        $eventIds = [];
+        foreach ($events as $event) {
+            $eventIds[(int)$event['EventTag']['event_id']] = true;
+            // attribute_count only picks the form; at least 1 per row, so a
+            // list cut off by the limit always falls back
+            $budget -= max(1, (int)$event['Event']['attribute_count']);
+            if ($budget < 0) {
+                return $subqueries;
+            }
+        }
+        $capped = $this->AttributeTag->query(sprintf(
+            'SELECT COUNT(*) AS c FROM (SELECT 1 FROM attribute_tags WHERE tag_id IN (%s) LIMIT %d) AS capped',
+            $inList,
+            $budget + 1
+        ));
+        if ((int)$capped[0][0]['c'] > $budget) {
+            return $subqueries;
+        }
+        $attributeIds = $this->AttributeTag->find('column', [
+            'conditions' => ['AttributeTag.tag_id' => $tagIds],
+            'fields' => ['AttributeTag.attribute_id'],
+        ]);
+
+        $or = [];
+        if (!empty($attributeIds)) {
+            $or[] = ['Attribute.id' => array_values(array_unique(array_map('intval', $attributeIds)))];
+        }
+        if (!empty($eventIds)) {
+            $or[] = ['Attribute.event_id' => array_keys($eventIds)];
+        }
+        return empty($or) ? ['Attribute.id' => -1] : ['OR' => $or];
+    }
+
     public function set_filter_tags(
         &$params, $conditions, $options
     ) {
@@ -1527,8 +1596,8 @@ class MispAttribute extends AppModel
     // Detect whether the query has selective attribute-
     // level filters. When it does, MySQL narrows the
     // outer scan first and correlated EXISTS probes are
-    // cheap. When tags are the sole driver, uncorrelated
-    // IN lets MySQL materialise + semi-join once.
+    // cheap. When tags are the sole driver, see
+    // __tagOnlyCondition().
     //
     $attributeSelective = false;
     $selectiveFields = [
@@ -1595,23 +1664,7 @@ class MispAttribute extends AppModel
                             IN ({$inPosList})
                     ))";
             } else {
-                // Tag-only mode: uncorrelated IN lets
-                // MySQL materialise each set once and
-                // semi-join, avoiding per-row probes
-                // across the full table.
-                $conditions['AND'][] =
-                    "(Attribute.id IN (
-                        SELECT at.attribute_id
-                        FROM attribute_tags at
-                        WHERE at.tag_id
-                            IN ({$inPosList})
-                    )
-                    OR Attribute.event_id IN (
-                        SELECT et.event_id
-                        FROM event_tags et
-                        WHERE et.tag_id
-                            IN ({$inPosList})
-                    ))";
+                $conditions['AND'][] = $this->__tagOnlyCondition($posIds);
             }
         }
     }
@@ -2153,9 +2206,11 @@ class MispAttribute extends AppModel
      * @param array $user
      * @param array $valueIds
      * @param int $limit Stop once this many are found.
+     * @param array|null $reach Only attributes shared at one of these levels,
+     *      by their event, their object and themselves (inherit passes)
      * @return int[] in ascending order
      */
-    public function visibleValueIds(array $user, array $valueIds, $limit)
+    public function visibleValueIds(array $user, array $valueIds, $limit, array $reach = null)
     {
         $valueIds = array_values(array_unique(array_map('intval', $valueIds)));
         sort($valueIds);
@@ -2168,9 +2223,20 @@ class MispAttribute extends AppModel
             'type' => 'INNER',
             'conditions' => ['Event.id = Attribute.event_id'],
         ]];
+        if ($reach !== null) {
+            $reach = array_values(array_map('intval', $reach));
+            $inherit = array_merge($reach, [5]);
+            $conditions['AND'][] = [
+                'Event.distribution' => $reach,
+                'Attribute.distribution' => $inherit,
+                'OR' => ['Attribute.object_id' => 0, 'Object.distribution' => $inherit],
+            ];
+        }
         $acl = $this->buildConditions($user);
-        if (!empty($acl)) {
-            $conditions['AND'][] = $acl;
+        if (!empty($acl) || $reach !== null) {
+            if (!empty($acl)) {
+                $conditions['AND'][] = $acl;
+            }
             $joins[] = [
                 'table' => 'objects',
                 'alias' => 'Object',
@@ -4973,9 +5039,7 @@ class MispAttribute extends AppModel
         }
         $options = array();
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $enabledModules['modules'][$k]['config'] = Module::moduleConfig($temp);
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
         $attributes_added = 0;
         $tagsRemoved = 0;
@@ -5009,7 +5073,8 @@ class MispAttribute extends AppModel
                     $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                     if ($result === false) {
                         throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
-                    } else if (!is_array($result)) {
+                    } else if (!is_array($result) || !isset($result['results'])) {
+                        // A module error only applies to this lookup.
                         continue;
                     }
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] == 'misp_standard') {

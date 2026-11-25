@@ -57,6 +57,10 @@ class AnalystGraphData extends AppModel
             }
         }
         $events = $this->events($user, $uuids['Event'], $objects, $attributes);
+        $standalone = $this->inOrder(
+            $this->model('StandaloneObject')->records($uuids[AnalystGraphDocumentTool::STANDALONE]),
+            $uuids[AnalystGraphDocumentTool::STANDALONE]
+        );
 
         $document = AnalystGraphDocumentTool::withNodes($document, $visible);
         $document['view'] = (object)($document['view'] ?? []);
@@ -67,6 +71,7 @@ class AnalystGraphData extends AppModel
             'Attribute' => $attributes,
             'GalaxyCluster' => $clusters,
             'Value' => $values,
+            'StandaloneObject' => $standalone,
             'events' => $events ?: new stdClass(),
             'ui_priorities' => $priorities ?: new stdClass(),
             'edges' => $this->edges($user, $uuids['Event'], $objects, $attributes, $clusters, $values, $events, $this->answersOf($drawn)),
@@ -129,7 +134,7 @@ class AnalystGraphData extends AppModel
         $index = [];
         foreach (array_slice($payload['document']['nodes'], 0, self::THUMBNAIL_BUDGET) as $node) {
             $key = AnalystGraphDocumentTool::nodeKey($node);
-            if (isset($parent[$key])) {
+            if (isset($parent[$key]) || !empty($node['hidden'])) {
                 continue;
             }
             $thumb = ['key' => $key, 'type' => $node['type']];
@@ -575,7 +580,7 @@ class AnalystGraphData extends AppModel
                 continue;
             }
             $kept = $storedAnswers[$uuid];
-            foreach (['x', 'y', 'pinned', 'collapsed'] as $field) {
+            foreach (['x', 'y', 'pinned', 'collapsed', 'hidden'] as $field) {
                 unset($kept[$field]);
                 if (array_key_exists($field, $node)) {
                     $kept[$field] = $node[$field];
@@ -826,6 +831,55 @@ class AnalystGraphData extends AppModel
                 break;
         }
         return $out;
+    }
+
+    /**
+     * The organisation that created a graph target, when the user can read
+     * the target.
+     *
+     * @param array $user
+     * @param string $type One of Graph::VALID_TARGETS
+     * @param string $uuid
+     * @return string|null The organisation's uuid, lowercase
+     */
+    public function targetCreator(array $user, $type, $uuid)
+    {
+        $spellings = array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]));
+        $orgcId = null;
+        switch ($type) {
+            case 'Event':
+                $rows = $this->model('Event')->fetchSimpleEvents($user, [
+                    'conditions' => ['Event.uuid' => $spellings],
+                ]);
+                $orgcId = $rows[0]['Event']['orgc_id'] ?? null;
+                break;
+            case 'GalaxyCluster':
+                $rows = $this->model('GalaxyCluster')->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $spellings],
+                    'fields' => ['GalaxyCluster.id', 'GalaxyCluster.orgc_id'],
+                    'contain' => [],
+                ]);
+                $orgcId = $rows[0]['GalaxyCluster']['orgc_id'] ?? null;
+                break;
+            case 'Collection':
+                $Collection = $this->model('Collection');
+                $row = $Collection->find('first', [
+                    'conditions' => ['AND' => [['Collection.uuid' => $spellings], $Collection->buildConditions($user)]],
+                    'fields' => ['Collection.orgc_id'],
+                    'recursive' => -1,
+                ]);
+                $orgcId = $row['Collection']['orgc_id'] ?? null;
+                break;
+        }
+        if (empty($orgcId)) {
+            return null;
+        }
+        $org = $this->model('Organisation')->find('first', [
+            'conditions' => ['Organisation.id' => $orgcId],
+            'fields' => ['Organisation.uuid'],
+            'recursive' => -1,
+        ]);
+        return isset($org['Organisation']['uuid']) ? strtolower($org['Organisation']['uuid']) : null;
     }
 
     private function uuidsByType(array $nodes)

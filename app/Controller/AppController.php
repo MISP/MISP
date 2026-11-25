@@ -551,7 +551,8 @@ class AppController extends Controller
             }
 
             if ($this->__showsAnalystGraphSlot($user)) {
-                $this->set('intelGraph', ['active' => ClassRegistry::init('Workspace')->activeFor($user, false)]);
+                App::uses('ActiveWorkspaceTool', 'Tools');
+                $this->set('intelGraph', ['active' => ActiveWorkspaceTool::forUser($user)]);
             }
 
             if ($this->__showsSidePanels()) {
@@ -568,8 +569,9 @@ class AppController extends Controller
     }
 
     /**
-     * Whether this page's navbar carries the analyst graph slot: an Overmind
-     * page with the Bootstrap 5 chrome, for a user who may add to a graph.
+     * Whether this page's navbar carries the workspace slot: an Overmind
+     * page with the Bootstrap 5 chrome, for a user who may add to a
+     * collection.
      *
      * @param array $user
      * @return bool
@@ -588,7 +590,7 @@ class AppController extends Controller
         if (OvermindPages::isAuthPage($controller, $action)) {
             return false;
         }
-        return $this->ACL->canUserAccess($user, 'workspaces', 'addNodes');
+        return $this->ACL->canUserAccess($user, 'collectionElements', 'addItems');
     }
 
     /**

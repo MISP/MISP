@@ -38,6 +38,8 @@ $report = $triage['report'];
 $rows = $triage['rows'];
 // False when the reader's analyst profile switches the assessment off.
 $showsAssessment = $showsAssessment ?? true;
+// The batch handed over to a workspace: whoever may add to a collection.
+$mayHandOver = $this->Acl->canAccess('collectionElements', 'addItems');
 
 /*
  * The tape and its legend are a picture of a batch's progress, and
@@ -197,6 +199,26 @@ $offerExtract = !$extracted && $wordy >= 2;
                         aria-pressed="false" title="<?= h(__('Card view')) ?>"
                         aria-label="<?= h(__('Card view')) ?>"><i class="fas fa-th-large" aria-hidden="true"></i></button>
             </div>
+<?php if ($mayHandOver): ?>
+            <?php
+            /*
+             * The batch handed to a workspace or a collection at any time:
+             * the whole of it until something is opened, then the values
+             * opened, the whole batch one menu away.
+             */
+            ?>
+            <span class="vi-handover" data-vi-handover hidden
+                  data-vi-tpl="<?= h(__('Add the %d opened')) ?>"
+                  data-vi-tpl-all="<?= h(__('Add all %d')) ?>"
+                  data-vi-set="<?= h(__('The %d opened')) ?>"
+                  data-vi-set-all="<?= h(__('All %d in the batch')) ?>">
+                <?= $this->element('intel_graph_add', array(
+                    'variant' => 'short',
+                    'title' => __('Add these values to your workspace'),
+                    'stateless' => true,
+                )) ?>
+            </span>
+<?php endif; ?>
         </div>
     </div>
 <?php if ($extracted): ?>
@@ -456,7 +478,7 @@ $offerExtract = !$extracted && $wordy >= 2;
                 </p>
             </div>
             <div class="vi-done__acts">
-                <button type="button" class="btn btn-primary btn-sm vi-done__copy"
+                <button type="button" class="btn <?= $mayHandOver ? 'btn-outline-primary' : 'btn-primary' ?> btn-sm vi-done__copy"
                         data-vi-copy
                         data-vi-tpl-one="<?= h(__('Copy the opened value')) ?>"
                         data-vi-tpl="<?= h(__('Copy the %d opened values')) ?>"
@@ -470,10 +492,42 @@ $offerExtract = !$extracted && $wordy >= 2;
                 </button>
             </div>
         </div>
+<?php if ($mayHandOver): ?>
+        <?php
+        /*
+         * The hand-over: the values opened, or the whole batch, into a
+         * new workspace or the one the reader has. Values MISP does not
+         * hold are refused and counted.
+         */
+        ?>
+        <div class="vi-done__handoff" data-vi-handoff hidden>
+            <div class="ifp-segv" role="group" aria-label="<?= h(__('What to take')) ?>">
+                <button class="ifp-segv-btn" type="button" data-vi-carry="opened"
+                        aria-pressed="true"
+                        data-vi-tpl="<?= h(__('The %d opened')) ?>"></button>
+                <button class="ifp-segv-btn" type="button" data-vi-carry="all"
+                        aria-pressed="false"
+                        data-vi-tpl="<?= h(__('All %d')) ?>"></button>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" data-vi-start
+                    data-vi-tpl="<?= h(__('Start a workspace with the %d opened')) ?>"
+                    data-vi-tpl-all="<?= h(__('Start a workspace with all %d')) ?>"></button>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-vi-add-ws hidden
+                    data-vi-tpl="<?= h(__('Add the %d opened to:')) ?>"
+                    data-vi-tpl-all="<?= h(__('Add all %d to:')) ?>"></button>
+        </div>
+        <p class="vi-done__handed" data-vi-handed aria-live="polite" hidden
+           data-vi-tpl="<?= h(__('%1$d added to your workspace; %2$d were in it already.')) ?>"
+           data-vi-refused="<?= h(__('%d not added: MISP does not hold them yet.')) ?>"></p>
+<?php endif; ?>
         <p class="vi-done__note">
             <i class="fas fa-circle-info" aria-hidden="true"></i>
-            <?= h(__('This progress is not saved and is lost when you close'
-                . ' the tab. Paste a new list above to start another.')) ?>
+            <?= $mayHandOver
+                ? h(__('This progress is not saved and is lost when you close'
+                    . ' the tab. Take the values you opened into a workspace,'
+                    . ' or copy them, to keep them.'))
+                : h(__('This progress is not saved and is lost when you close'
+                    . ' the tab. Paste a new list above to start another.')) ?>
         </p>
         <textarea class="vi-shortlist" data-vi-short hidden readonly rows="3"
                   aria-label="<?= h(__('The values you opened')) ?>"></textarea>

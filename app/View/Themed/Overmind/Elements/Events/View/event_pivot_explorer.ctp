@@ -15,7 +15,7 @@
         && $this->Acl->canAccess('events', 'editEventGalaxies')
         && $this->Acl->canAccess('attributes', 'editAttributeGalaxies');
     $canGraph = $this->Acl->canAccess('analystData', 'add')
-        && $this->Acl->canAccess('workspaces', 'save');
+        && $this->Acl->canAccess('analystGraphs', 'save');
 
     // What a drawn analyst relationship or a saved graph can be shared with,
     // as analystData/add offers it: levels 0-4 (no inherit), the user's
@@ -45,8 +45,17 @@
         }
         if ($canGraph) {
             App::uses('AnalystGraphDocumentTool', 'Tools');
+            // A saved graph starts shared as the event it hangs on
+            $eventSharingGroup = (int)($data['Event']['distribution'] ?? 0) === 4
+                ? (int)$data['Event']['sharing_group_id'] : null;
             $graphSharing = $sharing + [
-                'default' => (int)(Configure::read('MISP.default_analyst_data_distribution') ?? 1),
+                'default' => (int)($data['Event']['distribution'] ?? 0),
+                'sharingGroup' => $eventSharingGroup,
+                'target' => [
+                    'type' => 'Event',
+                    'distribution' => (int)($data['Event']['distribution'] ?? 0),
+                    'sharing_group_id' => $eventSharingGroup,
+                ],
                 'limits' => AnalystGraphDocumentTool::limits(),
             ];
         }

@@ -84,9 +84,10 @@ if (!class_exists('JsonTool', false)) {
 }
 
 require_once __DIR__ . '/../Lib/Tools/ServerSyncTool.php';
+require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Lib/Tools/AnalystGraphDocumentTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
-require_once __DIR__ . '/../Model/Workspace.php';
+require_once __DIR__ . '/../Model/Graph.php';
 
 class GraphSyncTestResponse
 {
@@ -105,7 +106,7 @@ class GraphSyncTestResponse
 
 /**
  * A remote peer behind the ServerSyncTool interface. An old peer ignores the
- * `types` opt-in, lists no graphs, and fails on a Workspace key in a push filter,
+ * `types` opt-in, lists no graphs, and fails on a Graph key in a push filter,
  * as a real one does.
  */
 class GraphSyncTestSync extends ServerSyncTool
@@ -121,7 +122,7 @@ class GraphSyncTestSync extends ServerSyncTool
         $this->peerInfo = $info;
         $this->serverRow = $server;
         $this->remote = $remote + array('index' => array(), 'records' => array());
-        $this->old = empty($info['workspace']);
+        $this->old = empty($info['analyst_graph']);
     }
 
     public function info()
@@ -175,8 +176,8 @@ class GraphSyncTestSync extends ServerSyncTool
     public function filterAnalystDataForPush(array $candidates)
     {
         $this->requests[] = array('filter', $candidates);
-        if ($this->old && isset($candidates['Workspace'])) {
-            throw new RuntimeException('Undefined index: Workspace');
+        if ($this->old && isset($candidates['Graph'])) {
+            throw new RuntimeException('Undefined index: Graph');
         }
         return new GraphSyncTestResponse($candidates);
     }
@@ -267,10 +268,10 @@ class GraphSyncTestAnswers
     }
 }
 
-class GraphSyncTestGraph extends Workspace
+class GraphSyncTestGraph extends Graph
 {
-    public $alias = 'Workspace';
-    public $name = 'Workspace';
+    public $alias = 'Graph';
+    public $name = 'Graph';
     public $rows = array();
     public $finds = array();
     /** @var callable|null Run once, before the first content read */
@@ -294,15 +295,15 @@ class GraphSyncTestGraph extends Workspace
     public function find($type = 'first', $query = array())
     {
         $this->finds[] = array($type, $query);
-        if (isset($query['conditions']['Workspace.id'])) {
+        if (isset($query['conditions']['Graph.id'])) {
             if ($this->beforeContentRead) {
                 $hook = $this->beforeContentRead;
                 $this->beforeContentRead = null;
                 $hook($this);
             }
             foreach ($this->rows as $row) {
-                if ($row['id'] == $query['conditions']['Workspace.id']) {
-                    return array('Workspace' => array(
+                if ($row['id'] == $query['conditions']['Graph.id']) {
+                    return array('Graph' => array(
                         'content' => $row['content'],
                         'modified' => $row['modified'],
                     ));
@@ -310,16 +311,25 @@ class GraphSyncTestGraph extends Workspace
             }
             return array();
         }
-        $result = (new GraphSyncTestModel('Workspace', array_values($this->rows)))->find($type, $query);
+        $result = (new GraphSyncTestModel('Graph', array_values($this->rows)))->find($type, $query);
         if ($type !== 'list' && isset($query['fields'])) {
             $columns = array_map(function ($field) {
-                return preg_replace('/^Workspace\./', '', $field);
+                return preg_replace('/^Graph\./', '', $field);
             }, $query['fields']);
             foreach ($result as &$row) {
-                $row['Workspace'] = array_intersect_key($row['Workspace'], array_flip($columns));
+                $row['Graph'] = array_intersect_key($row['Graph'], array_flip($columns));
             }
         }
         return $result;
+    }
+}
+
+/** No collection is withheld: every graph and link goes. */
+class GraphSyncTestCollection
+{
+    public function withoutHeldBack(array $byType)
+    {
+        return $byType;
     }
 }
 
@@ -455,7 +465,7 @@ class GraphSyncTest extends TestCase
     {
         $info = array('version' => '2.5.42', 'perm_sync' => true, 'perm_analyst_data' => true);
         if ($graphs) {
-            $info['workspace'] = true;
+            $info['analyst_graph'] = true;
         }
         if ($batch) {
             $info['analyst_data_batch_push'] = true;
@@ -490,13 +500,14 @@ class GraphSyncTest extends TestCase
     private function registerPushFakes(array $notes, array $graphs)
     {
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Server' => new GraphSyncTestServer(),
             'SharingGroup' => new GraphSyncTestSharingGroup(),
             'Event' => new GraphSyncTestEvent(),
             'Note' => new GraphSyncTestModel('Note', $notes),
             'Opinion' => new GraphSyncTestModel('Opinion'),
             'Relationship' => new GraphSyncTestModel('Relationship'),
-            'Workspace' => new GraphSyncTestGraph($graphs),
+            'Graph' => new GraphSyncTestGraph($graphs),
             'AnalystGraphData' => new GraphSyncTestAnswers(),
         );
     }
@@ -518,10 +529,10 @@ class GraphSyncTest extends TestCase
     {
         $new = new GraphSyncTestSync($this->info(true), $this->server);
         $old = new GraphSyncTestSync($this->info(false), $this->server);
-        $off = new GraphSyncTestSync($this->info(false) + array('workspace' => false), $this->server);
-        $this->assertTrue($new->isSupported(ServerSyncTool::FEATURE_WORKSPACE));
-        $this->assertFalse($old->isSupported(ServerSyncTool::FEATURE_WORKSPACE));
-        $this->assertFalse($off->isSupported(ServerSyncTool::FEATURE_WORKSPACE));
+        $off = new GraphSyncTestSync($this->info(false) + array('analyst_graph' => false), $this->server);
+        $this->assertTrue($new->isSupported(ServerSyncTool::FEATURE_ANALYST_GRAPH));
+        $this->assertFalse($old->isSupported(ServerSyncTool::FEATURE_ANALYST_GRAPH));
+        $this->assertFalse($off->isSupported(ServerSyncTool::FEATURE_ANALYST_GRAPH));
     }
 
     // ---- syncTypes ------------------------------------------------------------
@@ -529,16 +540,16 @@ class GraphSyncTest extends TestCase
     public function testSyncTypesDefaultToTheEmbeddedTypes()
     {
         $this->assertSame(AnalystData::ANALYST_DATA_TYPES, AnalystData::syncTypes(null));
-        $this->assertSame(AnalystData::ANALYST_DATA_TYPES, AnalystData::syncTypes('Workspace'));
-        $this->assertNotContains('Workspace', AnalystData::syncTypes(null));
+        $this->assertSame(AnalystData::ANALYST_DATA_TYPES, AnalystData::syncTypes('Graph'));
+        $this->assertNotContains('Graph', AnalystData::syncTypes(null));
     }
 
     public function testSyncTypesKeepOnlyKnownNamedTypes()
     {
-        $this->assertSame(array('Workspace'), AnalystData::syncTypes(array('Workspace')));
+        $this->assertSame(array('Graph'), AnalystData::syncTypes(array('Graph')));
         $this->assertSame(
-            array('Note', 'Workspace'),
-            AnalystData::syncTypes(array('Workspace', 'Widget', array('Note'), 'Note'))
+            array('Note', 'Graph'),
+            AnalystData::syncTypes(array('Graph', 'Widget', array('Note'), 'Note'))
         );
         $this->assertSame(array(), AnalystData::syncTypes(array()));
     }
@@ -550,13 +561,13 @@ class GraphSyncTest extends TestCase
         $graph = new GraphSyncTestGraph(array($this->graphRow(1, 2, array('content_size' => 4321))));
         $note = new GraphSyncTestModel('Note', array($this->noteRow(2)));
         $opinion = new GraphSyncTestModel('Opinion');
-        ClassRegistry::$instances = array('Workspace' => $graph, 'Note' => $note, 'Opinion' => $opinion);
+        ClassRegistry::$instances = array('Graph' => $graph, 'Note' => $note, 'Opinion' => $opinion, 'Collection' => new GraphSyncTestCollection());
 
-        $index = (new GraphSyncTestAnalystData())->indexMinimal($this->admin, array(), array('Note', 'Workspace'));
+        $index = (new GraphSyncTestAnalystData())->indexMinimal($this->admin, array(), array('Note', 'Graph'));
 
         $this->assertSame(array(
             'Note' => array($this->uuid(2) => '2026-10-01 09:00:00'),
-            'Workspace' => array($this->uuid(1) => array('modified' => '2026-10-01 10:00:00', 'size' => 4321)),
+            'Graph' => array($this->uuid(1) => array('modified' => '2026-10-01 10:00:00', 'size' => 4321)),
         ), $index);
         $this->assertSame(array('uuid', 'modified', 'locked', 'content_size'), $graph->finds[0][1]['fields']);
         $this->assertSame(array('uuid', 'modified', 'locked'), $note->finds[0][1]['fields']);
@@ -567,7 +578,8 @@ class GraphSyncTest extends TestCase
     {
         $graph = new GraphSyncTestGraph(array($this->graphRow(1)));
         ClassRegistry::$instances = array(
-            'Workspace' => $graph,
+            'Collection' => new GraphSyncTestCollection(),
+            'Graph' => $graph,
             'Note' => new GraphSyncTestModel('Note', array($this->noteRow(2))),
             'Opinion' => new GraphSyncTestModel('Opinion'),
             'Relationship' => new GraphSyncTestModel('Relationship'),
@@ -575,7 +587,7 @@ class GraphSyncTest extends TestCase
 
         $index = (new GraphSyncTestAnalystData())->indexMinimal($this->admin);
 
-        $this->assertArrayNotHasKey('Workspace', $index);
+        $this->assertArrayNotHasKey('Graph', $index);
         $this->assertArrayHasKey('Note', $index);
         $this->assertEmpty($graph->finds);
     }
@@ -585,8 +597,9 @@ class GraphSyncTest extends TestCase
     public function testPushFilterAcceptsGraphsAndSkipsUnknownTypes()
     {
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Note' => new GraphSyncTestModel('Note'),
-            'Workspace' => new GraphSyncTestGraph(array(
+            'Graph' => new GraphSyncTestGraph(array(
                 $this->graphRow(2, 2, array('locked' => false)),
                 $this->graphRow(3, 2, array('locked' => true, 'modified' => '2026-10-02 00:00:00')),
                 $this->graphRow(4, 2, array('locked' => true, 'modified' => '2026-09-01 00:00:00')),
@@ -594,7 +607,7 @@ class GraphSyncTest extends TestCase
         );
         $incoming = array(
             'Note' => array($this->uuid(10) => '2026-10-01 10:00:00'),
-            'Workspace' => array(
+            'Graph' => array(
                 $this->uuid(1) => '2026-10-01 10:00:00',
                 $this->uuid(2) => '2026-10-01 10:00:00',
                 $this->uuid(3) => '2026-10-01 10:00:00',
@@ -607,7 +620,7 @@ class GraphSyncTest extends TestCase
 
         $this->assertSame(
             array($this->uuid(1), $this->uuid(4)),
-            array_keys($accepted['Workspace']),
+            array_keys($accepted['Graph']),
             'new and older-here graphs are accepted; a local original or a newer copy is not'
         );
         $this->assertSame(array($this->uuid(10)), array_keys($accepted['Note']));
@@ -623,7 +636,7 @@ class GraphSyncTest extends TestCase
     {
         $index = AnalystData::readRemoteIndex(array(
             'Note' => array($this->uuid(1) => '2026-10-01 10:00:00'),
-            'Workspace' => array(
+            'Graph' => array(
                 $this->uuid(2) => array('modified' => '2026-10-01 10:00:00', 'size' => 2048),
                 $this->uuid(3) => '2026-10-01 10:00:00',
                 $this->uuid(4) => array('modified' => '2026-10-01 10:00:00', 'size' => -5),
@@ -633,30 +646,30 @@ class GraphSyncTest extends TestCase
             'Widget' => array($this->uuid(7) => '2026-10-01 10:00:00'),
         ));
 
-        $this->assertSame(array('Note', 'Workspace'), array_keys($index));
+        $this->assertSame(array('Note', 'Graph'), array_keys($index));
         $this->assertSame(array('modified' => '2026-10-01 10:00:00', 'size' => null), $index['Note'][$this->uuid(1)]);
-        $this->assertSame(2048, $index['Workspace'][$this->uuid(2)]['size']);
-        $this->assertNull($index['Workspace'][$this->uuid(3)]['size']);
-        $this->assertNull($index['Workspace'][$this->uuid(4)]['size']);
-        $this->assertNull($index['Workspace'][$this->uuid(5)]['size']);
-        $this->assertArrayNotHasKey($this->uuid(6), $index['Workspace'], 'an entry without modified is skipped');
+        $this->assertSame(2048, $index['Graph'][$this->uuid(2)]['size']);
+        $this->assertNull($index['Graph'][$this->uuid(3)]['size']);
+        $this->assertNull($index['Graph'][$this->uuid(4)]['size']);
+        $this->assertNull($index['Graph'][$this->uuid(5)]['size']);
+        $this->assertArrayNotHasKey($this->uuid(6), $index['Graph'], 'an entry without modified is skipped');
     }
 
     public function testPlanPullFetchesMissingAndNewerOnly()
     {
-        $remote = array('Workspace' => array(
+        $remote = array('Graph' => array(
             $this->uuid(1) => array('modified' => '2026-10-01 10:00:00', 'size' => 10),
             $this->uuid(2) => array('modified' => '2026-10-01 10:00:00', 'size' => 20),
             $this->uuid(3) => array('modified' => '2026-10-01 10:00:00', 'size' => 30),
             $this->uuid(4) => array('modified' => '2026-10-01 10:00:00', 'size' => null),
         ));
-        $local = array('Workspace' => array(
+        $local = array('Graph' => array(
             $this->uuid(2) => '2026-09-30 10:00:00',
             $this->uuid(3) => '2026-10-01 10:00:00',
         ));
 
         $this->assertSame(
-            array('Workspace' => array($this->uuid(1) => 10, $this->uuid(2) => 20, $this->uuid(4) => null)),
+            array('Graph' => array($this->uuid(1) => 10, $this->uuid(2) => 20, $this->uuid(4) => null)),
             AnalystData::planPull($remote, $local)
         );
     }
@@ -690,26 +703,27 @@ class GraphSyncTest extends TestCase
 
     public function testPullFetchesGraphsInByteBudgetedBatches()
     {
-        $index = array('Note' => array(), 'Workspace' => array());
-        $records = array('Note' => array(), 'Workspace' => array());
+        $index = array('Note' => array(), 'Graph' => array());
+        $records = array('Note' => array(), 'Graph' => array());
         $sizes = array(1 => 5 * self::MB, 2 => 4 * self::MB, 3 => 20 * self::MB);
         for ($n = 1; $n <= 153; $n++) {
             $uuid = $this->uuid($n);
-            $index['Workspace'][$uuid] = array('modified' => '2026-10-01 10:00:00', 'size' => $sizes[$n] ?? 1024);
-            $records['Workspace'][$uuid] = $this->graphRow($n, $n % 2 ? 2 : 1);
+            $index['Graph'][$uuid] = array('modified' => '2026-10-01 10:00:00', 'size' => $sizes[$n] ?? 1024);
+            $records['Graph'][$uuid] = $this->graphRow($n, $n % 2 ? 2 : 1);
         }
-        $index['Workspace'][$this->uuid(4)] = '2026-10-01 10:00:00';
+        $index['Graph'][$this->uuid(4)] = '2026-10-01 10:00:00';
         for ($n = 1001; $n <= 1150; $n++) {
             $index['Note'][$this->uuid($n)] = '2026-10-01 10:00:00';
             $records['Note'][$this->uuid($n)] = $this->noteRow($n);
         }
         $local = array($this->graphRow(153, 2, array('modified' => '2026-10-01 10:00:00')));
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Server' => new GraphSyncTestServer(),
             'Note' => new GraphSyncTestModel('Note'),
             'Opinion' => new GraphSyncTestModel('Opinion'),
             'Relationship' => new GraphSyncTestModel('Relationship'),
-            'Workspace' => new GraphSyncTestGraph($local),
+            'Graph' => new GraphSyncTestGraph($local),
         );
         $sync = new GraphSyncTestSync($this->info(true), $this->server, compact('index', 'records'));
         $analystData = new GraphSyncTestAnalystData();
@@ -720,7 +734,7 @@ class GraphSyncTest extends TestCase
         $graphFetches = array_map(function ($request) {
             return count($request[2]);
         }, array_values(array_filter($sync->requestsOf('fetch'), function ($request) {
-            return $request[1] === 'Workspace';
+            return $request[1] === 'Graph';
         })));
         // 5 MB alone (4 MB would overflow it), 20 MB and the unknown size alone,
         // then 4 MB + 99 small, then the remaining 49 small; graph 153 is current
@@ -734,9 +748,9 @@ class GraphSyncTest extends TestCase
         $this->assertSame(152 + 150, $pulled);
 
         $graphs = array_values(array_filter($analystData->captured, function ($record) {
-            return isset($record['Workspace']);
+            return isset($record['Graph']);
         }));
-        $byUuid = array_column(array_column($graphs, 'Workspace'), null, 'uuid');
+        $byUuid = array_column(array_column($graphs, 'Graph'), null, 'uuid');
         $this->assertTrue($byUuid[$this->uuid(1)]['locked']);
         $this->assertSame('1', $byUuid[$this->uuid(1)]['distribution'], 'connected communities arrive as community');
         $this->assertSame('0', $byUuid[$this->uuid(2)]['distribution'], 'community arrives as organisation only');
@@ -747,15 +761,16 @@ class GraphSyncTest extends TestCase
     {
         $index = array(
             'Note' => array($this->uuid(1001) => '2026-10-01 10:00:00'),
-            'Workspace' => array($this->uuid(1) => array('modified' => '2026-10-01 10:00:00', 'size' => 10)),
+            'Graph' => array($this->uuid(1) => array('modified' => '2026-10-01 10:00:00', 'size' => 10)),
         );
         $records = array('Note' => array($this->uuid(1001) => $this->noteRow(1001)));
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Server' => new GraphSyncTestServer(),
             'Note' => new GraphSyncTestModel('Note'),
             'Opinion' => new GraphSyncTestModel('Opinion'),
             'Relationship' => new GraphSyncTestModel('Relationship'),
-            'Workspace' => new GraphSyncTestGraph(),
+            'Graph' => new GraphSyncTestGraph(),
         );
         $sync = new GraphSyncTestSync($this->info(false), $this->server, compact('index', 'records'));
 
@@ -772,9 +787,9 @@ class GraphSyncTest extends TestCase
     public function testMetadataFieldsLeaveTheDocumentOut()
     {
         $fields = (new GraphSyncTestGraph())->metadataFields();
-        $this->assertNotContains('Workspace.content', $fields);
-        $this->assertContains('Workspace.content_size', $fields);
-        $this->assertContains('Workspace.modified', $fields);
+        $this->assertNotContains('Graph.content', $fields);
+        $this->assertContains('Graph.content_size', $fields);
+        $this->assertContains('Graph.modified', $fields);
         $this->assertSame(18, count($fields));
     }
 
@@ -787,10 +802,10 @@ class GraphSyncTest extends TestCase
 
         $this->assertCount(1, $pushed);
         $filter = $sync->requestsOf('filter')[0][1];
-        $this->assertArrayNotHasKey('Workspace', $filter);
+        $this->assertArrayNotHasKey('Graph', $filter);
         $this->assertSame(array($this->uuid(1001)), array_keys($filter['Note']));
         $this->assertSame(array('Note'), array_column($sync->requestsOf('push'), 1));
-        $this->assertEmpty(ClassRegistry::$instances['Workspace']->finds, 'graphs are not even read');
+        $this->assertEmpty(ClassRegistry::$instances['Graph']->finds, 'graphs are not even read');
     }
 
     public function testPushCollectsGraphMetadataAndReadsContentAtUpload()
@@ -799,9 +814,9 @@ class GraphSyncTest extends TestCase
             array($this->noteRow(1001)),
             array($this->graphRow(1, 2), $this->graphRow(2, 2), $this->graphRow(3, 1))
         );
-        $graph = ClassRegistry::$instances['Workspace'];
+        $graph = ClassRegistry::$instances['Graph'];
         $graph->beforeContentRead = function ($graph) {
-            // Workspace 2 is saved again between collection and upload
+            // Graph 2 is saved again between collection and upload
             $graph->rows[1]['modified'] = '2026-10-01 11:00:00';
             $graph->rows[1]['content'] = '{"version":1,"nodes":[],"hidden_edges":[],"view":{}}';
         };
@@ -811,16 +826,16 @@ class GraphSyncTest extends TestCase
         $pushed = $analystData->push($this->admin, $sync);
 
         $collect = $graph->finds[0][1];
-        $this->assertNotContains('Workspace.content', $collect['fields']);
+        $this->assertNotContains('Graph.content', $collect['fields']);
         $filter = $sync->requestsOf('filter')[0][1];
         $this->assertSame(
             array($this->uuid(1) => '2026-10-01 10:00:00', $this->uuid(2) => '2026-10-01 10:00:00'),
-            $filter['Workspace'],
+            $filter['Graph'],
             'community-only graph 3 is not offered'
         );
 
         $uploads = array_column(array_filter($sync->requestsOf('push'), function ($request) {
-            return $request[1] === 'Workspace';
+            return $request[1] === 'Graph';
         }), 2);
         $this->assertCount(2, $uploads);
         $this->assertSame(
@@ -828,12 +843,12 @@ class GraphSyncTest extends TestCase
             ClassRegistry::$instances['AnalystGraphData']->servers,
             'each graph keeps the module answers that server may receive'
         );
-        $first = $uploads[0]['Workspace'];
+        $first = $uploads[0]['Graph'];
         $this->assertSame($this->uuid(9000), $first['content']['nodes'][0]['uuid']);
         $this->assertTrue($first['locked']);
         $this->assertSame(1, $first['distribution'], 'connected communities go out as community');
         $this->assertArrayNotHasKey('id', $first);
-        $second = $uploads[1]['Workspace'];
+        $second = $uploads[1]['Graph'];
         $this->assertSame(array(), $second['content']['nodes']);
         $this->assertSame('2026-10-01 11:00:00', $second['modified'], 'modified matches the content sent');
         $this->assertCount(3, $pushed);
@@ -842,15 +857,15 @@ class GraphSyncTest extends TestCase
     public function testPushSkipsAGraphDeletedBeforeUpload()
     {
         $this->registerPushFakes(array(), array($this->graphRow(1), $this->graphRow(2)));
-        $graph = ClassRegistry::$instances['Workspace'];
+        $graph = ClassRegistry::$instances['Graph'];
         $sync = new GraphSyncTestSync($this->info(true), $this->server);
         $analystData = new GraphSyncTestAnalystData();
 
-        $collected = $analystData->collectDataForPush($this->server, array('Workspace'));
+        $collected = $analystData->collectDataForPush($this->server, array('Graph'));
         unset($graph->rows[0]);
         $results = array();
-        foreach ($collected['Workspace'] as $entry) {
-            $results[] = $analystData->uploadEntryToServer('Workspace', $entry, $this->server, $sync, $this->admin);
+        foreach ($collected['Graph'] as $entry) {
+            $results[] = $analystData->uploadEntryToServer('Graph', $entry, $this->server, $sync, $this->admin);
         }
 
         $this->assertNotSame('Success', $results[0]);
@@ -905,7 +920,7 @@ class GraphSyncTest extends TestCase
             return count($request[1]);
         }, $batches), 'notes and graphs share batches; community-only graph 3 is not offered');
         $last = $batches[1][1];
-        $graph = $last[50]['Workspace'];
+        $graph = $last[50]['Graph'];
         $this->assertSame($this->uuid(1), $graph['uuid']);
         $this->assertSame($this->uuid(9000), $graph['content']['nodes'][0]['uuid'], 'a graph goes out with its document');
         $this->assertTrue($graph['locked']);
@@ -950,7 +965,7 @@ class GraphSyncTest extends TestCase
             foreach ($batch as $record) {
                 $type = key($record);
                 $sent[] = $record[$type]['uuid'];
-                if ($type === 'Workspace' && $record['Workspace']['uuid'] === $this->uuid(2)) {
+                if ($type === 'Graph' && $record['Graph']['uuid'] === $this->uuid(2)) {
                     $this->assertCount(1, $batch, 'the oversized graph goes alone');
                     $this->assertGreaterThan(1000, $size($record));
                 }
@@ -1014,13 +1029,13 @@ class GraphSyncTest extends TestCase
 
         $this->assertCount(1, $sync->requestsOf('batch'));
         $singles = $sync->requestsOf('push');
-        $this->assertSame(array('Note', 'Note', 'Workspace'), array_column($singles, 1));
-        $this->assertSame($this->uuid(9000), $singles[2][2]['Workspace']['content']['nodes'][0]['uuid']);
-        $this->assertTrue($singles[2][2]['Workspace']['locked'], 'the prepared record is sent, not prepared again');
+        $this->assertSame(array('Note', 'Note', 'Graph'), array_column($singles, 1));
+        $this->assertSame($this->uuid(9000), $singles[2][2]['Graph']['content']['nodes'][0]['uuid']);
+        $this->assertTrue($singles[2][2]['Graph']['locked'], 'the prepared record is sent, not prepared again');
         $this->assertCount(3, $pushed);
         $this->assertCount(1, $analystData->exceptions);
-        $finds = array_filter(ClassRegistry::$instances['Workspace']->finds, function ($find) {
-            return isset($find[1]['conditions']['Workspace.id']);
+        $finds = array_filter(ClassRegistry::$instances['Graph']->finds, function ($find) {
+            return isset($find[1]['conditions']['Graph.id']);
         });
         $this->assertCount(1, $finds, 'the content is read once');
     }
@@ -1053,8 +1068,8 @@ class GraphSyncTest extends TestCase
 
         $report = $analystData->captureBatch($this->admin, array(
             array('Note' => array('uuid' => $this->uuid(1))),
-            array('Workspace' => array('uuid' => $this->uuid(2))),
-            array('Workspace' => array('uuid' => $this->uuid(3)), 'Widget' => array()),
+            array('Graph' => array('uuid' => $this->uuid(2))),
+            array('Graph' => array('uuid' => $this->uuid(3)), 'Widget' => array()),
             array('Opinion' => array('uuid' => $this->uuid(4))),
             array('Widget' => array('uuid' => $this->uuid(5))),
             'not a record',
@@ -1066,12 +1081,12 @@ class GraphSyncTest extends TestCase
             array('imported', 'ignored', 'failed', 'failed', 'failed', 'failed', 'imported'),
             array_column($report['results'], 'result')
         );
-        $this->assertSame(array('Note', 'Workspace', 'Workspace', 'Opinion', null, null, 'Relationship'), array_column($report['results'], 'type'));
+        $this->assertSame(array('Note', 'Graph', 'Graph', 'Opinion', null, null, 'Relationship'), array_column($report['results'], 'type'));
         $this->assertSame($this->uuid(2), $report['results'][1]['uuid']);
         $this->assertSame(array('invalid document'), $report['results'][2]['errors']);
         $this->assertSame(array('The record could not be captured.'), $report['results'][3]['errors'], 'an exception is not echoed to the peer');
         $this->assertCount(1, $analystData->exceptions);
-        $this->assertSame(array('Workspace' => array('uuid' => $this->uuid(3))), $analystData->captured[2], 'only the record\'s own type is captured');
+        $this->assertSame(array('Graph' => array('uuid' => $this->uuid(3))), $analystData->captured[2], 'only the record\'s own type is captured');
         $this->assertCount(5, $analystData->captured, 'the malformed ones never reach capture');
     }
 }

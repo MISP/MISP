@@ -186,6 +186,7 @@ class CollectionPullTestServerSync extends ServerSyncTool
     public $fetchCallCount = 0;
     public $fetchedChunks = array();
     public $flags = array();             // flag => bool, over $supported
+    public $rulesSent = null;
 
     public function __construct()
     {
@@ -209,6 +210,7 @@ class CollectionPullTestServerSync extends ServerSyncTool
 
     public function collectionIndexMinimal(array $rules)
     {
+        $this->rulesSent = $rules;
         if ($this->throwOnIndex) {
             throw new Exception('boom-index');
         }
@@ -311,9 +313,10 @@ class CollectionPullTest extends TestCase
         );
     }
 
-    private function localRow($uuid, $modified)
+    /** A local copy; locked 1 = synced in from a peer, 0 = created here. */
+    private function localRow($uuid, $modified, $locked = 1)
     {
-        return array('Collection' => array('uuid' => $uuid, 'modified' => $modified));
+        return array('Collection' => array('uuid' => $uuid, 'modified' => $modified, 'locked' => $locked));
     }
 
     // ---------------- negotiation gate ----------------
@@ -378,6 +381,27 @@ class CollectionPullTest extends TestCase
 
         $this->assertSame(0, $this->collection->pull($this->user(), $this->sync), 'skip-on-equal (D6)');
         $this->assertSame(0, $this->sync->fetchCallCount, 'nothing to fetch when equal');
+    }
+
+    public function testANewerCopyOfAnOriginalMadeHereIsNotFetched(): void
+    {
+        $this->sync->indexData = array('u1' => '2026-06-01 00:00:00');
+        $this->sync->fetchMap = array('u1' => $this->remoteCollection('u1', '2026-06-01 00:00:00'));
+        $this->collection->localRows = array($this->localRow('u1', '2026-01-01 00:00:00', 0));
+
+        $this->assertSame(0, $this->collection->pull($this->user(), $this->sync));
+        $this->assertSame(0, $this->sync->fetchCallCount, 'the capture would refuse it: not fetched');
+    }
+
+    public function testAnInternalServerStillUpdatesAnOriginalMadeHere(): void
+    {
+        $this->sync->serverData['Server']['internal'] = 1;
+        $this->sync->indexData = array('u1' => '2026-06-01 00:00:00');
+        $this->sync->fetchMap = array('u1' => $this->remoteCollection('u1', '2026-06-01 00:00:00'));
+        $this->collection->localRows = array($this->localRow('u1', '2026-01-01 00:00:00', 0));
+
+        $this->assertSame(1, $this->collection->pull($this->user(), $this->sync));
+        $this->assertSame(array('u1'), $this->sync->fetchedChunks[0]);
     }
 
     public function testOlderRemoteIsSkipped(): void
@@ -447,6 +471,18 @@ class CollectionPullTest extends TestCase
             $this->collection->pull($this->user(), $this->sync);
             $this->assertSame($fromPre30, $this->collection->captureCalls[0]['fromPre30']);
         }
+    }
+
+    public function testA30PeerIsAskedForPublishedCollectionsOnly(): void
+    {
+        $this->sync->flags[ServerSyncTool::FEATURE_VALUE_TARGETS] = true;
+        $this->collection->pull($this->user(), $this->sync);
+        $this->assertSame(1, $this->sync->rulesSent['published']);
+        $this->assertArrayHasKey('orgc_name', $this->sync->rulesSent, 'the org rules still go');
+
+        $this->sync->flags[ServerSyncTool::FEATURE_VALUE_TARGETS] = false;
+        $this->collection->pull($this->user(), $this->sync);
+        $this->assertArrayNotHasKey('published', $this->sync->rulesSent, 'an older peer has no publish step');
     }
 
     public function testPermSyncInternalFalseWhenRemoteLacksIt(): void

@@ -204,6 +204,7 @@
                     return { raw: seed, event: payloadOf(seed), data: graphData(seed, kit) };
                 });
             },
+            collect: true,
             // "Save as graph" keeps the canvas on the cluster it started from.
             graphTarget: function () {
                 return cluster && cluster.uuid

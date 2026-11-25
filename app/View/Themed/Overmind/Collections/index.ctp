@@ -36,6 +36,15 @@ $fields = [
         'card_section' => 'selector',
     ],
     [
+        'element' => 'collection_state',
+        'header_html' => '<span class="te-hicon"><i class="fas fa-upload"></i></span>',
+        'header_title' => __('Publish state'),
+        'class' => 'ci-c-state',
+        'header_class' => 'ci-c-state',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
         'name' => __('ID'),
         'sort' => 'Collection.id',
         'data_path' => 'Collection.id',
@@ -77,10 +86,23 @@ $fields = [
         'display_in' => ['card']
     ],
     [
-        'name' => __('Elements'),
-        'sort' => 'Collection.element_count',
+        'name' => __('Members'),
         'data_path' => 'Collection.element_count',
-        'element' => 'count',
+        'element' => 'collection_count',
+        'count' => 'members',
+        'class' => 'te-num',
+        'header_class' => 'te-num',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Graphs'),
+        'header_title' => __('Saved graphs'),
+        'data_path' => 'Collection.graph_count',
+        'element' => 'collection_count',
+        'count' => 'graphs',
+        'class' => 'te-num',
+        'header_class' => 'te-num',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
@@ -137,6 +159,10 @@ $fields = [
 /**
  * Scaffold
  */
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['events-index-table', 'collections-index'],
+]);
+echo '<div class="ci-index">';
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -174,5 +200,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     ],
     'item_url' => '/collections'
 ]);
+echo '</div>';
 
 ?>

@@ -4,10 +4,10 @@ App::uses('AnalystData', 'Model');
 App::uses('AnalystGraphDocumentTool', 'Tools');
 
 /**
- * A workspace: analyst data attached to one record, whose content is a
+ * An analyst graph: analyst data attached to one record, whose content is a
  * document of the records it shows and their layout.
  */
-class Workspace extends AnalystData
+class Graph extends AnalystData
 {
     public $useTable = 'analyst_graphs';
 
@@ -19,7 +19,7 @@ class Workspace extends AnalystData
         'AnalystData',
     );
 
-    public $current_type = 'Workspace';
+    public $current_type = 'Graph';
     public $current_type_id = 3;
 
     const VALID_TARGETS = [
@@ -38,8 +38,6 @@ class Workspace extends AnalystData
         'description',
     ];
 
-    const ACTIVE_SETTING = 'active_workspace';
-
     /** What a list of graphs reads of each: everything but the document. */
     const SUMMARY_FIELDS = [
         'id', 'uuid', 'name', 'description', 'object_uuid', 'object_type',
@@ -53,7 +51,7 @@ class Workspace extends AnalystData
         'name' => [
             'notBlank' => [
                 'rule' => 'notBlank',
-                'message' => 'A workspace needs a name.',
+                'message' => 'A graph needs a name.',
                 'required' => 'create',
             ],
             'maxLength' => [
@@ -64,7 +62,7 @@ class Workspace extends AnalystData
         'object_type' => [
             'validTarget' => [
                 'rule' => ['inList', self::VALID_TARGETS],
-                'message' => 'A workspace attaches to a collection, an event or a galaxy cluster.',
+                'message' => 'A saved graph attaches to a collection, an event or a galaxy cluster.',
                 'required' => 'create',
             ],
         ],
@@ -91,6 +89,7 @@ class Workspace extends AnalystData
 
     public function beforeValidate($options = array())
     {
+        $this->fillSharing();
         parent::beforeValidate($options);
         if (empty($this->id) && empty($this->data[$this->alias]['id']) && !isset($this->data[$this->alias]['content'])) {
             $this->data[$this->alias]['content'] = AnalystGraphDocumentTool::emptyDocument();
@@ -151,16 +150,47 @@ class Workspace extends AnalystData
         return $data;
     }
 
+    /**
+     * Leaves the distribution out unless given, so that fillSharing() can
+     * tell a graph made without one.
+     */
+    public function create($data = [], $filterKey = false)
+    {
+        $created = parent::create($data, $filterKey);
+        if (is_array($data) && !isset($data[$this->alias]['distribution']) && !isset($data['distribution'])) {
+            unset($this->data[$this->alias]['distribution']);
+        }
+        return $created;
+    }
+
+    /**
+     * A new graph made without a distribution takes its target's, else the
+     * analyst-data default.
+     */
+    private function fillSharing()
+    {
+        $data = &$this->data[$this->alias];
+        if (!empty($data['id']) || !empty($this->id) || (isset($data['distribution']) && $data['distribution'] !== '')) {
+            return;
+        }
+        $sharing = $this->targetSharing($data['object_type'] ?? null, $data['object_uuid'] ?? null);
+        $data = ($sharing ?? ['distribution' => (string)$this->_schema['distribution']['default']]) + (array)$data;
+    }
+
     public function beforeSave($options = [])
     {
-        parent::beforeSave($options);
+        $this->fillSharing();
         $data = &$this->data[$this->alias];
+        $id = $data['id'] ?? $this->id;
+        parent::beforeSave($options);
         if (isset($data['content'])) {
             $data = AnalystGraphDocumentTool::measure($data['content']) + $data;
         }
-        $id = $data['id'] ?? $this->id;
         if (empty($id)) {
             $data['revision'] = 1;
+        } elseif (!isset($data['content'])) {
+            unset($data['revision']);
+            return true;
         } else {
             $stored = $this->find('first', [
                 'conditions' => [$this->alias . '.id' => $id],
@@ -175,6 +205,55 @@ class Workspace extends AnalystData
             $this->whitelist = array_merge($this->whitelist, ['revision', 'content_size', 'node_count']);
         }
         return true;
+    }
+
+    /**
+     * The sharing of the record a graph hangs on, which a graph made without
+     * one takes.
+     *
+     * @param string|null $type
+     * @param string|null $uuid
+     * @return array|null {distribution, sharing_group_id}
+     */
+    public function targetSharing($type, $uuid)
+    {
+        if (!in_array($type, self::VALID_TARGETS, true) || !is_string($uuid) || !Validation::uuid($uuid)) {
+            return null;
+        }
+        $row = ClassRegistry::init($type)->find('first', [
+            'conditions' => [$type . '.uuid' => array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]))],
+            'fields' => [$type . '.distribution', $type . '.sharing_group_id'],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        $distribution = isset($row[$type]['distribution']) ? (string)$row[$type]['distribution'] : null;
+        if (!in_array($distribution, ['0', '1', '2', '3', '4'], true)) {
+            return null;
+        }
+        return [
+            'distribution' => $distribution,
+            'sharing_group_id' => $distribution === '4' ? (int)$row[$type]['sharing_group_id'] : null,
+        ];
+    }
+
+    public function afterSave($created, $options = array())
+    {
+        parent::afterSave($created, $options);
+        if (!empty($this->data[$this->alias]['locked'])) {
+            return;
+        }
+        $saved = $this->find('first', [
+            'conditions' => [$this->alias . '.id' => $this->id],
+            'fields' => [
+                $this->alias . '.object_type', $this->alias . '.object_uuid', $this->alias . '.orgc_uuid',
+                $this->alias . '.locked', $this->alias . '.distribution',
+            ],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        if (!empty($saved)) {
+            ClassRegistry::init('Collection')->graphSaved($saved[$this->alias]);
+        }
     }
 
     /**
@@ -315,9 +394,11 @@ class Workspace extends AnalystData
      * @param array $conditions
      * @param array $options `limit`; `targets` (default true) labels each
      *                       target as the user sees it; `parents` (default
-     *                       false) adds `forked_from`, see withParents()
-     * @return array Workspace rows, unwrapped, `node_count` the nodes the user
-     *               may read
+     *                       false) adds `forked_from`, see withParents();
+     *                       `counts` (default true) reads each document to
+     *                       count the nodes the user may read
+     * @return array Graph rows, unwrapped, `node_count` the nodes the user
+     *               may read, or as stored without `counts`
      */
     public function summaries(array $user, array $conditions, array $options = [])
     {
@@ -332,7 +413,9 @@ class Workspace extends AnalystData
             'limit' => $options['limit'] ?? null,
         ]);
         $graphs = array_map([$this, 'typed'], Hash::extract($rows, '{n}.' . $this->alias));
-        $graphs = $this->withVisibleCounts($user, $graphs);
+        if ($options['counts'] ?? true) {
+            $graphs = $this->withVisibleCounts($user, $graphs);
+        }
         if ($options['targets'] ?? true) {
             $graphs = ClassRegistry::init('AnalystGraphData')->labelTargets($user, $graphs);
         }
@@ -373,7 +456,7 @@ class Workspace extends AnalystData
     }
 
     /**
-     * The stored count includes nodes the user may not read (G6).
+     * The stored count includes nodes the user may not read.
      *
      * @param array $user
      * @param array $graphs Unwrapped, with `id`
@@ -433,6 +516,32 @@ class Workspace extends AnalystData
     }
 
     /**
+     * The graph a record's card opens on: the newest graph of the user's
+     * organisation with a node they can read, else the newest of the
+     * record's creator organisation, else none.
+     *
+     * @param array $graphs summaries(), newest first
+     * @param string|null $orgUuid The user's organisation
+     * @param string|null $creatorUuid The record's creator organisation, as
+     *                                 the user sees the record
+     * @return string|null A graph's uuid
+     */
+    public static function pickFor(array $graphs, $orgUuid, $creatorUuid = null)
+    {
+        foreach ([$orgUuid, $creatorUuid] as $owner) {
+            if (!is_string($owner) || $owner === '') {
+                continue;
+            }
+            foreach ($graphs as $graph) {
+                if (($graph['node_count'] ?? 0) > 0 && strtolower($graph['orgc_uuid'] ?? '') === strtolower($owner)) {
+                    return $graph['uuid'];
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * The graphs the user may edit that their organisation created.
      *
      * @param array $user
@@ -469,48 +578,6 @@ class Workspace extends AnalystData
             });
         }
         return array_values($graphs);
-    }
-
-    /**
-     * The workspace "Add to workspace" feeds: the one the user chose, while
-     * it is still one they may edit.
-     *
-     * @param array $user
-     * @param bool $targets Label its target
-     * @return array|null
-     */
-    public function activeFor(array $user, $targets = true)
-    {
-        $stored = ClassRegistry::init('UserSetting')->getValueForUser($user['id'], self::ACTIVE_SETTING);
-        $uuid = is_array($stored) ? ($stored['workspace_uuid'] ?? null) : null;
-        if (!is_string($uuid) || !Validation::uuid($uuid)) {
-            return null;
-        }
-        $graphs = $this->summaries($user, [$this->alias . '.uuid' => strtolower($uuid)], ['targets' => $targets]);
-        return !empty($graphs[0]['_canEdit']) ? $graphs[0] : null;
-    }
-
-    /**
-     * Remember the workspace "Add to workspace" feeds, or forget it with
-     * null. The legacy log is suppressed: its full-change entry would record
-     * the choice.
-     *
-     * @param array $user
-     * @param string|null $uuid A graph the user may edit
-     * @return bool
-     */
-    public function storeActive(array $user, $uuid)
-    {
-        $UserSetting = ClassRegistry::init('UserSetting');
-        $logged = $UserSetting->Behaviors->enabled('SysLogLogable.SysLogLogable');
-        $UserSetting->Behaviors->disable('SysLogLogable.SysLogLogable');
-        try {
-            return (bool)$UserSetting->setSettingInternal($user['id'], self::ACTIVE_SETTING, ['workspace_uuid' => $uuid]);
-        } finally {
-            if ($logged) {
-                $UserSetting->Behaviors->enable('SysLogLogable.SysLogLogable');
-            }
-        }
     }
 
     /**

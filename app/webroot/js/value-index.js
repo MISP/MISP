@@ -217,6 +217,16 @@
             });
     }
 
+    // The same, as plain text: for a label another script writes
+    function plain(template, args) {
+        var next = 0;
+        return String(template).replace(/%(?:(\d+)\$)?d/g,
+            function (whole, position) {
+                var index = position ? parseInt(position, 10) - 1 : next++;
+                return String(args[index]);
+            });
+    }
+
     function rank(lean) {
         return ORDER[lean] === undefined ? ORDER.none : ORDER[lean];
     }
@@ -253,6 +263,12 @@
         this.note = root.querySelector('[data-vi-sortnote]');
         this.blank = root.querySelector('[data-vi-empty]');
         this.done = root.querySelector('[data-vi-done]');
+        this.handover = root.querySelector('[data-vi-handover]');
+        this.handoff = this.done
+            ? this.done.querySelector('[data-vi-handoff]') : null;
+        this.handed = this.done
+            ? this.done.querySelector('[data-vi-handed]') : null;
+        this.carry = 'opened';
         this.token = tokenFor();
         this.rows = [];
         Array.prototype.forEach.call(
@@ -363,6 +379,146 @@
                 });
             }
         }
+        this.bindHandOver();
+    };
+
+    /*
+     * The hand-over: the values opened, or the whole batch, into a
+     * workspace. The adding is the add control's (IntelGraphActions);
+     * this page only says which values.
+     */
+    Work.prototype.bindHandOver = function () {
+        var self = this;
+        if (this.handover || this.handoff) {
+            document.addEventListener('intel-graph:active', function () {
+                self.paint();
+            });
+        }
+        if (!this.handoff) {
+            return;
+        }
+        this.handoff.querySelectorAll('[data-vi-carry]').forEach(
+            function (button) {
+                button.addEventListener('click', function () {
+                    self.carry = button.getAttribute('data-vi-carry');
+                    self.paint();
+                });
+            }
+        );
+        var start = this.handoff.querySelector('[data-vi-start]');
+        start.addEventListener('click', function () {
+            if (window.IntelGraphActions) {
+                window.IntelGraphActions.newWith(self.carried(), start);
+            }
+        });
+        var add = this.handoff.querySelector('[data-vi-add-ws]');
+        add.addEventListener('click', function () {
+            if (!window.IntelGraphActions) {
+                return;
+            }
+            add.disabled = true;
+            window.IntelGraphActions.add(self.carried(), add).then(
+                function (out) {
+                    add.disabled = false;
+                    self.sayHanded(out && out.report);
+                }
+            );
+        });
+    };
+
+    // What the hand-over takes: nothing opened leaves the whole batch.
+    Work.prototype.carrying = function () {
+        var opened = this.rows.some(function (row) {
+            return row.state === 'opened';
+        });
+        return opened ? this.carry : 'all';
+    };
+
+    // The values a hand-over takes, as the add control takes them.
+    Work.prototype.carried = function (which) {
+        var all = (which || this.carrying()) === 'all';
+        return this.rows.filter(function (row) {
+            return all || row.state === 'opened';
+        }).map(function (row) {
+            return { type: 'Value', value: row.value, label: row.value };
+        });
+    };
+
+    Work.prototype.handOver = function (opened) {
+        var actions = window.IntelGraphActions;
+        var workspace = window.IntelGraph && window.IntelGraph.active();
+        if (this.handover) {
+            var h = this.handover;
+            var count = this.rows.length;
+            var some = opened > 0;
+            h.hidden = !actions || count === 0;
+            var main = h.querySelector('[data-intel-graph-add]');
+            var label = h.querySelector('.ig-add-lbl');
+            if (main) {
+                main.setAttribute('data-intel-graph-add', JSON.stringify(
+                    this.carried(some ? 'opened' : 'all')));
+                main.setAttribute('data-intel-graph-set', plain(
+                    h.getAttribute(some ? 'data-vi-set' : 'data-vi-set-all'),
+                    [some ? opened : count]));
+                if (some) {
+                    main.setAttribute('data-intel-graph-alt', JSON.stringify([{
+                        label: plain(h.getAttribute('data-vi-set-all'), [count]),
+                        items: this.carried('all')
+                    }]));
+                } else {
+                    main.removeAttribute('data-intel-graph-alt');
+                }
+            }
+            if (label) {
+                label.innerHTML = fill(
+                    h.getAttribute(some ? 'data-vi-tpl' : 'data-vi-tpl-all'),
+                    [some ? opened : count]);
+            }
+        }
+        if (!this.handoff) {
+            return;
+        }
+        this.handoff.hidden = !actions;
+        var carry = this.carrying();
+        var total = this.rows.length;
+        var n = carry === 'all' ? total : opened;
+        this.handoff.querySelectorAll('[data-vi-carry]').forEach(
+            function (b) {
+                var which = b.getAttribute('data-vi-carry');
+                b.setAttribute('aria-pressed', String(which === carry));
+                b.disabled = which === 'opened' && opened === 0;
+                b.innerHTML = fill(b.getAttribute('data-vi-tpl'),
+                    [which === 'all' ? total : opened]);
+            }
+        );
+        var tpl = carry === 'all' ? 'data-vi-tpl-all' : 'data-vi-tpl';
+        var start = this.handoff.querySelector('[data-vi-start]');
+        start.innerHTML = fill(start.getAttribute(tpl), [n]);
+        var add = this.handoff.querySelector('[data-vi-add-ws]');
+        add.hidden = !workspace;
+        if (workspace) {
+            add.innerHTML = fill(add.getAttribute(tpl), [n])
+                + ' <span class="vi-ws-name">'
+                + esc(workspace.Collection.name) + '</span>';
+        }
+    };
+
+    // What an add to the workspace did, said under the offer.
+    Work.prototype.sayHanded = function (report) {
+        if (!this.handed || !report) {
+            return;
+        }
+        var added = (report.added || []).length;
+        var present = (report.present || []).length;
+        var refused = (report.refused || []).length;
+        var text = fill(this.handed.getAttribute('data-vi-tpl'),
+            [added, present]);
+        if (refused) {
+            text += ' ' + fill(
+                this.handed.getAttribute('data-vi-refused'), [refused]);
+        }
+        this.handed.innerHTML = text;
+        this.handed.hidden = false;
     };
 
     Work.prototype.rowOf = function (node) {
@@ -565,6 +721,7 @@
         this.counts(opened, cleared);
         this.sortNote(here, waiting);
         this.band(opened, cleared);
+        this.handOver(opened);
     };
 
     Work.prototype.reorder = function (order) {
@@ -750,13 +907,7 @@
      * Working the batch
      * --------------------------------------------------------------- */
 
-    Work.prototype.act = function (what, row, button) {
-        if (what === 'collect') {
-            if (typeof window.openModal === 'function') {
-                window.openModal(button.getAttribute('data-vi-collect'), 'xl');
-            }
-            return;
-        }
+    Work.prototype.act = function (what, row) {
         if (what === 'toggle') {
             row.toggled = !row.toggled;
         } else if (what === 'open' || what === 'clear') {
