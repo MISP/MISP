@@ -80,25 +80,6 @@ if (!class_exists('CakeText', false)) {
     }
 }
 
-if (!class_exists('ClassRegistry', false)) {
-    class ClassRegistry
-    {
-        public static $instances = array();
-
-        public static function init($name)
-        {
-            if (!isset(self::$instances[$name])) {
-                self::$instances[$name] = new CollectionTestFakeModel();
-            }
-            return self::$instances[$name];
-        }
-
-        public static function reset()
-        {
-            self::$instances = array();
-        }
-    }
-}
 
 if (!class_exists('CollectionTestFakeModel', false)) {
     class CollectionTestFakeModel
@@ -284,6 +265,7 @@ class CollectionPullTest extends TestCase
     {
         Configure::reset();
         ClassRegistry::reset();
+        ClassRegistry::$factory = function ($name) { return new CollectionTestFakeModel(); };
         $this->collection = new CollectionPullTestable();
         $this->sync = new CollectionPullTestServerSync();
     }

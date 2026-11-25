@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Enables code coverage, which was previously impossible: the
+  php-code-coverage bundled with PHPUnit 8 refuses to run on PHP 8, while
+  composer.json requires PHP 8.1 or newer.
+
+  Run from the app directory:
+    ./Vendor/bin/phpunit -c phpunit.xml
+    ./Vendor/bin/phpunit -c phpunit.xml  (add a coverage flag for a report)
+
+  The coverage filter excludes vendored CakePHP, Composer packages, and the
+  DebugKit and CakeResque plugins' own test suites, which are third-party
+  test code that would otherwise be counted as MISP source.
+-->
+<phpunit bootstrap="Test/bootstrap.php"
+         colors="true"
+         convertDeprecationsToExceptions="false"
+         cacheResultFile="tmp/.phpunit.result.cache">
+  <testsuites>
+    <testsuite name="misp">
+      <directory suffix="Test.php">Test</directory>
+      <!-- Test/Integration boots the real CakePHP stack against a database
+           and has its own config, phpunit-integration.xml. The two cannot
+           share a process: the stubs installed by Test/bootstrap.php and the
+           genuine Cake classes collide. -->
+      <exclude>Test/Integration</exclude>
+    </testsuite>
+  </testsuites>
+  <coverage processUncoveredFiles="false">
+    <include>
+      <directory suffix=".php">Model</directory>
+      <directory suffix=".php">Controller</directory>
+      <directory suffix=".php">Lib</directory>
+      <directory suffix=".php">Console</directory>
+      <directory suffix=".php">Plugin</directory>
+      <directory suffix=".php">View</directory>
+    </include>
+    <exclude>
+      <directory>Lib/cakephp</directory>
+      <directory>Vendor</directory>
+      <directory>Plugin/DebugKit</directory>
+      <directory>Plugin/CakeResque</directory>
+    </exclude>
+  </coverage>
+</phpunit>
