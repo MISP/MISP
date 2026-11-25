@@ -33,19 +33,44 @@ class SharingGraphWidget
         return 1;
     }
 
-    private function object_scoring($object) {
-        $score = 0;
-        $this->Object->bindModel(array('hasMany' => array('ObjectReference' => array('foreignKey' => 'object_id'))));
-        $o = $this->Object->find('first', array('conditions' => array('id' => $object['id'])));
+    private function object_scoring($object, array $referenceCounts = array()) {
         // We score for each object reference from this object
-        foreach ($o['ObjectReference'] as $reference ) {
-            //TODO more points for different types of references ?
-            $score += 2;
-        }
+        //TODO more points for different types of references ?
+        $score = 2 * (isset($referenceCounts[$object['id']]) ? $referenceCounts[$object['id']] : 0);
         return $score+50; // bonus for having an object
     }
 
-    private function event_scoring($event) {
+    /*
+    * Count the ObjectReferences of every object of every passed event in a single
+    * grouped query, keyed by object_id, instead of re-fetching them object by object.
+    */
+    private function fetch_object_reference_counts($events) {
+        $objectIds = array();
+        foreach ($events as $event) {
+            if (empty($event['Object'])) {
+                continue;
+            }
+            foreach ($event['Object'] as $object) {
+                $objectIds[$object['id']] = true;
+            }
+        }
+        if (empty($objectIds)) {
+            return array();
+        }
+        $rows = $this->ObjectReference->find('all', array(
+            'recursive' => -1,
+            'fields' => array('ObjectReference.object_id', 'COUNT(*) AS count'),
+            'conditions' => array('ObjectReference.object_id' => array_keys($objectIds)),
+            'group' => array('ObjectReference.object_id'),
+        ));
+        $referenceCounts = array();
+        foreach ($rows as $row) {
+            $referenceCounts[$row['ObjectReference']['object_id']] = (int) $row[0]['count'];
+        }
+        return $referenceCounts;
+    }
+
+    private function event_scoring($event, array $referenceCounts = array()) {
         $score = 0;
         $attr_count = 0;
         // Simple attribute scoring
@@ -58,7 +83,7 @@ class SharingGraphWidget
         }
         //Object scoring
         foreach($event['Object'] as $object) {
-            $score += $this->object_scoring($object);
+            $score += $this->object_scoring($object, $referenceCounts);
         }
         // Todo check use of taxonomies, tagging for extra points
         return $score;
@@ -85,8 +110,9 @@ class SharingGraphWidget
         if(!empty($eventIds)) {
             $params = array('Event.id' => $eventIds);
             $events = $this->Event->find('all', array('conditions' => array('AND' => $params)));
+            $referenceCounts = $this->fetch_object_reference_counts($events);
             foreach($events as $event) {
-                $total_score+= $this->event_scoring($event);
+                $total_score+= $this->event_scoring($event, $referenceCounts);
             }
         }
         return $total_score;
@@ -106,7 +132,6 @@ class SharingGraphWidget
         $this->Org = ClassRegistry::init('Organisation');
         $this->Event = ClassRegistry::init('Event');
         $this->Attribute = ClassRegistry::init('MispAttribute');
-        $this->Object = ClassRegistry::init('Object');
         $this->ObjectReference = ClassRegistry::init('ObjectReference');
         $orgs = $this->Org->find('all', array( 'conditions' => array('Organisation.local' => 1)));
         $current_month = date('n');
