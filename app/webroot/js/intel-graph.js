@@ -178,7 +178,8 @@
     /* ── the other tabs of this browser ───────────────────── */
     // A switch or a new count reaches them as a message between tabs: no
     // polling, nothing asked of the server. One user's tabs only, so a tab
-    // left open by someone who logged out ignores the next one's.
+    // left open by someone who logged out ignores the next one's. Without
+    // BroadcastChannel, the other tabs catch up on their next page load.
     var CHANNEL = 'misp-workspace';
     var channel = null;
     try {
@@ -186,14 +187,9 @@
     } catch (e) { channel = null; }
 
     function broadcast(message) {
+        if (!channel) return;
         message.user = config.user;
-        if (channel) {
-            try { channel.postMessage(message); } catch (e) { /* this tab only */ }
-            return;
-        }
-        try {
-            window.localStorage.setItem(CHANNEL, JSON.stringify(Object.assign({ sent: Date.now() + Math.random() }, message)));
-        } catch (e) { /* this tab only */ }
+        try { channel.postMessage(message); } catch (e) { /* this tab only */ }
     }
 
     function hear(message) {
@@ -203,14 +199,7 @@
         else if (message.kind === 'held') moveHeld(message.collection, message['in'] || [], message.out || []);
     }
 
-    if (channel) {
-        channel.onmessage = function (e) { hear(e.data); };
-    } else {
-        window.addEventListener('storage', function (e) {
-            if (e.key !== CHANNEL || !e.newValue) return;
-            try { hear(JSON.parse(e.newValue)); } catch (err) { /* not ours */ }
-        });
-    }
+    if (channel) channel.onmessage = function (e) { hear(e.data); };
 
     /* ── what the workspace holds ──────────────────────────── */
     // A record's key as addItems answers it; a value's is the SHA-256 of its
