@@ -17,6 +17,9 @@ What differs is the list of fields and what the tree selects: see
 [Analyst data](#analyst-data), [Collections](#collections), [Tags](#tags)
 and [Organisations](#organisations).
 
+[MispQL](mispql.md), an SQL-like language, compiles its `WHERE` into this tree
+and runs it through these endpoints.
+
 ## Availability
 
 - Only on the restSearch endpoints above, and only as a JSON object in
