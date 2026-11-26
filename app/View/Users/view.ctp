@@ -186,8 +186,8 @@ if ($admin_view) {
     );
 }
 echo $this->element('genericElements/assetLoader', array(
-    'css' => array('vis', 'distribution-graph'),
-    'js' => array('vis', 'jquery-ui.min', 'network-distribution-graph')
+    'css' => array('vis-network.min', 'distribution-graph'),
+    'js' => array('vis-network.min', 'jquery-ui.min', 'network-distribution-graph')
 ));
 if (Configure::read('MISP.log_new_audit')) {
     $searchHtml = sprintf(
