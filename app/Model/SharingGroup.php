@@ -76,6 +76,8 @@ class SharingGroup extends AppModel
 
     private $authorizedIds = [];
 
+    /** @var array|null Memoised result of `fetchAllSharingGroup()` */
+    private $__allSharingGroups = null;
     /** @var array|null While a pull or a feed captures data: whether the link is internal, and the remote's org id */
     private static $remoteCapture = null;
 
@@ -1151,8 +1153,11 @@ class SharingGroup extends AppModel
      */
     public function fetchAllSharingGroup(): array
     {
-        return $this->find('all', [
-            'recursive' => -1,
-        ]);
+        if (is_null($this->__allSharingGroups)) {
+            $this->__allSharingGroups = $this->find('all', [
+                'recursive' => -1,
+            ]);
+        }
+        return $this->__allSharingGroups;
     }
 }
