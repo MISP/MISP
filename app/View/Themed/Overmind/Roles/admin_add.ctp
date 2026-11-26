@@ -128,7 +128,9 @@ echo $this->Form->create('Role', [
                     <?php
                         $readonlyClass = $flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled';
                         $siteAdminClass = empty($flag['site_admin_optional']) ? 'site_admin_enforced' : 'site_admin_optional';
-                        $granted = !empty($roleData[$k]);
+                        $granted = array_key_exists($k, $roleData)
+                            ? !empty($roleData[$k])
+                            : !$edit && !empty($flag['default']);
                         $cbId = 'Role' . Inflector::camelize($k);
                     ?>
                     <label class="perm-pill <?= $readonlyClass ?><?= $granted ? ' granted' : '' ?>"
