@@ -2458,17 +2458,17 @@
     "Feed": {
       "name": "HoneyLabs active exploiters",
       "provider": "HoneyLabs",
-      "url": "https://honeylabs.net/feed/exploiters",
+      "url": "https://honeylabs.net/feed/exploiters/misp",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "0",
       "default": false,
-      "source_format": "csv",
-      "fixed_event": true,
-      "delta_merge": true,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
       "publish": false,
-      "override_ids": true,
-      "settings": "{\"csv\":{\"value\":\"1\"}}",
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": false
@@ -2484,17 +2484,17 @@
     "Feed": {
       "name": "HoneyLabs malware infrastructure",
       "provider": "HoneyLabs",
-      "url": "https://honeylabs.net/feed/malware-infrastructure",
+      "url": "https://honeylabs.net/feed/malware-infrastructure/misp",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "0",
       "default": false,
-      "source_format": "freetext",
-      "fixed_event": true,
-      "delta_merge": true,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
       "publish": false,
-      "override_ids": true,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": false
@@ -2648,6 +2648,66 @@
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": true
+    }
+  },
+  {
+    "Feed": {
+      "name": "Agentic Attack Detections - AI agent attack framework IPv4 addresses",
+      "provider": "Agentic Attack Detections",
+      "url": "https://raw.githubusercontent.com/ThreatDefence/agentic-attack-detections/main/feeds/ipv4.txt",
+      "rules": "",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    }
+  },
+  {
+    "Feed": {
+      "name": "Agentic Attack Detections - AI agent attack framework domains",
+      "provider": "Agentic Attack Detections",
+      "url": "https://raw.githubusercontent.com/ThreatDefence/agentic-attack-detections/main/feeds/domains.txt",
+      "rules": "",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    }
+  },
+  {
+    "Feed": {
+      "name": "OffSeq Mirage community feed",
+      "provider": "OffSeq",
+      "url": "https://feeds.offseq.com/mirage-feed/misp",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "misp",
+      "fixed_event": false,
+      "delta_merge": false,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false
     }
   }
 ]

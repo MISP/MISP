@@ -260,6 +260,8 @@ class CollectionsController extends AppController
                     // owner could flip locked and bypass the create-time guard in
                     // Collection::beforeValidate. Pin it to the stored value.
                     'locked' => $oldCollection['Collection']['locked'],
+                    // CRUD edit keeps the stored value, and sync only sees a newer `modified`.
+                    'modified' => date('Y-m-d H:i:s'),
                 ],
                 'afterSave' => function (array &$collection) use ($data) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
@@ -341,6 +343,15 @@ class CollectionsController extends AppController
             return $this->restResponsePayload;
         }
         $data = $this->viewVars['data'];
+        $sharingGroupId = $data['Collection']['SharingGroup']['id'] ?? null;
+        if ($data['Collection']['distribution'] != 4) {
+            unset($data['Collection']['SharingGroup']);
+        } elseif (!empty($sharingGroupId)) {
+            $data['Collection']['SharingGroup']['org_count'] = $this->Collection->SharingGroup->SharingGroupOrg->find('count', [
+                'conditions' => ['SharingGroupOrg.sharing_group_id' => $sharingGroupId],
+            ]);
+        }
+        $this->set('data', $data);
         $elements = $data['Collection']['CollectionElement'] ?? [];
 
         // Enrich elements with a human-readable reference so the elements
@@ -428,6 +439,9 @@ class CollectionsController extends AppController
             'contain' => ['Orgc', 'SharingGroup'],
             'afterFind' => function($collections) {
                 foreach ($collections as $k => $collection) {
+                    if ($collection['Collection']['distribution'] != 4) {
+                        unset($collections[$k]['SharingGroup']);
+                    }
                     $collections[$k]['Collection']['element_count'] = $this->Collection->CollectionElement->find('count', [
                         'recursive' => -1,
                         'conditions' => ['CollectionElement.collection_id' => $collection['Collection']['id']]

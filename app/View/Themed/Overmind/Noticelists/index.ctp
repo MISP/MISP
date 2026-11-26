@@ -103,14 +103,24 @@ $fields = [
                 'url' => $baseurl . '/noticelists/view/%id%'
             ],
             [
-                'type' => 'toggle',
-                'label_on' => __('Disable'),
-                'label_off' => __('Enable'),
-                'icon_on' => 'fas fa-stop text-danger',
-                'icon_off' => 'fas fa-play text-success',
-                'url' => '/noticelists/%action%/%id%',
-                'enable_path' => 'Noticelist.enabled',
-                'requirement' => $isSiteAdmin
+                'type' => 'modal',
+                'label' => __('Disable'),
+                'icon' => 'fas fa-stop text-danger',
+                'url' => $baseurl . '/noticelists/massDisable/%id%',
+                'size' => 'md',
+                'requirement' => function ($row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && !empty($row['Noticelist']['enabled']);
+                },
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enable'),
+                'icon' => 'fas fa-play text-success',
+                'url' => $baseurl . '/noticelists/massEnable/%id%',
+                'size' => 'md',
+                'requirement' => function ($row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && empty($row['Noticelist']['enabled']);
+                },
             ]
         ]
     ]

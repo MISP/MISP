@@ -989,9 +989,6 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
         <a href="<?= h($baseurl . '/servers/ondemandAction/') ?>" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-bolt me-1"></i><?= __('On-demand actions') ?>
         </a>
-        <a href="<?= h($baseurl . '/events/restoreDeletedEvents') ?>" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-trash-arrow-up me-1"></i><?= __('Recover deleted events') ?>
-        </a>
         <a href="<?= h($baseurl . '/pages/display/administration') ?>" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-clock-rotate-left me-1"></i><?= __('Legacy administrative tools') ?>
         </a>

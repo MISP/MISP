@@ -537,6 +537,7 @@ function enable_timeline() {
     var payload = {scope: map_scope($('#select_timeline_scope').val())};
     $.ajax({
         url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+extended_text+"/event.json",
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',

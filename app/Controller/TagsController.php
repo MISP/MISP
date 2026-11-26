@@ -45,12 +45,19 @@ class TagsController extends AppController
         $conditions = [];
         $passedArgsArray = $this->IndexFilter->harvestParameters(['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics']);
 
-        if (!empty($passedArgsArray['favouritesOnly'])) {
+        // Truthy keeps the user's favourites, 0 drops them, '' or absent is no filter.
+        $favourites = $passedArgsArray['favouritesOnly'] ?? null;
+        $notFavourites = $favourites === '0' || $favourites === 0;
+        if ($notFavourites || !empty($favourites)) {
             $tagIdList = $this->Tag->FavouriteTag->find('list', [
                 'conditions' => ['FavouriteTag.user_id' => $this->Auth->user('id')],
                 'fields' => ['FavouriteTag.tag_id']
             ]);
-            $conditions['Tag.id'] = empty($tagIdList) ? -1 : $tagIdList;
+            if (!$notFavourites) {
+                $conditions['Tag.id'] = empty($tagIdList) ? -1 : $tagIdList;
+            } elseif (!empty($tagIdList)) {
+                $conditions['NOT'] = ['Tag.id' => array_values($tagIdList)];
+            }
         }
 
         $params = [
@@ -133,7 +140,7 @@ class TagsController extends AppController
         if (!empty($passedArgsArray['exclude_statistics'])) {
             $this->set('exclude_statistics', true);
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('list', $this->viewVars['data']);
         $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
@@ -650,6 +657,8 @@ class TagsController extends AppController
             }
             throw new ForbiddenException($message);
         }
+        // Every caller attaches or removes a tag, local ones included.
+        $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $object);
         return $object;
     }
 

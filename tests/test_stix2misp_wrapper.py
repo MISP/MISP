@@ -67,6 +67,51 @@ class Stix2ImportWrapperContract(unittest.TestCase):
             f.truncate(101 * 1024 * 1024)
         self.assert_error(path, 'The STIX 2 document is too large to import: ')
 
+    def assert_stix_version(self, bundle, expected):
+        path = self.dir / 'bundle.json'
+        path.write_text(json.dumps(bundle))
+        returncode, payload = run_import(path)
+        self.assertEqual(returncode, 0, payload)
+        self.assertEqual(payload.get('stix_version'), expected)
+
+    def test_stix20_bundle_is_reported_as_stix20(self):
+        self.assert_stix_version(
+            {
+                'type': 'bundle',
+                'id': 'bundle--5b2ea4b4-8d8a-4a1d-8b4e-0c1b0d5a6f01',
+                'spec_version': '2.0',
+                'objects': [{
+                    'type': 'indicator',
+                    'id': 'indicator--5b2ea4b4-8d8a-4a1d-8b4e-0c1b0d5a6f02',
+                    'created': '2026-01-01T00:00:00.000Z',
+                    'modified': '2026-01-01T00:00:00.000Z',
+                    'labels': ['malicious-activity'],
+                    'pattern': "[ipv4-addr:value = '198.51.100.1']",
+                    'valid_from': '2026-01-01T00:00:00Z'
+                }]
+            },
+            '2.0'
+        )
+
+    def test_stix21_bundle_is_reported_as_stix21(self):
+        self.assert_stix_version(
+            {
+                'type': 'bundle',
+                'id': 'bundle--5b2ea4b4-8d8a-4a1d-8b4e-0c1b0d5a6f03',
+                'objects': [{
+                    'type': 'indicator',
+                    'spec_version': '2.1',
+                    'id': 'indicator--5b2ea4b4-8d8a-4a1d-8b4e-0c1b0d5a6f04',
+                    'created': '2026-01-01T00:00:00.000Z',
+                    'modified': '2026-01-01T00:00:00.000Z',
+                    'pattern': "[ipv4-addr:value = '198.51.100.1']",
+                    'pattern_type': 'stix',
+                    'valid_from': '2026-01-01T00:00:00Z'
+                }]
+            },
+            '2.1'
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

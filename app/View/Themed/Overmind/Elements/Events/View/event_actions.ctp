@@ -25,6 +25,7 @@ if ($canEdit) {
         'url' => "$baseurl/events/edit/$eventId",
         'onclick' => $modal("$baseurl/events/edit/$eventId"),
         'icon' => 'fas fa-pen',
+        'tour' => 'action-edit-event',
         'label' => __('Edit Event')
     ];
 
@@ -48,6 +49,7 @@ if ($canEdit) {
         'url' => "$baseurl/objects/add/$eventId",
         'onclick' => $modal("$baseurl/objects/add/$eventId"),
         'icon' => 'misp-icon misp-icon-object misp-simple',
+        'tour' => 'action-add-object',
         'label' => __('Add Object')
     ];
 
@@ -55,6 +57,7 @@ if ($canEdit) {
         'url' => "$baseurl/attributes/add_attachment/$eventId",
         'onclick' => $modal("$baseurl/attributes/add_attachment/$eventId"),
         'icon' => 'fas fa-paperclip',
+        'tour' => 'action-add-attachment',
         'label' => __('Add Attachment')
     ];
 
@@ -62,6 +65,7 @@ if ($canEdit) {
         'url' => "$baseurl/event_reports/add/$eventId",
         'onclick' => $modal("$baseurl/event_reports/add/$eventId"),
         'icon' => 'misp-icon misp-icon-report misp-simple',
+        'tour' => 'action-add-report',
         'label' => __('Add Event Report')
     ];
 
@@ -96,6 +100,7 @@ if ($canEdit) {
             'url' => "$baseurl/events/enrichEvent/$eventId",
             'onclick' => $modal("$baseurl/events/enrichEvent/$eventId"),
             'icon' => 'fas fa-wand-magic-sparkles',
+            'tour' => 'action-enrich',
             'label' => __('Enrich Event')
         ];
     }
@@ -136,6 +141,7 @@ $actions[] = [
     'url' => "$baseurl/events/exportChoice/$eventId",
     'onclick' => $modal("$baseurl/events/exportChoice/$eventId", 'md'),
     'icon' => 'fas fa-download',
+    'tour' => 'action-download',
     'label' => __('Download as')
 ];
 

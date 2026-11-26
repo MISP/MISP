@@ -213,6 +213,15 @@ class ObjectReference extends AppModel
                 'recursive' => -1
             ));
             if (!empty($existingReference)) {
+                // The uuid is unique: another event's reference is neither updated nor recreated here.
+                if ((int)$existingReference['ObjectReference']['event_id'] !== (int)$eventId) {
+                    // Not 'edit': createLogEntry() drops those when the new audit log is on.
+                    $this->loadLog()->createLogEntry('SYSTEM', 'warning', 'ObjectReference', 0,
+                        'Duplicate UUID found in object reference',
+                        sprintf('An object reference was blocked from being saved in event %s: its uuid %s belongs to a reference in event %s.', $eventId, $reference['uuid'], $existingReference['ObjectReference']['event_id'])
+                    );
+                    return true;
+                }
                 // ObjectReference not newer than existing one
                 if (isset($reference['timestamp']) && $reference['timestamp'] <= $existingReference['ObjectReference']['timestamp']) {
                     return true;

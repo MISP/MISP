@@ -1,4 +1,5 @@
 <?php
+$this->set('headerIdentity', $event['Event']);
 $serverId   = (int)$server['Server']['id'];
 $serverName = !empty($server['Server']['name'])
     ? sprintf('"%s" (%s)', $server['Server']['name'], $server['Server']['url'])
@@ -68,15 +69,21 @@ foreach ($event['objects'] ?? [] as $previewObject) {
 <?php
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $event,
+    'ownership' => [
+        'orgc' => $event['Orgc'] ?? [],
+        'org' => $event['Org'] ?? [],
+        'distribution' => $event['Event']['distribution'] ?? null,
+        'sharingGroup' => $event['SharingGroup'] ?? [],
+        'link' => false,
+    ],
     'tabs' => [
         [
             'id' => 'general',
             'title' => __('General'),
             'icon' => 'fas fa-info-circle',
             'left' => [
+                ['row' => ['Servers/View/preview_tags', 'Servers/View/preview_galaxies']],
                 'Servers/View/preview_general',
-                'Servers/View/preview_tags',
-                'Servers/View/preview_galaxies',
             ],
             'right' => [
                 'Servers/View/preview_actions',

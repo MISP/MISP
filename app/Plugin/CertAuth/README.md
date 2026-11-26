@@ -4,6 +4,8 @@ This plugin enables CakePHP applications to use client SSL certificates to state
 
 Basically it loads the `SSL_CLIENT_*` variables, parses and maps the certificate information to the user. So you first need a server that checks client certificates and forwards that information to the PHP `$_SERVER` environment.
 
+The web server must verify client certificates against the trusted CA: Apache needs `SSLVerifyClient require` with `SSLCACertificateFile` and `SSLOptions +StdEnvVars` (so the variables reach PHP); nginx needs `ssl_verify_client on` and `SSL_CLIENT_VERIFY`, `SSL_CLIENT_S_DN` and `SSL_CLIENT_I_DN` passed as fastcgi params. Never use `optional_no_ca`. The plugin refuses a certificate whose `SSL_CLIENT_VERIFY` is anything but `SUCCESS`.
+
 ## Configuration
 
 * Uncomment the line "'auth'=>array('CertAuth.Certificate')," in Config.php, section "Security"
@@ -60,4 +62,3 @@ Basically it loads the `SSL_CLIENT_*` variables, parses and maps the certificate
 ```
 
 If you set *syncUser* to *true* and *restApi.url* to *null*, new users will be created with the defaults defined by *userDefaults* without the need for a REST server.
-

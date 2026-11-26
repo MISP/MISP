@@ -26,7 +26,7 @@ echo '<div id="' . $containerId . '_content">';
     <!-- CARD 2 + 3 : DATA AND PAGINATION -->
     <div id="index-results" class="index-results">
 
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm mb-4" data-tour="index-table">
         <div class="card-body p-0">
             <div id="tableView">
                 <?= $this->element(
