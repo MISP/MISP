@@ -763,7 +763,7 @@ class AttributeValueFilterDbTest extends TestCase
             $tmp = $this->attribute->restSearch($this->user, 'json', $paging + ['enforceWarninglist' => 1],
                 false, false, $count, $renderView, $skipped, ['id' => ['IN' => $ids]]);
             $rows = json_decode($tmp->intoString(), true)['response']['Attribute'];
-            return [array_map('intval', array_column($rows, 'id')), $count];
+            return [array_map('intval', array_column($rows, 'id')), $count, $skipped];
         };
         try {
             ini_set('memory_limit', '1024M');
@@ -777,10 +777,10 @@ class AttributeValueFilterDbTest extends TestCase
             $enabled->setValue($warninglist, null);
             $entries->setValue($warninglist, []);
         }
-        // Every row kept, counted as the rows read
-        $this->assertSame([$this->ids('domain', 'other', 'regkey'), 6], $export);
-        $this->assertSame([$this->ids('domain'), 4], $first);
-        $this->assertSame([$this->ids('other', 'regkey'), 2], $second);
+        // Every row kept, counted as the rows read, and the dropped ones of every batch
+        $this->assertSame([$this->ids('domain', 'other', 'regkey'), 6, 3], $export);
+        $this->assertSame([$this->ids('domain'), 4, 3], $first);
+        $this->assertSame([$this->ids('other', 'regkey'), 2, 0], $second);
     }
 
     public function testAFetchReadsTheValuesOfItsCorrelationsAtOnce()

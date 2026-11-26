@@ -4270,6 +4270,7 @@ class MispAttribute extends AppModel
     private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
     {
         $separator = $exportTool->separator($exportToolParams);
+        $skippedElementsCounter = 0;
         $offset = ($params['limit'] * ($params['page'] - 1));
         if ($params['page'] > 1) {
             $params['offset'] = $offset;
@@ -4309,8 +4310,10 @@ class MispAttribute extends AppModel
             // Paging decides on the rows read, filtered or not: a batch the
             // filters thinned is not the end, and the cursor skips what they dropped
             $readCount = 0;
-            $results = $this->fetchAttributes($user, $params, $readCount, false, $skippedElementsCounter, $lastId);
+            $skippedCount = 0;
+            $results = $this->fetchAttributes($user, $params, $readCount, false, $skippedCount, $lastId);
             $totalCount += $readCount;
+            $skippedElementsCounter += $skippedCount;
             if ($readCount === 0) {
                 break; // nothing found, skip rest
             }
