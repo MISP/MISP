@@ -25,11 +25,18 @@ echo $this->element('genericElements/IndexTable/index_table', [
                             'url' => $baseurl . '/correlations/overCorrelations/scope:not_over_correlating',
                             'text' => __('Not over-correlating'),
                             'active' => $scope === 'not_over_correlating',
-                        ],
+                        ]
+                    ]
+                ],
+                [
+                    'type' => 'raw',
+                    'children' => [
                         [
-                            'type' => 'simple',
-                            'url' => $baseurl . '/correlations/generateOccurrences',
-                            'text' => __('Regenerate occurrence counts')
+                            'html' => $this->Form->postLink(
+                                __('Regenerate occurrence counts'),
+                                $baseurl . '/correlations/generateOccurrences',
+                                ['class' => 'btn btn-small btn-inverse']
+                            )
                         ]
                     ]
                 ],

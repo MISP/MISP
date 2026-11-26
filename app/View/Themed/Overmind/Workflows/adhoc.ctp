@@ -154,6 +154,12 @@ $fields = [
             ] : null,
             [
                 'type' => 'navigate',
+                'label' => __('Details'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/workflows/moduleView/%id%',
+            ],
+            [
+                'type' => 'navigate',
                 'label' => __('Open in editor'),
                 'icon' => 'code',
                 'url' => $baseurl . '/workflows/editor/%workflow_id%',

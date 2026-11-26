@@ -128,17 +128,26 @@ class SharingGroupBlueprint extends AppModel
                 ]
             ]);
             $existingOrgs = [];
-            $editors = [
-                $sg['SharingGroup']['org_id']
-            ];
-            foreach ($sg['SharingGroupOrg'] as $sgo) {
-                $existingOrgs[] = $sgo['org_id'];
-                if (!empty($sgo['extend'])) {
-                    $editors[] = $sgo['org_id'];
+            $id = $sharingGroupBlueprint['SharingGroupBlueprint']['sharing_group_id'];
+            if (empty($sg)) {
+                $failed++;
+            } else {
+                $editors = [
+                    $sg['SharingGroup']['org_id']
+                ];
+                foreach ($sg['SharingGroupOrg'] as $sgo) {
+                    $existingOrgs[] = $sgo['org_id'];
+                    if (!empty($sgo['extend'])) {
+                        $editors[] = $sgo['org_id'];
+                    }
+                }
+                $existingOrgs = array_unique($existingOrgs);
+                $id = $sg['SharingGroup']['id'];
+                // the blueprint's organisation may have lost its right to extend the group since it was added
+                if (!in_array($sharingGroupBlueprint['SharingGroupBlueprint']['org_id'], $editors)) {
+                    $failed++;
                 }
             }
-            $existingOrgs = array_unique($existingOrgs);
-            $id = $sg['SharingGroup']['id'];
         }
         return [
             'id' => $id,

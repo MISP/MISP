@@ -180,11 +180,17 @@ class ApacheAuthenticate extends BaseAuthenticate
                 $user['email'] = $mispUsername;
                 $user['org_id'] = $org_id;
                 $user['role_id'] = $roleId;
-                # Reenable user in case it has been disabled
-                $user['disabled'] = 0;
+                $disabled = !empty($user['disabled']);
+                if ($disabled && Configure::read('ApacheSecureAuth.unblock')) {
+                    $user['disabled'] = 0;
+                }
             }
 
             $userModel->save($user, false);
+
+            if (!empty($disabled) && !Configure::read('ApacheSecureAuth.unblock')) {
+                return false;
+            }
         }
 
         return $this->_findUser(

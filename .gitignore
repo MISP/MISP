@@ -72,6 +72,7 @@ app/Lib/EventWarning/Custom/*
 /app/files/scripts/yara/__pycache__
 /app/files/scripts/yara/*.pyc
 /app/files/scripts/yara/*.py~
+/app/files/scripts/yara/parsetab.py
 /app/files/scripts/mispzmq/*
 !/app/files/scripts/mispzmq/mispzmq.py
 !/app/files/scripts/mispzmq/mispzmqtest.py
@@ -143,4 +144,5 @@ vagrant/*.log
 
 .vscode/launch.json
 
+/tests/__pycache__
 /tests/ldapauth/__pycache__

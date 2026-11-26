@@ -47,7 +47,7 @@ class TrainingShell extends AppShell {
                 $input = $this->__user_input($question, array('y', 'n'));
                 if ($input === 'n') {
                     $this->__printReport('Stopping execution. Data created so far:' . PHP_EOL . PHP_EOL);
-                    die();
+                    $this->_stop();
                 }
             }
             if ($this->__verbose) {
@@ -65,8 +65,7 @@ class TrainingShell extends AppShell {
         $this->__interactive = !empty($this->params['interactive']);
         $this->__config = file_get_contents(APP . 'Console/Command/training.json');
         if (empty($this->__config)) {
-            echo 'No config file found. Make sure that training.json exists and is configured.';
-            die();
+            $this->error('No config file found. Make sure that training.json exists and is configured.');
         }
         $this->__config = json_decode($this->__config, true);
         $this->__report = array();
@@ -83,7 +82,7 @@ class TrainingShell extends AppShell {
                 $input = $this->__user_input($question, array('y', 'n'));
                 if ($input === 'n') {
                     $this->__printReport('Stopping execution. Data created so far:' . PHP_EOL . PHP_EOL);
-                    die();
+                    $this->_stop();
                 }
             }
             if ($this->__verbose) {
@@ -268,7 +267,7 @@ class TrainingShell extends AppShell {
         ));
         if (empty($org)) {
             $this->__printReport('Stopping execution, no host_org_id set on the current instance, or the setting points to a non-existing org. Data created so far:' . PHP_EOL . PHP_EOL);
-            die();
+            $this->_stop(self::CODE_ERROR);
         }
         return $org;
     }
@@ -333,8 +332,7 @@ class TrainingShell extends AppShell {
         $email = 'admin' . substr($email, strpos($email, '@'));
         $admin_role_id = $this->__findRemoteRoleId('Admin');
         if (!$admin_role_id) {
-            echo 'Remote instance lacks the required role (Admin).' . PHP_EOL ;
-            die();
+            $this->error('Remote instance lacks the required role (Admin).');
         }
         $options = array(
             'url' => $this->__currentUrl . '/admin/users/index/searchall:' . $email,
@@ -376,13 +374,11 @@ class TrainingShell extends AppShell {
     {
         $sync_user_role_id = $this->__findRemoteRoleId('Sync user');
         if (!$sync_user_role_id) {
-            echo 'Remote instance lacks the required role (Sync user).' . PHP_EOL ;
-            die();
+            $this->error('Remote instance lacks the required role (Sync user).');
         }
         $remote_admin = $this->__getRemoteAdminUser();
         if (!$remote_admin) {
-            echo 'Remote instance did not return the admin user\'s information.' . PHP_EOL ;
-            die();
+            $this->error('Remote instance did not return the admin user\'s information.');
         }
         $email = $remote_admin['User']['email'];
         $email = 'sync' . substr($email, strpos($email, '@'));
@@ -523,7 +519,7 @@ class TrainingShell extends AppShell {
             }
         }
         $this->__printReport('Setup failed. Output of what has been created:' . PHP_EOL . PHP_EOL);
-        die();
+        $this->_stop(self::CODE_ERROR);
     }
 
     private function __resetPasswords($org, $i)

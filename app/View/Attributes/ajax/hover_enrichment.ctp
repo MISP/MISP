@@ -3,7 +3,10 @@
 $formatValue = function (array $attribute) {
     switch ($attribute['type']) {
         case 'link':
-            return '<a href="' . h($attribute['value']) . '" rel="noreferrer noopener" target="_blank">' . h($attribute['value']) . '</a>';
+            if (preg_match('/^https?:\/\//i', $attribute['value'])) {
+                return '<a href="' . h($attribute['value']) . '" rel="noreferrer noopener" target="_blank">' . h($attribute['value']) . '</a>';
+            }
+            return h($attribute['value']);
         default:
             return h($attribute['value']);
     }

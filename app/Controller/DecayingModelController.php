@@ -49,18 +49,25 @@ class DecayingModelController extends AppController
                 throw new MethodNotAllowedException(__('Error while decoding JSON'));
             }
 
-            unset($json['id']);
-            unset($json['uuid']);
-            $json['default'] = 0;
-            $json['org_id'] = $this->Auth->user()['org_id'];
-
             $attribute_types = array();
             if (!empty($json['attribute_types'])) {
                 $attribute_types = $json['attribute_types'];
                 unset($json['attribute_types']);
             }
 
-            if ($this->DecayingModel->save($json)) {
+            // Import only ever creates a model for the caller's own organisation, so build the
+            // row from an allow-list: stripping the id on the submitted array left it able to
+            // carry its own primary key, org_id and default flag one level deeper.
+            $importable = array(
+                'name', 'parameters', 'description', 'ref', 'formula', 'version',
+                'enabled', 'all_orgs'
+            );
+            $model = array_intersect_key($json, array_flip($importable));
+            $model['org_id'] = $this->Auth->user()['org_id'];
+            $model['default'] = 0;
+
+            $this->DecayingModel->create();
+            if ($this->DecayingModel->save(array('DecayingModel' => $model))) {
                 $saved_model = array(
                     'model_id' => $this->DecayingModel->id,
                     'attribute_types' => $attribute_types

@@ -33,7 +33,6 @@ class NavbarHelper extends AppHelper {
         'warninglists'             => 'datamodels',
         'noticelists'              => 'datamodels',
         'regexp'                   => 'datamodels',
-        'allowedlists'             => 'datamodels',
         'correlation_exclusions'   => 'datamodels',
         // Sync
         'syncconfigs'            => 'sync',
@@ -269,6 +268,13 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'misp-icon misp-icon-tag misp-simple',
                 'children' => [
                     [
+                        'label' => __('List Taxonomies'),
+                        'url' => $baseurl . '/taxonomies/index',
+                        'controller' => 'taxonomies',
+                        'action' => 'index',
+                        'icon' => 'misp-icon misp-icon-taxonomy misp-simple'
+                    ],
+                    [
                         'label' => __('List Tags'),
                         'url' => $baseurl . '/tags/index',
                         'controller' => 'tags',
@@ -281,13 +287,6 @@ class NavbarHelper extends AppHelper {
                         'controller' => 'tagCollections',
                         'action' => 'index',
                         'icon' => 'fas fa-tags'
-                    ],
-                    [
-                        'label' => __('List Taxonomies'),
-                        'url' => $baseurl . '/taxonomies/index',
-                        'controller' => 'taxonomies',
-                        'action' => 'index',
-                        'icon' => 'misp-icon misp-icon-taxonomy misp-simple'
                     ]
                 ]
             ],
@@ -412,22 +411,6 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-code'
                     ],
                     [
-                        'label' => __('Signature Allowedlist'),
-                        'url' => $baseurl . '/admin/allowedlists/index',
-                        'controller' => 'allowedlists',
-                        'action' => 'index',
-                        'requirement' => $isAclRegexp,
-                        'icon' => 'fas fa-check-circle'
-                    ],
-                    [
-                        'label' => __('Signature Allowedlist'),
-                        'url' => $baseurl . '/allowedlists/index',
-                        'controller' => 'allowedlists',
-                        'action' => 'index',
-                        'requirement' => !$isAclRegexp,
-                        'icon' => 'fas fa-check-circle'
-                    ],
-                    [
                         'label' => __('Correlation Exclusions'),
                         'url' => $baseurl . '/correlation_exclusions/index',
                         'controller' => 'correlation_exclusions',
@@ -461,9 +444,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Create Sync Config'),
-                        'url' => $baseurl . '/syncConfigs/add',
-                        'controller' => 'syncConfigs',
-                        'action' => 'add',
+                        'url' => $baseurl . '/servers/createSync',
+                        'controller' => 'servers',
+                        'action' => 'createSync',
                         'requirement' => $isAclSync && !$isSiteAdmin,
                         'icon' => 'fas fa-rotate'
                     ],
@@ -526,6 +509,7 @@ class NavbarHelper extends AppHelper {
             ['divider' => true],
             [
                 'type' => 'group',
+                'id' => 'integrations',
                 'label' => __('Integrations'),
                 'icon' => 'fas fa-plug',
                 'children' => [
@@ -704,6 +688,7 @@ class NavbarHelper extends AppHelper {
             ['divider' => true],
             [
                 'type' => 'group',
+                'id' => 'blocklisting',
                 'label' => __('Blocklisting'),
                 'icon' => 'fas fa-ban',
                 'children' => [
@@ -735,6 +720,7 @@ class NavbarHelper extends AppHelper {
             ],
             [
                 'type' => 'group',
+                'id' => 'correlations',
                 'label' => __('Correlations'),
                 'icon' => 'fas fa-circle-nodes',
                 'children' => [

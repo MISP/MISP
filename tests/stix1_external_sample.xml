@@ -1,0 +1,40 @@
+<stix:STIX_Package
+	xmlns:cybox="http://cybox.mitre.org/cybox-2"
+	xmlns:AddressObj="http://cybox.mitre.org/objects#AddressObject-2"
+	xmlns:DomainNameObj="http://cybox.mitre.org/objects#DomainNameObject-1"
+	xmlns:indicator="http://stix.mitre.org/Indicator-2"
+	xmlns:stix="http://stix.mitre.org/stix-1"
+	xmlns:stixCommon="http://stix.mitre.org/common-1"
+	xmlns:stixVocabs="http://stix.mitre.org/default_vocabularies-1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:example="http://example.com"
+	 id="example:STIXPackage-1b4e02b5-5ad3-4f0d-9e2a-3bd0d1b0d9c5" version="1.1.1" timestamp="2020-10-25T16:22:00Z">
+    <stix:STIX_Header>
+        <stix:Title>Indicators for a known command and control channel</stix:Title>
+        <stix:Description>Third party content, no MISP export marker anywhere in it</stix:Description>
+    </stix:STIX_Header>
+    <stix:Indicators>
+        <stix:Indicator id="example:Indicator-33fe3b22-0201-47cf-85d0-97c02164528d" timestamp="2020-10-25T16:22:00Z" xsi:type='indicator:IndicatorType'>
+            <indicator:Title>IP Address for known C2 channel</indicator:Title>
+            <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">IP Watchlist</indicator:Type>
+            <indicator:Observable id="example:Observable-1c798262-a4cd-434d-a958-884d6980c459">
+                <cybox:Object id="example:Address-1980ce43-8e03-490b-863a-ea404d12242e">
+                    <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr">
+                        <AddressObj:Address_Value condition="Equals">198.51.100.14</AddressObj:Address_Value>
+                    </cybox:Properties>
+                </cybox:Object>
+            </indicator:Observable>
+        </stix:Indicator>
+        <stix:Indicator id="example:Indicator-8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f" timestamp="2020-10-25T16:22:00Z" xsi:type='indicator:IndicatorType'>
+            <indicator:Title>Domain name for the same C2 channel</indicator:Title>
+            <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Domain Watchlist</indicator:Type>
+            <indicator:Observable id="example:Observable-6f6b0c6b-9a34-4f1e-9f22-37e2f60f1f14">
+                <cybox:Object id="example:DomainName-4bb235a7-7d25-4aef-802f-2c6b45c5eceb">
+                    <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                        <DomainNameObj:Value condition="Equals">example.org</DomainNameObj:Value>
+                    </cybox:Properties>
+                </cybox:Object>
+            </indicator:Observable>
+        </stix:Indicator>
+    </stix:Indicators>
+</stix:STIX_Package>

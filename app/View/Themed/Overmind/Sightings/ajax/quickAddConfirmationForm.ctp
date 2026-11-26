@@ -1,64 +1,43 @@
 <?php
-$typeLabel = $sighting_type
-    ? '<strong class="text-danger">' . __('false-positive') . '</strong>'
-    : '<strong class="text-success">' . __('sighting') . '</strong>';
+$isFalsePositive = (int)$sighting_type === 1;
+$typeLabel = $isFalsePositive ? __('false positive') : __('sighting');
+
+echo $this->Form->create('Sighting', [
+    'id' => 'PromptForm',
+    'url' => $baseurl . '/sightings/add/' . h($id),
+]);
 ?>
+<div style="border-radius: var(--bs-modal-border-radius, var(--bs-border-radius-lg)); overflow: hidden;">
+    <?= $this->element('genericElementsBS5/Forms/modal_header', [
+        'accent' => 'sighting',
+        'eyebrow' => __('Sightings'),
+        'title' => $isFalsePositive ? __('Mark value as false positive') : __('Add sighting on value'),
+        'description' => __('Applies to every attribute you can see that holds this value.'),
+        'titleIcon' => $isFalsePositive ? 'far fa-thumbs-down' : 'far fa-thumbs-up',
+        'icon' => 'misp-icon misp-icon-sighting misp-simple',
+    ]) ?>
 
-<div class="p-4" style="min-width:320px;">
+    <div class="px-4 py-4">
+        <?= $this->element('genericElementsBS5/Forms/section_label', [
+            'accent' => 'sighting',
+            'label' => __('Value'),
+        ]) ?>
+        <code class="d-block p-2 rounded bg-body-tertiary text-break"><?= h($tosight) ?></code>
+        <?= $this->element('genericElementsBS5/Forms/field_hint', [
+            'text' => __('One %s will be recorded for your organisation on each match.', $typeLabel),
+        ]) ?>
+        <?= $this->Form->text('value', ['value' => $value, 'class' => 'd-none']) ?>
+        <?= $this->Form->text('type', ['value' => (int)$sighting_type, 'class' => 'd-none']) ?>
 
-    <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-        <span class="misp-icon misp-icon-sighting misp-hexagone text-primary"></span>
-        <?= $sighting_type ? __('Add false-positive sighting') : __('Add sighting') ?>
-    </h6>
-
-    <p class="text-muted small mb-4">
-        <?= sprintf(__('Add %s sighting for: %s'), $typeLabel, '<code>' . h($tosight) . '</code>') ?>
-    </p>
-
-    <div class="d-flex gap-2 justify-content-end">
-        <button class="btn btn-sm btn-outline-secondary" onclick="cancelPrompt()">
-            <?= __('Cancel') ?>
-        </button>
-        <button class="btn btn-sm btn-primary" id="quickAddConfirmBtn">
-            <i class="fas fa-plus me-1"></i><?= __('Add') ?>
-        </button>
+        <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+            'accent' => 'sighting',
+            'cancel' => ['label' => __('Cancel')],
+            'submit' => [
+                'label' => $isFalsePositive ? __('Mark as false positive') : __('Add sighting'),
+                'icon' => $isFalsePositive ? 'far fa-thumbs-down' : 'far fa-thumbs-up',
+                'type' => 'submit',
+            ],
+        ]) ?>
     </div>
-
-    <div id="quickAddResult" class="mt-2"></div>
 </div>
-
-<script>
-document.getElementById('quickAddConfirmBtn').addEventListener('click', async function () {
-    var btn = this;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i><?= __('Saving…') ?>';
-
-    try {
-        var r = await fetch(baseurl + '/sightings/add/' + <?= json_encode(h($id)) ?>, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type':     'application/x-www-form-urlencoded',
-                'Accept':           'application/json',
-                'X-CSRF-Token':     getCsrfToken(),
-            },
-            body: 'data[Sighting][type]='  + encodeURIComponent(<?= json_encode((int)$sighting_type) ?>)
-                + '&data[Sighting][value]=' + encodeURIComponent(<?= json_encode($value) ?>),
-        });
-        var data = await r.json();
-        cancelPrompt();
-        if (data.saved) {
-            showToast(<?= json_encode(__('Sighting added')) ?>, 'success');
-        } else {
-            var err = typeof data.errors === 'string'
-                ? data.errors
-                : <?= json_encode(__('Failed to add sighting')) ?>;
-            showToast(err, 'danger');
-        }
-    } catch (_e) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-plus me-1"></i><?= __('Add') ?>';
-        showToast(<?= json_encode(__('Request failed — please try again')) ?>, 'danger');
-    }
-});
-</script>
+<?= $this->Form->end() ?>

@@ -72,14 +72,10 @@ class ShadowAttributesController extends AppController
 
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
-            // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-            $activeAttribute = $this->MispAttribute->find('first', [
-                'conditions' => ['Attribute.uuid' => $shadow['uuid']],
-                'contain' => ['Event'],
-            ]);
+            $activeAttribute = $this->ShadowAttribute->findTargetAttribute($shadow);
 
             // Send those away that shouldn't be able to edit this
-            if (!$this->__canModifyEvent($activeAttribute)) {
+            if (empty($activeAttribute) || !$this->__canModifyEvent($activeAttribute)) {
                 if ($this->_isRest()) {
                     return ['false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.'];
                 } else {
@@ -590,7 +586,7 @@ class ShadowAttributesController extends AppController
                 $this->request->data = $this->request->data['request'];
             }
             if (!isset($this->request->data['ShadowAttribute'])) {
-                $this->request->data['ShadowAttribute'] = $this->request->data;
+                $this->request->data = array('ShadowAttribute' => $this->request->data);
             }
             // rearrange the request in case someone didn't RTFM
             $invalidNames = array('Attribute', 'Proposal');
@@ -939,6 +935,12 @@ class ShadowAttributesController extends AppController
                 $params['order'] = array('ShadowAttribute.' . $sortField => $sortDirection);
             }
         }
+        if (empty($params['order'])) {
+            // Insertion order, stated. MySQL returns it off the primary key
+            // without being asked; PostgreSQL returns physical order, which
+            // stops being insertion order as soon as a proposal is edited.
+            $params['order'] = array('ShadowAttribute.id' => 'ASC');
+        }
         if ($this->_isRest()) {
             $results = $this->ShadowAttribute->find('all', $params);
             foreach ($results as $k => $result) {
@@ -975,17 +977,16 @@ class ShadowAttributesController extends AppController
         // check each of them and return a json object with the successful discards and the failed ones.
         $ids = json_decode($this->request->data['ShadowAttribute']['ids_discard']);
         if (!$this->_isSiteAdmin()) {
-            $event = $this->ShadowAttribute->Event->find('first', array(
-                    'conditions' => array('id' => $id),
-                    'recursive' => -1,
-                    'fields' => array('id', 'orgc_id', 'user_id')
-            ));
+            $event = $this->ShadowAttribute->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+                'fields' => ['Event.id', 'Event.orgc_id', 'Event.user_id'],
+            ]);
             if (!$event) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid event.')), 'status' => 200, 'type' => 'json'));
             }
             if (!$this->__canModifyEvent($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
+            $id = $event['Event']['id'];
         }
 
         // find all attributes from the ID list that also match the provided event ID.
@@ -1019,17 +1020,16 @@ class ShadowAttributesController extends AppController
         // check each of them and return a json object with the successful accepts and the failed ones.
         $ids = json_decode($this->request->data['ShadowAttribute']['ids_accept']);
         if (!$this->_isSiteAdmin()) {
-            $event = $this->ShadowAttribute->Event->find('first', array(
-                    'conditions' => array('id' => $id),
-                    'recursive' => -1,
-                    'fields' => array('id', 'orgc_id', 'user_id')
-            ));
+            $event = $this->ShadowAttribute->Event->fetchSimpleEvent($this->Auth->user(), $id, [
+                'fields' => ['Event.id', 'Event.orgc_id', 'Event.user_id'],
+            ]);
             if (!$event) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid event.')), 'status' => 200, 'type' => 'json'));
             }
             if (!$this->__canModifyEvent($event)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
+            $id = $event['Event']['id'];
         }
 
         // find all attributes from the ID list that also match the provided event ID.

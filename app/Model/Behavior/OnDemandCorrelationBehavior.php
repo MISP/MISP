@@ -390,12 +390,13 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      * Reduce a set of collected correlations to the ones $user may see.
      *
      * The correlation queries above match on value alone - they carry no
-     * distribution, sharing group or ownership condition - so the target
-     * attributes have to be vetted before anything derived from them is
-     * handed back. Rather than reimplementing the distribution rules,
-     * the target IDs are run through MispAttribute::fetchAttributesSimple(),
-     * which applies buildConditions(): event, attribute and object level
-     * distribution plus sharing group membership, against live rows.
+     * distribution, sharing group or ownership condition - so both the
+     * target and the queried event's own source attributes have to be
+     * vetted before anything derived from them is handed back. Rather than
+     * reimplementing the distribution rules, the IDs are run through
+     * MispAttribute::fetchAttributesSimple(), which applies
+     * buildConditions(): event, attribute and object level distribution
+     * plus sharing group membership, against live rows.
      *
      * @param array $user
      * @param array $correlations
@@ -409,13 +410,14 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         $attributeIds = [];
         foreach ($correlations as $correlation) {
             $attributeIds[$correlation['id']] = true;
+            $attributeIds[$correlation['source_id']] = true;
         }
         $visible = array_flip($this->__filterAttributeIdsByAcl(
             $user,
             array_keys($attributeIds)
         ));
         foreach ($correlations as $k => $correlation) {
-            if (!isset($visible[$correlation['id']])) {
+            if (!isset($visible[$correlation['id']], $visible[$correlation['source_id']])) {
                 unset($correlations[$k]);
             }
         }
@@ -695,9 +697,12 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      * @param array $user
      * @param int $eventId
      * @param array $sgids Not used
+     * @param bool $excludeNonCorrelating Not used - this engine already feeds
+     *      both this call and runGetAttributesRelatedToEvent() from the same
+     *      __collectCorrelations(), so the two never disagree.
      * @return array
      */
-    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids)
+    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
         return $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, false);
     }

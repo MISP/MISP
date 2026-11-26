@@ -45,12 +45,19 @@ class TagsController extends AppController
         $conditions = [];
         $passedArgsArray = $this->IndexFilter->harvestParameters(['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics']);
 
-        if (!empty($passedArgsArray['favouritesOnly'])) {
+        // Truthy keeps the user's favourites, 0 drops them, '' or absent is no filter.
+        $favourites = $passedArgsArray['favouritesOnly'] ?? null;
+        $notFavourites = $favourites === '0' || $favourites === 0;
+        if ($notFavourites || !empty($favourites)) {
             $tagIdList = $this->Tag->FavouriteTag->find('list', [
                 'conditions' => ['FavouriteTag.user_id' => $this->Auth->user('id')],
                 'fields' => ['FavouriteTag.tag_id']
             ]);
-            $conditions['Tag.id'] = empty($tagIdList) ? -1 : $tagIdList;
+            if (!$notFavourites) {
+                $conditions['Tag.id'] = empty($tagIdList) ? -1 : $tagIdList;
+            } elseif (!empty($tagIdList)) {
+                $conditions['NOT'] = ['Tag.id' => array_values($tagIdList)];
+            }
         }
 
         $params = [
@@ -133,7 +140,7 @@ class TagsController extends AppController
         if (!empty($passedArgsArray['exclude_statistics'])) {
             $this->set('exclude_statistics', true);
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('list', $this->viewVars['data']);
         $this->set('favouritesOnly', !empty($passedArgsArray['favouritesOnly']));
@@ -363,20 +370,6 @@ class TagsController extends AppController
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
 
-    public function viewTag($id)
-    {
-        $tag = $this->Tag->find('first', array(
-                'conditions' => array(
-                        'id' => $id
-                ),
-                'recursive' => -1,
-        ));
-        $this->layout = null;
-        $this->set('tag', $tag);
-        $this->set('id', $id);
-        $this->render('ajax/view_tag');
-    }
-
 
     public function selectTaxonomy($id, $scope = 'event')
     {
@@ -580,11 +573,13 @@ class TagsController extends AppController
 
     public function tagStatistics($percentage = false, $keysort = false)
     {
+        // Every selected non-aggregate column is in the GROUP BY: PostgreSQL
+        // insists, MySQL does not mind.
         $result = $this->Tag->EventTag->find('all', array(
                 'recursive' => -1,
-                'fields' => array('count(EventTag.id) as count', 'tag_id'),
+                'fields' => array('count(EventTag.id) as count', 'EventTag.tag_id'),
                 'contain' => array('Tag' => array('fields' => array('Tag.name'))),
-                'group' => array('tag_id')
+                'group' => array('EventTag.tag_id', 'Tag.id', 'Tag.name')
         ));
         $tags = array();
         $taxonomies = array();
@@ -662,6 +657,8 @@ class TagsController extends AppController
             }
             throw new ForbiddenException($message);
         }
+        // Every caller attaches or removes a tag, local ones included.
+        $this->Tag->EventTag->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $object);
         return $object;
     }
 
@@ -937,7 +934,7 @@ class TagsController extends AppController
                 $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
             }
             foreach ($tag as $t) {
-                $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+                $conditions['OR'][] = $this->Tag->nameCondition($t, 'LIKE');
             }
         } else {
             foreach ($tag as $t) {

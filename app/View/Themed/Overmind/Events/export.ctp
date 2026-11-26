@@ -18,23 +18,6 @@
 $background = !empty(Configure::read('MISP.background_jobs'))
     && empty(Configure::read('MISP.disable_cached_exports'));
 
-/* Accent + glyph per export format. --h feeds the hsl() ramp in .ex-icon. */
-$formatStyles = [
-    'json'      => ['icon' => 'file-code',     'hue' => 205],
-    'xml'       => ['icon' => 'file-code',     'hue' => 265],
-    'csv_sig'   => ['icon' => 'file-csv',      'hue' => 145],
-    'csv_all'   => ['icon' => 'file-csv',      'hue' => 165],
-    'suricata'  => ['icon' => 'shield-halved', 'hue' => 15],
-    'snort'     => ['icon' => 'shield-halved', 'hue' => 35],
-    'bro'       => ['icon' => 'network-wired', 'hue' => 55],
-    'stix'      => ['icon' => 'share-nodes',   'hue' => 300],
-    'stix2'     => ['icon' => 'share-nodes',   'hue' => 320],
-    'rpz'       => ['icon' => 'globe',         'hue' => 190],
-    'text'      => ['icon' => 'file-lines',    'hue' => 225],
-    'yara'      => ['icon' => 'bug',           'hue' => 85],
-    'yara-json' => ['icon' => 'bug',           'hue' => 105],
-];
-
 /*
  * Cache freshness of one export type. `filesize` is only set by the
  * controller when the cached file is readable, `recommendation` is its
@@ -189,8 +172,7 @@ $this->set('headerActions', empty($me['Role']['perm_auth']) ? [] : [
                         $exportJobs = [];
                         foreach ($export_types as $k => $type):
                             $state = $cacheState($type);
-                            $style = $formatStyles[$k]
-                                ?? ['icon' => 'file-arrow-down', 'hue' => 210];
+                            $style = $this->ExportFormat->get($k);
                             $exportJobs[] = [
                                 'i' => $i,
                                 'key' => $k,
@@ -211,7 +193,7 @@ $this->set('headerActions', empty($me['Role']['perm_auth']) ? [] : [
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="ex-icon" style="--h: <?= (int)$style['hue'] ?>;">
-                                            <i class="fa-solid fa-<?= h($style['icon']) ?>"></i>
+                                            <i class="<?= h($style['icon']) ?>"></i>
                                         </span>
                                         <span class="lh-sm">
                                             <span class="d-block fw-semibold"><?= h($type['type']) ?></span>

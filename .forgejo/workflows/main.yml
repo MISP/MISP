@@ -240,6 +240,25 @@ jobs:
           app/Console/cake Admin setSetting "MISP.osuser" $USER
           app/Console/cake Admin runUpdates
           app/Console/cake Admin schemaDiagnostics
+          # A fresh install starts at the current schema: the legacy corpus had nothing
+          # to do, and no migration is pending.
+          test "$(mysql -h 127.0.0.1 --port 3306 -u misp -pblah -N -e "SELECT value FROM admin_settings WHERE setting = 'db_version'" misp)" = "159"
+          app/Console/cake Admin migrationStatus | grep -q "Everything on disk has been applied."
+
+      - name: Legacy upgrade path
+        # INSTALL/MYSQL.sql no longer exercises the legacy corpus, so this does: the
+        # previous release's baseline, carried through every legacy update and then
+        # every migration - the path every existing instance takes - has to end up as
+        # the schema a fresh install starts with. Bump the tag when a release moves
+        # the baseline.
+        run: |
+          git fetch --depth 1 origin tag v2.5.45
+          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "create database misp_legacy; grant all privileges on misp_legacy.* to misp@'%';"
+          git show v2.5.45:INSTALL/MYSQL.sql | mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp_legacy
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin runUpdates
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin schemaDiagnostics
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin migrationStatus | grep -q "Everything on disk has been applied."
+          app/Console/cake Admin verifyInstallBaseline --connection legacy --database misp
           echo "Database updated"
 
       # Consolidate MISP configuration for better performance

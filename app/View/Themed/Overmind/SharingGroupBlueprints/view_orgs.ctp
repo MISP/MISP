@@ -1,14 +1,3 @@
-<div class="row mb-4 mt-2">
-    <div class="col-12">
-        <div class="d-flex flex-column p-4">
-            <p class="mb-0 text-secondary-emphasis">
-                <?= __('Organisations that would end up in a sharing group with the current SharingGroupBlueprint blueprint.') ?>
-            </p>
-        </div>
-    </div>
-</div>
-
-
 <?php
 $fields = [
     [
@@ -20,7 +9,7 @@ $fields = [
                 'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
-                'url' => $baseurl . '/organisation/view/%id%',
+                'url' => $baseurl . '/organisations/view/%id%',
             ]
         ]
     ],
@@ -29,7 +18,7 @@ $fields = [
         'sort' => 'Organisation.id',
         'data_path' => 'Organisation.id',
         'element' => 'id',
-        'url' => $baseurl . '/organisation/view/%id%',
+        'url' => $baseurl . '/organisations/view/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
@@ -38,7 +27,7 @@ $fields = [
         'sort' => 'Organisation.uuid',
         'data_path' => 'Organisation.uuid',
         'element' => 'uuid',
-        'url' => $baseurl . '/organisation/view/%id%',
+        'url' => $baseurl . '/organisations/view/%id%',
         'card_section' => 'top',
         'display_in' => ['card']
     ],

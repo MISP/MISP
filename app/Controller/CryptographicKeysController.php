@@ -39,6 +39,8 @@ class CryptographicKeysController extends AppController
         if (empty($existingEvent)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
+        // A sync user's own key on a protected event would let it sign edits.
+        $this->CryptographicKey->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $existingEvent);
         $params = [
             'beforeSave' => function ($data) use($type, $parent_id) {
                 $data['CryptographicKey']['parent_type'] = $type;
@@ -100,6 +102,9 @@ class CryptographicKeysController extends AppController
                     'recursive' => -1
                 ]);
                 if (!$user['Role']['perm_site_admin'] && $existingData['Event']['orgc_id'] !== $user['org_id']) {
+                    return false;
+                }
+                if ($tempModel->isProtectedFromSyncUser($user, $existingData)) {
                     return false;
                 }
                 return $data;
