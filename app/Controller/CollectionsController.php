@@ -438,14 +438,27 @@ class CollectionsController extends AppController
             'quickFilters' => ['Collection.name'],
             'contain' => ['Orgc', 'SharingGroup'],
             'afterFind' => function($collections) {
+                // One grouped COUNT for the whole page instead of one per row.
+                $collectionIds = array_column(array_column($collections, 'Collection'), 'id');
+                $counts = [];
+                if (!empty($collectionIds)) {
+                    $countRows = $this->Collection->CollectionElement->find('all', [
+                        'recursive' => -1,
+                        'fields' => ['CollectionElement.collection_id', 'COUNT(*) AS element_count'],
+                        'conditions' => ['CollectionElement.collection_id' => $collectionIds],
+                        'group' => ['CollectionElement.collection_id']
+                    ]);
+                    foreach ($countRows as $countRow) {
+                        $collectionId = $countRow['CollectionElement']['collection_id'];
+                        $counts[$collectionId] = (int)$countRow[0]['element_count'];
+                    }
+                }
                 foreach ($collections as $k => $collection) {
                     if ($collection['Collection']['distribution'] != 4) {
                         unset($collections[$k]['SharingGroup']);
                     }
-                    $collections[$k]['Collection']['element_count'] = $this->Collection->CollectionElement->find('count', [
-                        'recursive' => -1,
-                        'conditions' => ['CollectionElement.collection_id' => $collection['Collection']['id']]
-                    ]);
+                    $collectionId = $collection['Collection']['id'];
+                    $collections[$k]['Collection']['element_count'] = $counts[$collectionId] ?? 0;
                 }
                 return $collections;
             }
