@@ -2677,7 +2677,9 @@ class Event extends AppModel
 
     /**
      * Fetch paginated standalone attributes (object_id=0)
-     * for a given event, with distribution-based ACL.
+     * for a given event, with distribution-based ACL. With
+     * `flatten`, the attributes of its objects too, each
+     * carrying ['Object' => ['id', 'name']].
      *
      * @param array $user
      * @param int   $eventId
@@ -2687,6 +2689,7 @@ class Event extends AppModel
      *   - sort (string, default 'timestamp')
      *   - direction (string, default 'desc')
      *   - deleted (int, 0=not-deleted, 1=both, 2=only-deleted)
+     *   - flatten (bool) object attributes as rows of their own
      *   - category (string|null)
      *   - type (string|null)
      *   - toIDS (int|null, 1=yes, 2=no)
@@ -2932,6 +2935,8 @@ class Event extends AppModel
             'Attribute.disable_correlation',
             'Attribute.first_seen',
             'Attribute.last_seen',
+            'Attribute.object_id',
+            'Attribute.object_relation',
         ];
 
         // Count total (for pagination metadata)
@@ -2980,6 +2985,28 @@ class Event extends AppModel
         $flat = [];
         foreach ($attributes as $a) {
             $flat[] = $a['Attribute'];
+        }
+
+        // A row from an object names it
+        $objectIds = array_unique(array_filter(array_map(
+            'intval', array_column($flat, 'object_id')
+        )));
+        if (!empty($objectIds)) {
+            $objectNames = $this->Object->find('list', [
+                'conditions' => ['Object.id' => array_values($objectIds)],
+                'fields' => ['Object.id', 'Object.name'],
+                'recursive' => -1,
+            ]);
+            foreach ($flat as &$attribute) {
+                $objectId = (int)$attribute['object_id'];
+                if (isset($objectNames[$objectId])) {
+                    $attribute['Object'] = [
+                        'id' => $objectId,
+                        'name' => $objectNames[$objectId],
+                    ];
+                }
+            }
+            unset($attribute);
         }
 
         // Bulk-load tags for fetched attributes

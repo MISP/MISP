@@ -308,12 +308,16 @@ if ($pickerMode) {
     };
     $windowItems = [];
     $toggles = [];
+    $barToggles = [];
     $menus = [];
     $buttonGroups = [];
     foreach ($filter_bar['children'] as $child) {
         $ctype = $child['type'] ?? '';
         if (in_array($ctype, ['picker', 'list', 'time', 'value', 'value_match'], true)) {
             $windowItems[] = $child;
+        } elseif ($ctype === 'button' && !empty($child['in_bar'])) {
+            // Not a filter but what the list is made of: on the bar, not in the panel or its count
+            $barToggles[] = $child;
         } elseif ($ctype === 'button') {
             $toggles[] = $child;
         } elseif ($ctype === 'menu' && !empty($child['items'])) {
@@ -440,6 +444,10 @@ if ($pickerMode) {
             'deferred' => ($filter_bar['apply'] ?? 'close') === 'deferred',
         ]) ?>
     <?php endif; ?>
+
+    <?php foreach ($barToggles as $child): ?>
+        <?= $this->element('genericElementsBS5/IndexTable/filter_quick', ['child' => $child]) ?>
+    <?php endforeach; ?>
 
     <?php foreach ($menus as $child): ?>
         <div class="dropdown flex-shrink-0">

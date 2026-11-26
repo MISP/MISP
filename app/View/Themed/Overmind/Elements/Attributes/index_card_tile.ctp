@@ -36,6 +36,11 @@ $distTitle = __('Distribution: %s', $dist['label'])
 $timestamp = (int)($attribute['timestamp'] ?? 0);
 $isProposal = !empty($attribute['is_proposal']);
 $readonly = !empty($readonly);
+// Most relations are named after their type: one box says both.
+if (!empty($sections['relation'])
+        && ($attribute['object_relation'] ?? null) === ($attribute['type'] ?? '')) {
+    unset($sections['type']);
+}
 $section = function ($name) use ($sections) {
     return implode('', $sections[$name] ?? []);
 };

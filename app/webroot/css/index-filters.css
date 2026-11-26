@@ -153,6 +153,19 @@
 }
 .ifp-quick.is-on .ifp-switch { background: var(--bs-primary); border-color: var(--bs-primary); }
 .ifp-quick.is-on .ifp-switch::after { background: #fff; transform: translate(.9em, -50%); }
+/* A switch on the bar itself (`in_bar`), sized as the Filters button */
+.ifp-bar > .ifp-quick {
+    flex: none; height: 40px; padding: 0 14px 0 12px; border-radius: .6rem;
+    font-size: .9rem; font-weight: 600; white-space: nowrap;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.ifp-bar > .ifp-quick:hover { border-color: color-mix(in srgb, var(--bs-body-color) 30%, var(--bs-border-color)); }
+.ifp-bar > .ifp-quick.is-on {
+    color: var(--bs-primary-text-emphasis);
+    background: color-mix(in srgb, var(--bs-primary) 7%, var(--bs-body-bg));
+}
+.ifp-bar > .ifp-quick.is-on:hover { background: color-mix(in srgb, var(--bs-primary) 12%, var(--bs-body-bg)); }
+[data-misp-mode="dark"] .ifp-bar > .ifp-quick.is-on { color: color-mix(in srgb, var(--bs-primary) 40%, #fff); }
 .ifp-sec + .ifp-sec { margin-top: 14px; }
 .ifp-sec-label {
     display: flex; align-items: center; gap: 8px; margin: 0 2px 8px;
@@ -174,7 +187,7 @@
     .ifp-query { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .ifp-fbtn .ifp-caret, .ifp-switch, .ifp-switch::after { transition: none; }
+    .ifp-fbtn .ifp-caret, .ifp-switch, .ifp-switch::after, .ifp-bar > .ifp-quick { transition: none; }
     .ifp-panel { animation: none; }
 }
 

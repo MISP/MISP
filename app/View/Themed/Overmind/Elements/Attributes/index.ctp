@@ -150,6 +150,24 @@ $fields = array_merge($fields, [
         'card_section' => 'value',
         'display_in' => ['table', 'card']
     ],
+]);
+
+// Object attributes listed among the standalone ones say which object holds them.
+$flattened = $inEventView && !empty($flatten);
+if ($flattened) {
+    $fields[] = [
+        'name' => __('Object'),
+        'data_path' => $path('Object'),
+        'element' => 'attribute_object',
+        'relation_path' => $path('object_relation'),
+        'uuid_path' => $path('uuid'),
+        'event_id_path' => $path('event_id'),
+        'card_section' => 'relation',
+        'display_in' => ['table', 'card'],
+    ];
+}
+
+$fields = array_merge($fields, [
     [
         'name' => __('Category'),
         'sort' => $path('category'),
@@ -593,6 +611,22 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
     );
     $deletedUrl  = $tabState->url(['deleted' => $toggleDeleted ?: null]);
     $proposalUrl = $tabState->url(['proposal' => $toggleProposal ?: null]);
+    if (!$flattened && empty($tabState->filters())) {
+        $emptyMessage = __('No standalone attributes. Switch on Object attributes to list those held in objects.');
+    }
+
+    $children[] = [
+        'type' => 'button',
+        'in_bar' => true,
+        'url' => $tabState->url(['flatten' => $flattened ? null : 1]),
+        'id' => 'attr-flatten-toggle',
+        'icon' => 'misp-icon misp-icon-object misp-simple',
+        'label' => __('Object attributes'),
+        'title' => $flattened
+            ? __('List the standalone attributes only')
+            : __('Also list the attributes held in objects'),
+        'pressed' => $flattened,
+    ];
 
     $children[] = [
         'type'  => 'button',
@@ -633,6 +667,8 @@ $filterBar = [
             'deleted' => ['1' => __('included'), '2' => __('only')],
             'proposal' => ['1' => __('only')],
         ],
+        // Its own switch on the bar says it, and "Clear all" keeps it
+        'scope' => ['flatten'],
     ],
 ];
 if ($inEventView) {
@@ -724,6 +760,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 ]);
             },
             'filter_bar' => $filterBar + $massActions,
+            'empty_message' => $emptyMessage ?? null,
             'before_results' => $valueNotice,
             'fields' => $fields,
         ]
