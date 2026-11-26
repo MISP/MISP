@@ -25,6 +25,7 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Noticelist.id',
+        'enable_path' => 'Noticelist.enabled',
         'card_section' => 'selector',
     ],
     [
@@ -102,14 +103,24 @@ $fields = [
                 'url' => $baseurl . '/noticelists/view/%id%'
             ],
             [
-                'type' => 'toggle',
-                'label_on' => __('Disable'),
-                'label_off' => __('Enable'),
-                'icon_on' => 'stop text-danger',
-                'icon_off' => 'play text-success',
-                'url' => '/noticelists/%action%/%id%',
-                'enable_path' => 'Noticelist.enabled',
-                'requirement' => $isSiteAdmin
+                'type' => 'modal',
+                'label' => __('Disable'),
+                'icon' => 'fas fa-stop text-danger',
+                'url' => $baseurl . '/noticelists/massDisable/%id%',
+                'size' => 'md',
+                'requirement' => function ($row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && !empty($row['Noticelist']['enabled']);
+                },
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enable'),
+                'icon' => 'fas fa-play text-success',
+                'url' => $baseurl . '/noticelists/massEnable/%id%',
+                'size' => 'md',
+                'requirement' => function ($row) use ($isSiteAdmin) {
+                    return $isSiteAdmin && empty($row['Noticelist']['enabled']);
+                },
             ]
         ]
     ]
@@ -120,6 +131,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

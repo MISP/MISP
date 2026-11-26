@@ -13,7 +13,8 @@ To update to the latest commit from the 2.4 branch simply pull the latest commit
 ```bash
 cd /var/www/MISP
 # Replace www-data with whoever is your webserver user (apache/httpd)
-sudo -u www-data git pull origin 2.4
+sudo -u www-data git pull --no-recurse-submodules origin 2.4
+sudo -u www-data git submodule sync
 sudo -u www-data git submodule update --init --recursive
 ```
 
@@ -22,8 +23,9 @@ sudo -u www-data git submodule update --init --recursive
 If you want to stick to a point release instead of pulling the latest commit directly
 ```bash
 cd /var/www/MISP
-git fetch
+git fetch --no-recurse-submodules
 git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+git submodule sync
 git submodule update --init --recursive
 ```
 
@@ -39,7 +41,7 @@ As user root, do the following:
 
 ```bash
 cd /var/www/MISP
-git fetch
+git fetch --no-recurse-submodules
 git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
@@ -50,6 +52,7 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # 2. Update CakePHP to the latest supported version (if for some reason it doesn't get updated automatically with git submodule)
 ```bash
 cd /var/www/MISP
+git submodule sync
 git submodule update --init --recursive
 ```
 

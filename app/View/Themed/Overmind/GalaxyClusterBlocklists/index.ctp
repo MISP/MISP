@@ -117,6 +117,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
         'data' => [
             'data' => $response,
             'filter_bar' => $filterBar,
+            'cards_per_row' => ['' => 1, 'xxxl' => 2],
             'fields' => $fields,
         ]
     ],

@@ -48,26 +48,14 @@ echo $this->Form->create('CorrelationRule', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(177, 106, 24, 0.06);
-            border-bottom:2px solid var(--correlation);">
-    <div>
-        <div class="text-correlation text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Correlation Rules') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-correlation"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Correlation Rule') : __('Add Correlation Rule') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Stops correlations from being built between the events a rule selects — the cure for a feed that over-correlates on every ingestion.') ?>
-        </p>
-    </div>
-    <i class="fas fa-link text-correlation" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'correlation',
+    'eyebrow' => __('Correlation Rules'),
+    'title' => $isEdit ? __('Edit Correlation Rule') : __('Add Correlation Rule'),
+    'description' => __('Stops correlations from being built between the events a rule selects — the cure for a feed that over-correlates on every ingestion.'),
+    'icon' => 'fas fa-link',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -96,10 +84,10 @@ echo $this->Form->create('CorrelationRule', [
 
         <!-- ── SELECTOR TYPE ───────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-correlation fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Selector Type') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'correlation',
+                'label' => __('Selector Type'),
+            ]) ?>
             <?= $this->Form->select('selector_type', $selectorTypes, [
                 'id' => 'correlation-rule-type-select',
                 'class' => 'form-select',
@@ -156,19 +144,17 @@ echo $this->Form->create('CorrelationRule', [
                             max-height:160px; overflow-y:auto;"></div>
             </div>
 
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('A JSON array — an empty list is refused on save.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('A JSON array — an empty list is refused on save.'),
+            ]) ?>
         </div>
 
         <!-- ── COMMENT ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-correlation fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Comment') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'correlation',
+                'label' => __('Comment'),
+            ]) ?>
             <?= $this->Form->textarea('comment', [
                 'class' => 'form-control',
                 'rows' => 2,
@@ -179,33 +165,13 @@ echo $this->Form->create('CorrelationRule', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('Rule') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Existing correlations stay until the rule is executed from the index.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Rule')),
-                [
-                    'class' => 'btn btn-correlation btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'correlation',
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($id) ? [['label' => __('Rule'), 'id' => $id]] : [],
+        'hint' => __('Existing correlations stay until the rule is executed from the index.'),
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Rule')],
+    ]) ?>
 
 </div>
 

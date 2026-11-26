@@ -68,8 +68,8 @@ $uid = 'wk' . dechex(mt_rand());
 
 if (empty($worker_array)) {
     echo sprintf(
-        '<div class="card shadow-sm"><div class="card-body text-center text-muted py-5">'
-            . '<i class="fas fa-robot fa-2x mb-3 d-block opacity-50"></i>%s</div></div>',
+        '<div class="card shadow-sm"><div class="card-body d-flex flex-column align-items-center text-center text-muted py-5">'
+            . '<i class="fas fa-robot fa-2x mb-3 opacity-50"></i>%s</div></div>',
         h(__('Background jobs are disabled on this instance, so there is no worker to report on.'))
     );
     return;

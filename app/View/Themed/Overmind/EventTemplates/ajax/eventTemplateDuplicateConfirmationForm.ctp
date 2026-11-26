@@ -3,7 +3,7 @@
 $templateName = $template['name'] ?? '';
 $copyName = sprintf('%s %s', $templateName, __('(copy)'));
 
-echo $this->element('genericElementsBS5/Forms/confirmationForm', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Duplicate Event Template'),
     'model' => 'EventTemplate',
     'hiddenField' => false,

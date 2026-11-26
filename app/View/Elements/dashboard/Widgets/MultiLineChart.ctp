@@ -34,6 +34,25 @@ if (empty($rows)) {
     echo '<div class="misp-list-empty">' . __('No data.') . '</div>';
     return;
 }
+// The x axis is categorical, so the rows are plotted in array order; sort
+// them oldest first, as widgets emit them in either direction.
+$times = array();
+foreach ($rows as $key => $row) {
+    $time = isset($row['date']) ? strtotime((string)$row['date']) : false;
+    if ($time === false) {
+        $times = null;
+        break;
+    }
+    $times[$key] = $time;
+}
+if ($times !== null) {
+    asort($times, SORT_NUMERIC);
+    $sorted = array();
+    foreach (array_keys($times) as $key) {
+        $sorted[] = $rows[$key];
+    }
+    $rows = $sorted;
+}
 $drilldown = array();
 if (isset($data['drilldown']) && is_array($data['drilldown'])) {
     foreach ($data['drilldown'] as $series => $url) {

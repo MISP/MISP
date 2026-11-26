@@ -647,62 +647,58 @@ class ShadowAttribute extends AppModel
     }
 
     /**
+     * Save a proposal received through sync onto a local event its sender may reach.
+     *
      * @param array $proposal
-     * @return array|false
+     * @param array $user
+     * @param array $event The local event, already checked for the sender
+     * @return bool|null True when saved, false when the save failed, null when there was nothing to save
      */
-    private function __preCaptureMassage(array $proposal)
+    public function capture($proposal, array $user, array $event)
     {
-        if (empty($proposal['event_uuid']) || empty($proposal['Org'])) {
-            return false;
+        if (!is_array($proposal) || empty($proposal['Org'])) {
+            return null;
         }
-        if (isset($proposal['id'])) {
-            unset($proposal['id']);
-        }
-        $event = $this->Event->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('Event.uuid' => $proposal['event_uuid']),
-            'fields' => array('Event.id', 'Event.uuid', 'Event.org_id')
-        ));
-        if (empty($event)) {
-            return false;
-        }
+        unset($proposal['id'], $proposal[$this->alias]);
         $proposal['event_id'] = $event['Event']['id'];
+        $proposal['event_uuid'] = $event['Event']['uuid'];
         $proposal['event_org_id'] = $event['Event']['org_id'];
-        return $proposal;
-    }
-
-    public function capture($proposal, $user)
-    {
-        $proposal = $this->__preCaptureMassage($proposal);
-        if ($proposal === false) {
-            return false;
+        if (empty($proposal['old_id'])) {
+            $proposal['old_id'] = 0;
+        } else {
+            if (!isset($proposal['uuid']) || !is_string($proposal['uuid'])) {
+                return null;
+            }
+            $oldAttribute = $this->Attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => [
+                    'Attribute.event_id' => $event['Event']['id'],
+                    'Attribute.uuid' => $proposal['uuid'],
+                ],
+                'fields' => ['Attribute.id'],
+            ]);
+            if (empty($oldAttribute)) {
+                return null;
+            }
+            $proposal['old_id'] = $oldAttribute['Attribute']['id'];
         }
         $oldsa = $this->findOldProposal($proposal);
-        if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-            if ($oldsa) {
-                $this->delete($oldsa['id']);
-            }
-            if (isset($proposal['old_id'])) {
-                $oldAttribute = $this->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $proposal['uuid'])));
-                if ($oldAttribute) {
-                    $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-                } else {
-                    $proposal['old_id'] = 0;
-                }
-            } else {
-                $proposal['old_id'] = 0;
-            }
-            $proposal['org_id'] = $this->Event->Orgc->captureOrg($proposal['Org'], $user);
-            unset($proposal['Org']);
-            $this->create();
-            if ($this->save($proposal)) {
-                if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                    $this->sendProposalAlertEmail($proposal['event_id']);
-                }
-                return true;
-            }
+        if ($oldsa && $oldsa['timestamp'] >= $proposal['timestamp']) {
+            return null;
         }
-        return false;
+        if ($oldsa) {
+            $this->delete($oldsa['id']);
+        }
+        $proposal['org_id'] = $this->Event->Orgc->captureOrg($proposal['Org'], $user);
+        unset($proposal['Org']);
+        $this->create();
+        if (!$this->save($proposal)) {
+            return false;
+        }
+        if (empty($proposal['deleted'])) {
+            $this->sendProposalAlertEmail($proposal['event_id']);
+        }
+        return true;
     }
 
     /**
@@ -720,6 +716,16 @@ class ShadowAttribute extends AppModel
 
         $serverSync->debug("Pulling proposals");
 
+        $server = $serverSync->server();
+        if (!isset($server['RemoteOrg'])) {
+            $remoteOrg = $this->Event->Orgc->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Orgc.id' => $server['Server']['remote_org_id']],
+                'fields' => ['Orgc.id', 'Orgc.uuid'],
+            ]);
+            $server['RemoteOrg'] = $remoteOrg ? $remoteOrg['Orgc'] : [];
+        }
+        $events = [];
         $i = 1;
         $fetchedCount = 0;
         $chunkSize = 1000;
@@ -742,8 +748,14 @@ class ShadowAttribute extends AppModel
                 return $fetchedCount;
             }
             foreach ($data as $proposal) {
-                $result = $this->capture($proposal['ShadowAttribute'], $user);
-                if ($result) {
+                $eventUuid = $proposal['ShadowAttribute']['event_uuid'] ?? null;
+                if (!is_string($eventUuid)) {
+                    continue;
+                }
+                if (!array_key_exists($eventUuid, $events)) {
+                    $events[$eventUuid] = $this->Event->syncedWithServer($eventUuid, $server, $user);
+                }
+                if ($events[$eventUuid] && $this->capture($proposal['ShadowAttribute'], $user, $events[$eventUuid])) {
                     $fetchedCount++;
                 }
             }
@@ -763,11 +775,18 @@ class ShadowAttribute extends AppModel
                 'Attribute.distribution' => array(1,2,3,5)
             );
             $objectDistribution = array(
-                '(SELECT distribution FROM objects WHERE objects.id = Attribute.object_id)' => array(1,2,3,5)
+                $this->correlatedLookup('objects', 'distribution', 'Attribute', 'object_id') . ' IN (1, 2, 3, 5)',
             );
             if (!empty($sgids) && (!isset($sgids[0]) || $sgids[0] != -1)) {
-                $objectDistribution['(SELECT sharing_group_id FROM objects WHERE objects.id = Attribute.object_id)'] = $sgids;
-                $attributeDistribution['Attribute.sharing_group_id'] = $sgids;
+                $objectDistribution[] = ['AND' => [
+                    $this->correlatedLookup('objects', 'distribution', 'Attribute', 'object_id') . ' = 4',
+                    $this->correlatedLookup('objects', 'sharing_group_id', 'Attribute', 'object_id')
+                        . ' IN (' . implode(', ', array_map('intval', $sgids)) . ')',
+                ]];
+                $attributeDistribution[] = ['AND' => [
+                    'Attribute.distribution' => 4,
+                    'Attribute.sharing_group_id' => $sgids,
+                ]];
             }
             $unpublishedPrivate = Configure::read('MISP.unpublishedprivate');
             $conditions = array(
@@ -787,6 +806,7 @@ class ShadowAttribute extends AppModel
                     array(
                         'OR' => array(
                             'ShadowAttribute.old_id' => '0',
+                            'Event.org_id' => $user['org_id'],
                             'AND' => array(
                                 array(
                                     'OR' => array(
@@ -932,6 +952,24 @@ class ShadowAttribute extends AppModel
 
 
     /**
+     * The attribute an edit proposal changes: its old_id, in its own event, with its uuid.
+     *
+     * @param array $shadow
+     * @return array|null
+     */
+    public function findTargetAttribute(array $shadow)
+    {
+        return $this->Attribute->find('first', [
+            'conditions' => [
+                'Attribute.id' => $shadow['old_id'],
+                'Attribute.event_id' => $shadow['event_id'],
+                'Attribute.uuid' => $shadow['uuid'],
+            ],
+            'contain' => ['Event'],
+        ]);
+    }
+
+    /**
      * acceptProposal - Accept the proposal without checking ACL.
      * @param array $user - The user object
      * @param str|array $proposal - The ID of the proposal to discard or the proposal object
@@ -962,6 +1000,12 @@ class ShadowAttribute extends AppModel
         $this->Event = ClassRegistry::init('Event');
         $this->Log = ClassRegistry::init('Log');
 
+        if ($shadow['ShadowAttribute']['old_id'] != 0) {
+            $activeAttribute = $this->findTargetAttribute($shadow['ShadowAttribute']);
+            if (empty($activeAttribute)) {
+                return ['success' => false, 'message' => 'Proposal target not found.'];
+            }
+        }
         $this->publishKafkaNotification('shadow_attribute', $shadow, 'accept');
         $shadow = $shadow['ShadowAttribute'];
         if ($this->typeIsAttachment($shadow['type']) && !$shadow['proposal_to_delete']) {
@@ -970,12 +1014,6 @@ class ShadowAttribute extends AppModel
         }
         // If the old_id is set to anything but 0 then we're dealing with a proposed edit to an existing attribute
         if ($shadow['old_id'] != 0) {
-            // Find the live attribute by the shadow attribute's uuid, so we can begin editing it
-            $activeAttribute = $this->Attribute->find('first', [
-                'conditions' => ['Attribute.uuid' => $shadow['uuid']],
-                'contain' => ['Event'],
-            ]);
-
             if (isset($shadow['proposal_to_delete']) && $shadow['proposal_to_delete']) {
                 $this->Attribute->deleteAttribute($activeAttribute['Attribute']['id'], $user, false);
             } else {
@@ -996,7 +1034,7 @@ class ShadowAttribute extends AppModel
             $this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
             $this->Log->create();
             $this->Log->saveOrFailSilently(array(
-                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,
                 'email' => $user['email'],
@@ -1031,7 +1069,7 @@ class ShadowAttribute extends AppModel
             }
             $this->Log->create();
             $this->Log->saveOrFailSilently(array(
-                'org_id' => $user['org_id'],
+                'org' => $user['Organisation']['name'],
                 'model' => 'ShadowAttribute',
                 'model_id' => $id,
                 'email' => $user['email'],

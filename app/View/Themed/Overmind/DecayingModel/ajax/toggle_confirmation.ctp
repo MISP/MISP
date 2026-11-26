@@ -29,6 +29,7 @@ $message = $count > 1
             'url' => $url,
             'class' => 'm-0',
         ]);
+        echo $this->Form->hidden('id');
     ?>
         <div class="d-flex justify-content-center gap-2">
             <button type="button" class="btn btn-outline-secondary"

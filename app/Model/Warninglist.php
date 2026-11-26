@@ -71,6 +71,9 @@ class Warninglist extends AppModel
 
     private $showForAll;
 
+    /** @var array Regex patterns that failed to evaluate, keyed by pattern */
+    private $failedRegexes = [];
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
@@ -80,18 +83,9 @@ class Warninglist extends AppModel
     public function beforeValidate($options = array())
     {
         if (isset($this->data['WarninglistEntry'])) {
-            if ($this->data['Warninglist']['type'] === 'cidr') {
-                foreach ($this->data['WarninglistEntry'] as $entry) {
-                    if (!CidrTool::validate($entry['value'])) {
-                        $this->validationErrors['entries'][] = __('`%s` is not valid CIDR', $entry['value']);
-                    }
-                }
-            } else if ($this->data['Warninglist']['type'] === 'regex') {
-                foreach ($this->data['WarninglistEntry'] as $entry) {
-                    if (@preg_match($entry['value'], '') === false) {
-                        $this->validationErrors['entries'][] = __('`%s` is not valid regular expression', $entry['value']);
-                    }
-                }
+            $values = array_column($this->data['WarninglistEntry'], 'value');
+            foreach ($this->entryErrors($this->data['Warninglist']['type'], $values) as $error) {
+                $this->validationErrors['entries'][] = $error;
             }
 
             if (!empty($this->validationErrors['entries'])) {
@@ -100,6 +94,24 @@ class Warninglist extends AppModel
         }
 
         return true;
+    }
+
+    /**
+     * @param string $type Warninglist type
+     * @param array $values Entry values
+     * @return string[] Validation errors
+     */
+    private function entryErrors($type, array $values)
+    {
+        $errors = [];
+        foreach ($values as $value) {
+            if ($type === 'cidr' && !CidrTool::validate($value)) {
+                $errors[] = __('`%s` is not valid CIDR', $value);
+            } else if ($type === 'regex' && @preg_match($value, '') === false) {
+                $errors[] = __('`%s` is not valid regular expression', $value);
+            }
+        }
+        return $errors;
     }
 
     /**
@@ -363,6 +375,12 @@ class Warninglist extends AppModel
 
         if ($existingWarninglist && $existingWarninglist['Warninglist']['default']) {
             throw new Exception('It is not possible to modify default warninglist.');
+        }
+
+        $entries = array_is_list($list['list']) ? $list['list'] : array_keys($list['list']);
+        $errors = $this->entryErrors($list['type'], array_map('strval', array_filter($entries)));
+        if (!empty($errors)) {
+            throw new Exception('Could not import warninglist because of validation errors: ' . json_encode($errors));
         }
 
         $id = $this->__updateList($list, $existingWarninglist ? $existingWarninglist['Warninglist']: [], false);
@@ -643,6 +661,45 @@ class Warninglist extends AppModel
     }
 
     /**
+     * Check one or more raw values against every enabled warninglist, using
+     * each list's own matching rules (cidr, hostname, string, substring,
+     * regex). Powers both `warninglists/checkValue` and the value search of
+     * the warninglist index, so both stay in sync.
+     *
+     * @param array $values
+     * @return array [value => [['id' => int, 'name' => string, 'matched' => string], ..]]
+     * @throws JsonException
+     */
+    public function checkValues(array $values)
+    {
+        $hits = [];
+        $warninglists = $this->getEnabled();
+        foreach ($values as $value) {
+            $value = trim($value);
+            if ($value === '') {
+                continue;
+            }
+            foreach ($warninglists as $warninglist) {
+                $entries = $this->getFilteredEntries($warninglist);
+                $result = $this->checkValue(
+                    $entries,
+                    $value,
+                    '',
+                    $warninglist['Warninglist']['type']
+                );
+                if ($result !== false) {
+                    $hits[$value][] = [
+                        'id' => $warninglist['Warninglist']['id'],
+                        'name' => $warninglist['Warninglist']['name'],
+                        'matched' => $result[0],
+                    ];
+                }
+            }
+        }
+        return $hits;
+    }
+
+    /**
      * @param array|CidrTool $listValues
      * @param string $value
      * @param string $type
@@ -734,12 +791,36 @@ class Warninglist extends AppModel
 
     private function __evalRegex($listValues, $value)
     {
-        foreach ($listValues as $listValue) {
-            if (preg_match($listValue, $value)) {
-                return $listValue;
+        // Entries can be added by users below site admin: bound the backtracking they can cause
+        $originalLimit = ini_get('pcre.backtrack_limit');
+        ini_set('pcre.backtrack_limit', '100000');
+        try {
+            foreach ($listValues as $listValue) {
+                if (isset($this->failedRegexes[$listValue])) {
+                    continue;
+                }
+                $result = @preg_match($listValue, $value);
+                if ($result === false) {
+                    $this->failedRegexes[$listValue] = true;
+                    $this->logFailedRegex($listValue);
+                } else if ($result) {
+                    return $listValue;
+                }
+            }
+        } finally {
+            if ($originalLimit !== false) {
+                ini_set('pcre.backtrack_limit', $originalLimit);
             }
         }
         return false;
+    }
+
+    /**
+     * @param string $pattern
+     */
+    protected function logFailedRegex($pattern)
+    {
+        CakeLog::warning(sprintf('Warninglist regex `%s` could not be evaluated and is skipped.', $pattern));
     }
 
     /**

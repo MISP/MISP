@@ -6,6 +6,11 @@ App::uses('AppController', 'Controller');
  */
 class UsersController extends AppController
 {
+    /**
+     * Seconds one user must wait between API-access request mails.
+     */
+    const REQUEST_API_COOLDOWN = 900;
+
     public $newkey;
 
     public $components = array(
@@ -40,7 +45,30 @@ class UsersController extends AppController
         }
         $this->Auth->allow($allowedActions);
 
+        $this->Security->unlockedActions[] = 'onboardingSeen';
+
         parent::beforeFilter();
+        // request_API is reached only by requestAPIAccess() in misp.js, hand-built
+        // AJAX with no rendered form behind it, so it cannot produce the field
+        // hash _validatePost() compares against. It sends the page's CSRF token in
+        // the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['request_API']);
+        // register, forgot and password_reset are the actions a REST client
+        // reaches holding no credential at all - PyMISP's register_user() posts
+        // JSON with neither an API key nor a session, so the credential-based
+        // exemption in AppController never applies to it. Form security guards a
+        // session against a request a cross-origin page made the browser send;
+        // a request with no session has nothing to guard, and routing one
+        // through a victim's browser gains an attacker nothing curl would not.
+        // A caller that does hold a session keeps both checks, as everywhere
+        // else, and none of the three actions reads that session anyway.
+        if (
+            $this->_isRest() &&
+            empty($this->Auth->user()) &&
+            in_array($this->request->params['action'], ['register', 'forgot', 'password_reset'], true)
+        ) {
+            $this->Security->unlockedActions[] = $this->request->params['action'];
+        }
     }
 
     public function view($id = null)
@@ -108,8 +136,16 @@ class UsersController extends AppController
 
     public function request_API()
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.disable_emailing')) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')), 'status'=>200, 'type' => 'json'));
+        }
+        // One mail per user per cooldown window. The ACL on this action is ['*']
+        // while the link that reaches it renders only for users without
+        // perm_auth, so without a cooldown any account can mail its org admin as
+        // fast as it can issue requests.
+        if (!$this->__claimRequestApiCooldown($this->Auth->user('id'))) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access requests are rate limited to one every ' . (self::REQUEST_API_COOLDOWN / 60) . ' minutes. Please try again later.')), 'status'=>200, 'type' => 'json'));
         }
         $responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
         if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
@@ -123,6 +159,31 @@ class UsersController extends AppController
             }
         }
         return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
+    }
+
+    /**
+     * Claim this user's API-access-request slot for the cooldown window.
+     *
+     * SET NX EX is atomic, so parallel requests cannot both claim it. Fails open
+     * when Redis is unavailable, matching how every other optional Redis-backed
+     * control in the request path behaves - the cooldown is a courtesy limit on
+     * an authenticated action, not an authorisation decision.
+     *
+     * @param int $userId
+     * @return bool True when the caller may send, false when still in cooldown.
+     */
+    private function __claimRequestApiCooldown($userId)
+    {
+        try {
+            $redis = RedisTool::init();
+        } catch (Exception $e) {
+            return true;
+        }
+        return (bool)$redis->set(
+            'misp:request_api_cooldown:' . $userId,
+            time(),
+            ['nx', 'ex' => self::REQUEST_API_COOLDOWN]
+        );
     }
 
     public function unsubscribe($code, $type = null)
@@ -388,7 +449,7 @@ class UsersController extends AppController
         if ($this->_isSiteAdmin()) {
             $textFields[] = 'org';
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         // check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
         if (!empty($this->passedArgs['value'])) {
             $this->passedArgs['searchall'] = $this->passedArgs['value'];
@@ -534,6 +595,24 @@ class UsersController extends AppController
         $this->set('urlparams', $urlParams);
         $this->set('passedArgsArray', $passedArgsArray);
         $this->set('periodic_notifications', $this->User::PERIODIC_NOTIFICATIONS);
+        if ($this->theme === 'Overmind') {
+            // Option lists for the index filter bar
+            $roles = $this->User->Role->find('list', array(
+                'recursive' => -1,
+                'fields' => array('Role.id', 'Role.name'),
+                'order' => array('LOWER(Role.name) ASC')
+            ));
+            $this->set('roleOptions', array('' => __('Any role')) + $roles);
+            if ($this->_isSiteAdmin()) {
+                $orgs = $this->User->Organisation->find('list', array(
+                    'conditions' => array('local' => 1),
+                    'recursive' => -1,
+                    'fields' => array('Organisation.id', 'Organisation.name'),
+                    'order' => array('LOWER(Organisation.name) ASC')
+                ));
+                $this->set('orgOptions', array('' => __('Any organisation')) + $orgs);
+            }
+        }
         if ($this->_isSiteAdmin()) {
             $users = $this->paginate();
             $users = $this->User->attachIsUserMonitored($users);
@@ -946,7 +1025,7 @@ class UsersController extends AppController
         $this->set('currentId', $id);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             $abortPost = false;
             $isOvermindAjax = !$this->_isRest() && $this->request->is('ajax') && $this->theme === 'Overmind';
@@ -1140,6 +1219,9 @@ class UsersController extends AppController
                         return $jsonResponse(array('success' => true, 'message' => __('The user has been saved')));
                     } else {
                         $this->Flash->success(__('The user has been saved'));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('action' => 'view', $this->User->id));
+                        }
                         $this->redirect(array('action' => 'index'));
                     }
                 } else {
@@ -1296,22 +1378,17 @@ class UsersController extends AppController
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException('This feature is only accessible via POST requests');
         }
-        $user = $this->User->find('first', array(
-            'recursive' => -1,
-            'conditions' => array('User.id' => $this->Auth->user('id'))
-        ));
         $this->User->id = $this->Auth->user('id');
         $this->User->saveField('last_login', time());
         $this->User->saveField('current_login', time());
-        $user = $this->User->getAuthUser($user['User']['id']);
-        $this->Auth->login($user);
+        $this->_refreshAuth();
         $this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
     }
 
     public function login()
     {
         $oldHash = false;
-        if ($this->request->is(['post', 'put'])) {
+        if (!$this->request->is(['get'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
             if (!empty($this->request->data['User']['email'])) {
                 if ($this->Bruteforce->isBlocklisted($this->request->data['User']['email'])) {
@@ -1319,11 +1396,27 @@ class UsersController extends AppController
                     throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
                 }
             }
+            // bcrypt throws on a NUL byte, and Cake hashes only for unknown accounts
+            $password = $this->request->data['User']['password'] ?? null;
+            if (is_string($password) && strpos($password, "\0") !== false) {
+                $this->request->data['User']['password'] = '';
+            }
             $unauth_user = $this->User->find('first', [
                 'conditions' => ['User.email' => $this->request->data['User']['email']],
-                'fields' => ['User.password', 'User.totp', 'User.hotp_counter'],
+                'fields' => ['User.email', 'User.password', 'User.totp', 'User.hotp_counter', 'User.disabled'],
                 'recursive' => -1,
             ]);
+            // The collation also matches accent and width variants, each counted
+            // apart by the lockout: those fail as an unknown account would.
+            if (
+                $unauth_user &&
+                isset($this->Auth->authenticate['Form']) &&
+                $this->Bruteforce->usernameKey($this->request->data['User']['email']) !==
+                $this->Bruteforce->usernameKey($unauth_user['User']['email'])
+            ) {
+                $this->Auth->authenticate['Form']['scope'] = ['User.id' => 0];
+                $this->Auth->constructAuthenticate();
+            }
             if ($unauth_user) {
                 // Check the length of the user's authkey match old format. This can be removed in future.
                 $userPass = $unauth_user['User']['password'];
@@ -1345,7 +1438,7 @@ class UsersController extends AppController
             }
         }
         // if instance requires email OTP
-        if ($this->request->is('post') && Configure::read('Security.email_otp_enabled')) {
+        if (!$this->request->is(['get']) && Configure::read('Security.email_otp_enabled')) {
             $user = $this->Auth->identify($this->request, $this->response);
             if ($user && !$user['disabled']) {
               $this->Session->write('email_otp_user', $user);
@@ -1371,7 +1464,7 @@ class UsersController extends AppController
             }
             // Login was failed, do everything that is needed such as blocklisting, logging and more
             // Also don't display "invalid user" before first login attempt
-            if ($this->request->is('post') || $this->request->is('put')) {
+            if (!$this->request->is('get')) {
                 $this->Flash->error(__('Invalid username or password, try again'));
                 if (isset($this->request->data['User']['email'])) {
                     // increase bruteforce attempt and log
@@ -1386,6 +1479,7 @@ class UsersController extends AppController
     private function _postlogin()
     {
         $authUser = $this->Auth->user();
+
         if (empty($authUser['disabled'])) {
             $this->User->extralog($authUser, "login");
         }
@@ -1412,6 +1506,20 @@ class UsersController extends AppController
         if ($lastUserLogin) {
             $readableDatetime = (new DateTime())->setTimestamp($lastUserLogin)->format('D, d M y H:i:s O'); // RFC822
             $this->Flash->info(__('Welcome! Last login was on %s', $readableDatetime));
+        } else {
+            // Brand new account: arm the onboarding tour
+            $this->User->UserSetting->setSettingInternal(
+                $authUser['id'], 'onboarding_pending', true
+            );
+        }
+
+        // Mirror the marker into the session so that rendering a page costs a
+        // session lookup rather than a query.
+        $onboardingPending = $this->User->UserSetting->getValueForUser(
+            $authUser['id'], 'onboarding_pending'
+        );
+        if (!empty($onboardingPending)) {
+            $this->Session->write('Overmind.onboarding_pending', true);
         }
 
         if (Configure::read('Security.alert_on_suspicious_logins')) {
@@ -1449,26 +1557,10 @@ class UsersController extends AppController
         // Events list
         $url = $this->Session->consume('pre_login_requested_url') ?? '';
 
-        $url = rawurldecode($url);
-        $parts = parse_url($url);
-
-        if (
-            $url === '' ||
-            $parts === false ||
-            isset($parts['host']) ||
-            isset($parts['scheme']) ||
-            isset($parts['user']) ||
-            !isset($parts['path']) ||
-            $parts['path'][0] !== '/' ||
-            // reject "//x" and "/\x" - both resolve to a protocol-relative (off-site) URL
-            (isset($parts['path'][1]) && ($parts['path'][1] === '/' || $parts['path'][1] === '\\'))
-        ) {
-            $url = '';
-        } else {
-            $url = $parts['path']
-                . (isset($parts['query']) ? '?' . $parts['query'] : '')
-                . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
-        }
+        // Decode before validating and redirect what comes back: '/%2f%2fevil'
+        // must not become '//evil' after the check has run.
+        App::uses('InternalRedirectValidator', 'Tools');
+        $url = InternalRedirectValidator::sanitize(rawurldecode($url));
         
         if (!empty(Configure::read('MISP.forceHTTPSforPreLoginRequestedURL')) && !empty($url)) {
             if (substr($url, 0, 7) === "http://") {
@@ -1476,10 +1568,11 @@ class UsersController extends AppController
             }
         }
         if (empty($url)) {
-            $homepage = $this->User->UserSetting->getValueForUser($this->Auth->user('id'), 'homepage');
-            if (!empty($homepage)) {
-                $url = $homepage['path'];
-            } else {
+            // The stored homepage is the same kind of value as the session URL
+            // above and gets the same check - a leading '/' alone let
+            // '//attacker.example' through to the Location header verbatim.
+            $url = $this->User->UserSetting->getHomepagePath($this->Auth->user('id'));
+            if ($url === '') {
                 $url = array('controller' => 'events', 'action' => 'index');
             }
         }
@@ -1573,39 +1666,45 @@ class UsersController extends AppController
             'conditions' => array('Organisation.id' => $org_ids)
         ));
         $orgs = array(0 => 'All organisations') + $orgs_temp;
-        $data = array();
-        $max = 1;
-        foreach ($orgs as $org_id => $org_name) {
-            $conditions = array('Attribute.deleted' => 0);
-            if ($selected) {
-                $conditions['Attribute.type'] = $selectedTypes;
-            }
-            if ($org_id != 0) {
-                $conditions['Event.orgc_id'] = $org_id;
-            }
-            $params = array(
+        $conditions = array('Attribute.deleted' => 0);
+        if ($selected) {
+            $conditions['Attribute.type'] = $selectedTypes;
+        }
+        $allTypes = $this->User->Event->Attribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
+            'group' => array('Attribute.type'),
+            'conditions' => $conditions,
+            'order' => false
+        ));
+        $counts = array(0 => Hash::combine($allTypes, '{n}.Attribute.type', '{n}.0.num_types'));
+        if (!empty($orgs_temp)) {
+            $conditions['Event.orgc_id'] = array_keys($orgs_temp);
+            $orgTypes = $this->User->Event->Attribute->find('all', array(
                 'recursive' => -1,
-                'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
-                'group' => array('Attribute.type'),
+                'fields' => array('Event.orgc_id', 'Attribute.type', 'COUNT(*) as num_types'),
+                'group' => array('Event.orgc_id', 'Attribute.type'),
                 'joins' => array(
                     array(
                         'table' => 'events',
                         'alias' => 'Event',
-                        'type' => 'LEFT',
+                        'type' => 'INNER',
                         'conditions' => array(
                             'Attribute.event_id = Event.id'
                         )
                     )
                 ),
-                //'order' => array('num_types DESC'),
                 'conditions' => $conditions,
                 'order' => false
-            );
-            if ($org_id == 0) {
-                unset($params['joins']);
+            ));
+            foreach ($orgTypes as $row) {
+                $counts[$row['Event']['orgc_id']][$row['Attribute']['type']] = $row[0]['num_types'];
             }
-            $temp = $this->User->Event->Attribute->find('all', $params);
-            $temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
+        }
+        $data = array();
+        $max = 1;
+        foreach ($orgs as $org_id => $org_name) {
+            $temp = $counts[$org_id] ?? array();
             $total = 0;
             foreach ($temp as $v) {
                 $v = (int) $v;
@@ -1731,7 +1830,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             if (empty($this->request->data['User']['subject']) || empty($this->request->data['User']['body'])) {
                 $message = 'Both the subject and the body have to be set.';
@@ -1944,16 +2043,15 @@ class UsersController extends AppController
                 throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
             }
             $secret = $user['totp'];
-            $totp = \OTPHP\TOTP::create($secret);
-            $hotp = \OTPHP\HOTP::create($secret);
-            if ($totp->verify(trim($this->request->data['User']['otp']))) {
+            $totp = $this->__createTotp($secret);
+            $now = time();
+            if ($totp->verify(trim($this->request->data['User']['otp']), $now) && $this->__claimTotpStep($user['id'], $totp, $now)) {
                 // OTP is correct, we login the user with CakePHP
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
-            } elseif (isset($user['hotp_counter']) && $hotp->verify(trim($this->request->data['User']['otp']), $user['hotp_counter'])) {
-                // HOTP is correct, update the counter and login
-                $this->User->id = $user['id'];
-                $this->User->saveField('hotp_counter', $user['hotp_counter']+1);
+            } elseif (isset($user['hotp_counter']) && $this->__consumeHotp($user['id'], trim($this->request->data['User']['otp']))) {
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
             } else {
@@ -1967,6 +2065,72 @@ class UsersController extends AppController
         // GET Request or wrong OTP, just show the form
         $this->set('totp', $user['totp']? true : false);
         $this->set('hotp_counter', $user['hotp_counter']);
+    }
+
+    /**
+     * A TOTP code is valid for its whole period; remember the period it was spent
+     * in so the same code cannot log in a second time.
+     */
+    private function __claimTotpStep($userId, \OTPHP\TOTP $totp, $timestamp)
+    {
+        $step = intdiv($timestamp - $totp->getEpoch(), $totp->getPeriod());
+        $key = 'misp:otp:totp_used:' . $userId . ':' . $step;
+        return (bool)RedisTool::init()->set($key, 1, ['nx', 'ex' => 3 * $totp->getPeriod()]);
+    }
+
+    /**
+     * @param string|null $secret null generates a new secret
+     * @return \OTPHP\TOTP
+     */
+    private function __createTotp($secret = null)
+    {
+        // Instances that have not re-run composer may still be on otphp 10,
+        // which has neither createFromSecret() nor a clock parameter.
+        if (
+            !method_exists('\OTPHP\TOTP', 'createFromSecret') ||
+            !interface_exists('\Psr\Clock\ClockInterface')
+        ) {
+            return \OTPHP\TOTP::create($secret);
+        }
+        App::uses('SystemClock', 'Tools');
+        $clock = new SystemClock();
+        if ($secret === null) {
+            return \OTPHP\TOTP::generate($clock);
+        }
+        return \OTPHP\TOTP::createFromSecret($secret, $clock);
+    }
+
+    /**
+     * Verify a paper token against the stored counter, not the one cached in the
+     * session at password time, and burn it under a lock so it works only once.
+     */
+    private function __consumeHotp($userId, $otp)
+    {
+        $redis = RedisTool::init();
+        $lock = 'misp:otp:hotp_lock:' . $userId;
+        if (!$redis->set($lock, 1, ['nx', 'ex' => 10])) {
+            return false;
+        }
+        try {
+            $stored = $this->User->find('first', [
+                'conditions' => ['User.id' => $userId],
+                'fields' => ['User.totp', 'User.hotp_counter'],
+                'recursive' => -1,
+            ]);
+            if (empty($stored['User']['totp']) || !isset($stored['User']['hotp_counter'])) {
+                return false;
+            }
+            $counter = (int)$stored['User']['hotp_counter'];
+            $hotp = \OTPHP\HOTP::create($stored['User']['totp']);
+            if (!$hotp->verify($otp, $counter)) {
+                return false;
+            }
+            $this->User->id = $userId;
+            $this->User->saveField('hotp_counter', $counter + 1);
+            return true;
+        } finally {
+            $redis->del($lock);
+        }
     }
 
     public function hotp()
@@ -2021,15 +2185,15 @@ class UsersController extends AppController
         }
 
         if ($this->request->is('get')) {
-            $totp = \OTPHP\TOTP::create();
+            $totp = $this->__createTotp();
             $secret = $totp->getSecret();
             $this->Session->write('otp_secret', $secret);  // Store in session, we want to create a new secret each time the totp_new() function is queried via a GET (this will not impede incorrect confirmation attempt)
         } else {
             $secret = $this->Session->read('otp_secret');  // Reload secret from session.
             if ($secret) {
-                $totp = \OTPHP\TOTP::create($secret);
+                $totp = $this->__createTotp($secret);
             } else {
-                $totp = \OTPHP\TOTP::create();
+                $totp = $this->__createTotp();
                 $secret = $totp->getSecret();
                 $this->Session->write('otp_secret', $secret); // Store in session, we want to keep reusing the same QR code until the user correctly enters the generated key on their authenticator
             }
@@ -2116,14 +2280,25 @@ class UsersController extends AppController
         if (empty($user)) {
             $this->redirect('login');
         }
+        $this->Bruteforce = ClassRegistry::init('Bruteforce');
+        // Guards both branches on purpose: a blocked source must neither submit
+        // another guess nor have a fresh OTP generated and mailed on its behalf.
+        if ($this->Bruteforce->isBlocklisted($user['email'])) {
+            $expire = Configure::check('SecureAuth.expire') ? Configure::read('SecureAuth.expire') : 300;
+            throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . $expire . ' seconds and try again.');
+        }
         $redis = RedisTool::init();
         $user_id = $user['id'];
 
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
+            $submitted_otp = $this->request->data['User']['otp'];
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && trim($this->request->data['User']['otp']) == $stored_otp) {
-                // we invalidate the previously generated OTP
-                $redis->del('misp:otp:' . $user_id);
+            if (
+                !empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp)) &&
+                // only the request whose delete removed the code may use it
+                $redis->del('misp:otp:' . $user_id) === 1
+            ) {
+                $this->Session->delete('email_otp_user');
                 // We login the user with CakePHP
                 $this->Auth->login($user);
                 $this->_postlogin();
@@ -2131,6 +2306,15 @@ class UsersController extends AppController
                 $this->Flash->error(__("The OTP is incorrect or has expired"));
                 $fieldsDescrStr = 'User (' . $user['id'] . '): ' . $user['email']. ' wrong email OTP token';
                 $this->User->extralog($user, "login_fail", $fieldsDescrStr, '');
+                $this->Bruteforce->insert($user['email']);
+                if ($this->Bruteforce->isBlocklisted($user['email'])) {
+                    // The OTP is keyed on the user rather than on the pending login,
+                    // so every parallel session of that user shares this one value.
+                    // Burn it as soon as the attempt budget is spent, otherwise the
+                    // sessions can outrun the counter against a still valid code.
+                    $redis->del('misp:otp:' . $user_id);
+                }
+                $this->request->data['User']['otp'] = '';
             }
         } else {
             // GET Request
@@ -2242,7 +2426,8 @@ class UsersController extends AppController
             'recursive' => -1,
             'order' => ['name'],
         );
-        if (!$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+        $hideOrgs = !$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'));
+        if ($hideOrgs) {
             $params['conditions'] = array('Organisation.id' => $user['org_id']);
         }
         $orgs = $this->User->Organisation->find('list', $params);
@@ -2296,12 +2481,6 @@ class UsersController extends AppController
         $stats['contributing_org_count'] = $this->User->Event->find('count', array('recursive' => -1, 'group' => array('Event.orgc_id')));
         $stats['average_user_per_org'] = $stats['local_org_count'] != 0 ?  round($stats['user_count'] / $stats['local_org_count'], 1) : 0;
 
-        $this->loadModel('Thread');
-        $stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
-        $stats['thread_count_month'] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s", $this_month), 'Thread.post_count >' => 0), 'recursive' => -1));
-
-        $stats['post_count'] = $this->Thread->Post->find('count', array('recursive' => -1));
-        $stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $this_month)), 'recursive' => -1));
         foreach ($stats as &$value) {
             $value = strval($value);
         }
@@ -2315,6 +2494,7 @@ class UsersController extends AppController
 
         $this->set('stats', $stats);
         $this->set('orgs', $orgs);
+        $this->set('showActivity', !$hideOrgs);
         $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
         $this->set('end', strtotime(date('Y-m-d H:i:s')));
         $this->set('startDateCal', $year . ', ' . $month . ', 01');
@@ -2387,7 +2567,7 @@ class UsersController extends AppController
         $orgs = $this->User->Organisation->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
-            'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
+            'fields' => array('id', 'name', 'uuid', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
         ));
         $orgs = array_column(array_column($orgs, 'Organisation'), null, 'id');
         $users = $this->User->find('all', array(
@@ -2415,9 +2595,25 @@ class UsersController extends AppController
         $orgs = Set::combine($orgs, '{n}.name', '{n}');
         // f*** php
         uksort($orgs, 'strcasecmp');
+        // Flag orgs that have a logo. Logos live under files/img/orgs (moved out of
+        // webroot long ago) and are named by id, name or uuid, so mirror the lookup
+        // getOrgLogo() serves from. realpath() + the prefix check reject a value that
+        // escapes the directory - e.g. an org name of '../../../../AI-marketing' - so
+        // reviving this flag does not reintroduce the org-name path traversal.
+        $logoPath = APP . 'files' . DS . 'img' . DS . 'orgs' . DS;
+        $logoBase = realpath($logoPath);
         foreach ($orgs as $k => $value) {
-            if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $k . '.png')) {
-                $orgs[$k]['logo'] = true;
+            foreach (['id', 'name', 'uuid'] as $field) {
+                if (empty($value[$field])) {
+                    continue;
+                }
+                foreach (['png', 'svg'] as $extension) {
+                    $candidate = realpath($logoPath . $value[$field] . '.' . $extension);
+                    if ($candidate !== false && $logoBase !== false && str_starts_with($candidate, $logoBase . DS)) {
+                        $orgs[$k]['logo'] = true;
+                        break 2;
+                    }
+                }
             }
         }
         if ($this->_isRest()) {
@@ -2762,6 +2958,58 @@ class UsersController extends AppController
         return new CakeResponse(array('body'=> 'OK','status' => 200));
     }
 
+    /**
+     * Clear the one-shot onboarding marker.
+     *
+     * Called by the tour the moment it is displayed rather than when it is
+     * finished: a user who skips it straight away has still been offered it,
+     * and should not be interrupted again on their next login.
+     */
+    public function onboardingSeen()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+        $this->User->UserSetting->setSettingInternal(
+            $this->Auth->user('id'), 'onboarding_pending', false
+        );
+        $this->Session->delete('Overmind.onboarding_pending');
+        return $this->RestResponse->saveSuccessResponse(
+            'Users', 'onboardingSeen', false, 'json',
+            __('Onboarding tour marked as seen.')
+        );
+    }
+
+    /**
+     * Step catalogue for the Overmind onboarding tour.
+     *
+     * Served on demand rather than embedded in every page: the catalogue is
+     * only needed once a tour actually starts. Steps are filtered against
+     * the requesting user's ACL so the tour never points at an action they
+     * are not allowed to perform.
+     */
+    public function onboarding()
+    {
+        App::uses('OnboardingTour', 'Tools');
+        $user = $this->Auth->user();
+        $acl = $this->ACL;
+        $canAccess = function ($controller, $action) use ($acl, $user) {
+            try {
+                return $acl->canUserAccess($user, $controller, $action);
+            } catch (Exception $e) {
+                // An action that no longer exists must not break the tour.
+                return false;
+            }
+        };
+        return $this->RestResponse->viewData(
+            array(
+                'sections' => OnboardingTour::sections($canAccess, $user['org_id']),
+                'strings' => OnboardingTour::uiStrings(),
+            ),
+            'json'
+        );
+    }
+
     public function admin_monitor($id)
     {
         $user = $this->User->find('first', array(
@@ -2901,7 +3149,7 @@ class UsersController extends AppController
                 $params['conditions']['AND']['OR'][] = array('LOWER(Inbox.' . $field . ') LIKE' => '%' . $lookup . '%');
             }
         }
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         if ($this->_isRest()) {
             $data = $this->Inbox->find('all', array(
                 'recursive' => -1,
@@ -3233,7 +3481,14 @@ class UsersController extends AppController
         if ($this->_isSiteAdmin()) {
             return true;
         }
-        return !Configure::read('MISP.disable_user_login_change');
+        if (Configure::read('MISP.disable_user_login_change')) {
+            return false;
+        }
+        // External backends find accounts by e-mail: a self-chosen address
+        // would capture a directory identity on its first login.
+        return empty(Configure::read('Security.auth')) &&
+            !Configure::read('ApacheSecureAuth.apacheEnv') &&
+            !Configure::read('Plugin.CustomAuth_enable');
     }
 
     /**
@@ -3470,9 +3725,30 @@ class UsersController extends AppController
             if (empty($this->request->data['User']['email'])) {
                 throw new MethodNotAllowedException(__('No email provided, cannot generate password reset message.'));
             }
+            $email = $this->request->data['User']['email'];
+            // Bound and format-check the address before anything is written. The
+            // log entry below and the job forgotRouter() queues are both derived
+            // from this string and both persist it, so unvalidated it is an
+            // unauthenticated write of arbitrary length into two tables. The
+            // format rule is the one that governs account creation - register()
+            // applies the same validator - and the byte cap sits well above the
+            // 255 character users.email column, so neither test can refuse an
+            // address that could name a real user.
+            //
+            // Both tests read only the submitted string, never the database, so
+            // the response stays uniform for every well formed address whether or
+            // not it belongs to an account. That is deliberate: resolving the user
+            // first would make the reply time depend on the answer.
+            if (
+                !is_string($email) ||
+                strlen($email) > 1024 ||
+                !$this->User->validateEmail(['email' => $email])
+            ) {
+                throw new BadRequestException(__('Invalid email address supplied, cannot generate password reset message.'));
+            }
             $this->loadModel('Log');
-            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $this->request->data['User']['email']);
-            $this->User->forgotRouter($this->request->data['User']['email'], $this->User->_remoteIp());
+            $this->Log->createLogEntry('SYSTEM', 'forgot', 'User', 0, 'Password reset requested for: ' . $email);
+            $this->User->forgotRouter($email, $this->User->_remoteIp());
             $message = __('Password reset request submitted. If a valid user is found, you should receive an e-mail with a temporary reset link momentarily. Please be advised that this link is only valid for 10 minutes.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('User', 'forgot', false, $this->response->type(), $message);
@@ -3512,15 +3788,23 @@ class UsersController extends AppController
         return $this->RestResponse->viewData($payload, 'json');
     }
 
-    public function userIp($user)
+    public function userIp($user = null)
     {
-        $result = $this->User->userIP($user);
-        return $this->RestResponse->viewData($result['User'], 'json');
+        if (empty($user)) {
+            throw new BadRequestException(__('No user ID or e-mail address given.'));
+        }
+        return $this->RestResponse->viewData($this->User->userIP($user), 'json');
     }
 
-    public function ipUser($ip)
+    public function ipUser($ip = null)
     {
-        $result = $this->User->ipUser($ip);
-        return $this->RestResponse->viewData($result, 'json');
+        // An IPv6 address can't be passed in the URL path (Cake reads it as a named parameter)
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
+        $ip = $params['ip'] ?? $ip;
+        if (!is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+            throw new BadRequestException(__('Invalid IP address.'));
+        }
+        return $this->RestResponse->viewData($this->User->IPUser($ip), 'json');
     }
 }

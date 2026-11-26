@@ -71,11 +71,12 @@ $table_data[] = [
     ],
 ];
 $table_data[] = array('key' => __('Collection UUID'), 'value' => $cluster['GalaxyCluster']['collection_uuid'], 'value_class' => 'quickSelect');
+$clusterSource = $cluster['GalaxyCluster']['source'];
 $table_data[] = array(
     'key' => __('Source'),
-    'html' => filter_var($cluster['GalaxyCluster']['source'], FILTER_VALIDATE_URL) ?
-        '<a href="' . h($cluster['GalaxyCluster']['source']) . '" rel="noreferrer noopener">' . h($cluster['GalaxyCluster']['source']) :
-        h($cluster['GalaxyCluster']['source']),
+    'html' => filter_var($clusterSource, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//i', $clusterSource) ?
+        '<a href="' . h($clusterSource) . '" rel="noreferrer noopener">' . h($clusterSource) . '</a>' :
+        h($clusterSource),
 );
 $table_data[] = array('key' => __('Authors'), 'value' => !empty($cluster['GalaxyCluster']['authors']) ? implode(', ', $cluster['GalaxyCluster']['authors']) : __('N/A'));
 $table_data[] = array('key' => __('Distribution'), 'element' => 'genericElements/IndexTable/Fields/distribution_levels', 'element_params' => array(

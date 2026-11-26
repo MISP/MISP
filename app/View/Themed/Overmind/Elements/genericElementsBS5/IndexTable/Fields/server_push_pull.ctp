@@ -8,8 +8,8 @@ if (empty($mode) || empty($server)) {
 if ($mode === 'pull') {
     $enabled = !empty($server[$mode]);
 } else {
-    $enabled = !empty($server[$mode]) &&
-        !empty(Hash::get($row, 'RuleDescription.' . $mode));
+    $enabled = !empty($server[$mode]);// &&
+        //!empty(Hash::get($row, 'RuleDescription.' . $mode));
 }
 
 $rules = Hash::get($row, 'RuleDescription.' . $mode);
@@ -17,6 +17,7 @@ $serverId = $server['id'];
 $isCard = isset($viewMode) && $viewMode === 'card';
 $stateLabel = $enabled ? __('Enabled') : __('Disabled');
 ?>
+
 <div class="d-flex flex-column gap-1">
     <?php if ($isCard): ?>
         <span class="small <?= $enabled ? 'text-success' : 'text-secondary' ?>">

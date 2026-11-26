@@ -49,15 +49,18 @@ class UserLoginProfile extends AppModel
         $logger = new \Monolog\Logger('name');
         $streamHandler = new \Monolog\Handler\StreamHandler('php://stderr', \Monolog\Level::Info);
         $logger->pushHandler($streamHandler);
-        try {
-            $redis = RedisTool::init();
-        } catch (Exception $e) {
-            $redis = false;
+        $redis = false;
+        if (!function_exists('apcu_fetch') && class_exists('\MatthiasMullie\Scrapbook\Adapters\Redis')) {
+            try {
+                // Scrapbook switches its connection to the PHP serializer
+                $redis = RedisTool::connect();
+            } catch (Exception $e) {
+            }
         }
         if (function_exists('apcu_fetch')) {
             App::uses('ApcuCacheTool', 'Tools');
             $cache = new ApcuCacheTool('misp:browscap');
-        } else if (class_exists('\MatthiasMullie\Scrapbook\Adapters\Redis') && $redis) {
+        } else if ($redis) {
             $redis_cache = new \MatthiasMullie\Scrapbook\Adapters\Redis($redis);
             $cache = new \MatthiasMullie\Scrapbook\Psr16\SimpleCache($redis_cache);
         } else if (class_exists('\League\Flysystem\Local\LocalFilesystemAdapter') && class_exists('\MatthiasMullie\Scrapbook\Adapters\Flysystem')) {

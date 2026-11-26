@@ -9530,13 +9530,6 @@ components:
                     "data_in_bytes": 16384
                     "index_in_bytes": 16384
                     "reclaimable_in_bytes": 0
-                  "allowedlist":
-                    "table": "allowedlist"
-                    "used": "0.02 MB"
-                    "reclaimable": "0 MB"
-                    "data_in_bytes": 16384
-                    "index_in_bytes": 0
-                    "reclaimable_in_bytes": 0
               dbSchemaDiagnostics:
                 type: object
                 properties:

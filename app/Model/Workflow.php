@@ -1187,7 +1187,11 @@ class Workflow extends AppModel
         }
         // Load module from misp-module service
         $modules_from_service = $this->__getModulesFromModuleService() ?? [];
-        $misp_module_class = $this->__getClassForMispModule($modules_from_service);
+        $builtinModuleIDs = [];
+        foreach ($this->loaded_modules as $modules) {
+            $builtinModuleIDs = array_merge($builtinModuleIDs, array_keys($modules));
+        }
+        $misp_module_class = $this->__getClassForMispModule($modules_from_service, $builtinModuleIDs);
         $misp_module_configs = [];
         foreach ($misp_module_class as $i => $module_class) {
             $misp_module_configs[$i] = $module_class->getConfig();
@@ -1207,7 +1211,6 @@ class Workflow extends AppModel
             $this->loaded_classes['trigger'] = array_merge($this->loaded_classes['trigger'], [$trigger_id => $adHocClass]);
         }
 
-        $this->loaded_classes['action'] = array_merge($this->loaded_classes['action'], $misp_module_class);
         $this->__mergeGlobalConfigIntoLoadedModules();
         $this->module_initialized = true;
     }
@@ -1293,7 +1296,11 @@ class Workflow extends AppModel
         return $modules;
     }
 
-    private function __getClassForMispModule($misp_module_configs)
+    /**
+     * Instantiate the misp-modules service modules. A module whose id is already used by a
+     * built-in module is dropped: enabled state is keyed by id alone, so it must not shadow one.
+     */
+    private function __getClassForMispModule($misp_module_configs, array $reservedIDs=[])
     {
         $filepathMispModule = sprintf('%s/%s', Workflow::MODULE_ROOT_PATH, 'Module_misp_module.php');
         $className = 'Module_misp_module';
@@ -1303,16 +1310,22 @@ class Workflow extends AppModel
             try {
                 $reflection = new \ReflectionClass($className);
             } catch (\ReflectionException $e) {
-                return $e->getMessage();
+                CakeLog::warning(sprintf('Could not load the misp-module workflow class: %s', $e->getMessage()));
+                return [];
             }
         } catch (Exception $e) {
-            return $e->getMessage();
+            CakeLog::warning(sprintf('Could not load the misp-module workflow class: %s', $e->getMessage()));
+            return [];
         }
         $moduleClasses = [];
         if (is_array($misp_module_configs)) {
             foreach ($misp_module_configs as $moduleConfig) {
                 $mainClass = $reflection->newInstance($moduleConfig);
                 if ($mainClass->checkLoading() === 'The Factory Must Grow') {
+                    if (in_array($mainClass->id, $reservedIDs)) {
+                        CakeLog::warning(sprintf('misp-module `%s` ignored: its workflow module id `%s` is already used by a built-in module', $mainClass->name, $mainClass->id));
+                        continue;
+                    }
                     $moduleClasses[$mainClass->id] = $mainClass;
                 }
             }

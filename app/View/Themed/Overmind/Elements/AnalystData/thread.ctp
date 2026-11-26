@@ -14,14 +14,76 @@
  *   $objectType      — the parent object's type (e.g. 'Note', 'Event')
  *   $objectUuid      — the parent object's uuid
  *   $showModalHeader — bool, draw the modal header strip + close button (default false)
+ *   $bodyClass       — wrapper classes; a modal wants the container's gutters,
+ *                      a card body already has its own (default the modal's)
+ *
+ * Every item leads with its distribution, as the icon-only shared badge, and a
+ * nested item carries a left rule in the accent of its own type so a thread
+ * reads by colour as well as by indent.
  */
 $showModalHeader = !empty($showModalHeader);
+$bodyClass = $bodyClass ?? 'container-fluid px-4 py-4';
 
 $notes         = $analystData['Note'] ?? [];
 $opinions      = $analystData['Opinion'] ?? [];
 $relationships = $analystData['Relationship'] ?? [];
 $inbound       = $analystData['RelationshipInbound'] ?? [];
 $total = count($notes) + count($opinions) + count($relationships) + count($inbound);
+
+// Notes and opinions anywhere in the thread, replies included, by type; a
+// branch cut short by the depth limit makes the figure a lower bound.
+$threadCount = ['Note' => 0, 'Opinion' => 0, 'truncated' => false];
+$countThread = function (array $items, $type) use (&$countThread, &$threadCount) {
+    foreach ($items as $item) {
+        if (isset($threadCount[$type])) {
+            $threadCount[$type]++;
+        }
+        if (!empty($item['_max_depth_reached'])) {
+            $threadCount['truncated'] = true;
+        }
+        $countThread($item['Note'] ?? [], 'Note');
+        $countThread($item['Opinion'] ?? [], 'Opinion');
+    }
+};
+$countThread($notes, 'Note');
+$countThread($opinions, 'Opinion');
+$countThread($relationships, 'Relationship');
+$counter = function ($type, $direct) use ($threadCount) {
+    $all = $threadCount[$type];
+    $label = $all . ($threadCount['truncated'] ? '+' : '');
+    if ($all === $direct) {
+        return h($label);
+    }
+    return sprintf(
+        '%s <span class="fw-normal text-muted text-lowercase">&middot; %s</span>',
+        h($label), h(__('%s direct', $direct))
+    );
+};
+
+/*
+ * The accent an analyst-data type is drawn in, held as a scope name rather than
+ * a colour: the section label above a group and the left rule a nested card
+ * carries both read it from here, so the two cannot drift. ModalAccent turns
+ * the name into the colour expression and the text utility.
+ */
+$typeAccents = [
+    'Note'         => 'primary',
+    'Opinion'      => 'success',
+    'Relationship' => 'info',
+];
+$accentOf = function ($type) use ($typeAccents) {
+    return $this->ModalAccent->get($typeAccents[$type] ?? 'primary');
+};
+
+// The item's distribution, icon only, seated to the left of its content.
+$distBadge = function ($item) {
+    return '<span class="flex-shrink-0 d-inline-flex align-self-start">'
+        . $this->element('genericElementsBS5/Badges/distribution', [
+            'distribution' => $item['distribution'] ?? null,
+            'full' => false,
+        ])
+        . '</span>';
+};
 
 // Link to a referenced MISP object (analyst types open their own view).
 $objLink = function ($type, $uuid) use ($baseurl) {
@@ -74,9 +136,9 @@ $itemActions = function ($item, $type) use ($baseurl, $me) {
             '<div class="dropdown">'
             . '<button class="btn btn-sm btn-light p-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="' . h(__('Add analyst data')) . '"><i class="fas fa-plus"></i></button>'
             . '<ul class="dropdown-menu dropdown-menu-end shadow-sm">'
-            . $addItem('Note', 'misp-icon misp-icon-analyst-note misp-simple', __('Add note'))
-            . $addItem('Opinion', 'misp-icon misp-icon-analyst-opinion misp-simple', __('Add opinion'))
-            . $addItem('Relationship', 'fas fa-diagram-project', __('Add relationship'))
+            . $addItem('Note', 'text-primary misp-icon misp-icon-analyst-note misp-simple', __('Add note'))
+            . $addItem('Opinion', 'text-success misp-icon misp-icon-analyst-opinion misp-simple', __('Add opinion'))
+            . $addItem('Relationship', 'text-correlation fas fa-diagram-project', __('Add relationship'))
             . '</ul></div>';
     }
 
@@ -109,12 +171,16 @@ $metaLine = function ($item) {
 
 // Renders a Note/Opinion item card, then recurses into the child notes/opinions
 // attached to it (analyst data on analyst data), indented under the parent.
-$renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemActions, $metaLine) {
+// $nested draws the left rule in the item's own accent
+$renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseurl, $opinionBadge, $itemActions, $metaLine, $distBadge, $accentOf) {
+    $cardAttrs = 'class="border rounded p-2 ov-ad-nested" style="--ov-ad-accent: ' . $accentOf($type)['colour'] . ';"'
+        . ($nested ? '' : ' data-ad-entry');
     ob_start();
     ?>
-    <div class="border rounded p-2">
+    <div <?= $cardAttrs ?>>
         <?php if ($type === 'Opinion'): ?>
             <div class="d-flex align-items-center gap-2">
+                <?= $distBadge($item) ?>
                 <?= $opinionBadge($item['opinion'] ?? 0) ?>
                 <?= $itemActions($item, 'Opinion') ?>
             </div>
@@ -123,6 +189,7 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
             <?php endif; ?>
         <?php else: ?>
             <div class="d-flex align-items-start gap-2">
+                <?= $distBadge($item) ?>
                 <div class="flex-grow-1" style="white-space:pre-wrap;"><?= h($item['note'] ?? '') ?></div>
                 <?= $itemActions($item, 'Note') ?>
             </div>
@@ -132,10 +199,15 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
         $childNotes    = $item['Note'] ?? [];
         $childOpinions = $item['Opinion'] ?? [];
         if (!empty($childNotes) || !empty($childOpinions)): ?>
-            <div class="mt-2 ms-3 ps-2 border-start d-flex flex-column gap-2">
-                <?php foreach ($childNotes as $cn) { echo $renderNode($cn, 'Note'); } ?>
-                <?php foreach ($childOpinions as $co) { echo $renderNode($co, 'Opinion'); } ?>
+            <div class="mt-2 ms-3 d-flex flex-column gap-2">
+                <?php foreach ($childNotes as $cn) { echo $renderNode($cn, 'Note', true); } ?>
+                <?php foreach ($childOpinions as $co) { echo $renderNode($co, 'Opinion', true); } ?>
             </div>
+        <?php elseif (!empty($item['_max_depth_reached'])): ?>
+            <a href="#" class="d-inline-block mt-2 ms-3 small text-decoration-none"
+               onclick="event.preventDefault(); openModalChained('<?= h($baseurl . '/analystData/viewForObject/' . $type . '/' . rawurlencode($item['uuid'])) ?>');">
+                <i class="fas fa-reply-all me-1"></i><?= __('Continue this thread') ?>
+            </a>
         <?php endif; ?>
     </div>
     <?php
@@ -144,39 +216,32 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
 ?>
 
 <?php if ($showModalHeader): ?>
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between bg-analystData bg-opacity-10"
-     style="border-bottom:2px solid var(--analystData);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-analystData"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Analyst Data') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-clipboard-list text-analystData" style="font-size:1.2rem;"></i>
-            <?= h($objectType) ?>
-        </h4>
-        <p class="text-muted mb-0 font-monospace" style="font-size:.72rem;"><?= h($objectUuid) ?></p>
-    </div>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'analystData',
+    'eyebrow' => __('Analyst Data'),
+    'title' => $objectType,
+    'titleIcon' => 'fas fa-clipboard-list',
+    'description' => $objectUuid,
+    'descriptionClass' => 'font-monospace',
+    'close' => true,
+]) ?>
 <?php endif; ?>
 
-<div class="container-fluid px-4 py-4">
+<div class="<?= h($bodyClass) ?>">
 
     <?php if ($total === 0): ?>
         <div class="text-center text-muted py-4">
             <i class="fas fa-comment-slash mb-2" style="font-size:1.5rem;"></i>
-            <div><?= __('No analyst data attached to this %s yet.', strtolower($objectType)) ?></div>
+            <div><?= __('No analyst data attached to this %s yet.', h(strtolower($objectType))) ?></div>
         </div>
     <?php else: ?>
     <div class="d-flex flex-column gap-4">
 
         <!-- ── NOTES ───────────────────────────────────────────── -->
         <?php if (!empty($notes)): ?>
-            <div>
-                <div class="text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                    <i class="misp-icon misp-icon-analyst-note misp-simple me-1"></i><?= __('Notes') ?> (<?= count($notes) ?>)
+            <div data-ad-section>
+                <div class="<?= h($accentOf('Note')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+                    <i class="misp-icon misp-icon-analyst-note misp-simple me-1"></i><?= __('Notes') ?> (<?= $counter('Note', count($notes)) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($notes as $note) { echo $renderNode($note, 'Note'); } ?>
@@ -186,9 +251,9 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
 
         <!-- ── OPINIONS ────────────────────────────────────────── -->
         <?php if (!empty($opinions)): ?>
-            <div>
-                <div class="text-success fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
-                    <i class="misp-icon misp-icon-analyst-opinion misp-simple me-1"></i><?= __('Opinions') ?> (<?= count($opinions) ?>)
+            <div data-ad-section>
+                <div class="<?= h($accentOf('Opinion')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+                    <i class="misp-icon misp-icon-analyst-opinion misp-simple me-1"></i><?= __('Opinions') ?> (<?= $counter('Opinion', count($opinions)) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($opinions as $op) { echo $renderNode($op, 'Opinion'); } ?>
@@ -198,14 +263,15 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
 
         <!-- ── RELATIONSHIPS (outbound) ────────────────────────── -->
         <?php if (!empty($relationships)): ?>
-            <div>
-                <div class="text-info fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+            <div data-ad-section>
+                <div class="<?= h($accentOf('Relationship')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="fas fa-diagram-project me-1"></i><?= __('Relationships') ?> (<?= count($relationships) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($relationships as $rel): ?>
-                        <div class="border rounded p-2">
+                        <div class="border rounded p-2" data-ad-entry>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <?= $distBadge($rel) ?>
                                 <?php if (!empty($rel['relationship_type'])): ?>
                                     <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
                                         <?= h($rel['relationship_type']) ?>
@@ -219,9 +285,9 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
                             $relNotes    = $rel['Note'] ?? [];
                             $relOpinions = $rel['Opinion'] ?? [];
                             if (!empty($relNotes) || !empty($relOpinions)): ?>
-                                <div class="mt-2 ms-3 ps-2 border-start d-flex flex-column gap-2">
-                                    <?php foreach ($relNotes as $cn) { echo $renderNode($cn, 'Note'); } ?>
-                                    <?php foreach ($relOpinions as $co) { echo $renderNode($co, 'Opinion'); } ?>
+                                <div class="mt-2 ms-3 d-flex flex-column gap-2">
+                                    <?php foreach ($relNotes as $cn) { echo $renderNode($cn, 'Note', true); } ?>
+                                    <?php foreach ($relOpinions as $co) { echo $renderNode($co, 'Opinion', true); } ?>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -232,13 +298,14 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
 
         <!-- ── RELATIONSHIPS (inbound) ─────────────────────────── -->
         <?php if (!empty($inbound)): ?>
-            <div>
-                <div class="text-info fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
+            <div data-ad-section>
+                <div class="<?= h($accentOf('Relationship')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="fas fa-diagram-project me-1"></i><?= __('Inbound relationships') ?> (<?= count($inbound) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($inbound as $rel): ?>
-                        <div class="border rounded p-2 d-flex align-items-center gap-2 flex-wrap">
+                        <div class="border rounded p-2 d-flex align-items-center gap-2 flex-wrap" data-ad-entry>
+                            <?= $distBadge($rel) ?>
                             <?= $objLink($rel['object_type'] ?? '', $rel['object_uuid'] ?? '') ?>
                             <i class="fas fa-arrow-right text-muted"></i>
                             <?php if (!empty($rel['relationship_type'])): ?>
@@ -246,7 +313,7 @@ $renderNode = function ($item, $type) use (&$renderNode, $opinionBadge, $itemAct
                                     <?= h($rel['relationship_type']) ?>
                                 </span>
                             <?php endif; ?>
-                            <span class="text-muted small"><?= __('this %s', strtolower($objectType)) ?></span>
+                            <span class="text-muted small"><?= __('this %s', h(strtolower($objectType))) ?></span>
                         </div>
                     <?php endforeach; ?>
                 </div>

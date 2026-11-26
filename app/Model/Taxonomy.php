@@ -877,7 +877,6 @@ class Taxonomy extends AppModel
      *
      * Ignored: As this is defined by users, let them do the migration themselves
      * - tag_collection_tags
-     * - template_tags
      * - favorite_tags
      *
      * @param int $source_id

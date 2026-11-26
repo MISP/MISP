@@ -1,4 +1,5 @@
 <?php
+$this->set('headerIdentity', $data['EventTemplate'] ?? []);
 
 $tpl = $data['EventTemplate'] ?? [];
 $templateId = (int)($tpl['id'] ?? 0);
@@ -36,26 +37,22 @@ $isActive = (int)($tpl['active'] ?? 0) === 1;
 
 $descParts = [];
 if (!empty($tpl['created'])) {
-    $descParts[] = '<span>'
-        . '<i class="fas fa-calendar-day me-1 opacity-50"></i>'
-        . h($tpl['created'])
-        . '</span>';
+    $descParts[] = '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-plus me-1 opacity-50"></i>'
+        . $this->Time->time($tpl['created']) . '</span>';
 }
 if (!empty($tpl['modified'])) {
-    $descParts[] = '<span>'
-        . '<i class="fas fa-edit me-1 opacity-50"></i>'
-        . h($tpl['modified'])
-        . '</span>';
+    $descParts[] = '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
+        . $this->Time->time($tpl['modified']) . '</span>';
 }
-$headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
-    . implode('', $descParts)
-    . '</span>';
-
-
-
 $this->set('headerTitle', $tpl['name'] ?? __('Event Template'));
-$this->set('headerDescription', $headerDescription);
+$this->set('headerDescription', '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $descParts) . '</span>');
 $this->set('headerCountText', '');
+$this->set('templateShape', [
+    'sections' => $sectionCount,
+    'fields' => $fieldCount,
+    'mandatory' => $mandatoryCount,
+    'dependencies' => count($dependencies),
+]);
 
 $tabs = [
     [
@@ -100,5 +97,10 @@ $tabs = [
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
+    'ownership' => [
+        'orgc' => $data['Organisation'] ?? [],
+        'user' => $data['CreatorUser'] ?? [],
+        'distribution' => $tpl['distribution'] ?? null,
+    ],
     'tabs' => $tabs,
 ]);

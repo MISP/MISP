@@ -46,10 +46,16 @@ class ObjectRelationshipsController extends AppController
         foreach ($allCounts['analyst_relationship'] as $type => $count) {
             $countsForTypes[$type]['analyst_relationship'] = intval($count);
         }
-        $filters = $this->IndexFilter->harvestParameters(['quickFilter']);
+
+        // Build conditions for highlighted filter
+        $conditions = [];
+        $filters = $this->IndexFilter->harvestParameters(['highlighted','quickFilter']);
         $conditions = [];
         if (!empty($filters['quickFilter'])) {
             $conditions['name LIKE'] = '%' . $filters['quickFilter'] . '%';
+        }
+        if (isset($filters['highlighted'])) {
+            $conditions['highlighted'] = $filters['highlighted'];
         }
         $relationships = $this->ObjectRelationship->find('all', [
             'recursive' => -1,
@@ -78,7 +84,7 @@ class ObjectRelationshipsController extends AppController
         }
 
         $this->set('data', $relationships);
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         $this->set('menuData', ['menuList' => 'objectTemplates', 'menuItem' => 'object_relationship_index']);
     }
 
@@ -244,10 +250,9 @@ class ObjectRelationshipsController extends AppController
 
     private function _massToggleState($idList = null, $state = null, $field = '')
     {
-        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
-        $ids = json_decode($cleanIdList, true);
+        $ids = $this->_massActionIdList($idList, 'ObjectRelationship');
 
-        if (empty($ids) || !is_array($ids)) {
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('ObjectRelationships', 'massToggle', false, $message, $this->response->type());
@@ -343,7 +348,10 @@ class ObjectRelationshipsController extends AppController
         $this->set('actionText', __($actionTextMap[$field]));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/object_relationships/' . $urlMap[$field] . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in ObjectRelationship.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['ObjectRelationship']['id'] = json_encode($ids);
+        $this->set('url', '/object_relationships/' . $urlMap[$field]);
 
         $this->render('ajax/objectRelationshipToggleConfirmationForm');
     }
