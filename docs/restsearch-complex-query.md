@@ -37,10 +37,11 @@ and [Organisations](#organisations).
 - `returnFormat` and the other output parameters work as usual. `query` only
   selects which attributes, events or objects are returned; on events and
   objects, a negated `tags` also strips the attributes carrying the tag.
-- When a role reduces an explicit page size, a paged search response includes
-  `X-Result-Page-Limit` with the applied size. Page numbers are interpreted
-  using that size. This header lets clients detect when a requested page
-  would start at a different offset.
+- When a role reduces or imposes the page size (a `limit` above the role's,
+  or no `limit`), the search response includes `X-Result-Page-Limit` with the
+  applied size; a `count` never does. Page numbers are interpreted using that
+  size. This header lets clients detect when a requested page would start at
+  a different offset, or that a search without `limit` was cut at that size.
 
 ## Grammar
 

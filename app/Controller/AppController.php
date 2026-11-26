@@ -2063,7 +2063,8 @@ class AppController extends Controller
         $responseType = empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0];
         $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
         $pageHeaders = [];
-        if ($returnFormat !== 'count' && $roleLimit > 0 && ($filters['limit'] ?? 0) > $roleLimit) {
+        // The role's size replaces a larger limit, or a missing one (below)
+        if ($returnFormat !== 'count' && $roleLimit > 0 && (empty($filters['limit']) || $filters['limit'] > $roleLimit)) {
             $pageHeaders['X-Result-Page-Limit'] = $roleLimit;
         }
         if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {

@@ -1899,6 +1899,18 @@ class TestComplexQueryAcl(unittest.TestCase):
         self.assertEqual(response.headers.get("X-Result-Page-Limit"), "1")
         self.assertEqual(len(response.json()["response"]["Attribute"]), 1)
 
+        # No limit: the role's size is imposed and reported; an uncapped role gets no header
+        unpaged = {"query": body["query"]}
+        response = requests.post(f"{url}/attributes/restSearch", json=unpaged, headers=headers, verify=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("X-Result-Page-Limit"), "1")
+        self.assertEqual(len(response.json()["response"]["Attribute"]), 1)
+        response = requests.post(f"{url}/attributes/restSearch", json=unpaged, verify=False,
+                                 headers={"Authorization": self.user_key, "Accept": "application/json"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.headers.get("X-Result-Page-Limit"))
+        self.assertEqual({a["value"] for a in response.json()["response"]["Attribute"]}, self.visible)
+
         response = requests.post(f"{url}/attributes/restSearch",
                                  json={**body, "returnFormat": "cache", "limit": 10**9, "page": 1},
                                  headers=headers, verify=False)
