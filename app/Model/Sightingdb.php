@@ -5,6 +5,8 @@ App::uses('Sanitize', 'Utility');
 
 class Sightingdb extends AppModel
 {
+    // Below the namespaces MISP reads from, where it writes the sightings recorded in it
+    const PUSH_NAMESPACE = 'misp';
 
     public $errors = array(
         1 => 'Invalid SightingDB.',
@@ -64,8 +66,6 @@ class Sightingdb extends AppModel
 
     private $__sightingdbs = false;
 
-    private $__connectionStatus = array();
-
     /*
      * Load all sightingDBs into a persistent array
      * Helps with repeated lookups
@@ -84,12 +84,6 @@ class Sightingdb extends AppModel
                 !empty($sightingdb['Sightingdb']['org_id']) &&
                 !in_array($user['org_id'], $sightingdb['Sightingdb']['org_id'])
             ) {
-                unset($this->__sightingdbs[$k]);
-            }
-            if (empty($this->__connectionStatus[$sightingdb['Sightingdb']['id']])) {
-                $this->__connectionStatus[$sightingdb['Sightingdb']['id']] = $this->requestStatus($sightingdb);
-            }
-            if (!is_array($this->__connectionStatus[$sightingdb['Sightingdb']['id']])) {
                 unset($this->__sightingdbs[$k]);
             }
         }
@@ -122,6 +116,43 @@ class Sightingdb extends AppModel
             }
         }
         return $attributes;
+    }
+
+    /*
+     * Loop through a list of objects, and pass each of their attribute values to
+     * SightingDB. If there's a hit, append the data directly to the attributes
+     */
+    public function attachToObjects($objects, $user)
+    {
+        if (!empty(Configure::read('Plugin.Sightings_sighting_db_enable'))) {
+            if ($this->__sightingdbs === false) {
+                $this->__loadSightingdbs($user);
+            }
+            if (!empty($this->__sightingdbs)) {
+                $values = array();
+                foreach ($objects as $object) {
+                    foreach ($object['Attribute'] ?? [] as $attribute) {
+                        $values[$attribute['value']] = array();
+                    }
+                }
+                foreach ($this->__sightingdbs as $sightingdb) {
+                    $values = $this->queryValues($values, $sightingdb);
+                }
+                foreach ($objects as &$object) {
+                    if (empty($object['Attribute'])) {
+                        continue;
+                    }
+                    foreach ($object['Attribute'] as &$attribute) {
+                        if (!empty($values[$attribute['value']])) {
+                            $attribute['Sightingdb'] = array_values($values[$attribute['value']]);
+                        }
+                    }
+                    unset($attribute);
+                }
+                unset($object);
+            }
+        }
+        return $objects;
     }
 
     /*
@@ -223,12 +254,192 @@ class Sightingdb extends AppModel
     }
 
     /*
-     * Query the sightingDB for each value extracted
+     * Query the sightingDB for each value extracted: how often it was sighted,
+     * and, when the connection has a false-positive namespace, how often it was
+     * reported as a false-positive. A hit is attached under the connection's id
+     * with `count`, `first_seen` and `last_seen` for sightings, and the same
+     * under `false_positive`. A sighted value SightingDB will expire - it has a
+     * TTL - also carries `expiration`, the Unix time it stops being valid: its
+     * last sighting plus the TTL.
      */
     public function queryValues($values, $sightingdb)
     {
-        $host = $sightingdb['Sightingdb']['host'];
-        $port = $sightingdb['Sightingdb']['port'];
+        $namespaces = array('sighting' => $this->__namespace($sightingdb));
+        $falsePositiveNamespace = $this->__falsePositiveNamespace($sightingdb);
+        if ($falsePositiveNamespace !== null) {
+            $namespaces['false_positive'] = $falsePositiveNamespace;
+        }
+        $payload = array('items' => array());
+        $lookup = array();
+        foreach ($values as $k => $value) {
+            $hashedValue = self::hashValue($k);
+            foreach ($namespaces as $type => $namespace) {
+                $payload['items'][] = array(
+                    'namespace' => $namespace,
+                    'value' => $hashedValue
+                );
+                $lookup[] = array($k, $type);
+            }
+        }
+        $responseData = $this->__post($sightingdb, '/rb', $payload, 3);
+        if (empty($responseData['items'])) {
+            return $values;
+        }
+        $id = $sightingdb['Sightingdb']['id'];
+        // Results are positional: item n answers item n of the request
+        foreach ($responseData['items'] as $n => $item) {
+            if (!empty($item['error']) || !isset($lookup[$n])) {
+                continue;
+            }
+            list($k, $type) = $lookup[$n];
+            if (!isset($values[$k][$id])) {
+                $values[$k][$id] = array('sightingdb_id' => $id, 'count' => 0);
+            }
+            $hit = array(
+                'count' => $item['count'],
+                'first_seen' => $item['first_seen'],
+                'last_seen' => $item['last_seen']
+            );
+            if ($type === 'sighting') {
+                $values[$k][$id] = array_merge($values[$k][$id], $hit);
+                if (!empty($item['ttl'])) {
+                    $values[$k][$id]['expiration'] = (int)$item['last_seen'] + (int)$item['ttl'];
+                }
+            } else {
+                $values[$k][$id]['false_positive'] = $hit;
+            }
+        }
+        return $values;
+    }
+
+    /*
+     * Daily counts for the given values from the hourly statistics SightingDB
+     * keeps, for the sightings graph: per SightingDB the user may query, keyed by
+     * its name, then by type ('sighting', and 'false-positive' when the
+     * connection has a false-positive namespace), then by Y-m-d.
+     */
+    public function queryDailyCounts(array $values, array $user)
+    {
+        $result = array();
+        if (empty(Configure::read('Plugin.Sightings_sighting_db_enable')) || empty($values)) {
+            return $result;
+        }
+        foreach ($this->getSightingdbList($user) as $sightingdb) {
+            $namespaces = array('sighting' => $this->__namespace($sightingdb));
+            $falsePositiveNamespace = $this->__falsePositiveNamespace($sightingdb);
+            if ($falsePositiveNamespace !== null) {
+                $namespaces['false-positive'] = $falsePositiveNamespace;
+            }
+            $payload = array('items' => array());
+            $types = array();
+            foreach (array_unique($values) as $value) {
+                foreach ($namespaces as $type => $namespace) {
+                    $payload['items'][] = array(
+                        'namespace' => $namespace,
+                        'value' => self::hashValue($value),
+                        // A graph is not an analyst looking a value up
+                        'noshadow' => true
+                    );
+                    $types[] = $type;
+                }
+            }
+            $responseData = $this->__post($sightingdb, '/rbs', $payload, 3);
+            if (empty($responseData['items'])) {
+                continue;
+            }
+            // Every line the connection can draw, flat at zero where nothing was counted
+            $counts = array_fill_keys(array_keys($namespaces), array());
+            foreach ($responseData['items'] as $n => $item) {
+                if (!empty($item['error']) || empty($item['stats']) || !isset($types[$n])) {
+                    continue;
+                }
+                foreach ($item['stats'] as $hour => $count) {
+                    $day = date('Y-m-d', (int)$hour);
+                    $counts[$types[$n]][$day] = ($counts[$types[$n]][$day] ?? 0) + (int)$count;
+                }
+            }
+            $result[$sightingdb['Sightingdb']['name']] = $counts;
+        }
+        return $result;
+    }
+
+    /*
+     * Write sightings recorded in MISP to every enabled SightingDB that asks for
+     * them, as the SHA-256 of each value. They go to a `misp` namespace below the
+     * ones MISP reads from: lookups are exact, so MISP never counts its own
+     * sightings a second time, while the rest of SightingDB's users see them.
+     * Best effort: a SightingDB that is down never stops a sighting being saved
+     * in MISP, so failures are logged and otherwise ignored.
+     *
+     * @param array $sightings Each with `value`, `timestamp` (Unix time) and `type`
+     *                         (0 sighting, 1 false-positive)
+     */
+    public function pushSightings(array $sightings, array $user)
+    {
+        if (empty(Configure::read('Plugin.Sightings_sighting_db_enable')) || empty($sightings)) {
+            return;
+        }
+        foreach ($this->getSightingdbList($user) as $sightingdb) {
+            if (empty($sightingdb['Sightingdb']['push_sightings'])) {
+                continue;
+            }
+            $falsePositiveNamespace = $this->__falsePositiveNamespace($sightingdb);
+            $namespaces = array(
+                0 => $this->__namespace($sightingdb) . '/' . self::PUSH_NAMESPACE,
+                1 => $falsePositiveNamespace === null ? null : $falsePositiveNamespace . '/' . self::PUSH_NAMESPACE,
+            );
+            $payload = array('items' => array());
+            foreach ($sightings as $sighting) {
+                $namespace = $namespaces[(int)$sighting['type']] ?? null;
+                if ($namespace === null) {
+                    continue;
+                }
+                $payload['items'][] = array(
+                    'namespace' => $namespace,
+                    'value' => self::hashValue($sighting['value']),
+                    'timestamp' => (int)$sighting['timestamp']
+                );
+            }
+            if (empty($payload['items'])) {
+                continue;
+            }
+            $responseData = $this->__post($sightingdb, '/wb', $payload, 5);
+            if ($responseData === false || ($responseData['message'] ?? null) !== 'ok') {
+                $this->log(sprintf(
+                    'Could not push %s sighting(s) to SightingDB "%s": %s',
+                    count($payload['items']),
+                    $sightingdb['Sightingdb']['name'],
+                    $responseData === false ? 'no valid response' : json_encode($responseData['errors'] ?? $responseData)
+                ), LOG_WARNING);
+            }
+        }
+    }
+
+    /*
+     * What MISP stores in and looks up from SightingDB in place of a value
+     */
+    public static function hashValue($value)
+    {
+        return hash('sha256', (string)$value);
+    }
+
+    private function __namespace(array $sightingdb)
+    {
+        return empty($sightingdb['Sightingdb']['namespace']) ? 'all' : $sightingdb['Sightingdb']['namespace'];
+    }
+
+    private function __falsePositiveNamespace(array $sightingdb)
+    {
+        return empty($sightingdb['Sightingdb']['false_positive_namespace']) ? null : $sightingdb['Sightingdb']['false_positive_namespace'];
+    }
+
+    /*
+     * POST a JSON payload to a SightingDB, authenticated with the connection's
+     * API key if it has one. Returns the decoded response, or false when the
+     * server could not be reached or did not answer with JSON.
+     */
+    private function __post(array $sightingdb, $path, array $payload, $timeout = null)
+    {
         App::uses('SyncTool', 'Tools');
         $syncTool = new SyncTool();
         $params = array(
@@ -237,17 +448,8 @@ class Sightingdb extends AppModel
             'ssl_verify_host' => empty($sightingdb['Sightingdb']['ssl_skip_verification']),
             'skip_proxy' => !empty($sightingdb['Sightingdb']['skip_proxy'])
         );
-        $HttpSocket = $syncTool->createHttpSocket($params);
-        $payload = array('items' => array());
-        $namespace = empty($sightingdb['Sightingdb']['namespace']) ? 'all' : $sightingdb['Sightingdb']['namespace'];
-        $valueLookup = array();
-        foreach ($values as $k => $value) {
-            $hashedValue = hash('sha256', $k);
-            $payload['items'][] = array(
-                'namespace' => $namespace,
-                'value' => $hashedValue
-            );
-            $valueLookup[$hashedValue] = $k;
+        if ($timeout !== null) {
+            $params['timeout'] = $timeout;
         }
         $request = array(
             'header' => array(
@@ -255,35 +457,28 @@ class Sightingdb extends AppModel
                 'Content-Type' => 'application/json'
             )
         );
+        if (!empty($sightingdb['Sightingdb']['api_key'])) {
+            $request['header']['Authorization'] = $sightingdb['Sightingdb']['api_key'];
+        }
         try {
+            $HttpSocket = $syncTool->createHttpSocket($params);
             $response = $HttpSocket->post(
-                sprintf(
-                    '%s:%s/rb',
-                    $host,
-                    $port
-                ),
+                sprintf('%s:%s%s', $sightingdb['Sightingdb']['host'], $sightingdb['Sightingdb']['port'], $path),
                 json_encode($payload),
                 $request
             );
         } catch (Exception $e) {
-            return $values;
+            return false;
         }
-        if ($response->code == 200) {
-            $responseData = json_decode($response->body, true);
-            if ($responseData !== false && empty($responseData['error'])) {
-                foreach ($responseData['items'] as $k => $item) {
-                    if (empty($item['error'])) {
-                        $values[$valueLookup[$item['value']]][$sightingdb['Sightingdb']['id']] = array(
-                            'first_seen' => $item['first_seen'],
-                            'last_seen' => $item['last_seen'],
-                            'count' => $item['count'],
-                            'sightingdb_id' => $sightingdb['Sightingdb']['id']
-                        );
-                    }
-                }
-            }
+        $responseData = json_decode($response->body, true);
+        if (!is_array($responseData)) {
+            return false;
         }
-        return $values;
+        // /rb answers 200; /wb answers 403 or 400 when nothing at all was written
+        if ($response->code != 200 && !isset($responseData['items'])) {
+            return false;
+        }
+        return $responseData;
     }
 
     /*
