@@ -791,6 +791,25 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame(3, (int)$counted->intoString());
     }
 
+    public function testIdBreaksTheTiesOfAnOrder()
+    {
+        $ids = $this->ids(...array_keys($this->ids));
+        $this->exec(sprintf('UPDATE attributes SET timestamp = 1700000000 WHERE id IN (%s)', implode(', ', $ids)));
+        $this->clearLog();
+        $paged = [];
+        foreach ([1, 2, 3] as $page) {
+            $tmp = $this->attribute->restSearch($this->user, 'json', ['limit' => 2, 'page' => $page, 'order' => 'timestamp desc'],
+                false, false, $count, $renderView, $skipped, ['id' => ['IN' => $ids]]);
+            $rows = json_decode($tmp->intoString(), true)['response']['Attribute'];
+            $paged = array_merge($paged, array_map('intval', array_column($rows, 'id')));
+        }
+        $this->assertSame(array_reverse($ids), $paged);
+        $this->assertCount(3, $this->statements('/ORDER BY `Attribute`\.`timestamp` desc, `Attribute`\.`id` desc\s+LIMIT/'));
+        // An order that sorts by id already is left alone
+        $params = $this->attribute->restSearch($this->user, 'json', ['order' => ['type', 'id desc']], true);
+        $this->assertSame(['Attribute.type asc', 'Attribute.id desc'], $params['order']);
+    }
+
     public function testAFetchReadsTheValuesOfItsCorrelationsAtOnce()
     {
         $sides = [$this->ids['domain'], $this->ids['other'], $this->ids['composite']];

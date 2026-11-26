@@ -176,7 +176,12 @@ sortable fields are the attribute fields `id`, `event_id`, `object_id`,
 `type`, `category`, `value`, `distribution`, `timestamp`, `object_relation`
 and `Event.publish_timestamp`. When `query` is present, an unknown or
 malformed `order` is rejected with an error at path `order[i]`; without
-`query` it is silently dropped, as it always was.
+`query` it is silently dropped, as it always was. Unless it already sorts by
+`id`, an `order` is completed with `id` in the direction of its last field, so
+pages of it never overlap or skip rows. Without `order`, rows come in the
+database's order, which is not guaranteed to be the same from one page to the
+next: page with an `order` when that matters (sorting has a cost on large
+searches).
 
 ## Events
 

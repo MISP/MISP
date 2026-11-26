@@ -4211,6 +4211,11 @@ class MispAttribute extends AppModel
                 'Attribute',
                 self::REST_SEARCH_ORDER_FIELDS
             );
+            // id breaks ties, in the last key's direction so an index ending in id
+            // still serves the order. No default order: sorting every page is too slow
+            if (!empty($params['order']) && !preg_grep('/^Attribute\.id /', $params['order'])) {
+                $params['order'][] = 'Attribute.id ' . explode(' ', end($params['order']))[1];
+            }
         }
         if ($paramsOnly) {
             return $params;
