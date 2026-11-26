@@ -51,13 +51,13 @@ class OrgsEvolutionWidget
 
         $data = array();
         $data['data'] = array();
-        // Add total users data for all timestamps
-        for ($i = 0; $i < $limit; $i++) {
+        // Add organisation counts for all timestamps
+        for ($i = $limit - 1; $i >= 0; $i--) {
             $itemTime = strtotime('- ' . $i . $delta, $endOfDay);
             //Separate time for db query as date_created is stored in DateTime string
             $itemTimeDateTime = date('Y-m-d H:i:s', $itemTime);
             $item = array();
-            $item['date'] = strftime('%Y-%m-%d', $itemTime);
+            $item['date'] = date('Y-m-d', $itemTime);
             $item['local orgs'] = $this->localOrgsAtTime($itemTimeDateTime);
             $item['remote orgs'] = $this->remoteOrgsAtTime($itemTimeDateTime);
             $data['data'][] = $item;
