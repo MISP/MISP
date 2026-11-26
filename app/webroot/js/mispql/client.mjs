@@ -190,7 +190,12 @@ function createClient(options) {
         return [].concat.apply([], found);
     }
 
-    return { explain: explain, run: run, plan: plan, lookup: lookup, galaxies: galaxies };
+    /** An object with its attributes, by id or uuid, as the user may see it. */
+    function object(address) {
+        return getJson('/objects/view/' + encodeURIComponent(address) + '.json');
+    }
+
+    return { explain: explain, run: run, plan: plan, lookup: lookup, galaxies: galaxies, object: object };
 }
 
 /** The text at a dotted key of a picker row, or ''. */

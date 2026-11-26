@@ -702,6 +702,48 @@
     opacity: .75;
 }
 
+.cq-grid .cq-sel {
+    width: 1%;
+    padding-right: 4px;
+    cursor: pointer;
+}
+
+.cq-grid .cq-sel .form-check-input {
+    margin: 0;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.cq-grid .cq-sel .form-check-input:disabled { cursor: not-allowed; }
+.cq-grid .cq-sel + .cq-rn { padding-left: 4px; }
+.cq-grid tbody tr.is-selected td { background: var(--cq-accent-soft); }
+
+/* A record the page opens in place (the workspace's object popover): its caret beside the link */
+.cq-open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-left: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bs-border-radius);
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: .65rem;
+    vertical-align: middle;
+}
+
+.cq-open:hover { background: var(--bs-secondary-bg); color: var(--bs-emphasis-color); }
+.cq-grid td[aria-busy="true"] .cq-open { cursor: progress; opacity: .5; }
+
+#mql-selbar .mql-sel-note {
+    max-width: 30ch;
+    white-space: normal;
+    line-height: 1.3;
+}
+
 .cq-grid th.cq-sortable {
     cursor: pointer;
     user-select: none;

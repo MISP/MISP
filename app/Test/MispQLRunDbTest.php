@@ -158,6 +158,11 @@ class MispQLRunDbTest extends TestCase
             $this->assertNotEmpty($expected, "$statement: nothing to compare");
             $this->assertSame($expected, self::decoded($reply['rows']), $statement);
             $this->assertNull($reply['total'], $statement);
+            $this->assertSame(array_fill(0, count($expected), $rowKey), array_column($reply['records'], 'type'));
+            $this->assertSame(array_map('strval', array_column($expected, 'id')), array_column($reply['records'], 'id'));
+            if ($rowKey !== 'Tag') {
+                $this->assertSame(array_column($expected, 'uuid'), array_column($reply['records'], 'uuid'), $statement);
+            }
         }
     }
 
@@ -172,6 +177,9 @@ class MispQLRunDbTest extends TestCase
         $this->assertSame(array_map(function ($event) {
             return ['id' => $event['id'], 'info' => $event['info'], 'Orgc.name' => $event['Orgc']['name']];
         }, $expected), self::decoded($reply['rows']));
+        $this->assertSame(array_map(function ($event) {
+            return ['type' => 'Event', 'id' => $event['id'], 'uuid' => $event['uuid'], 'label' => $event['info']];
+        }, $expected), $reply['records']);
         $events = ClassRegistry::init('Event')->find('count', ['conditions' => ['Event.id >' => 100]]);
         $this->assertSame($events, $reply['total']);
     }

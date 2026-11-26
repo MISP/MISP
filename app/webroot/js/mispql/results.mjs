@@ -408,7 +408,7 @@ function cellLink(ctx, column, value, row) {
     } else if ((/^[0-9]+$/.test(s) && s !== '0') || UUID.test(s)) {
         address = s;
     }
-    return address === null ? null : { href: (ctx.baseurl || '') + pages[type].replace('%s', address), type: type };
+    return address === null ? null : { href: (ctx.baseurl || '') + pages[type].replace('%s', address), type: type, address: address };
 }
 
 var TIMELIKE = { timestamp: 1, date: 1, datetime: 1 };
@@ -700,7 +700,12 @@ function csvOf(columns, rows) {
 /**
  * Rows: grid (column list or default columns), JSON of the raw rows for
  * SELECT *, CSV text for FORMAT flat; pager driven by `total`.
- * opts: {pack, baseurl, valueAddress(value), onPage(statement), onFilter(statement)}
+ * opts: {pack, baseurl, valueAddress(value), onPage(statement), onFilter(statement),
+ *        onSelect(indices, {drawn, returned, clear}), unselectable(index) → reason or '',
+ *        opens: {RecordType: true}, onOpen(link, cell)}
+ * With onSelect, the grid draws a checkbox column over the rows it draws. A
+ * linked record of a type in `opens` gets a caret and a menu entry that hand
+ * it to onOpen, for the page to open it in place.
  */
 function renderRows(r, opts) {
     opts = opts || {};
@@ -759,7 +764,17 @@ function renderRows(r, opts) {
 
     var paging = pagingOf(r.statement);
     var shown = reply.rows.length;
+    var cap = Math.min(shown, GRID_CAP);
     var first = shown ? paging.offset + 1 : 0;
+    var selectable = typeof opts.onSelect === 'function' && shown > 0;
+    var selected = new Set();
+    var lastPick = null;
+    var pickable = new Set();
+    for (var k = 0; selectable && k < cap; k++) {
+        if (!blocked(k)) {
+            pickable.add(k);
+        }
+    }
     info.innerHTML = shown
         ? 'Rows <b>' + fmtInt(first) + '–' + fmtInt(paging.offset + shown) + '</b>' +
             (reply.total === null ? '' : ' of <b>' + fmtInt(reply.total) + '</b>')
@@ -771,18 +786,25 @@ function renderRows(r, opts) {
                 (paging.offset > 0 ? 'This page is past the last match.' : 'Loosen a condition, or check the values against DESCRIBE.') + '</div></div>';
             return;
         }
-        var cap = Math.min(shown, GRID_CAP);
-        var head = '<th class="cq-rn" scope="col">#</th>' + model.columns.map(headerCell).join('');
+        var head = (selectable ? selectAllCell() : '') + '<th class="cq-rn" scope="col">#</th>' + model.columns.map(headerCell).join('');
         var rowsHtml = '';
         for (var i = 0; i < cap; i++) {
             var row = model.rows[i];
-            rowsHtml += '<tr data-r="' + i + '"><td class="cq-rn">' + fmtInt(paging.offset + i + 1) + '</td>' + model.columns.map(function (c, j) {
+            var on = selectable && selected.has(i);
+            rowsHtml += '<tr data-r="' + i + '"' + (selectable ? ' aria-selected="' + on + '"' + (on ? ' class="is-selected"' : '') : '') + '>' +
+                (selectable ? selectCell(i, on) : '') +
+                '<td class="cq-rn">' + fmtInt(paging.offset + i + 1) + '</td>' + model.columns.map(function (c, j) {
                 var v = rowValue(row, c);
                 var content = cell(c, v, levels, galaxies, rowHead(row));
                 var link = cellLink(ctx, c, v, row);
                 if (link) {
                     content = '<a class="cq-link" href="' + esc(link.href) + '" target="_blank" rel="noopener" tabindex="-1" title="Open ' +
                         esc(RECORD_LABEL[link.type] || link.type) + ' in a new tab">' + content + '<i class="fa-solid fa-arrow-up-right-from-square cq-ext" aria-hidden="true"></i></a>';
+                    if (opens(link)) {
+                        content += '<button type="button" class="cq-open" tabindex="-1" aria-haspopup="dialog" aria-label="Open ' +
+                            esc(RECORD_LABEL[link.type] + ' ' + String(v)) + ' here" title="Open ' + esc(RECORD_LABEL[link.type]) + ' here">' +
+                            '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>';
+                    }
                 }
                 if (isEmpty(v)) {
                     return '<td data-c="' + j + '"' + (i === 0 && j === 0 ? ' tabindex="0"' : '') + '>' + content + '</td>';
@@ -796,6 +818,7 @@ function renderRows(r, opts) {
             '<thead><tr>' + head + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>' +
             (shown > cap ? '<div class="cq-capnote"><i class="fa-solid fa-circle-info"></i>The grid shows the first ' + fmtInt(cap) +
                 ' of ' + fmtInt(shown) + ' rows returned. Add a <code>LIMIT</code> to page through them.</div>' : '');
+        syncSelection();
         fitLanes();
         if (!galaxyTypes && opts.galaxies && body.querySelector('.te-ctx .dk-chip.is-gx')) {
             opts.galaxies().then(function (list) {
@@ -822,6 +845,106 @@ function renderRows(r, opts) {
             lane.outerHTML = cell(column, rowValue(row, column), levels, galaxies, rowHead(row));
         });
         fitLanes();
+    }
+
+    /** Whether the page opens this record in place (a popover), beside its link. */
+    function opens(link) {
+        return !!(link && typeof opts.onOpen === 'function' && opts.opens && opts.opens[link.type]);
+    }
+
+    function linkOf(td) {
+        var row = model.rows[Number(td.parentNode.dataset.r)];
+        var column = model.columns[Number(td.dataset.c)];
+        return cellLink(ctx, column, rowValue(row, column), row);
+    }
+
+    /* The selection: over the rows drawn; a row the page cannot act on stays unticked, saying why. */
+    function blocked(i) {
+        return opts.unselectable ? (opts.unselectable(i) || '') : '';
+    }
+
+    function selectAllCell() {
+        return '<th class="cq-sel" scope="col" data-c="-1"><input type="checkbox" class="form-check-input cq-sel-all" tabindex="-1"' +
+            ' aria-label="Select every row shown" title="Select every row shown"></th>';
+    }
+
+    function selectCell(i, on) {
+        var why = blocked(i);
+        return '<td class="cq-sel" data-c="-1"><input type="checkbox" class="form-check-input cq-sel-box" tabindex="-1" aria-label="Select row ' +
+            fmtInt(paging.offset + i + 1) + '"' + (on ? ' checked' : '') + (why ? ' disabled title="' + esc(why) + '"' : '') + '></td>';
+    }
+
+    function syncSelection() {
+        if (!selectable) {
+            return;
+        }
+        body.querySelectorAll('.cq-grid tbody tr').forEach(function (tr) {
+            var on = selected.has(Number(tr.dataset.r));
+            var box = tr.querySelector('.cq-sel-box');
+            if (box) {
+                box.checked = on;
+            }
+            tr.classList.toggle('is-selected', on);
+            tr.setAttribute('aria-selected', String(on));
+        });
+        var all = body.querySelector('.cq-sel-all');
+        if (all) {
+            all.checked = pickable.size > 0 && selected.size === pickable.size;
+            all.indeterminate = selected.size > 0 && selected.size < pickable.size;
+            all.disabled = pickable.size === 0;
+        }
+    }
+
+    function reportSelection() {
+        syncSelection();
+        opts.onSelect(Array.from(selected).sort(function (a, b) { return a - b; }), { drawn: cap, returned: shown, clear: clearSelection });
+    }
+
+    function clearSelection() {
+        selected.clear();
+        lastPick = null;
+        reportSelection();
+    }
+
+    /** Ticks or unticks a row; with range, every row from the last one picked. */
+    function pick(i, on, range) {
+        var from = range && lastPick !== null ? Math.min(lastPick, i) : i;
+        var to = range && lastPick !== null ? Math.max(lastPick, i) : i;
+        for (var n = from; n <= to; n++) {
+            if (!pickable.has(n)) {
+                continue;
+            }
+            if (on) {
+                selected.add(n);
+            } else {
+                selected.delete(n);
+            }
+        }
+        lastPick = i;
+        reportSelection();
+    }
+
+    function pickAll() {
+        var every = selected.size === pickable.size;
+        selected.clear();
+        if (!every) {
+            pickable.forEach(function (n) { selected.add(n); });
+        }
+        lastPick = null;
+        reportSelection();
+    }
+
+    function toggleCell(cell, range) {
+        if (cell.tagName === 'TH') {
+            pickAll();
+            return;
+        }
+        var i = Number(cell.parentNode.dataset.r);
+        if (pickable.has(i)) {
+            pick(i, !selected.has(i), range);
+        } else {
+            syncSelection();
+        }
     }
 
     /** What a tag popover is headed with: the row's id and what names it. */
@@ -883,7 +1006,7 @@ function renderRows(r, opts) {
     }
 
     body.addEventListener('mousedown', function (e) {
-        if (e.shiftKey && e.target.closest('th.cq-sortable')) {
+        if (e.shiftKey && e.target.closest('th.cq-sortable, .cq-sel')) {
             e.preventDefault();
         }
     });
@@ -902,6 +1025,12 @@ function renderRows(r, opts) {
             items.push({ divider: true });
         }
         items.push({ label: 'Copy value', icon: 'fa-copy', copy: copyable(value) });
+        var link = linkOf(td);
+        if (opens(link)) {
+            items.unshift({ label: 'Open ' + RECORD_LABEL[link.type], icon: 'fa-up-right-and-down-left-from-center', run: function () {
+                opts.onOpen(link, td);
+            } }, { divider: true });
+        }
         return items;
     }
 
@@ -945,6 +1074,19 @@ function renderRows(r, opts) {
     }
 
     body.addEventListener('click', function (e) {
+        var sel = selectable && e.target.closest('.cq-sel');
+        if (sel && body.contains(sel)) {
+            focusCell(sel, true);
+            toggleCell(sel, e.shiftKey);
+            return;
+        }
+        var open = e.target.closest('.cq-open');
+        if (open && body.contains(open)) {
+            var cellOf = open.closest('td');
+            focusCell(cellOf, false);
+            opts.onOpen(linkOf(cellOf), cellOf);
+            return;
+        }
         var b = e.target.closest('.cq-funnel');
         if (b && body.contains(b)) {
             var td = b.closest('td');
@@ -988,6 +1130,11 @@ function renderRows(r, opts) {
         var next = null;
         var above = null;
         var below = null;
+        if (c === -1 && (e.key === ' ' || e.key === 'Enter')) {
+            e.preventDefault();
+            toggleCell(td, e.shiftKey);
+            return;
+        }
         switch (e.key) {
             case 'ArrowLeft':
                 next = tr.querySelector('[data-c="' + (c - 1) + '"]');

@@ -5,6 +5,8 @@
  *
  * @var array $pack what MispQLLanguagePack builds for this user
  * @var array $history MispQLHistory entries
+ * @var array|null $intelGraph set when the workspace dock boots: the grid's
+ *                             rows can then be added to collections
  */
 $this->set('headerTitle', __('Query console'));
 $this->set('headerBreadcrumb', [__('API'), 'MispQL']);
@@ -25,7 +27,16 @@ echo $this->element('genericElements/assetLoader', [
 
 // Module imports carry no query string of their own, so each module's
 // version goes through the import map.
-$modules = ['client', 'console', 'results', 'rewrite', 'snippets', 'suggest', 'tokens', 'util', 'writer'];
+// An object opens in place in the workspace's popover; the dock loads it, else the page does
+if (empty($intelGraph)) {
+    echo $this->element('intel_graph_working_text');
+    echo $this->element('genericElements/assetLoader', [
+        'css' => ['intel-graph-working'],
+        'js' => ['intel-graph-working'],
+    ]);
+}
+
+$modules = ['client', 'console', 'popover', 'results', 'rewrite', 'selection', 'snippets', 'suggest', 'tokens', 'util', 'writer'];
 $imports = [];
 foreach ($modules as $module) {
     $path = 'js/mispql/' . $module . '.mjs';
@@ -95,6 +106,25 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_
         </div>
     </div>
 </div>
+<?php if (!empty($intelGraph)): ?>
+<div class="ms-float d-none" id="mql-selbar" role="region" aria-label="<?= __('Selected rows') ?>"
+     data-note="<?= h(__('%s of %s rows shown; add a LIMIT to work on the rest page by page')) ?>">
+    <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
+        <span class="ms-count" id="mql-sel-count" data-template="<?= h(__('%s selected')) ?>"></span>
+        <span class="ms-sep" aria-hidden="true"></span>
+        <?= $this->element('intel_graph_add', [
+            'id' => 'mql-sel-add',
+            'variant' => 'short',
+            'btnClass' => 'btn-sm btn-analystGraph',
+            'title' => __('Add the selected to the workspace'),
+            'stateless' => true,
+        ]) ?>
+        <span class="small text-muted mql-sel-note" id="mql-sel-note" hidden></span>
+        <span class="ms-sep" aria-hidden="true"></span>
+        <button type="button" class="btn btn-sm btn-link ms-clear" id="mql-sel-clear"><?= __('Clear selection') ?></button>
+    </div>
+</div>
+<?php endif; ?>
 <script type="application/json" id="mispql-language-pack"><?= json_encode($pack, $jsonFlags) ?></script>
 <script type="application/json" id="mispql-history"><?= json_encode($history, $jsonFlags) ?></script>
 <script type="importmap"><?= json_encode(['imports' => $imports], $jsonFlags) ?></script>

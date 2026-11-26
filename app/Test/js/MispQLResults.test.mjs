@@ -91,9 +91,10 @@ describe('Cells', () => {
     });
 
     test('ids, uuids and values link to their page', () => {
-        assert.deepEqual(cellLink(ctx('attributes'), 'id', '30', {}), { href: '/misp/attributes/view/30', type: 'Attribute' });
-        assert.deepEqual(cellLink(ctx('attributes'), 'EVENT_ID', 1, {}), { href: '/misp/events/view/1', type: 'Event' });
-        assert.deepEqual(cellLink(ctx('attributes'), 'value', 'circl.lu', {}), { href: '/misp/values/view/b64:circl.lu', type: 'Value' });
+        assert.deepEqual(cellLink(ctx('attributes'), 'id', '30', {}), { href: '/misp/attributes/view/30', type: 'Attribute', address: '30' });
+        assert.deepEqual(cellLink(ctx('attributes'), 'EVENT_ID', 1, {}), { href: '/misp/events/view/1', type: 'Event', address: '1' });
+        assert.deepEqual(cellLink(ctx('attributes'), 'value', 'circl.lu', {}), { href: '/misp/values/view/b64:circl.lu', type: 'Value', address: 'b64:circl.lu' });
+        assert.deepEqual(cellLink(ctx('attributes'), 'object_id', '12', {}), { href: '/misp/objects/view/12', type: 'Object', address: '12' });
         assert.equal(cellLink(ctx('attributes'), 'object_id', '0', {}), null, 'no object');
         assert.equal(cellLink(ctx('attributes'), 'type', 'domain', {}), null, 'not a linked column');
         assert.equal(cellLink(ctx('attributes'), 'Event.Orgc.id', '1', {}), null, 'no page for organisations in this pack');

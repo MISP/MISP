@@ -17,6 +17,14 @@ class MispQLRunner
 
     const ONE_STATEMENT = 'run takes one statement';
 
+    /** The label a collection member shows, by record type. */
+    const LABELS = [
+        'Attribute' => 'value',
+        'Event' => 'info',
+        'Object' => 'name',
+        'GalaxyCluster' => 'value',
+    ];
+
     /** @var MispQLTables */
     private $tables;
 
@@ -220,6 +228,7 @@ class MispQLRunner
             }
             $rows = array_slice($rows, $plan['skip'], $limit);
         }
+        $records = self::records($rows, $table['rowKey']);
         $columns = null;
         if ($plan['output'] !== 'default' || $plan['columns'] !== null) {
             $flat = array_map([MispQLRows::class, 'flatten'], $rows);
@@ -239,6 +248,7 @@ class MispQLRunner
             'output' => $plan['output'],
             'columns' => $columns,
             'rows' => $rows,
+            'records' => $records,
             // Only events count every match; the other scopes count the page
             'total' => $table['count'] === 'header' ? (int)$run['count'] : null,
             'warnings' => $warnings,
@@ -258,6 +268,35 @@ class MispQLRunner
             return ["the role's restSearch limit stopped this search at $allowed rows"];
         }
         return [];
+    }
+
+    /**
+     * The record behind each row, read before the rows are projected.
+     *
+     * @param stdClass[] $rows
+     * @param string $type
+     * @return array[] {type, id, uuid}, with a label for the types a
+     *   collection holds, and deleted when the record is
+     */
+    private static function records(array $rows, $type)
+    {
+        $records = [];
+        foreach ($rows as $row) {
+            $record = [
+                'type' => $type,
+                'id' => isset($row->id) && is_scalar($row->id) ? (string)$row->id : null,
+                'uuid' => isset($row->uuid) && is_scalar($row->uuid) ? (string)$row->uuid : null,
+            ];
+            if (isset(self::LABELS[$type])) {
+                $label = $row->{self::LABELS[$type]} ?? null;
+                $record['label'] = is_scalar($label) ? (string)$label : null;
+            }
+            if (!empty($row->deleted)) {
+                $record['deleted'] = true;
+            }
+            $records[] = $record;
+        }
+        return $records;
     }
 
     private static function rows(array $run, $rowKey)

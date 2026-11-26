@@ -9,6 +9,8 @@ import { MispQLWriter } from './writer.mjs';
 import { createClient } from './client.mjs';
 import * as R from './results.mjs';
 import { apiCallPanel } from './snippets.mjs';
+import { addableRecords, blockedReason, itemsOf } from './selection.mjs';
+import { objectView } from './popover.mjs';
 import { el, esc, fmtInt, ago, clock } from './util.mjs';
 
 const SESSION_KEEP = 20;
@@ -129,6 +131,79 @@ function tableOf(statement) {
     return '';
 }
 
+/** A template's %s, in order. */
+function fill(template, values) {
+    let i = 0;
+    return String(template || '').replace(/%s/g, function () {
+        return i < values.length ? String(values[i++]) : '';
+    });
+}
+
+/**
+ * The floating bar of the grid's selection (the index pages' bulk bar): the
+ * count and the workspace's add control, fed with the selected records.
+ */
+function selectionBar(bar) {
+    const count = bar.querySelector('#mql-sel-count');
+    const note = bar.querySelector('#mql-sel-note');
+    const main = bar.querySelector('[data-intel-graph-add]');
+    let clear = null;
+    bar.querySelector('#mql-sel-clear').addEventListener('click', function () {
+        if (clear) {
+            clear();
+        }
+    });
+
+    function relayout() {
+        if (typeof window.syncMultiSelectFloat === 'function') {
+            window.syncMultiSelectFloat();
+        }
+    }
+
+    function hide() {
+        clear = null;
+        if (!bar.classList.contains('d-none')) {
+            bar.classList.add('d-none');
+            relayout();
+        }
+    }
+
+    function show(records, indices, info) {
+        const items = itemsOf(records, indices);
+        if (!items.length) {
+            hide();
+            return;
+        }
+        clear = info.clear;
+        main.setAttribute('data-intel-graph-add', JSON.stringify(items));
+        const parts = String(count.dataset.template || '%s').split('%s');
+        const b = document.createElement('b');
+        b.textContent = fmtInt(items.length);
+        count.replaceChildren(parts[0], b, parts.slice(1).join('%s'));
+        note.hidden = info.returned <= info.drawn;
+        note.textContent = note.hidden ? '' : fill(bar.dataset.note, [fmtInt(info.drawn), fmtInt(info.returned)]);
+        const opening = bar.classList.contains('d-none');
+        bar.classList.remove('d-none');
+        if (opening || !note.hidden) {
+            relayout();
+        }
+    }
+
+    /** The grid's selection options for a result, or null when its rows cannot be added here. */
+    function optionsFor(r) {
+        const records = window.IntelGraphActions ? addableRecords(r.table, r.reply) : null;
+        if (!records) {
+            return null;
+        }
+        return {
+            unselectable: function (i) { return blockedReason(records[i]); },
+            onSelect: function (indices, info) { show(records, indices, info); },
+        };
+    }
+
+    return { hide: hide, optionsFor: optionsFor };
+}
+
 function boot() {
     const page = document.getElementById('mql-console');
     if (!page) {
@@ -157,6 +232,9 @@ function boot() {
         return ex.tables.every(function (t) { return pack.tables[t]; });
     });
     const sessionResults = new Map();
+    const openedViews = new Map();
+    const selBarEl = document.getElementById('mql-selbar');
+    const selection = selBarEl ? selectionBar(selBarEl) : null;
     let tab = 'history';
     let running = false;
     let current = null;
@@ -316,6 +394,10 @@ function boot() {
     function showResult(r, opts) {
         resultEl.classList.remove('is-running');
         resultEl.innerHTML = '';
+        if (selection) {
+            selection.hide();
+        }
+        openedViews.clear();
         const head = el('div', 'wb-result-head');
         const meta = [];
         if (r.table) {
@@ -387,7 +469,8 @@ function boot() {
             apiBtn.setAttribute('aria-expanded', 'true');
         });
 
-        resultEl.appendChild(R.render(r, {
+        const selecting = selection && r.kind === 'rows' ? selection.optionsFor(r) : null;
+        resultEl.appendChild(R.render(r, Object.assign({
             pack: pack,
             baseurl: baseurl,
             valueAddress: window.MispValueAddress ? window.MispValueAddress.address : null,
@@ -398,10 +481,43 @@ function boot() {
             onInsert: function (text) { writer.insert(text + ' '); },
             onPick: function (table) { writer.setValue('DESCRIBE ' + table); run(writer.statementAtCursor()); },
             onLocate: function (e) { locate(r, e); },
-        }));
+            opens: window.IntelGraphWorking ? { Object: true } : null,
+            onOpen: openInPlace,
+        }, selecting)));
         if (runnable) {
             resultEl.appendChild(apiCallPanel(r.statement, r.plan, apiBase, { explain: true }));
         }
+    }
+
+    /**
+     * A record opened in place, in the workspace's popover: an object, read
+     * once per result. A second open of the same object closes it.
+     */
+    function openInPlace(link, anchor) {
+        if (!link || link.type !== 'Object' || !window.IntelGraphWorking) {
+            return;
+        }
+        let view = openedViews.get(link.address);
+        if (!view) {
+            view = client.object(link.address).then(objectView);
+            openedViews.set(link.address, view);
+        }
+        anchor.setAttribute('aria-busy', 'true');
+        view.then(function (v) {
+            anchor.removeAttribute('aria-busy');
+            if (!v) {
+                throw new Error('no object');
+            }
+            if (document.contains(anchor)) {
+                window.IntelGraphWorking.openObject(v, anchor, null);
+            }
+        }).catch(function () {
+            anchor.removeAttribute('aria-busy');
+            openedViews.delete(link.address);
+            if (typeof window.showToast === 'function') {
+                window.showToast('The object could not be read: it may be deleted, or not shared with you.', 'danger');
+            }
+        });
     }
 
     /** The request behind a result: explain's plan, else what run sent back. */

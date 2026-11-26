@@ -278,6 +278,53 @@ class MispQLRunnerTest extends TestCase
         $this->assertSame(1, $this->backend->searches[0][1]['metadata']);
     }
 
+    public function testRecordsNameTheRowsEvenWhenProjected()
+    {
+        $this->backend->onSearch = function () {
+            return self::reply(['response' => ['Attribute' => [
+                ['id' => '3', 'uuid' => 'a-3', 'value' => 'circl.lu', 'deleted' => false],
+                ['id' => 1, 'uuid' => 'a-1', 'value' => 'example.org', 'deleted' => true],
+            ]]]);
+        };
+        $reply = $this->decoded($this->runner->run('SELECT type FROM attributes LIMIT 2'));
+        $this->assertSame([['type' => null], ['type' => null]], $reply['rows']);
+        $this->assertSame([
+            ['type' => 'Attribute', 'id' => '3', 'uuid' => 'a-3', 'label' => 'circl.lu'],
+            ['type' => 'Attribute', 'id' => '1', 'uuid' => 'a-1', 'label' => 'example.org', 'deleted' => true],
+        ], $reply['records']);
+
+        $this->backend->onSearch = function () {
+            return self::reply(['response' => [
+                ['Event' => ['id' => '7', 'uuid' => 'e-7', 'info' => 'Phishing'], 'Tag' => []],
+            ]], 1);
+        };
+        $reply = $this->decoded($this->runner->run('SELECT * FROM events LIMIT 1 FORMAT table'));
+        $this->assertSame(
+            [['type' => 'Event', 'id' => '7', 'uuid' => 'e-7', 'label' => 'Phishing']],
+            $reply['records']
+        );
+
+        // A tag has no uuid, and no label: a collection does not hold tags
+        $this->backend->onSearch = function () {
+            return self::reply(['response' => ['Tag' => [['id' => '9', 'name' => 'tlp:clear']]]]);
+        };
+        $reply = $this->decoded($this->runner->run('SELECT name FROM tags LIMIT 1'));
+        $this->assertSame([['type' => 'Tag', 'id' => '9', 'uuid' => null]], $reply['records']);
+    }
+
+    public function testRecordsFollowTheRowsAnOffsetKeeps()
+    {
+        $this->backend->onSearch = function ($table, $body) {
+            return self::reply($body['page'] === 2 ? self::attributes(11, 20) : self::attributes(21, 23));
+        };
+        $reply = $this->decoded($this->runner->run('SELECT value FROM attributes LIMIT 10 OFFSET 15'));
+        $this->assertSame(
+            ['16', '17', '18', '19', '20', '21', '22', '23'],
+            array_column($reply['records'], 'id')
+        );
+        $this->assertSame(array_column($reply['rows'], 'value'), array_column($reply['records'], 'label'));
+    }
+
     public function testFormatTableUsesTheDefaultColumns()
     {
         $this->backend->onSearch = function () {
