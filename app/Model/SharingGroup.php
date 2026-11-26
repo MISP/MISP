@@ -377,7 +377,7 @@ class SharingGroup extends AppModel
     // 2. Sharing group permission enabled users that:
     //    a. Belong to the organisation that created the SG
     //    b. Have an organisation entry in the SG with the extend flag set
-    // 3. Sync users that have synced the SG to the local instance
+    // 3. Sync users that can see an SG received through sync (not local)
     public function checkIfAuthorisedExtend(array $user, $id)
     {
         if ($user['Role']['perm_site_admin']) {
@@ -389,11 +389,15 @@ class SharingGroup extends AppModel
         if ($this->checkIfOwner($user, $id)) {
             return true;
         }
-        $this->id = $id;
-        if (!$this->exists()) {
+        $sg = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['SharingGroup.id' => $id],
+            'fields' => ['local'],
+        ]);
+        if (empty($sg)) {
             return false;
         }
-        if ($user['Role']['perm_sync']) {
+        if ($user['Role']['perm_sync'] && empty($sg['SharingGroup']['local'])) {
             if ($this->checkIfAuthorised($user, $id)) {
                 return true;
             }
