@@ -100,7 +100,7 @@ $fields = [
     [
         'name' => __('Created'),
         'data_path' => 'Event.date',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'mode' => 'created',
         'card_section' => 'meta',
         'display_in' => ['card']
@@ -108,7 +108,7 @@ $fields = [
     [
         'name' => __('Last Modified'),
         'data_path' => 'Event.timestamp',
-        'element' => 'timestamp',
+        'element' => 'datetime',
         'mode' => 'modified',
         'card_section' => 'meta',
         'display_in' => ['card']
@@ -158,7 +158,7 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Unpublish'),
                 'label_off' => __('Publish'),
-                'icon_on' => 'download',
+                'icon_on' => 'eye-slash',
                 'icon_off' => 'upload',
                 'url' => $baseurl . '/events/%action%/%id%',
                 'publish_path' => 'Event.published',
@@ -208,6 +208,7 @@ $children[] = [
             'type' => 'dropdown',
             'label' => __('Distribution'),
             'name' => 'distribution',
+            'placeholder' => __('Any'),
             'options' => [
                 '' => '',
                 '0' => 'Your organisation only',
@@ -220,6 +221,7 @@ $children[] = [
             'type' => 'dropdown',
             'label' => __('Published'),
             'name' => 'published',
+            'placeholder' => __('Any'),
             'options' => [
                 '' => '',
                 '1' => 'Published',
@@ -230,18 +232,21 @@ $children[] = [
             'type' => 'dropdown',
             'label' => __('Creator Org'),
             'name' => 'org',
+            'placeholder' => __('Any'),
             'options' => $orgOptions
         ],
         [
             'type' => 'dropdown',
             'label' => __('Tags'),
             'name' => 'tag',
+            'placeholder' => __('Any'),
             'options' => $tagOptions
         ],
         [
             'type' => 'dropdown',
             'label' => __('Galaxy'),
             'name' => 'galaxy',
+            'placeholder' => __('Any'),
             'options' => $galaxyOptions
         ]
     ]
@@ -264,6 +269,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $events,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => $children,

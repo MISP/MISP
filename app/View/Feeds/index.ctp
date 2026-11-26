@@ -226,30 +226,25 @@
                         'style' => 'margin-right:20px;'
                     )
                 ),
-                sprintf(
-                    '<a href="%s/feeds/cacheFeeds/all" class="%s">%s</a>',
-                    $baseurl,
-                    'toggle-left qet btn btn-inverse',
-                    __('Cache all feeds')
+                $this->Form->postLink(
+                    __('Cache all feeds'),
+                    $baseurl . '/feeds/cacheFeeds/all',
+                    array('class' => 'toggle-left qet btn btn-inverse')
                 ),
-                sprintf(
-                    '<a href="%s/feeds/cacheFeeds/freetext" class="%s">%s</a>',
-                    $baseurl,
-                    'toggle qet btn btn-inverse',
-                    __('Cache freetext/CSV feeds')
+                $this->Form->postLink(
+                    __('Cache freetext/CSV feeds'),
+                    $baseurl . '/feeds/cacheFeeds/freetext',
+                    array('class' => 'toggle qet btn btn-inverse')
                 ),
-                sprintf(
-                    '<a href="%s/feeds/cacheFeeds/misp" class="%s">%s</a>',
-                    $baseurl,
-                    'toggle-right qet btn btn-inverse',
-                    __('Cache MISP feeds')
+                $this->Form->postLink(
+                    __('Cache MISP feeds'),
+                    $baseurl . '/feeds/cacheFeeds/misp',
+                    array('class' => 'toggle-right qet btn btn-inverse')
                 ),
-                sprintf(
-                    '<a href="%s/feeds/fetchFromAllFeeds" class="%s" style="%s">%s</a>',
-                    $baseurl,
-                    'btn btn-primary qet',
-                    'margin-left:20px;',
-                    __('Fetch and store all feed data')
+                $this->Form->postLink(
+                    __('Fetch and store all feed data'),
+                    $baseurl . '/feeds/fetchFromAllFeeds',
+                    array('class' => 'btn btn-primary qet', 'style' => 'margin-left:20px;')
                 )
             ) : '',
             'actions' => array(
@@ -264,6 +259,8 @@
                     'url_params_data_paths' => 'Feed.id',
                     'icon' => 'arrow-circle-down',
                     'title' => __('Fetch all events'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Fetch and store all events from this feed?'),
                     'requirement' => $isSiteAdmin,
                     'complex_requirement' => array(
                         'options' => array(

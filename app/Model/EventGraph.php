@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AttachmentTool', 'Tools');
 
 class EventGraph extends AppModel
 {
@@ -34,6 +35,11 @@ class EventGraph extends AppModel
             'message' => 'The provided eventGraph is not a valid json format',
             'required' => true,
         ),
+        'preview_img' => array(
+            'rule' => array('custom', '/^data:image\/png;base64,[A-Za-z0-9+\/]*={0,2}$/'),
+            'message' => 'The preview has to be a base64 encoded PNG data URL',
+            'allowEmpty' => true,
+        ),
     );
 
     public function beforeValidate($options = array())
@@ -47,7 +53,10 @@ class EventGraph extends AppModel
     {
         $b64 = str_replace('data:image/png;base64,', '', $eventGraph['EventGraph']['preview_img']);
         $imageDecoded = base64_decode($b64);
-        $source = imagecreatefromstring($imageDecoded);
+        $source = $this->createImage($imageDecoded);
+        if ($source === false) {
+            throw new Exception('Image is not valid.');
+        }
         imagesavealpha($source, true);
         ob_start();
         imagepng($source, null, 9);
@@ -55,5 +64,10 @@ class EventGraph extends AppModel
         ob_end_clean();
         imagedestroy($source);
         return $imageData;
+    }
+
+    protected function createImage($data)
+    {
+        return AttachmentTool::createImageFromString($data);
     }
 }

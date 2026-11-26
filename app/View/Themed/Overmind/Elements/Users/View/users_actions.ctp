@@ -17,6 +17,7 @@ if ($adminView) {
         'url'     => "$baseurl/users/edit",
         'onclick' => "event.preventDefault(); openModal('$baseurl/users/edit');",
         'icon'    => 'fas fa-pen-to-square',
+        'tour'    => 'action-edit-profile',
         'label'   => __('Edit profile'),
     ];
 }
@@ -58,7 +59,7 @@ $actions[] = [
 if ($adminView && !empty($isSiteAdmin)) {
     $actions[] = [
         'url'     => "$baseurl/admin/users/delete/$uid",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/users/delete/$uid', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/users/delete/$uid', 'md');",
         'icon'    => 'fas fa-trash',
         'label'   => __('Delete user'),
         'danger'  => true,

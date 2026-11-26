@@ -1,7 +1,7 @@
 [submodule "app/Lib/cakephp"]
 	path = app/Lib/cakephp
-	url = https://github.com/MISP/cakephp.git
-	branch = master-cakephp2-php8
+	url = https://github.com/MISP/sachertortephp.git
+	branch = main
 [submodule "PyMISP"]
 	path = PyMISP
 	url = https://github.com/MISP/PyMISP.git

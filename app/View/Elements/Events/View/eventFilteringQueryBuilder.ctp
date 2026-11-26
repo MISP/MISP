@@ -66,7 +66,8 @@ if (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules[
 }
 foreach (['taggedAttributes', 'galaxyAttachedAttributes'] as $field) {
     if (!empty($filters[$field]) && (empty($advancedFilteringActiveRules) || isset($advancedFilteringActiveRules[$field]))) {
-        $rules[$field] = $filters[$field];
+        // additional h() because values are directly inserted into the DOM
+        $rules[$field] = is_array($filters[$field]) ? array_map('h', $filters[$field]) : h($filters[$field]);
     }
 }
 $jsonRules = [];

@@ -199,7 +199,6 @@ class TestSecurity(unittest.TestCase):
         cls.admin_misp_connector.delete_user(cls.test_org_admin)
         cls.admin_misp_connector.delete_organisation(cls.test_org)
         cls.__delete_advanced_authkey(cls, cls.admin_advanced_authkey["id"])
-        cls.__delete_advanced_authkey(cls, cls.org_admin_advanced_authkey["id"])
 
     def setUp(self):
         # Do not show warning about not closed resources, because that something we want
@@ -1308,7 +1307,7 @@ class TestSecurity(unittest.TestCase):
         self.admin_misp_connector.delete_organisation(org)
 
         for sg in sgs:
-            self.failIf(sg.uuid == hidden_sg.uuid)
+            self.assertNotEqual(sg.uuid, hidden_sg.uuid)
 
     def test_sg_index_user_can_see(self):
         visible_sg = self.__create_sharing_group()

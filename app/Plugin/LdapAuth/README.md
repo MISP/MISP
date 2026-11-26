@@ -177,6 +177,12 @@ Each setting is stored in the `LdapAuth` configuration array and can be customiz
 - **Default**: `true`
 - **Example**: `true`
 
+### `unblock`
+- **Description**: Whether a successful login re-enables a MISP user that is disabled, including one this plugin disabled itself. When `false`, a disabled user is refused after the update.
+- **Type**: `boolean`
+- **Default**: `false`
+- **Example**: `false`
+
 
 ### `debug`
 - **Description**: Increments the default debug level of the PHP LDAP library.
@@ -297,7 +303,7 @@ Four things worth knowing before running it with `--block_invalid`:
   account is dead.
 * **It only ever disables, never re-enables.** The command skips accounts that
   are already disabled, so someone restored in the directory is re-enabled by
-  their next successful login (which `updateUser` does), not by this command.
+  their next successful login when `unblock` is enabled, not by this command.
 * **A failed reader bind aborts the run** rather than treating every user as
   missing. Otherwise one wrong credential would disable the entire instance.
 

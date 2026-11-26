@@ -9,16 +9,16 @@ if ($editable) {
         'url' => "$baseurl/SharingGroups/edit/$SharingGroupId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroups/edit/$SharingGroupId');",
         'icon' => 'fas fa-pen',
-        'label' => __('Edit SharingGroup')
+        'label' => __('Edit sharing group')
     ];
 }
 
 if ($deletable) {
     $actions[] = [
         'url' => "$baseurl/SharingGroups/delete/$SharingGroupId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroups/deleteSelection/$SharingGroupId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroups/deleteSelection/$SharingGroupId', 'md');",
         'icon' => 'fas fa-trash',
-        'label' => __('Delete SharingGroup'),
+        'label' => __('Delete sharing group'),
         'danger' => true
     ];
 }

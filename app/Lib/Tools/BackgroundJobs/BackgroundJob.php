@@ -91,7 +91,11 @@ class BackgroundJob implements JsonSerializable
 
         $this->pool($process, $pipes, $runningCallback);
 
-        if ($this->returnCode === 0 && empty($this->error)) {
+        // Success is decided by the exit code alone. stderr is not a failure
+        // signal: a job process writes there on success through the syslog
+        // LOG_PERROR echo, CakeLog::debug() and logged-but-handled exceptions.
+        // The captured stderr stays in $this->error for the job log viewer.
+        if ($this->returnCode === 0) {
             $this->setStatus(BackgroundJob::STATUS_COMPLETED);
             $this->setProgress(100);
         } else {
@@ -163,8 +167,9 @@ class BackgroundJob implements JsonSerializable
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
             'status' => $this->status,
-            'output' => $this->output,
-            'error' => $this->error,
+            // Job stdout/stderr may contain invalid UTF-8
+            'output' => $this->output === null ? null : mb_scrub($this->output, 'UTF-8'),
+            'error' => $this->error === null ? null : mb_scrub($this->error, 'UTF-8'),
             'metadata' => $this->metadata,
         ];
     }
@@ -220,6 +225,27 @@ class BackgroundJob implements JsonSerializable
     public function error(): ?string
     {
         return $this->error;
+    }
+
+    /**
+     * The stderr line that names the error. Cake prints a fatal error as
+     * "Error: <message>" before the trace, after any log echo and warnings.
+     *
+     * @return string|null
+     */
+    public function errorLine(): ?string
+    {
+        $lines = preg_split('/\R/', trim((string)$this->error));
+        foreach (array_reverse($lines) as $line) {
+            $line = trim($line);
+            if (stripos($line, 'error:') !== false &&
+                !preg_match('/^(#\d+ |(Warning|Notice|Strict|Deprecated) Error:)/', $line)
+            ) {
+                return $line;
+            }
+        }
+        $line = trim(end($lines));
+        return $line === '' ? null : $line;
     }
 
     public function metadata(): array

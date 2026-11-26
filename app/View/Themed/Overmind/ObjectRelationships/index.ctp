@@ -25,6 +25,7 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'id',
+        'highlight_path' => 'highlighted',
         'card_section' => 'selector',
     ],
     [
@@ -105,8 +106,8 @@ $fields = [
                 'type' => 'toggle',
                 'label_on' => __('Remove Highlight'),
                 'label_off' => __('Highlight'),
-                'icon_on' => 'down-long text-primary',
-                'icon_off' => 'highlighter text-primary',
+                'icon_on' => 'fas fa-down-long text-primary',
+                'icon_off' => 'fas fa-highlighter text-primary',
                 'url' => '/object_relationships/%action%/%name%',
                 'url_params_data_paths' => ['name' => 'name'],
                 'highlight_path' => 'highlighted',
@@ -120,6 +121,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
@@ -130,6 +132,22 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'name'        => 'name',
                         'mode'        => 'quickFilter',
                     ],
+                    [
+                        'type' => 'more_filters',
+                        'label' => __('More filters'),
+                        'children' => [
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Highlighted'),
+                                'name' => 'highlighted',
+                                'options' => [
+                                    '' => '',
+                                    '1' => __('Yes'),
+                                    '0' => __('No')
+                                ]
+                            ],
+                        ]
+                    ]
                 ],
                 'delete' => '/deleteSelection',
                 'highlight' => 1,

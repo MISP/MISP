@@ -115,7 +115,9 @@ class FeedsController extends AppController
                 }
 
                 foreach ($feeds as &$feed) {
-                    if (!empty($feed['Feed']['headers'])) {
+                    if (!$this->_isSiteAdmin()) {
+                        unset($feed['Feed']['headers']);
+                    } elseif (!empty($feed['Feed']['headers'])) {
                         $feed['Feed']['headers'] = '****';
                     }
                     if (!empty($feed['Feed']['tag_collection_id'])) {
@@ -195,8 +197,7 @@ class FeedsController extends AppController
             'afterFind' => function (array $feed) {
                 if (!$this->_isSiteAdmin()) {
                     unset($feed['Feed']['headers']);
-                }
-                if (!empty($feed['Feed']['headers'])) {
+                } elseif (!empty($feed['Feed']['headers'])) {
                     $feed['Feed']['headers'] = '****';
                 }
                 $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
@@ -219,6 +220,8 @@ class FeedsController extends AppController
         $otherFeeds = $this->Feed->getAllCachingEnabledFeeds($feedId, true);
         $this->set('other_feeds', $otherFeeds);
         $this->set('feedId', $feedId);
+        $withTimestamp = $this->Feed->attachFeedCacheTimestamps([$this->viewVars['data']]);
+        $this->set('cacheTimestamp', $withTimestamp[0]['Feed']['cache_timestamp'] ?? null);
 
         $this->loadModel('Event');
         $distributionLevels = $this->Event->distributionLevels;
@@ -354,7 +357,7 @@ class FeedsController extends AppController
                 } else {
                     $feed['Feed']['input_source'] = strtolower($feed['Feed']['input_source']);
                 }
-                if (!in_array($feed['Feed']['input_source'], array('network', 'local'))) {
+                if (!in_array($feed['Feed']['input_source'], array('network', 'local', 'misp-modules'))) {
                     $feed['Feed']['input_source'] = 'network';
                 }
                 if (!isset($feed['Feed']['delete_local_file'])) {
@@ -379,7 +382,7 @@ class FeedsController extends AppController
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
-        $inputSources = array('network' => 'Network');
+        $inputSources = array('network' => 'Network', 'misp-modules' => 'MISP modules');
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
@@ -403,7 +406,8 @@ class FeedsController extends AppController
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
-            'inputSources' => $inputSources
+            'inputSources' => $inputSources,
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set('allAttributeTypes', $allTypes['attribute']);
         $this->set('allObjectTypes', $allTypes['object']);
@@ -416,6 +420,23 @@ class FeedsController extends AppController
             $this->layout = false;
             $this->render('add');
         }
+    }
+
+    /** Discover gathering producers, including future modules, using normal enablement and restrictions. */
+    private function __gatheringModuleOptions()
+    {
+        if (!Configure::read('Plugin.Gathering_services_enable')) {
+            return [];
+        }
+        $module = ClassRegistry::init('Module');
+        $enabled = $module->getEnabledModules($this->Auth->user(), 'gathering', 'Gathering');
+        $options = [];
+        foreach (is_array($enabled) ? ($enabled['modules'] ?? []) : [] as $descriptor) {
+            if (($descriptor['mispattributes']['gathering_version'] ?? null) === 2) {
+                $options[$descriptor['name']] = $descriptor['meta']['name'] ?? $descriptor['name'];
+            }
+        }
+        return $options;
     }
 
     private function __checkRegex($pattern)
@@ -540,7 +561,7 @@ class FeedsController extends AppController
         if (empty($sharingGroups)) {
             unset($distributionLevels[4]);
         }
-        $inputSources = array('network' => 'Network');
+        $inputSources = array('network' => 'Network', 'misp-modules' => 'MISP modules');
         if (empty(Configure::read('Security.disable_local_feed_access'))) {
             $inputSources['local'] = 'Local';
         }
@@ -567,7 +588,8 @@ class FeedsController extends AppController
             'feedTypes' => $this->Feed->getFeedTypesOptions(),
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
-            'inputSources' => $inputSources
+            'inputSources' => $inputSources,
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set(compact('dropdownData'));
         $this->set('menuData', [
@@ -612,6 +634,7 @@ class FeedsController extends AppController
 
     public function fetchFromFeed($feedId)
     {
+        $this->request->allowMethod(['post']);
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -669,11 +692,11 @@ class FeedsController extends AppController
             }
             $message = __('Fetching the feed has successfully completed.');
             if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                if (isset($result['add'])) {
-                    $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                if (isset($result['add']['successes'])) {
+                    $message .= ' Downloaded ' . $result['add']['successes'] . ' new event(s).';
                 }
-                if (isset($result['edit'])) {
-                    $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+                if (isset($result['edit']['successes'])) {
+                    $message .= ' Updated ' . $result['edit']['successes'] . ' event(s).';
                 }
             }
         }
@@ -687,6 +710,7 @@ class FeedsController extends AppController
 
     public function fetchFromAllFeeds()
     {
+        $this->request->allowMethod(['post']);
         $feeds = $this->Feed->find('all', array(
             'recursive' => -1,
             'fields' => array('id')
@@ -734,11 +758,11 @@ class FeedsController extends AppController
                 }
                 $message = __('Fetching the feed has successfully completed.');
                 if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-                    if (isset($result['add'])) {
-                        $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                    if (isset($result['add']['successes'])) {
+                        $message .= ' Downloaded ' . $result['add']['successes'] . ' new event(s).';
                     }
-                    if (isset($result['edit'])) {
-                        $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
+                    if (isset($result['edit']['successes'])) {
+                        $message .= ' Updated ' . $result['edit']['successes'] . ' event(s).';
                     }
                 }
             }
@@ -1160,7 +1184,7 @@ class FeedsController extends AppController
         $this->set('id', $feed['Feed']['id']);
         $this->set('feed', $feed);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 
@@ -1211,7 +1235,7 @@ class FeedsController extends AppController
         }
 
         $this->params->params['paging'] = array($this->modelClass => $params);
-        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
+        $resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id'], $this->Auth->user());
         // remove all duplicates
         $correlatingEvents = array();
         foreach ($resultArray as $k => $v) {
@@ -1248,11 +1272,13 @@ class FeedsController extends AppController
 
     private function __canViewFeed($feed)
     {
-        $host_org_id = (int)Configure::read('MISP.host_org_id');
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id && !$feed['Feed']['lookup_visible']) {
-            return false;
+        // Single-sourced on Feed::visibleConditions() so this per-feed check
+        // and the feed listings that carry the same rule cannot drift apart.
+        // No restriction returned means site admin or host org.
+        if (empty($this->Feed->visibleConditions($this->Auth->user()))) {
+            return true;
         }
-        return true;
+        return !empty($feed['Feed']['lookup_visible']);
     }
 
     public function previewEvent($feedId, $eventUuid, $all = false)
@@ -1423,6 +1449,7 @@ class FeedsController extends AppController
 
     public function enable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, true);
         if (!$this->_isRest()) {
             return $this->__redirectAfterToggleEnable($result);
@@ -1440,6 +1467,7 @@ class FeedsController extends AppController
 
     public function disable($id)
     {
+        $this->request->allowMethod(['post']);
         $result = $this->__toggleEnable($id, false);
         if (!$this->_isRest()) {
             return $this->__redirectAfterToggleEnable($result);
@@ -1528,6 +1556,7 @@ class FeedsController extends AppController
 
     public function cacheFeeds($scope = 'freetext')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             /** @var Job $job */
@@ -1665,7 +1694,7 @@ class FeedsController extends AppController
             $customPagination->truncateByPagination($hits, $params);
         }
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
     }
 }

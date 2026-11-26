@@ -39,6 +39,8 @@ class CryptographicKeysController extends AppController
         if (empty($existingEvent)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
+        // A sync user's own key on a protected event would let it sign edits.
+        $this->CryptographicKey->Event->assertNotProtectedFromSyncUser($this->Auth->user(), $existingEvent);
         $params = [
             'beforeSave' => function ($data) use($type, $parent_id) {
                 $data['CryptographicKey']['parent_type'] = $type;
@@ -102,6 +104,9 @@ class CryptographicKeysController extends AppController
                 if (!$user['Role']['perm_site_admin'] && $existingData['Event']['orgc_id'] !== $user['org_id']) {
                     return false;
                 }
+                if ($tempModel->isProtectedFromSyncUser($user, $existingData)) {
+                    return false;
+                }
                 return $data;
            }
         ]);
@@ -112,11 +117,35 @@ class CryptographicKeysController extends AppController
 
     public function view($id)
     {
+        $user = $this->Auth->user();
         $key = $this->CryptographicKey->find('first', [
             'recursive' => -1,
-            'fields' => ['id', 'type', 'key_data', 'fingerprint'],
+            'fields' => ['id', 'type', 'key_data', 'fingerprint', 'parent_id', 'parent_type'],
             'conditions' => ['CryptographicKey.id' => $id]
         ]);
+        if (empty($key)) {
+            throw new NotFoundException(__('Invalid key.'));
+        }
+        // Authorise through the parent event. Unlike add()/delete(), which
+        // require ownership of the event, this is the plain read ACL: the
+        // "Inspect key" link is rendered for every user who can see a
+        // protected event, not only for its creator org.
+        $parent_type = $key['CryptographicKey']['parent_type'];
+        if ($parent_type !== 'Event') {
+            // Same fallback as delete(): inert rows with no ownership model
+            // are site-admin only rather than open to everyone.
+            if (empty($user['Role']['perm_site_admin'])) {
+                throw new NotFoundException(__('Invalid key.'));
+            }
+        } else {
+            $event = $this->CryptographicKey->Event->fetchSimpleEvent(
+                $user,
+                $key['CryptographicKey']['parent_id']
+            );
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid key.'));
+            }
+        }
         $this->set('id', $id);
         $this->set('title', __('Viewing %s key #%s', h($key['CryptographicKey']['type']), h($key['CryptographicKey']['id'])));
         $this->set(

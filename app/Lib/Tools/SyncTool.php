@@ -24,7 +24,11 @@ class SyncTool
             if (!empty($server[$model]['self_signed'])) {
                 $params['ssl_allow_self_signed'] = true;
                 $params['ssl_verify_peer_name'] = false;
-                if (!isset($server[$model]['cert_file'])) {
+                // Must mirror the `!empty()` test above that decides whether a CA
+                // is pinned at all: `cert_file` is '' (not null) after a cert is
+                // removed, so `isset()` would leave verification enabled with no
+                // CA to verify against and break the connection.
+                if (empty($server[$model]['cert_file'])) {
                     $params['ssl_verify_peer'] = false;
                 }
             }
@@ -36,12 +40,26 @@ class SyncTool
             }
         }
 
-        return $this->createHttpSocket($params);
+        return $this->withoutCurlRedirects($this->createHttpSocket($params));
     }
 
     public function setupHttpSocketFeed()
     {
-        return $this->createHttpSocket(['compress' => true]);
+        return $this->withoutCurlRedirects($this->createHttpSocket(['compress' => true]));
+    }
+
+    /**
+     * libcurl would follow redirects unseen. Sync stays on the configured URL
+     * and feeds vet every hop themselves, so neither lets curl do it.
+     * @param HttpSocketExtended $HttpSocket
+     * @return HttpSocketExtended
+     */
+    private function withoutCurlRedirects($HttpSocket)
+    {
+        if ($HttpSocket instanceof CurlClient) {
+            $HttpSocket->setFollowRedirects(false);
+        }
+        return $HttpSocket;
     }
 
     /**
@@ -98,6 +116,20 @@ class SyncTool
             $HttpSocket->configProxy($proxy['host'], $proxy['port'] ?? 3128, $proxy['method'] ?? null, $proxy['user'] ?? null, $proxy['password'] ?? null);
         }
         return $HttpSocket;
+    }
+
+    /**
+     * @param CakeRequest $request
+     * @return string|null Version of the MISP instance making the request, null for any other client
+     */
+    public static function requesterMispVersion(CakeRequest $request)
+    {
+        // MISP sends its version in the User-Agent since 2.4.133, and in a MISP-version header up to 2.4.148
+        if (preg_match('/^MISP (\d+\.\d+\.\d+)(?: |$)/', (string)$request->header('User-Agent'), $matches)) {
+            return $matches[1];
+        }
+        $header = trim((string)$request->header('MISP-version'));
+        return preg_match('/^\d+\.\d+\.\d+$/', $header) ? $header : null;
     }
 
     /**

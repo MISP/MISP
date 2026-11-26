@@ -37,7 +37,7 @@
         </dd>
         <dt><?php echo __('Analyst Data'); ?></dt>
         <dd><?php echo h($stats['analyst_data_count']);
-            if ($stats['analyst_data_count_month']) echo ' <span style="color:green">(+' . h($stats['analyst_data_count']) . ')</span>&nbsp;';
+            if ($stats['analyst_data_count_month']) echo ' <span style="color:green">(+' . h($stats['analyst_data_count_month']) . ')</span>&nbsp;';
             else echo ' <span style="color:red">(0)</span>&nbsp;';?>
         </dd>
         <dt><?php echo __('Correlations found'); ?></dt>
@@ -56,18 +56,9 @@
         <dd><?php echo h($stats['contributing_org_count']); ?>&nbsp;</dd>
         <dt><?php echo __('Average Users / Org'); ?></dt>
         <dd><?php echo h($stats['average_user_per_org']); ?>&nbsp;</dd>
-        <dt><?php echo __('Discussion threads'); ?></dt>
-        <dd><?php echo h($stats['thread_count']);
-            if ($stats['thread_count_month']) echo ' <span style="color:green">(+' . h($stats['thread_count_month']) . ')</span>&nbsp;';
-            else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-        </dd>
-        <dt><?php echo __('Discussion posts'); ?></dt>
-        <dd><?php echo h($stats['post_count']);
-            if ($stats['post_count_month']) echo ' <span style="color:green">(+' . h($stats['post_count_month']) . ')</span>&nbsp;';
-            else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-        </dd>
     </dl>
 </div>
+<?php if ($showActivity): ?>
 <br />
 <h3><?php echo __('Activity Heatmap');?></h3>
 <p><?php echo __('A heatmap showing user activity for each day during this month and the 4 months that preceded it. Use the buttons below to only show the heatmap of a specific organisation.');?></p>
@@ -144,6 +135,7 @@ if (preg_match('/(?i)msie [2-9]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERV
         <?php
     }
 }
+endif;
 ?>
 </div>
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));

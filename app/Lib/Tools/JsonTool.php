@@ -39,6 +39,17 @@ class JsonTool
     }
 
     /**
+     * JSON for a <script> block: < > & ' " come out as \u escapes, so no value
+     * can end the block or change how the HTML parser reads it.
+     * @param mixed $value
+     * @return string|false
+     */
+    public static function encodeForScript($value)
+    {
+        return json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    }
+
+    /**
      * @param string $value
      * @return SimdJsonBase64Encode|string
      */

@@ -97,6 +97,15 @@ if ($isSiteAdmin && !empty($unknownClustersDetails)) {
  */
 $fields = [
     [
+        'name' => __('Creator Org'),
+        'sort' => 'Galaxy.orgc_id',
+        'data_path' => 'Orgc',
+        'element' => 'organisation',
+        'default_org' => __('Default galaxy'),
+        'card_section' => 'meta',
+        'display_in' => ['card']
+    ],
+    [
         'element' => 'checkbox',
         'data_path' => 'Galaxy.id',
         'enable_path' => 'Galaxy.enabled',
@@ -161,7 +170,7 @@ $fields = [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Galaxy.id',
-        'card_section' => 'extra',
+        'card_section' => 'meta',
         'actions' => [
             [
                 'type' => 'navigate',
@@ -185,9 +194,9 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Enable'),
-                'icon' => 'play text-success',
+                'icon' => 'play',
                 'url' => $baseurl . '/galaxies/enable/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($isSiteAdmin) {
                     return $isSiteAdmin && empty($row['Galaxy']['enabled']);
                 }
@@ -195,9 +204,9 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Disable'),
-                'icon' => 'stop text-danger',
+                'icon' => 'stop',
                 'url' => $baseurl . '/galaxies/disable/%id%',
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) use ($isSiteAdmin) {
                     return $isSiteAdmin && !empty($row['Galaxy']['enabled']);
                 }
@@ -224,6 +233,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $galaxyList,
+            'cards_per_row' => 4,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

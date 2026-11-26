@@ -1,18 +1,4 @@
 <?php
-// Title of the index displayed in the header section, leaving it empty will fallback to controller name
-$headerTitle = __('');
-
-// Description displayed under the title in the header section, leave empty if not needed
-$headerDescription = __('');
-
-// Actions displayed as buttons in the header section, leave empty if not needed
-$headerActions = [];
-
-$this->set('headerTitle', $headerTitle);
-$this->set('headerDescription', $headerDescription);
-$this->set('headerActions', $headerActions);
-
-
 $fields = [
     [
         'element' => 'checkbox',
@@ -77,6 +63,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [
