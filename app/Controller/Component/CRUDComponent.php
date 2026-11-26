@@ -216,6 +216,8 @@ class CRUDComponent extends Component
             // UPDATE target, so without this an injected id would mass-assign the write
             // onto an arbitrary record (the scope/auth check only validated this one).
             $massAssignSafeId = isset($data[$modelName]['id']) ? $data[$modelName]['id'] : null;
+            // uuid is sync identity: editable only where the caller lists it
+            $storedUuid = isset($data[$modelName]['uuid']) ? $data[$modelName]['uuid'] : null;
             $input = $this->Controller->request->data;
             if (empty($input[$modelName])) {
                 $input = [$modelName => $input];
@@ -240,6 +242,9 @@ class CRUDComponent extends Component
             // id move this write off the authorised row.
             if ($massAssignSafeId !== null) {
                 $data[$modelName]['id'] = $massAssignSafeId;
+            }
+            if ($storedUuid !== null && !in_array('uuid', $params['fields'] ?? [], true)) {
+                $data[$modelName]['uuid'] = $storedUuid;
             }
             if (isset($params['beforeSave'])) {
                 $data = $params['beforeSave']($data);

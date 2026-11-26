@@ -132,14 +132,14 @@ abstract class NidsExport
             if (!empty($item['AttributeTag'])) {
                 foreach ($item['AttributeTag'] as $tag_attr) {
                     if (array_key_exists('name', $tag_attr['Tag'])) {
-                        $tagsArray[] = $tag_attr['Tag']['name'];
+                        $tagsArray[] = self::escapeMsgText($tag_attr['Tag']['name']);
                     }
                 }
             }
             if (!empty($item['Event']['EventTag'])) {
                 foreach ($item['Event']['EventTag'] as $tag_event) {
                     if (array_key_exists('name', $tag_event['Tag'])) {
-                        $tagsArray[] = $tag_event['Tag']['name'];
+                        $tagsArray[] = self::escapeMsgText($tag_event['Tag']['name']);
                     }
                 }
             }
@@ -257,7 +257,7 @@ abstract class NidsExport
             '->',                                               // direction
             $attributes['ip-dst'],                              // dst_ip
             $attributes['dst-port'],                            // dst_port
-            'Network connection between ' . $attributes['ip-src'] . ' and ' . $attributes['ip-dst'],        // msg
+            'Network connection between ' . self::escapeMsgArg($attributes['ip-src']) . ' and ' . self::escapeMsgArg($attributes['ip-dst']),        // msg
             '',                                                 // rule_content
             '',                                                 // tag
             $sid,                                               // sid
@@ -294,7 +294,7 @@ abstract class NidsExport
             '->',                                               // direction
             $attributes['ip-dst'],                              // dst_ip
             $attributes['dst-port'],                            // dst_port
-            'DDOS attack detected between ' . $attributes['ip-src'] . ' and ' . $attributes['ip-dst'],      // msg
+            'DDOS attack detected between ' . self::escapeMsgArg($attributes['ip-src']) . ' and ' . self::escapeMsgArg($attributes['ip-dst']),      // msg
             '',                                                 // rule_content
             '',                                                 // tag
             $sid,                                               // sid
@@ -339,7 +339,7 @@ abstract class NidsExport
                 '->',                           // direction
                 $ipport[0],         // dst_ip
                 $ipport[1],                         // dst_port
-                'Outgoing To IP: ' . $attribute['value'],       // msg
+                'Outgoing To IP: ' . self::escapeMsgArg($attribute['value']),       // msg
                 'flow:not_established,to_server; flowbits:isnotset,outbound_ioc; flowbits:set,outbound_ioc;',                             // rule_content
                 '',                             // tag
                 $sid,                           // sid
@@ -360,7 +360,7 @@ abstract class NidsExport
                 '->',                           // direction
                 '$HOME_NET',                    // dst_ip
                 'any',                          // dst_port
-                'Incoming From IP: ' . $attribute['value'],     // msg
+                'Incoming From IP: ' . self::escapeMsgArg($attribute['value']),     // msg
                 '',                             // rule_content
                 '',                             // tag
                 $sid,                           // sid
@@ -382,7 +382,7 @@ abstract class NidsExport
                 '->',                           // direction
                 '$SMTP_SERVERS',                // dst_ip
                 '25',                           // dst_port
-                'Source Email Address: ' . $attribute['value'],     // msg
+                'Source Email Address: ' . self::escapeMsgArg($attribute['value']),     // msg
                 $content,                       // rule_content
                 'tag:session,600,seconds;',     // tag
                 $sid,                           // sid
@@ -404,7 +404,7 @@ abstract class NidsExport
                 '->',                           // direction
                 '$SMTP_SERVERS',                // dst_ip
                 '25',                           // dst_port
-                'Destination Email Address: ' . $attribute['value'],    // msg
+                'Destination Email Address: ' . self::escapeMsgArg($attribute['value']),    // msg
                 $content,                       // rule_content
                 'tag:session,600,seconds;',     // tag
                 $sid,                           // sid
@@ -472,7 +472,7 @@ abstract class NidsExport
                 '->',                           // direction
                 'any',                          // dst_ip
                 '53',                           // dst_port
-                'Hostname: ' . $attribute['value'],     // msg
+                'Hostname: ' . self::escapeMsgArg($attribute['value']),     // msg
                 $content,                       // rule_content
                 '',                             // tag
                 $sid,                           // sid
@@ -488,7 +488,7 @@ abstract class NidsExport
                 '->',                           // direction
                 'any',                          // dst_ip
                 '53',                           // dst_port
-                'Hostname: ' . $attribute['value'],     // msg
+                'Hostname: ' . self::escapeMsgArg($attribute['value']),     // msg
                 $content. ' flow:established;',         // rule_content
                 '',                             // tag
                 $sid,                           // sid
@@ -506,7 +506,7 @@ abstract class NidsExport
                 '->',                           // direction
                 '$EXTERNAL_NET',                // dst_ip
                 '$HTTP_PORTS',                  // dst_port
-                'Outgoing HTTP Hostname: ' . $attribute['value'],       // msg
+                'Outgoing HTTP Hostname: ' . self::escapeMsgArg($attribute['value']),       // msg
                 $content,                       // rule_content
                 'tag:session,600,seconds;',     // tag
                 $sid,                           // sid
@@ -528,7 +528,7 @@ abstract class NidsExport
                 '->',                           // direction
                 'any',                          // dst_ip
                 '53',                           // dst_port
-                'Domain: ' . $attribute['value'],       // msg
+                'Domain: ' . self::escapeMsgArg($attribute['value']),       // msg
                 $content,                       // rule_content
                 '',                             // tag
                 $sid,                           // sid
@@ -544,7 +544,7 @@ abstract class NidsExport
                 '->',                           // direction
                 'any',                          // dst_ip
                 '53',                           // dst_port
-                'Domain: ' . $attribute['value'],       // msg
+                'Domain: ' . self::escapeMsgArg($attribute['value']),       // msg
                 $content. ' flow:established;',         // rule_content
                 '',                             // tag
                 $sid,                           // sid
@@ -562,7 +562,7 @@ abstract class NidsExport
                 '->',                           // direction
                 '$EXTERNAL_NET',                // dst_ip
                 '$HTTP_PORTS',                  // dst_port
-                'Outgoing HTTP Domain: ' . $attribute['value'],     // msg
+                'Outgoing HTTP Domain: ' . self::escapeMsgArg($attribute['value']),     // msg
                 $content,                       // rule_content
                 'tag:session,600,seconds;',     // tag
                 $sid,                           // sid
@@ -587,7 +587,7 @@ abstract class NidsExport
                 '->',                           // direction
                 '$EXTERNAL_NET',                // dst_ip
                 '$HTTP_PORTS',                  // dst_port
-                'Outgoing HTTP URL: ' . $attribute['value'],        // msg
+                'Outgoing HTTP URL: ' . self::escapeMsgArg($attribute['value']),        // msg
                 $content,                       // rule_content
                 'tag:session,600,seconds;',     // tag
                 $sid,                           // sid
@@ -609,7 +609,7 @@ abstract class NidsExport
                 '->',                           // direction
                 '$EXTERNAL_NET',                // dst_ip
                 '$HTTP_PORTS',                  // dst_port
-                'Outgoing User-Agent: ' . $attribute['value'],      // msg
+                'Outgoing User-Agent: ' . self::escapeMsgArg($attribute['value']),      // msg
                 $content,                       // rule_content
                 'tag:session,600,seconds;',     // tag
                 $sid,                           // sid
@@ -755,6 +755,19 @@ abstract class NidsExport
         return $rawName;
     }
 
+    // Text for msg: control characters become _, then \ " and ; are backslash escaped
+    protected static function escapeMsgArg($value)
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]/', '_', (string)$value);
+        return strtr($value, array('\\' => '\\\\', '"' => '\\"', ';' => '\\;'));
+    }
+
+    // Same for text embedded in the sprintf format itself, where % has to be doubled
+    protected static function escapeMsgText($value)
+    {
+        return str_replace('%', '%%', self::escapeMsgArg($value));
+    }
+
     /**
      * Replaces characters that are not allowed in a signature.
      *   example: " is converted to |22|
@@ -770,7 +783,11 @@ abstract class NidsExport
             '\\' => '|5c|',
             '0x' => '|30 78|'
         );
-        return strtr($value, $replace_pairs);
+        $value = strtr($value, $replace_pairs);
+        // control characters last, so the |hh| they produce is not escaped again
+        return preg_replace_callback('/[\x00-\x1F\x7F]/', function ($m) {
+            return '|' . sprintf('%02x', ord($m[0])) . '|';
+        }, $value);
     }
 
     /**

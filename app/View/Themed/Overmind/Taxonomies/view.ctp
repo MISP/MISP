@@ -1,4 +1,7 @@
 <?php
+    $this->set('headerTitle', $taxonomy['namespace'] ?? '');
+    $this->set('headerIdentity', $taxonomy);
+
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $taxonomy,
@@ -11,6 +14,7 @@
                 // Content
                 'left' => [
                     'Taxonomies/View/taxonomies_general',
+                    'Taxonomies/View/taxonomies_tags_card',
                 ],
                 'right' => [
                     'Taxonomies/View/taxonomies_actions',

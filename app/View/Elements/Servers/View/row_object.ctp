@@ -8,7 +8,7 @@
     $tr_class .= ' row_' . h($k);
   }
 ?>
-<tr id = "Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
+<tr id = "Object_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
   <td class="short">
     <?php echo date('Y-m-d', $object['timestamp']); ?>
   </td>
@@ -19,7 +19,7 @@
     <span class="bold"><?php echo __('Name');?>: </span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
-    <div id="Object_<?php echo $object['id']; ?>_collapsible" class="collapse">
+    <div id="Object_<?php echo h($object['id']); ?>_collapsible" class="collapse">
       <span class="bold"><?php echo __('Meta-category');?>: </span><?php echo h($object['meta-category']);?><br />
       <span class="bold"><?php echo __('Description');?>: </span><?php echo h($object['description']);?><br />
       <span class="bold"><?php echo __('Template');?>: </span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>

@@ -15,11 +15,19 @@
  *    span several page loads (e.g. events/index -> events/add -> event view).
  *  - A step whose page the user has not reached yet does not block: the
  *    tour parks itself in a dock and resumes when the page matches.
+ *  - While a step is up, the page only answers inside what the step is
+ *    about (see interactionZones); everything else waits for the popover.
  */
 (function () {
     'use strict';
 
     var STORAGE_KEY = 'mispOnboardingState';
+    var START_PAGE = '/events/index'; // every run sets off from here
+    // Blocked outside the current step's zones while the popover is up.
+    var POINTER_EVENTS = [
+        'pointerdown', 'mousedown', 'mouseup', 'click', 'dblclick',
+        'auxclick', 'contextmenu', 'touchstart'
+    ];
     var SPOTLIGHT_PAD = 6;      // px of breathing room around the anchor
     var POPOVER_GAP = 14;       // px between the anchor and the popover
     var VIEWPORT_MARGIN = 12;   // px the popover keeps from the edges
@@ -42,7 +50,15 @@
     // Live DOM handles for the current step.
     var nodes = { overlay: null, spotlight: null, popover: null, dock: null };
     var anchorEl = null;
+    var clickTarget = null;
     var anchorClickHandler = null;
+    var modalWaitHandler = null;
+    // Navbar menus held open for the current step (see openMenusFor).
+    var openedMenus = [];
+    // True until the first step rendered after a page load.
+    var freshPage = false;
+    // Elements the page may still be used in while the current step is up.
+    var zones = [];
     var trackingFrame = null;
     var anchorWaitCancel = null;
     var settleFrame = null;
@@ -146,6 +162,11 @@
         return catalogueRequest;
     }
 
+    /** Sections run by "Start the full tour" and at first login. */
+    function fullTour(sections) {
+        return sections.filter(function (s) { return !s.onDemand; });
+    }
+
     function findSection(id) {
         var sections = (catalogue && catalogue.sections) || [];
         for (var i = 0; i < sections.length; i++) {
@@ -218,16 +239,16 @@
                 resolve(node);
             }
 
-            var existing = document.querySelector(selector);
-            if (existing && isVisible(existing)) {
+            var existing = resolveAnchor(selector);
+            if (existing) {
                 finish(existing);
                 return;
             }
 
             observer = new MutationObserver(function () {
-                var node = document.querySelector(selector);
-                if (node && isVisible(node)) {
-                    finish(node);
+                var found = resolveAnchor(selector);
+                if (found) {
+                    finish(found);
                 }
             });
             observer.observe(document.body, {
@@ -247,6 +268,87 @@
         });
 
         return promise;
+    }
+
+    /**
+     * What a selector spotlights (`spot`) and what a click-to-advance step
+     * listens on (`target`). The first visible match wins, so a selector
+     * list can name two controls of which only one is shown. A button folded
+     * into a card header's "⋯" menu (initCardActionOverflow) is stood in for
+     * by the menu toggle; the menu entry clicks the real button, so the
+     * listener on it still fires.
+     */
+    function resolveAnchor(selector) {
+        var matches = document.querySelectorAll(selector);
+        var folded = null;
+        for (var i = 0; i < matches.length; i++) {
+            if (isVisible(matches[i])) {
+                return { spot: matches[i], target: matches[i] };
+            }
+            if (!folded) {
+                var toggle = foldedToggle(matches[i]);
+                if (toggle) {
+                    folded = { spot: toggle, target: matches[i] };
+                }
+            }
+        }
+        return folded;
+    }
+
+    /**
+     * An anchor on another tab of a detail page is hidden, not missing:
+     * switch to that tab so the step can land on it.
+     */
+    function revealTabFor(selector) {
+        if (resolveAnchor(selector) || !window.bootstrap) {
+            return;
+        }
+        var node = document.querySelector(selector);
+        var pane = node && node.closest('.tab-pane:not(.active)');
+        var trigger = pane && pane.id && document.querySelector(
+            '[data-bs-toggle="tab"][href="#' + pane.id + '"], '
+            + '[data-bs-toggle="tab"][data-bs-target="#' + pane.id + '"]'
+        );
+        if (trigger) {
+            bootstrap.Tab.getOrCreateInstance(trigger).show();
+        }
+    }
+
+    /**
+     * The navbar's menus open on hover, which a step cannot hold, and below
+     * the xl breakpoint the whole navbar folds behind its toggler. Show the
+     * menu the anchor lives in, every menu above it and the folded navbar
+     * for as long as the step is up, through the class Bootstrap uses.
+     */
+    function openMenusFor(selector) {
+        var node = document.querySelector(selector);
+        for (; node && node !== document.body; node = node.parentElement) {
+            var folded = node.matches('.collapse')
+                && window.getComputedStyle(node).display === 'none';
+            if ((node.matches('.dropdown-menu') || folded)
+                && !node.classList.contains('show')) {
+                node.classList.add('show');
+                openedMenus.push(node);
+            }
+        }
+    }
+
+    function closeMenus() {
+        openedMenus.forEach(function (menu) {
+            menu.classList.remove('show');
+        });
+        openedMenus = [];
+    }
+
+    function foldedToggle(node) {
+        var actions = node.closest('[data-card-actions]');
+        if (!actions || !actions.parentElement) {
+            return null;
+        }
+        var toggle = actions.parentElement.querySelector(
+            '[data-card-actions-menu] [data-bs-toggle="dropdown"]'
+        );
+        return toggle && isVisible(toggle) ? toggle : null;
     }
 
     function isVisible(node) {
@@ -289,14 +391,26 @@
         document.addEventListener('keydown', onKeydown, true);
         window.addEventListener('resize', scheduleTracking);
         window.addEventListener('scroll', scheduleTracking, true);
+        window.addEventListener('focusin', shieldFocus, true);
+        POINTER_EVENTS.forEach(function (type) {
+            window.addEventListener(type, guardPointer,
+                { capture: true, passive: false });
+        });
     }
 
     function destroyChrome() {
         stopTracking();
         detachAnchorClick();
+        detachModalWait();
+        closeMenus();
+        zones = [];
         document.removeEventListener('keydown', onKeydown, true);
         window.removeEventListener('resize', scheduleTracking);
         window.removeEventListener('scroll', scheduleTracking, true);
+        window.removeEventListener('focusin', shieldFocus, true);
+        POINTER_EVENTS.forEach(function (type) {
+            window.removeEventListener(type, guardPointer, true);
+        });
 
         ['overlay', 'popover', 'dock'].forEach(function (key) {
             if (nodes[key] && nodes[key].parentNode) {
@@ -308,8 +422,75 @@
         document.body.classList.remove('onboarding-active');
     }
 
+    /**
+     * While a step is on screen the page only answers inside what that step
+     * is about, so a stray click cannot open a dialog under the spotlight.
+     * A docked tour has no popover and leaves the page alone.
+     */
+    function isAllowedTarget(target) {
+        if (!run || !nodes.popover || !(target instanceof Node)) {
+            return true;
+        }
+        if (nodes.popover.contains(target)) {
+            return true;
+        }
+        return zones.some(function (zone) {
+            return zone.contains(target);
+        });
+    }
+
+    function guardPointer(event) {
+        if (!isAllowedTarget(event.target)) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
+    /**
+     * Bootstrap's modal focus trap answers focus leaving the dialog by
+     * focusing the dialog's first field — a TomSelect, which then opens.
+     * Focus on the tour's own chrome is not an escape, so it never hears it.
+     */
+    function shieldFocus(event) {
+        var target = event.target;
+        if ((nodes.popover && nodes.popover.contains(target))
+            || (nodes.dock && nodes.dock.contains(target))) {
+            event.stopPropagation();
+        }
+    }
+
+    /**
+     * What a step lets the user work with: the control a click-to-advance
+     * step waits for, the dialog a `modal` step waits to see closed, or what
+     * an `interactive` step asks them to fill in.
+     */
+    function interactionZones(step, found) {
+        var list = [];
+        if (step.advance === 'modal') {
+            list.push(document.getElementById('mainModal'));
+        }
+        if (found && step.advance === 'click') {
+            list.push(found.spot, found.target,
+                found.spot.closest('[data-card-actions-menu]'));
+        }
+        if (found && step.interactive) {
+            list.push(typeof step.interactive === 'string'
+                ? found.spot.closest(step.interactive)
+                    || document.querySelector(step.interactive)
+                : found.spot);
+        }
+        return list.filter(Boolean);
+    }
+
     function onKeydown(event) {
         if (!run || !nodes.popover) {
+            return;
+        }
+        var target = event.target;
+        if ((event.key === 'Enter' || event.key === ' ')
+            && target !== document.body && !isAllowedTarget(target)) {
+            event.preventDefault();
+            event.stopPropagation();
             return;
         }
         if (event.key === 'Escape') {
@@ -594,9 +775,13 @@
         }
 
         // A step that is redundant where we already are — "open an event"
-        // when the user is on one. Skipped in whichever direction we were
-        // travelling, so stepping back through it does not bounce.
-        if (step.skipIf && new RegExp(step.skipIf).test(currentPath())) {
+        // when the user is on one — or that only makes sense on a page the
+        // user did not reach, such as the record a list turned out not to
+        // have. Skipped in whichever direction we were travelling, so
+        // stepping back through it does not bounce.
+        var path = currentPath();
+        if ((step.skipIf && new RegExp(step.skipIf).test(path))
+            || (step.skipUnless && !new RegExp(step.skipUnless).test(path))) {
             if (run.dir === -1) {
                 if (!isFirstOfRun()) {
                     previous();
@@ -639,12 +824,28 @@
             return;
         }
 
+        // A step waiting for its dialog to close is over if the page was
+        // just reloaded under it: saving the form is what reloads it, and no
+        // hidden event survives that. Mid-page, the dialog may still be on
+        // its way in, so the step waits for it like for any anchor.
+        if (step.advance === 'modal' && freshPage && !isMainModalOpen()) {
+            if (run.dir === -1 && !isFirstOfRun()) {
+                previous();
+            } else {
+                next();
+            }
+            return;
+        }
+        freshPage = false;
+
         writeState();
         hideDock();
         ensureChrome();
         applyAccent(section);
         document.body.classList.add('onboarding-active');
         detachAnchorClick();
+        detachModalWait();
+        closeMenus();
 
         if (anchorWaitCancel) {
             anchorWaitCancel();
@@ -652,6 +853,8 @@
         }
 
         paintPopover(section, step);
+        zones = interactionZones(step, null);
+        attachModalWait(step);
 
         if (!step.anchor) {
             anchorEl = null;
@@ -666,13 +869,17 @@
         // corner for the duration.
         anchorEl = null;
         centreStep();
+        revealTabFor(step.anchor);
+        if (step.openMenu) {
+            openMenusFor(step.anchor);
+        }
 
-        waitForAnchor(step.anchor).then(function (node) {
+        waitForAnchor(step.anchor).then(function (found) {
             if (!run || currentStep() !== step) {
                 return;
             }
             anchorWaitCancel = null;
-            if (!node) {
+            if (!found) {
                 // The anchor never showed up. An optional step is skipped so
                 // the tour keeps moving; otherwise we still show the copy,
                 // just without a spotlight.
@@ -685,15 +892,16 @@
                 focusPopover();
                 return;
             }
-            anchorEl = node;
+            anchorEl = found.spot;
+            zones = interactionZones(step, found);
             if (step.scroll !== false) {
-                node.scrollIntoView({
+                anchorEl.scrollIntoView({
                     behavior: reduceMotion ? 'auto' : 'smooth',
                     block: 'center',
                     inline: 'nearest'
                 });
             }
-            attachAnchorClick(step, node);
+            attachAnchorClick(step, found.target);
             positionForAnchor();
             // Keep measuring until the box stops moving — the scroll above and
             // any modal still fading in both shift it after this point.
@@ -854,7 +1062,7 @@
 
         // A step that waits for the user's own click hides Next so the only
         // way forward is the real interaction the tutorial is teaching.
-        if (step.advance === 'click') {
+        if (step.advance === 'click' || step.advance === 'modal') {
             var nextBtn = nodes.popover.querySelector('.onboarding-next');
             if (nextBtn) {
                 nextBtn.classList.add('is-waiting');
@@ -888,27 +1096,71 @@
         if (step.advance !== 'click') {
             return;
         }
-        anchorClickHandler = function () {
+        anchorClickHandler = function (event) {
             // Advance before the browser acts on the click: if the anchor is
             // a link or a submit button the page is about to unload, and the
             // state we just wrote is what resumes the tour on the next page.
             advanceIndex();
             writeState();
             window.setTimeout(function () {
-                if (run) {
+                // A followed link renders the next step on the page it opens;
+                // rendering it here would judge it against the old page.
+                if (run && !followsLink(event)) {
                     renderStep();
                 }
             }, 0);
         };
         node.addEventListener('click', anchorClickHandler, { once: true });
-        anchorEl = node;
+        clickTarget = node;
+    }
+
+    /** Checked after dispatch, once every handler has had its say. */
+    function followsLink(event) {
+        var link = event.target && event.target.closest
+            ? event.target.closest('a[href]')
+            : null;
+        if (!link || event.defaultPrevented || link.target === '_blank') {
+            return false;
+        }
+        var href = link.getAttribute('href');
+        return href.charAt(0) !== '#' && href.indexOf('javascript:') !== 0;
     }
 
     function detachAnchorClick() {
-        if (anchorEl && anchorClickHandler) {
-            anchorEl.removeEventListener('click', anchorClickHandler);
+        if (clickTarget && anchorClickHandler) {
+            clickTarget.removeEventListener('click', anchorClickHandler);
         }
+        clickTarget = null;
         anchorClickHandler = null;
+    }
+
+    /**
+     * `advance: 'modal'` — the step lasts as long as the shared dialog is
+     * open, so the user can finish the form (or discard it) at their pace.
+     */
+    function attachModalWait(step) {
+        var host = document.getElementById('mainModal');
+        if (step.advance !== 'modal' || !host) {
+            return;
+        }
+        modalWaitHandler = function () {
+            detachModalWait();
+            if (run && currentStep() === step) {
+                run.dir = 1;
+                advanceIndex();
+                writeState();
+                renderStep();
+            }
+        };
+        host.addEventListener('hidden.bs.modal', modalWaitHandler);
+    }
+
+    function detachModalWait() {
+        var host = document.getElementById('mainModal');
+        if (host && modalWaitHandler) {
+            host.removeEventListener('hidden.bs.modal', modalWaitHandler);
+        }
+        modalWaitHandler = null;
     }
 
     /* ----------------------------------------------------------------- */
@@ -1054,6 +1306,11 @@
      * actually started, in which case `then` runs once it has finished and
      * the caller should bail out of the current render.
      */
+    function isMainModalOpen() {
+        var host = document.getElementById('mainModal');
+        return !!(host && host.classList.contains('show'));
+    }
+
     function closeMainModal(then) {
         var host = document.getElementById('mainModal');
         if (!host || !window.bootstrap || !host.classList.contains('show')) {
@@ -1084,6 +1341,9 @@
     function hideChromeOnly() {
         stopTracking();
         detachAnchorClick();
+        detachModalWait();
+        closeMenus();
+        zones = [];
         ['overlay', 'popover'].forEach(function (key) {
             if (nodes[key] && nodes[key].parentNode) {
                 nodes[key].parentNode.removeChild(nodes[key]);
@@ -1106,7 +1366,7 @@
         loadCatalogue().then(function (data) {
             var ids = sectionIds && sectionIds.length
                 ? sectionIds
-                : data.sections.map(function (s) { return s.id; });
+                : fullTour(data.sections).map(function (s) { return s.id; });
             ids = ids.filter(function (id) {
                 var section = findSection(id);
                 return section && section.steps && section.steps.length;
@@ -1132,6 +1392,13 @@
                 }
             }
             markSeen();
+            // Whatever page the run was started from, it sets off from the
+            // event index, so no section depends on where the user stood.
+            if (currentPath() !== START_PAGE) {
+                writeState();
+                window.location.assign(base() + START_PAGE);
+                return;
+            }
             renderStep();
         }).catch(function () {
             /* Catalogue unreachable — stay silent rather than break the page. */
@@ -1231,6 +1498,17 @@
                 var accent = String(section.colour || 'primary')
                     .replace(/[^a-z0-9-]/gi, '');
 
+                var onDemand = section.onDemand
+                    ? '<span class="badge rounded-pill border bg-body-tertiary '
+                        + 'text-body-secondary fw-semibold ms-2 align-middle" '
+                        + 'title="' + escapeHtml(i18n('onDemandHint')) + '">'
+                        + escapeHtml(i18n('onDemand')) + '</span>'
+                    : '';
+                var onDemandHint = section.onDemand
+                    ? '<p class="small text-body-secondary mb-2">'
+                        + escapeHtml(i18n('onDemandHint')) + '</p>'
+                    : '';
+
                 return ''
                     + '<section class="onboarding-acc-item onb-accent-'
                     + accent + (open ? ' is-open' : '') + '">'
@@ -1242,7 +1520,7 @@
                     + '"></i></span>'
                     + '<span class="onboarding-acc-text">'
                     + '<span class="onboarding-acc-title">'
-                    + escapeHtml(section.title) + '</span>'
+                    + escapeHtml(section.title) + onDemand + '</span>'
                     + '<span class="onboarding-acc-summary">'
                     + escapeHtml(section.summary || '') + '</span>'
                     + '</span>'
@@ -1253,6 +1531,7 @@
                     + '<div class="onboarding-acc-body" id="'
                     + escapeHtml(bodyId) + '">'
                     + '<div class="onboarding-acc-inner">'
+                    + onDemandHint
                     + '<button type="button" class="onboarding-run-section" '
                     + 'data-section="' + escapeHtml(section.id) + '">'
                     + '<i class="fas fa-play"></i>'
@@ -1264,7 +1543,9 @@
                     + '</section>';
             }).join('');
 
-            var totalSteps = data.sections.reduce(function (n, s) {
+            // The footer describes what "Start the full tour" will play.
+            var tourSections = fullTour(data.sections);
+            var totalSteps = tourSections.reduce(function (n, s) {
                 return n + (s.steps ? s.steps.length : 0);
             }, 0);
 
@@ -1292,7 +1573,7 @@
                 + '<div class="onboarding-acc">' + cards + '</div>'
                 + '<div class="onboarding-launcher-foot">'
                 + '<div class="onboarding-launcher-meta">'
-                + escapeHtml(i18n('sectionCount', data.sections.length))
+                + escapeHtml(i18n('sectionCount', tourSections.length))
                 + ' &middot; ' + escapeHtml(i18n('stepCount', totalSteps))
                 + '</div>'
                 + '<div class="d-flex gap-2">'
@@ -1417,6 +1698,7 @@
         if (saved && saved.sections && saved.sections.length) {
             loadCatalogue().then(function () {
                 run = saved;
+                freshPage = true;
                 renderStep();
             }).catch(function () { /* keep the page usable */ });
             return;

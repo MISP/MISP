@@ -219,7 +219,9 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'UserSetting',
+        'UserSetting' => array(
+            'dependent' => true
+        ),
         'UserLoginProfile'
         // 'AuthKey' - readd once the initial update storm is over
     );
@@ -280,8 +282,9 @@ class User extends AppModel
 
         // bind AuthKey just when authkey table already exists. This is important for updating from old versions
         if (in_array('auth_keys', $this->getDataSource()->listSources(), true)) {
+            // dependent: a deleted user's keys would otherwise pass to a user given its id again
             $this->bindModel([
-                'hasMany' => ['AuthKey']
+                'hasMany' => ['AuthKey' => ['dependent' => true]]
             ], false);
         }
     }
@@ -1496,11 +1499,7 @@ class User extends AppModel
         $sparklineData = array();
         foreach ($events as $event) {
             $date = date("Y-m-d", $event['Event']['timestamp']);
-            if (!isset($sparklineData[$event['Event']['attribute_count']][$date])) {
-                $sparklineData[$date] = $event['Event']['attribute_count'];
-            } else {
-                $sparklineData[$date] += $event['Event']['attribute_count'];
-            }
+            $sparklineData[$date] = ($sparklineData[$date] ?? 0) + (int)$event['Event']['attribute_count'];
         }
 
         // get first and last timestamp
@@ -2209,13 +2208,7 @@ class User extends AppModel
         }
 
         list($cutoff, $allcutoff) = $redis->mGet(['misp:session_destroy:' . $id, 'misp:session_destroy:all']);
-        if (
-            empty($cutoff) ||
-            (
-                !empty($allcutoff) &&
-                $allcutoff < $cutoff
-            )
-        ) {
+        if (empty($cutoff) || (!empty($allcutoff) && $allcutoff > $cutoff)) {
             $cutoff = $allcutoff;
         }
         if ($cutoff && $sessionCreationTimestamp < $cutoff) {
@@ -2270,9 +2263,16 @@ class User extends AppModel
         if (empty($user)) {
             return false;
         }
+        $baseurl = Configure::read('MISP.external_baseurl');
+        if (empty($baseurl) && !Configure::read('BaseurlFromRequest')) {
+            $baseurl = Configure::read('MISP.baseurl');
+        }
+        if (empty($baseurl)) {
+            $this->log('Password reset needs MISP.baseurl or MISP.external_baseurl to be set, no reset mail was sent.', LOG_ERR);
+            return false;
+        }
         $token = RandomTool::random_str(true, 40);
         RedisTool::init()->set('misp:forgot:' . $token, $user['User']['id'], ['nx', 'ex' => 600]);
-        $baseurl = Configure::check('MISP.external_baseurl') ? Configure::read('MISP.external_baseurl') : Configure::read('MISP.baseurl');
         $default_forgot_email = [];
         $default_forgot_email['enc'] = Configure::read('MISP.forgotPasswordText') ? 
             Configure::read('MISP.forgotPasswordText') :

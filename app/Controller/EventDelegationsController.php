@@ -59,6 +59,17 @@ class EventDelegationsController extends AppController
                 $this->EventDelegation->Event->Org,
                 isset($submitted['org_id']) ? $submitted['org_id'] : null
             );
+            $sharingGroupId = '0';
+            if ($distribution == 4 && !empty($submitted['sharing_group_id'])) {
+                $sharingGroupId = (string)$submitted['sharing_group_id'];
+                // The delegation view shows the stored group's name to the requester.
+                if (
+                    !ctype_digit($sharingGroupId) ||
+                    !$this->EventDelegation->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $sharingGroupId)
+                ) {
+                    throw new NotFoundException(__('Invalid sharing group.'));
+                }
+            }
             // Build the row from an allow-list instead of saving what was submitted. The checks
             // above authorise only the event named in the URL, so any caller-supplied primary key
             // or event_id that reaches the save retargets it at another organisation's delegation
@@ -70,9 +81,7 @@ class EventDelegationsController extends AppController
                 'org_id' => $org_id,
                 'message' => isset($submitted['message']) ? $submitted['message'] : '',
                 'distribution' => $distribution,
-                'sharing_group_id' => ($distribution == 4 && !empty($submitted['sharing_group_id']))
-                    ? $submitted['sharing_group_id']
-                    : '0',
+                'sharing_group_id' => $sharingGroupId,
             );
             $this->EventDelegation->create();
             $result = $this->EventDelegation->save(array('EventDelegation' => $delegation));
@@ -289,7 +298,7 @@ class EventDelegationsController extends AppController
         } else {
             $this->set('context', $context);
             $this->set('delegation_requests', $delegation_requests);
-            $this->set('passedArgs', json_encode($this->passedArgs, true));
+            $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
         }
     }
 }

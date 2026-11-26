@@ -250,6 +250,9 @@ class BackgroundJobsTool
         $this->validateQueue($queue);
         $this->validateCommand($command);
 
+        if ($jobId) {
+            $metadata['job_id'] = $jobId;
+        }
         $backgroundJob = new BackgroundJob(
             [
                 'id' => CakeText::uuid(),
@@ -395,8 +398,10 @@ class BackgroundJobsTool
 
         if ($rawJob instanceof BackgroundJob) {
             return $rawJob;
-        } else if ($rawJob) {
+        } else if (is_array($rawJob)) {
             return new BackgroundJob($rawJob);
+        } else if ($rawJob) {
+            CakeLog::warning("Could not decode status of background job $jobId from Redis, ignoring it.");
         }
 
         return null;

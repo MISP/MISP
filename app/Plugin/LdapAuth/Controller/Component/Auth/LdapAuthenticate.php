@@ -53,6 +53,7 @@ class LdapAuthenticate extends BaseAuthenticate
             'ldapRoleField' => Configure::read('LdapAuth.ldapRoleField') ?? null,
             'ldapRoleGroupMapping' => Configure::read('LdapAuth.ldapRoleGroupMapping') ?? null,
             'updateUser' => Configure::read('LdapAuth.updateUser') ?? true,
+            'unblock' => Configure::read('LdapAuth.unblock') ?? false,
             'debug' => Configure::read('LdapAuth.debug') ?? false,
             'ldapTlsRequireCert' => Configure::read('LdapAuth.ldapTlsRequireCert') ?? LDAP_OPT_X_TLS_DEMAND,
             'ldapTlsCustomCaCert' => Configure::read('LdapAuth.ldapTlsCustomCaCert') ?? false,
@@ -879,10 +880,17 @@ class LdapAuthenticate extends BaseAuthenticate
             $user['email'] = $mispUsername;
             $user['org_id'] = $orgId;
             $user['role_id'] = $roleId;
-            # Reenable user in case it has been disabled
-            $user['disabled'] = 0;
+            $disabled = !empty($user['disabled']);
+            if ($disabled && self::$conf['unblock']) {
+                $user['disabled'] = 0;
+            }
 
             $userModel->save($user, false);
+
+            if ($disabled && !self::$conf['unblock']) {
+                CakeLog::error("[LdapAuth] User is disabled in MISP, refusing login.");
+                throw new UnauthorizedException(__('User could not be authenticated by LDAP.'));
+            }
         }
 
         return $this->_findUser(

@@ -11,9 +11,14 @@ $eventId = (int)reset($selectedAttributes)['event_id'];
 $idsJson = json_encode(array_map('intval', array_keys($selectedAttributes)));
 $defaultRelationship = isset($relationships['related-to']) ? 'related-to' : key($relationships);
 
+// Several objects can share a name, so the uuid is part of what the select
+// shows and of what its search matches.
 $objectPreview = [];
+$sourceOptions = [];
 foreach ($eventObjects as $uuid => $object) {
+    $sourceOptions[$uuid] = sprintf('[%s] %s · %s', $object['id'], $object['name'], $uuid);
     $objectPreview[$uuid] = [
+        'id' => (int)$object['id'],
         'name' => $object['name'],
         'meta' => $object['meta-category'] ?? '',
         'attributes' => array_map(function ($attribute) {
@@ -58,10 +63,14 @@ echo $this->Form->create('ObjectReference', [
                     'required' => true,
                     'for' => 'objRefBulkSource',
                 ]) ?>
-                <?= $this->Form->select('ObjectReference.source_uuid', $validSourceUuid, [
+                <?php // Its own TomSelect below, not the generic `.tom-select` one: two-line options. ?>
+                <?= $this->Form->select('ObjectReference.source_uuid', $sourceOptions, [
                     'id' => 'objRefBulkSource',
-                    'class' => 'form-select tom-select',
+                    'class' => 'form-select',
                     'empty' => false,
+                ]) ?>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('Search by name, id or uuid.'),
                 ]) ?>
                 <div class="border rounded mt-2 p-2 small bg-body-tertiary"
                      id="objRefBulkPreview" style="max-height: 12rem; overflow-y: auto;"></div>
@@ -180,6 +189,44 @@ echo $this->Form->create('ObjectReference', [
         var isCustom = type.value === 'custom';
         custom.classList.toggle('d-none', !isCustom);
         if (isCustom) { custom.focus(); }
+    }
+
+    function escapeText(text) {
+        var node = document.createElement('span');
+        node.textContent = text == null ? '' : String(text);
+        return node.innerHTML;
+    }
+
+    if (typeof TomSelect !== 'undefined' && !source.tomselect) {
+        new TomSelect(source, {
+            create: false,
+            maxOptions: null,
+            placeholder: <?= json_encode(__('Search by name, id or uuid…')) ?>,
+            render: {
+                option: function (data) {
+                    var object = objects[data.value];
+                    if (!object) { return '<div>' + escapeText(data.text) + '</div>'; }
+                    var first = object.attributes.length ? object.attributes[0].value : '';
+                    return '<div class="py-1">'
+                        + '<div class="d-flex align-items-center gap-2">'
+                        + '<span class="fw-semibold">' + escapeText(object.name) + '</span>'
+                        + (object.meta ? '<span class="badge text-bg-light border fw-normal">' + escapeText(object.meta) + '</span>' : '')
+                        + '<span class="text-muted small ms-auto">#' + escapeText(object.id) + '</span>'
+                        + '</div>'
+                        + '<div class="font-monospace small text-muted text-truncate">' + escapeText(data.value) + '</div>'
+                        + (first !== '' ? '<div class="small text-muted text-truncate">' + escapeText(first) + '</div>' : '')
+                        + '</div>';
+                },
+                item: function (data) {
+                    var object = objects[data.value];
+                    if (!object) { return '<div>' + escapeText(data.text) + '</div>'; }
+                    return '<div class="d-flex align-items-center gap-2 text-truncate">'
+                        + '<span class="fw-semibold">' + escapeText(object.name) + '</span>'
+                        + '<span class="font-monospace small text-muted">' + escapeText(data.value) + '</span>'
+                        + '</div>';
+                }
+            }
+        });
     }
 
     source.addEventListener('change', renderPreview);

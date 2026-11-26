@@ -16,9 +16,9 @@ $isFavourite = !empty($tag['favourite']);
 $relationship = !empty($relationship) ? trim((string)$relationship) . ' :' : '';
 
 // Not every association fetches the colour (tag collections, for one).
-$colour = !empty($tag['colour']) ? $tag['colour'] : '#0088cc';
+$colour = $this->TextColour->validColour($tag['colour'] ?? '', '#0088cc');
 
-$bgColor = 'background-color:' . h($colour);
+$bgColor = 'background-color:' . $colour;
 $textColor = $this->TextColour->getTextColour($colour);
 $shadow = 'filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5))';
 $metallicEffect = "background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%)";

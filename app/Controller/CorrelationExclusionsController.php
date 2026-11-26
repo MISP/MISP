@@ -75,7 +75,7 @@ class CorrelationExclusionsController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
-        if($this->theme === "Overmind"){
+        if ($this->theme === "Overmind" && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->set(compact('dropdownData'));

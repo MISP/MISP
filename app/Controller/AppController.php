@@ -35,7 +35,10 @@ class AppController extends Controller
      */
     public $defaultModel = '';
 
-    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
+    public $helpers = array(
+        'OrgImg', 'FontAwesome', 'UserName', 'Navbar',
+        'Form' => array('className' => 'MispForm'),
+    );
 
     /**
      * Width of the window Security.pre_auth_flood_filter_threshold is counted
@@ -43,8 +46,8 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '234';
-    public $pyMispVersion = '2.5.34.2';
+    private $__queryVersion = '241';
+    public $pyMispVersion = '3.0.0';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -119,7 +122,6 @@ class AppController extends Controller
         'Deprecation',
         'RestSearch',
         'CRUD'
-        //,'DebugKit.Toolbar'
     );
 
     public function beforeFilter()
@@ -426,6 +428,7 @@ class AppController extends Controller
             if (isset($user['Role']['max_execution_time']) && $user['Role']['max_execution_time'] !== '') {
                 ini_set('max_execution_time', $user['Role']['max_execution_time']);
             }
+            $this->CompressedRequestHandler->decodeRequest($this);
 
             $this->set('mispVersion', "{$versionArray['major']}.{$versionArray['minor']}.0");
             $this->set('mispVersionFull', $this->mispVersion);
@@ -451,6 +454,7 @@ class AppController extends Controller
             $this->__accessMonitor($user);
 
         } else {
+            $this->CompressedRequestHandler->rejectEncodedRequest($this);
             $this->__preAuthFloodFilter();
             $preAuthActions = array('login', 'register', 'getGpgPublicKey', 'logout401', 'otp');
             if (!empty(Configure::read('Security.email_otp_enabled'))) {
@@ -1355,6 +1359,9 @@ class AppController extends Controller
         if (is_string($raw)) {
             $raw = ctype_digit($raw) ? [$raw] : json_decode($raw, true);
         }
+        if (is_int($raw)) {
+            $raw = [$raw];
+        }
         if (!is_array($raw)) {
             return [];
         }
@@ -1563,6 +1570,25 @@ class AppController extends Controller
         return $user;
     }
 
+    /**
+     * Masked like an API key: the header defaults to Authorization, so it
+     * usually carries the caller's MISP API key.
+     *
+     * @param string $externalKey
+     * @return string
+     */
+    private function __externalKeyForLog($externalKey)
+    {
+        $externalKey = trim($externalKey);
+        if (!empty(Configure::read('Security.allow_unsafe_cleartext_apikey_logging'))) {
+            return $externalKey;
+        }
+        if (strlen($externalKey) < 32) {
+            return str_repeat('*', 32);
+        }
+        return substr($externalKey, 0, 4) . str_repeat('*', 32) . substr($externalKey, -4);
+    }
+
     private function __preAuthException($message)
     {
         $this->set('me', array());
@@ -1598,7 +1624,7 @@ class AppController extends Controller
                         'auth_fail',
                         'User',
                         0,
-                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->User->_remoteIp(),
+                        'Failed authentication using external key (' . $this->__externalKeyForLog($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->User->_remoteIp(),
                         null);
                     $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                 }
@@ -1640,7 +1666,7 @@ class AppController extends Controller
                         'auth_fail',
                         'User',
                         0,
-                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
+                        'Failed authentication using external key (' . $this->__externalKeyForLog($server[$headerNamespace . $header]) . ')',
                         json_encode($change));
                     if (Configure::read('CustomAuth_required')) {
                         $this->Session->destroy();

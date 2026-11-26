@@ -234,6 +234,10 @@ class Event extends AppModel
                 'rule' => array('valueNotEmpty'),
                 'required' => true
             ),
+            'maxBytes' => array(
+                'rule' => array('maxBytes', 65535),
+                'message' => 'Event info cannot be longer than 65535 bytes.',
+            ),
         ),
         'user_id' => array(
             'numeric' => array(
@@ -974,6 +978,9 @@ class Event extends AppModel
     {
         $this->Server = ClassRegistry::init('Server');
 
+        if (empty($event['Event']['published'])) {
+            return 'The event is not published, which blocks it from being pushed.';
+        }
         if (empty($this->Server->eventFilterPushableServers($event, [$server]))) {
             return 'The server rules blocks it from being pushed.';
         }
@@ -1543,28 +1550,29 @@ class Event extends AppModel
         $attributeParams = array('value1', 'value2', 'comment');
         foreach ($attributeParams as $attributeParam) {
             $subQueryOptions = array(
-                'conditions' => array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']),
+                'conditions' => $this->visibleElementConditions(
+                    $options['user'],
+                    'Attribute',
+                    array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard'])
+                ),
                 'fields' => array('event_id')
             );
             $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
         }
-        $tagScopes = array('Event', 'Attribute');
-        $this->AttributeTag = ClassRegistry::init('AttributeTag');
-        $tagIds = $this->AttributeTag->Tag->find('column', array(
+        $tagIds = $this->EventTag->Tag->find('column', array(
             'recursive' => -1,
             'conditions' => array('Tag.name LIKE' => $params['wildcard']),
             'fields' => array('Tag.id')
         ));
         if (!empty($tagIds)) {
-            foreach ($tagScopes as $tagScope) {
-                $subQueryOptions = array(
-                    'conditions' => array(
-                        'tag_id' => $tagIds,
-                    ),
-                    'fields' => array('event_id')
-                );
-                $tempConditions[] = $this->subQueryGenerator($this->{$tagScope . 'Tag'}, $subQueryOptions, 'Event.id');
-            }
+            $subQueryOptions = array(
+                'conditions' => array(
+                    'tag_id' => $tagIds,
+                ),
+                'fields' => array('event_id')
+            );
+            $tempConditions[] = $this->subQueryGenerator($this->EventTag, $subQueryOptions, 'Event.id');
+            $tempConditions[] = $this->visibleAttributeTagSubquery($options['user'], $tagIds);
         }
         return $tempConditions;
     }
@@ -1616,7 +1624,8 @@ class Event extends AppModel
                 'filter' => 'wildcard',
                 'scope' => 'Event',
                 'pop' => false,
-                'context' => 'Event'
+                'context' => 'Event',
+                'user' => $user
             );
             $conditions['AND'][] = array('OR' => $this->set_filter_wildcard($params, $temp, $options));
         } else {
@@ -1651,7 +1660,6 @@ class Event extends AppModel
                     'object_template_version' => array('function' => 'set_filter_object_template_version')
                 ),
                 'Attribute' => array(
-                    'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
@@ -1670,7 +1678,8 @@ class Event extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Event'
+                            'context' => 'Event',
+                            'user' => $user
                         );
                         if (!empty($simple_param_scoped[$param]['skip_neg'])) {
                             $options['skip_neg'] = true;
@@ -1682,22 +1691,28 @@ class Event extends AppModel
                             $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $options);
                             if (!empty($temp)) {
                                 $subQueryOptions = array(
-                                    'conditions' => $temp,
+                                    'conditions' => $this->visibleElementConditions($user, $this->{$scope}->alias, $temp),
                                     'fields' => array(
                                         'event_id'
                                     )
                                 );
-                                $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
-                                if ($param === 'value') {
-                                    $subQuery[0] = explode('WHERE', $subQuery[0]);
-                                    //$subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                                    $subQuery[0] = implode('WHERE', $subQuery[0]);
-                                }
-                                $conditions['AND'][] = $subQuery;
+                                $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
                             }
                         }
                     }
                 }
+            }
+            if (isset($params['value']) && $params['value'] !== false) {
+                // It reads the attributes in a subquery of its own, which a
+                // second one around it would run per event
+                $options = array(
+                    'filter' => 'value',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event',
+                    'user' => $user
+                );
+                $conditions = $this->set_filter_value($params, $conditions, $options);
             }
         }
         $find_params = array(
@@ -1924,6 +1939,64 @@ class Event extends AppModel
     }
 
     /**
+     * What in an event is shared more narrowly than the event itself: the
+     * standalone attributes and the objects whose distribution is one of
+     * DistributionLevel::narrowerThan() the event's, per level, among the rows
+     * $user can see.
+     *
+     * @param array $user
+     * @param array $event ['Event' => id, distribution]
+     * @return array ['Attribute' => [level => count], 'Object' => [...]]
+     */
+    public function distributionOutliers(array $user, array $event)
+    {
+        App::uses('DistributionLevel', 'Tools');
+        $narrower = DistributionLevel::narrowerThan($event['Event']['distribution']);
+        if (empty($narrower)) {
+            return ['Attribute' => [], 'Object' => []];
+        }
+        $eventId = (int)$event['Event']['id'];
+        $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
+        $sgids = $isSiteAdmin ? [] : $this->SharingGroup->authorizedIds($user);
+        $result = [];
+        foreach (['Attribute' => $this->Attribute, 'Object' => $this->Object] as $alias => $model) {
+            $conditions = [
+                $alias . '.event_id' => $eventId,
+                $alias . '.deleted' => 0,
+                $alias . '.distribution' => $narrower,
+            ];
+            if ($alias === 'Attribute') {
+                $conditions['Attribute.object_id'] = 0;
+            }
+            if (!$isSiteAdmin) {
+                $conditions['AND'][0]['OR'] = [
+                    ['AND' => [
+                        $alias . '.distribution >' => 0,
+                        $alias . '.distribution !=' => 4,
+                    ]],
+                    ['AND' => [
+                        $alias . '.distribution' => 4,
+                        $alias . '.sharing_group_id' => $sgids,
+                    ]],
+                    $this->eventOwnerSubquery($alias) . ' = ' . (int)$user['org_id'],
+                ];
+            }
+            $rows = $model->find('all', [
+                'conditions' => $conditions,
+                'fields' => [$alias . '.distribution', 'COUNT(*) AS count'],
+                'group' => [$alias . '.distribution'],
+                'recursive' => -1,
+            ]);
+            $result[$alias] = [];
+            foreach ($rows as $row) {
+                $result[$alias][(int)$row[$alias]['distribution']] = (int)$row[0]['count'];
+            }
+            ksort($result[$alias]);
+        }
+        return $result;
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -2025,6 +2098,9 @@ class Event extends AppModel
         if (isset($options['toIDS']) && $options['toIDS'] != 0) {
             $conditions['Attribute.to_ids'] =
                 $options['toIDS'] == 2 ? 0 : 1;
+        }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Attribute.distribution'] = (int)$options['distribution'];
         }
         if (!empty($options['searchFor'])) {
             // Same reach as the classic event view's filter: a value, a UUID
@@ -2359,11 +2435,13 @@ class Event extends AppModel
      * show no proposal at all, because that attribute is filtered out of it.
      *
      * @param array $eventIds
-     * @param int|array $attrDeleted 0, 1 or [0, 1]
+     * @param array $attrDeleted condition on Attribute.deleted
      * @return array Object ids, empty when there is none
      */
-    public function objectIdsWithProposals(array $eventIds, $attrDeleted = 0)
-    {
+    public function objectIdsWithProposals(
+        array $eventIds,
+        array $attrDeleted = ['Attribute.deleted' => 0]
+    ) {
         $proposedIds = $this->proposedAttributeIds($eventIds);
         if (empty($proposedIds)) {
             return [];
@@ -2374,9 +2452,31 @@ class Event extends AppModel
                 'Attribute.event_id' => $eventIds,
                 'Attribute.id' => $proposedIds,
                 'Attribute.object_id !=' => 0,
-                'Attribute.deleted' => $attrDeleted,
+                $attrDeleted,
             ],
             'unique' => true,
+        ]);
+    }
+
+    /**
+     * The events of $eventIds whose soft-deleted rows $user may see: the ones
+     * its organisation owns, or all of them for a sync user, as fetchEvent().
+     *
+     * @param array $user
+     * @param array $eventIds
+     * @return array Event ids
+     */
+    public function eventIdsShowingDeleted(array $user, array $eventIds)
+    {
+        if ($user['Role']['perm_sync']) {
+            return $eventIds;
+        }
+        return $this->find('column', [
+            'fields' => ['Event.id'],
+            'conditions' => [
+                'Event.id' => $eventIds,
+                'Event.org_id' => $user['org_id'],
+            ],
         ]);
     }
 
@@ -2989,13 +3089,27 @@ class Event extends AppModel
         // The objects that survive are rendered whole ($attrDeleted), deleted
         // rows highlighted: a deleted object stripped of its live attributes,
         // or a live object down to its single deleted row, reads as data loss.
+        //
+        // Soft-deleted rows come only from the events whose deleted data the
+        // user may see (eventIdsShowingDeleted()).
         $deleted = (int)($options['deleted'] ?? 0);
-        $attrDeleted = $deleted === 0 ? 0 : [0, 1];
+        $deletedEventIds = $deleted === 0
+            ? [] : $this->eventIdsShowingDeleted($user, $eventIds);
+        $attrDeleted = $deleted === 0
+            ? ['Attribute.deleted' => 0]
+            : ['OR' => [
+                'Attribute.deleted' => 0,
+                'Attribute.event_id' => $deletedEventIds ?: [-1],
+            ]];
         if ($deleted === 1) {
-            $conditions['Object.deleted'] = [0, 1];
+            $conditions[] = ['OR' => [
+                'Object.deleted' => 0,
+                'Object.event_id' => $deletedEventIds ?: [-1],
+            ]];
         } elseif ($deleted === 2) {
-            $objectIdsWithDeletedAttrs =
-                $this->objectIdsWithDeletedAttributes($eventIds);
+            $conditions['Object.event_id'] = $deletedEventIds ?: [-1];
+            $objectIdsWithDeletedAttrs = empty($deletedEventIds)
+                ? [] : $this->objectIdsWithDeletedAttributes($deletedEventIds);
             $conditions[] = ['OR' => [
                 'Object.deleted' => 1,
                 'Object.id' => empty($objectIdsWithDeletedAttrs)
@@ -3022,13 +3136,16 @@ class Event extends AppModel
             $conditions['Object.meta-category'] =
                 $options['meta-category'];
         }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Object.distribution'] = (int)$options['distribution'];
+        }
 
         $sgids = $this->SharingGroup->authorizedIds($user);
         // The attributes an object is judged on: the ones it shows.
         $attrScope = [
             'Attribute.event_id' => $eventIds,
             'Attribute.object_id !=' => 0,
-            'Attribute.deleted' => $attrDeleted,
+            $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attrScope[] = ['OR' => [
@@ -3154,7 +3271,7 @@ class Event extends AppModel
         $attrConditions = [
             'Attribute.event_id' => $eventIds,
             'Attribute.object_id' => $objectIds,
-            'Attribute.deleted' => $attrDeleted,
+            $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
@@ -3716,6 +3833,9 @@ class Event extends AppModel
         if (!empty($user['Role']['perm_site_admin'])) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if (!empty($user['Role']['perm_modify_org']) && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -3723,6 +3843,46 @@ class Event extends AppModel
             return true;
         }
         return false;
+    }
+
+    /**
+     * A sync user that is neither a site admin nor an internal sync user may
+     * change a protected event only through events/edit with a valid
+     * signature: every other write path refuses it.
+     *
+     * @param array $user
+     * @param array $event with an Event key; `protected` is looked up when missing
+     * @return bool
+     */
+    public function isProtectedFromSyncUser(array $user, array $event)
+    {
+        if (
+            empty($user['Role']['perm_sync']) ||
+            !empty($user['Role']['perm_site_admin']) ||
+            !empty($user['Role']['perm_sync_internal'])
+        ) {
+            return false;
+        }
+        // Many callers load the event with a short field list.
+        if (array_key_exists('protected', $event['Event'])) {
+            return (bool)$event['Event']['protected'];
+        }
+        if (empty($event['Event']['id'])) {
+            return true;
+        }
+        return $this->hasAny(['Event.id' => $event['Event']['id'], 'Event.protected' => 1]);
+    }
+
+    /**
+     * @param array $user
+     * @param array $event with an Event key
+     * @throws ForbiddenException
+     */
+    public function assertNotProtectedFromSyncUser(array $user, array $event)
+    {
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            throw new ForbiddenException(__('This event is protected: a sync user may change it only through events/edit with a valid signature.'));
+        }
     }
 
     /**
@@ -5799,7 +5959,11 @@ class Event extends AppModel
                 $params['uuid'] = $this->convert_filters($params['uuid']);
                 if (!empty($params['uuid']['OR'])) {
                     $subQueryOptions = array(
-                        'conditions' => array('Attribute.uuid' => $params['uuid']['OR']),
+                        'conditions' => $this->visibleElementConditions(
+                            $options['user'],
+                            'Attribute',
+                            array('Attribute.uuid' => $params['uuid']['OR'])
+                        ),
                         'fields' => array('event_id')
                     );
                     $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -5812,7 +5976,11 @@ class Event extends AppModel
                 }
                 if (!empty($params['uuid']['NOT'])) {
                     $subQueryOptions = array(
-                        'conditions' => array('Attribute.uuid' => $params['uuid']['NOT']),
+                        'conditions' => $this->visibleElementConditions(
+                            $options['user'],
+                            'Attribute',
+                            array('Attribute.uuid' => $params['uuid']['NOT'])
+                        ),
                         'fields' => array('event_id')
                     );
                     $attributeSubquery = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -6125,12 +6293,12 @@ class Event extends AppModel
                 $sub_filter = ['OR' => $values];
                 $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                 $subquery_options = [
-                  'conditions' => [
+                  'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', [
                     'OR' => [
                       ...$subconditions_value1['AND'],
                       ...$subconditions_value2['AND'],
                     ],
-                  ],
+                  ]),
                   'fields' => [
                     $field,
                   ],
@@ -6157,12 +6325,12 @@ class Event extends AppModel
                     $sub_filter = ['OR' => $v];
                     $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                     $subquery_options = [
-                      'conditions' => [
+                      'conditions' => $this->visibleElementConditions($options['user'], 'Attribute', [
                         'OR' => [
                           ...$subconditions_value1['AND'],
                           ...$subconditions_value2['AND'],
                         ],
-                      ],
+                      ]),
                       'fields' => [
                         $field,
                       ],
@@ -6185,6 +6353,114 @@ class Event extends AppModel
         }
 
         return $conditions;
+    }
+
+    /**
+     * Narrows a subquery on attributes or objects to the elements the user can
+     * see, by the rules of MispAttribute::buildConditions(). The outer query
+     * has already checked that the event holding them is visible.
+     *
+     * @param array $user
+     * @param string $alias Attribute or Object
+     * @param array $conditions on the element
+     * @return array
+     */
+    public function visibleElementConditions(array $user, $alias, array $conditions)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return $conditions;
+        }
+        $sgIds = $this->SharingGroup->authorizedIds($user);
+        $rules = [$this->elementDistributionRules($alias, $sgIds)];
+        if ($alias === 'Attribute') {
+            $rules[] = ['OR' => [
+                'Attribute.object_id' => 0,
+                $this->subQueryGenerator($this->Object, [
+                    'fields' => ['Object.id'],
+                    'conditions' => $this->elementDistributionRules('Object', $sgIds),
+                ], 'Attribute.object_id'),
+            ]];
+        }
+        // fetchEvent() hands soft-deleted elements to sync users that ask
+        if (!$user['Role']['perm_sync']) {
+            $rules[] = [$alias . '.deleted' => 0];
+        }
+        $ownEvents = $this->subQueryGenerator($this, [
+            'alias' => 'OwnEvent',
+            'fields' => ['OwnEvent.id'],
+            'conditions' => ['OwnEvent.org_id' => $user['org_id']],
+        ], $alias . '.event_id');
+        return [$conditions, ['OR' => [$ownEvents, ['AND' => $rules]]]];
+    }
+
+    /**
+     * Events holding an attribute that the user can see and that carries one
+     * of the tags.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array
+     */
+    public function visibleAttributeTagSubquery(array $user, array $tagIds)
+    {
+        return $this->subQueryGenerator($this->Attribute->AttributeTag, [
+            'fields' => ['AttributeTag.event_id'],
+            'conditions' => $this->visibleAttributeTagConditions($user, $tagIds),
+        ], 'Event.id');
+    }
+
+    /**
+     * Ids of the events holding an attribute that the user can see and that
+     * carries one of the tags.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array
+     */
+    public function visibleAttributeTagEventIds(array $user, array $tagIds)
+    {
+        return $this->Attribute->AttributeTag->find('column', [
+            'fields' => ['AttributeTag.event_id'],
+            'conditions' => $this->visibleAttributeTagConditions($user, $tagIds),
+            'unique' => true,
+        ]);
+    }
+
+    /**
+     * @param array $user
+     * @param array $tagIds
+     * @return array conditions on AttributeTag
+     */
+    private function visibleAttributeTagConditions(array $user, array $tagIds)
+    {
+        $conditions = ['AttributeTag.tag_id' => $tagIds];
+        if (!$user['Role']['perm_site_admin']) {
+            // Driven by the tag rows, one primary key probe each: driven by the
+            // attributes, MariaDB walked every attribute of every visible event
+            $conditions[] = $this->subQueryGenerator($this->Attribute, [
+                'fields' => ['Attribute.id'],
+                'conditions' => $this->visibleElementConditions(
+                    $user, 'Attribute', ['Attribute.id = AttributeTag.attribute_id']
+                ),
+            ], 'AttributeTag.attribute_id');
+        }
+        return $conditions;
+    }
+
+    /**
+     * @param string $alias
+     * @param array $sgIds
+     * @return array
+     */
+    private function elementDistributionRules($alias, array $sgIds)
+    {
+        return ['OR' => [
+            $alias . '.distribution' => [1, 2, 3, 5],
+            'AND' => [
+                $alias . '.distribution' => 4,
+                $alias . '.sharing_group_id' => $sgIds,
+            ],
+        ]];
     }
 
     /**
@@ -6649,6 +6925,29 @@ class Event extends AppModel
     }
 
     /**
+     * Is the creator organisation that _add() will store the user's own? With $fromXml, __captureObjects()
+     * takes it from `Orgc`, else from `orgc`, and only otherwise keeps `orgc_id`.
+     * @param array $event
+     * @param array $user
+     * @param bool $fromXml
+     * @return bool
+     */
+    private function __isOwnCreatorOrg(array $event, array $user, $fromXml)
+    {
+        if ($fromXml && (isset($event['Orgc']) || isset($event['orgc']))) {
+            $org = $event['Orgc'] ?? $event['orgc'];
+            if (!is_array($org)) {
+                return $org === $user['Organisation']['name'];
+            }
+            if (empty($org['uuid'])) {
+                return ($org['name'] ?? null) === $user['Organisation']['name'];
+            }
+            return strtolower((string)$org['uuid']) === strtolower($user['Organisation']['uuid']);
+        }
+        return !isset($event['orgc_id']) || $event['orgc_id'] == $user['org_id'];
+    }
+
+    /**
      * When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
      * or which we need to update. All of that is controlled in this method.
      * @param array $event
@@ -6998,6 +7297,7 @@ class Event extends AppModel
      * @param int|null $jobId
      * @param int $created_id
      * @param array $validationErrors
+     * @param string|bool $fingerprint Of the key that verified a protected event's signature, or true when the caller trusts the input
      * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
      * @throws Exception
      */
@@ -7031,14 +7331,9 @@ class Event extends AppModel
             if (empty($fingerprint)) {
                 throw new MethodNotAllowedException(__('Cannot add a protected event via the API, without the input being signed properly.'));
             }
-            $found = false;
             // Does any of the event\'s keys match the fingerprint?
-            foreach ($data['Event']['CryptographicKey'] as $key) {
-                if ($key['fingerprint'] === $fingerprint) {
-                    $found = true;
-                }
-            }
-            if (!$found) {
+            $listed = array_column($data['Event']['CryptographicKey'], 'fingerprint');
+            if ($fingerprint !== true && !in_array($fingerprint, $listed, true)) {
                 throw new MethodNotAllowedException(__('Cannot add the protected event, whilst the input was signed, the signing key was not found in the event\'s approved list of fingerprints..'));
             }
         }
@@ -7056,14 +7351,9 @@ class Event extends AppModel
         // Moved out of if (!$fromXML), since we might get a restful event without the orgc/timestamp set
         if (!isset($data['Event']['orgc_id']) && !isset($data['Event']['orgc'])) {
             $data['Event']['orgc_id'] = $data['Event']['org_id'];
-        } else {
-            $orgc_id = $data['Event']['orgc_id'] ?? null;
-            $orgc_uuid = $data['Event']['Orgc']['uuid'] ?? null;
-            if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                if ($orgc_uuid != $user['Organisation']['uuid'] && $orgc_id != $user['org_id']) {
-                    throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
-                }
-            }
+        }
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin'] && !$this->__isOwnCreatorOrg($data['Event'], $user, $fromXml)) {
+            throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
         }
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
             if (!isset($data['Event']['Orgc']['uuid'])) {
@@ -7877,6 +8167,38 @@ class Event extends AppModel
         $this->Attribute->AttributeTag->create();
         $this->Attribute->AttributeTag->save($attribute_tag);
         return true;
+    }
+
+    /**
+     * The local event that data pulled from $server is for, if that server may hold it: we would push
+     * it there, it is shared with this community (which includes synchronising servers), or the
+     * server's organisation created it (a pull downgrades distribution, so the push check misses those).
+     *
+     * @param string $eventUuid
+     * @param array $server With RemoteOrg
+     * @param array $user
+     * @return array|false
+     */
+    public function syncedWithServer($eventUuid, array $server, array $user)
+    {
+        $event = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.uuid' => $eventUuid],
+            'fields' => ['Event.id', 'Event.uuid', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id'],
+        ]);
+        if (empty($event)) {
+            return false;
+        }
+        if ($event['Event']['orgc_id'] == $server['Server']['remote_org_id'] || $event['Event']['distribution'] == 1) {
+            return $event;
+        }
+        if ($event['Event']['distribution'] == 4) {
+            $event['SharingGroup'] = $this->SharingGroup->fetchSG($event['Event']['sharing_group_id'], $user);
+            if (empty($event['SharingGroup'])) {
+                return false;
+            }
+        }
+        return $this->checkDistributionForPush($event, $server) ? $event : false;
     }
 
     // pass an event or an attribute together with the server id.
@@ -9366,6 +9688,8 @@ class Event extends AppModel
                 }
                 $objects[] = $tmp_object;
             }
+            // Read in template order
+            $this->Object->sortAttributesByTemplate($objects);
             $event['Object'] = $objects;
         }
         if (!empty($result['results']['EventReport'])) {
@@ -9461,10 +9785,9 @@ class Event extends AppModel
             throw new NotFoundException('Invalid event.');
         }
         $modulePayload = array('module' => $module['name']);
-        if (isset($module['meta']['config'])) {
-            foreach ($module['meta']['config'] as $conf) {
-                $modulePayload['config'][$conf] = Configure::read('Plugin.Export_' . $module['name'] . '_' . $conf);
-            }
+        $config = $this->Module->getModuleConfig($module, 'Export', $user);
+        if (!empty($config)) {
+            $modulePayload['config'] = $config;
         }
         $standard_format = !empty($module['meta']['require_standard_format']);
         if ($standard_format) {
@@ -9616,12 +9939,6 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
-            if ($distribution == 4) {
-                // The legacy STIX 1 script takes no sharing group;
-                // set it here so _add() and _edit() both see it.
-                // The STIX 2 script already carries the same value.
-                $data['Event']['sharing_group_id'] = $sharingGroupId;
-            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -9644,7 +9961,11 @@ class Event extends AppModel
             }
             $existingEvent = $this->find('first', ['conditions' => ['Event.uuid' => $data['Event']['uuid']], 'recursive' => -1]);
             if (!empty($existingEvent)) {
-                if ($user['Role']['perm_modify_org'] && $existingEvent['Event']['orgc_id'] == $user['org_id']) {
+                if (
+                    $user['Role']['perm_modify_org'] &&
+                    $existingEvent['Event']['orgc_id'] == $user['org_id'] &&
+                    !$this->isProtectedFromSyncUser($user, $existingEvent)
+                ) {
                     $eventid = $existingEvent['Event']['id'];
                     $result = $this->_edit($data, $user, $eventid, null, null, true);
                     if ($result === true) {
@@ -9703,46 +10024,39 @@ class Event extends AppModel
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $outputPath = $file . '.out';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                '-i', $file,
-                '--distribution', $distribution,
-                '--org-uuid', $orgUuid
-            ];
-            if ($distribution == 4) {
-                array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
-            }
-            if ($forceContextualData) {
-                $shellCommand[] = '--force-contextual-data';
-            }
-            if ($galaxiesAsTags) {
-                $shellCommand[] = '--galaxies-as-tags';
-            } else {
-                array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
-                if ($clusterDistribution == 4) {
-                    array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
-                }
-            }
-            if ($debug) {
-                $shellCommand[] = '--debug';
-            }
             $stixVersion = "STIX 2.1";
         } else if ($stixVersion === '1' || $stixVersion === '1.1' || $stixVersion === '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $outputPath = $file . '.json';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                $file,
-                $distribution,
-                Configure::read('MISP.default_attribute_distribution'),
-                $this->__getTagNamesFromSynonyms($scriptDir)
-            ];
             $stixVersion = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
+        }
+        // Both importers are misp-stix wrappers taking the same arguments and
+        // writing the converted event next to their input
+        $outputPath = $file . '.out';
+        $shellCommand = [
+            ProcessTool::pythonBin(),
+            $scriptFile,
+            '-i', $file,
+            '--distribution', $distribution,
+            '--org-uuid', $orgUuid
+        ];
+        if ($distribution == 4) {
+            array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
+        }
+        if ($forceContextualData) {
+            $shellCommand[] = '--force-contextual-data';
+        }
+        if ($galaxiesAsTags) {
+            $shellCommand[] = '--galaxies-as-tags';
+        } else {
+            array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
+            if ($clusterDistribution == 4) {
+                array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
+            }
+        }
+        if ($debug) {
+            $shellCommand[] = '--debug';
         }
 
         try {
@@ -9779,58 +10093,6 @@ class Event extends AppModel
                 $data['Tag'][] = array('name' => $tag_name);
             }
         }
-    }
-
-    /**
-     * @param string $scriptDir
-     * @return string
-     * @throws Exception
-     */
-    private function __getTagNamesFromSynonyms($scriptDir)
-    {
-        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
-        if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
-            if (!isset($this->GalaxyCluster)) {
-                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            }
-            // The latest version of every cluster, by tag name. This used to
-            // be a GROUP BY tag_name that also selected value and id, which
-            // MySQL tolerates (and answers with an arbitrary row per group)
-            // and PostgreSQL rejects. Ascending by version and letting the
-            // later row overwrite the earlier one is the same question asked
-            // portably, and it is what the old query was assumed to answer.
-            $clusters = array();
-            $allClusters = $this->GalaxyCluster->find('all', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
-                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
-            ));
-            foreach ($allClusters as $cluster) {
-                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
-            }
-            unset($allClusters);
-            $clusters = array_values($clusters);
-            $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
-                'recursive' => -1,
-                'fields' => array('galaxy_cluster_id', 'value'),
-                'conditions' => array('key' => 'synonyms')
-            ));
-            $idToSynonyms = array();
-            foreach ($synonyms as $synonym) {
-                $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
-            }
-            $mapping = array();
-            foreach ($clusters as $cluster) {
-                $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
-                if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
-                    foreach ($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
-                        $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
-                    }
-                }
-            }
-            FileAccessTool::writeToFile($synonymsToTagNames, JsonTool::encode($mapping));
-        }
-        return $synonymsToTagNames;
     }
 
     public function enrichmentRouter($options)
@@ -9911,13 +10173,7 @@ class Event extends AppModel
             return true;
         }
         foreach ($enabledModules['modules'] as $k => $temp) {
-            if (isset($temp['meta']['config'])) {
-                $settings = array();
-                foreach ($temp['meta']['config'] as $conf) {
-                    $settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
-                }
-                $enabledModules['modules'][$k]['config'] = $settings;
-            }
+            $enabledModules['modules'][$k]['config'] = $this->Module->getModuleConfig($temp, 'Enrichment', $params['user']);
         }
 
         $attributes_added = 0;
@@ -9949,10 +10205,10 @@ class Event extends AppModel
                         $result = $this->Module->queryModuleServer($data, false, 'Enrichment', false, $triggerData);
                         if ($result === false) {
                             throw new MethodNotAllowedException(h($module['name']) . ' service not reachable.');
-                        } else if (!is_array($result)) {
-                            continue 2;
-                        } else if (!isset($result['results'])) {
-                            return 0;
+                        } else if (!is_array($result) || !isset($result['results'])) {
+                            // A module error (e.g. NXDOMAIN) only applies to
+                            // this lookup, not the remaining enrichment batch.
+                            continue;
                         }
                         //if (isset($result['error'])) $this->Session->setFlash($result['error']);
                         if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
@@ -11641,13 +11897,6 @@ class Event extends AppModel
         return $tags;
     }
 
-    public function recoverEvent($id)
-    {
-        $this->Log = ClassRegistry::init('Log');
-        $result = $this->Log->recoverDeletedEvent($id);
-        return $result;
-    }
-
     /**
      * @param array $event Event with assigned `EventTag`
      * @return string
@@ -11929,7 +12178,7 @@ class Event extends AppModel
                     if (empty($analystData['object_type'])) {
                         $analystData['object_type'] = $parentObjectType;
                     }
-                    if (empty($analystData['object_uuid'])) {
+                    if (empty($analystData['object_uuid']) && $analystData['object_type'] === $parentObjectType) {
                         $analystData['object_uuid'] = $parentObjectUUID;
                     }
                     $this->{$type}->captureAnalystData($user, $analystData);

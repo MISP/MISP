@@ -130,7 +130,9 @@ class CorrelationRule extends AppModel
                             $values[] = '(' . intval($eventId) . ',' . $ruleId . ')';
                         }
                     }
-                    $this->query('INSERT INTO tmp_excludes (event_id, rule_id) VALUES ' . implode(", ", $values) . ';');
+                    if (!empty($values)) {
+                        $this->query('INSERT INTO tmp_excludes (event_id, rule_id) VALUES ' . implode(", ", $values) . ';');
+                    }
                 }
                 $this->virtualTable = true;
             } else {

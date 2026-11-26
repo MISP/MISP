@@ -18,6 +18,7 @@ if ($this->Acl->canAccess('galaxies', 'add')) {
         'url' => "$baseurl/galaxy_clusters/add/$id",
         'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/add/$id');",
         'icon' => 'fas fa-circle-plus',
+        'tour' => 'action-add-cluster',
         'label' => __('Add Galaxy Cluster'),
     ];
 }

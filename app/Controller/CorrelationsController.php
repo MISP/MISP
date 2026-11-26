@@ -60,6 +60,7 @@ class CorrelationsController extends AppController
 
     public function generateTopCorrelations()
     {
+        $this->request->allowMethod(['post']);
         $result = $this->Correlation->generateTopCorrelationsRouter();
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($result, 'json');
@@ -211,6 +212,7 @@ class CorrelationsController extends AppController
 
     public function generateOccurrences()
     {
+        $this->request->allowMethod(['post']);
         $this->loadModel('OverCorrelatingValue');
         $this->OverCorrelatingValue->generateOccurrencesRouter();
         if (Configure::read('MISP.background_jobs')) {
@@ -231,6 +233,11 @@ class CorrelationsController extends AppController
             throw new ForbiddenException();
         }
         $this->loadModel('Event');
+        $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $eventId, ['fields' => ['Event.id']]);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        $eventId = (int)$event['Event']['id'];
         $sgids = $this->Event->SharingGroup->authorizedIds($this->Auth->user());
         $correlations = $this->Correlation->getAttributesRelatedToEvent($this->Auth->user(), $eventId, $sgids);
         $extended = filter_var($this->request->query('extended'), FILTER_VALIDATE_BOOLEAN);

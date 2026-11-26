@@ -82,6 +82,7 @@ $expanded = !empty($ctx['expand']);
             ]) ?>
 
             <div class="ms-auto d-flex align-items-center gap-1">
+                <?= $this->element('Objects/object_map_button', ['object' => $object]) ?>
                 <?php if ($objCanEdit): ?>
                     <a href="<?= $baseurl ?>/objects/edit/<?= $objId ?>"
                        class="btn btn-sm btn-outline-secondary py-0 px-2"

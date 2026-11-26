@@ -236,7 +236,7 @@
                                 $objectType = '';
                             }
                         }
-                        echo $objectType . ' <span class="ReferencedUUID">' . $referenced_uuid . '</span> (' . $name . ': ' . $category . ')</span><br>';
+                        echo $objectType . ' <span class="ReferencedUUID">' . h($referenced_uuid) . '</span> (' . h($name) . ': ' . h($category) . ')</span><br>';
                         unset($name);
                     }
                     echo '</div>';
