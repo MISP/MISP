@@ -5440,6 +5440,10 @@ class Server extends AppModel
                     'page' => $i,
                     'limit' => $chunk_size,
                 ];
+                $cacheFilterRules = $this->filterRuleToParameter($server['Server']['pull_rules']);
+                if (!empty($cacheFilterRules['timestamp'])) {
+                    $rules['timestamp'] = $cacheFilterRules['timestamp'];
+                }
                 try {
                     $data = $serverSync->attributeSearch($rules)->body();
                 } catch (Exception $e) {
