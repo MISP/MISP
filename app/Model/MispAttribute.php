@@ -4206,6 +4206,10 @@ class MispAttribute extends AppModel
         if ($paramsOnly) {
             return $params;
         }
+        if ($complexQuery !== null && $returnFormat === 'count') {
+            // A complex count covers all matches, independent of page and role limit.
+            unset($params['limit'], $params['page']);
+        }
         if (method_exists($exportTool, 'modify_params')) {
             $params = $exportTool->modify_params($user, $params);
         }
@@ -4268,7 +4272,7 @@ class MispAttribute extends AppModel
         if ($params['page'] > 1) {
             $params['offset'] = $offset;
         }
-        $requestedLimit = $params['limit'];
+        $requestedLimit = $loop ? null : $params['limit'];
         if ($maxLimit < $params['limit']) {
             $params['limit'] = $maxLimit;
             $loop = true;
@@ -4287,17 +4291,17 @@ class MispAttribute extends AppModel
         $useCursor = $loop && empty($params['order']);
         if ($useCursor) {
             $params['order'] = 'Attribute.id ASC';
-            unset($params['offset']);
         }
         $lastId = 0;
         $totalCount = 0;
         do {
-            if (($totalCount + $params['limit']) > $requestedLimit) {
+            if ($requestedLimit !== null && ($totalCount + $params['limit']) > $requestedLimit) {
                 $params['limit'] = $requestedLimit - $totalCount;
                 $loop = false;
             }
             if ($useCursor && $lastId > 0) {
                 $params['conditions']['Attribute.id >'] = $lastId;
+                unset($params['offset']);
             }
             $incrementTotalBy = $loop ? 0 : 1;
             $results = $this->fetchAttributes($user, $params, $elementCounter, false, $skippedElementsCounter);
@@ -4323,6 +4327,9 @@ class MispAttribute extends AppModel
                 if ($loop) {
                     break; // do not continue if we received fewer results than limit
                 }
+            }
+            if ($requestedLimit !== null && $totalCount >= $requestedLimit) {
+                break;
             }
             if (!$useCursor) {
                 $params['offset'] = (empty($params['offset']) ? 0 : $params['offset']) + $params['limit'];

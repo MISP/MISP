@@ -1886,6 +1886,31 @@ class TestComplexQueryAcl(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual({a["value"] for a in data["response"]["Attribute"]}, self.visible | self.hidden)
 
+    def test_paging_reports_a_role_cap_and_complex_count_is_uncapped(self):
+        role = self.admin_api("POST", "admin/roles/add", {"Role": {
+            "name": "MQA capped " + random(), "permission": "0", "perm_auth": 1,
+            "perm_complex_query": 1, "restsearch_limit_result": 1,
+        }})["Role"]
+        self.created["roles"].append(role["id"])
+        headers = {"Authorization": self.__make_user(role["id"]), "Accept": "application/json"}
+        body = {"query": {"event_id": {"IN": self.all_events}}, "limit": 3, "page": 2, "order": "id asc"}
+        response = requests.post(f"{url}/attributes/restSearch", json=body, headers=headers, verify=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("X-Result-Page-Limit"), "1")
+        self.assertEqual(len(response.json()["response"]["Attribute"]), 1)
+
+        response = requests.post(f"{url}/attributes/restSearch",
+                                 json={**body, "returnFormat": "cache", "limit": 10**9, "page": 1},
+                                 headers=headers, verify=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("X-Result-Page-Limit"), "1")
+        self.assertRegex(response.text.strip(), r"^[0-9a-f]{32}$")
+
+        response = requests.post(f"{url}/attributes/restSearch",
+                                 json={**body, "returnFormat": "count"}, headers=headers, verify=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(int(response.text), len(self.visible))
+
     def test_baseline_returns_exactly_the_visible_attributes(self):
         status, values, _ = self.__search({"event_id": self.e1})
         self.assertEqual((status, values), (200, {self.__value("e1-a1"), self.__value("e1-a2")}))

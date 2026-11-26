@@ -2068,7 +2068,8 @@ class AppController extends Controller
      * @param string $limitController the controller name the role's REST
      *   limit is divided for
      * @return array filters (as run), result, count, skipped, renderView,
-     *   returnFormat, responseType and overflow
+     *   returnFormat, responseType, overflow and pageLimit (the role's page
+     *   size when it cut the limit asked for, else null)
      * @throws ComplexQueryException
      */
     protected function _runRestSearch($scope, array $filters, $complexQuery, array $user, $limitController)
@@ -2097,7 +2098,17 @@ class AppController extends Controller
             'returnFormat' => $returnFormat,
             'responseType' => empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0],
             'overflow' => false,
+            'pageLimit' => null,
         ];
+        $roleLimit = $this->User->getUserRestLimit($user, $limitController);
+        if ($returnFormat !== 'count' && $roleLimit > 0 && ($filters['limit'] ?? 0) > $roleLimit) {
+            $run['pageLimit'] = $roleLimit;
+        }
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+        $run['filters'] = $filters;
+
         // halt execution if we were to query for items above the ID. Blocks the endless caching bug
         if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
             if ($this->__cachingOverflow($filters, $modelName, $scope)) {
@@ -2105,12 +2116,6 @@ class AppController extends Controller
                 return $run;
             }
         }
-
-        $roleLimit = $this->User->getUserRestLimit($user, $limitController);
-        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
-            $filters['limit'] = $roleLimit;
-        }
-        $run['filters'] = $filters;
 
         $elementCounter = 0;
         $renderView = false;
@@ -2132,13 +2137,14 @@ class AppController extends Controller
         $filters = $run['filters'];
         $returnFormat = $run['returnFormat'];
         $responseType = $run['responseType'];
+        $pageHeaders = empty($run['pageLimit']) ? [] : ['X-Result-Page-Limit' => $run['pageLimit']];
         if ($run['overflow']) {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
                 'X-Result-Count' => 0,
                 'X-Export-Module-Used' => $returnFormat,
                 'X-Response-Format' => $responseType
-            ]);
+            ] + $pageHeaders);
         }
         /** @var TmpFileTool $final */
         $final = $run['result'];
@@ -2156,6 +2162,9 @@ class AppController extends Controller
             if (isset($responseTypeMapping[$responseType])) {
                 $this->response->type($responseTypeMapping[$responseType]);
             }
+            if ($pageHeaders) {
+                $this->response->header($pageHeaders);
+            }
             return $this->response;
         } else {
             if (!empty($filters['sign'])) {
@@ -2169,7 +2178,7 @@ class AppController extends Controller
                 'X-Skipped-Elements-Count' => $run['skipped'],
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"'
             ];
-            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers + $pageHeaders);
         }
     }
 
@@ -2197,13 +2206,9 @@ class AppController extends Controller
      */
     private function __cachingOverflow(array $filters, $modelName, $scope)
     {
-        $offset = ($filters['page'] * (empty($filters['limit']) ? 60 : $filters['limit'])) + 1;
+        $offset = (max(1, (int)$filters['page']) - 1) * (empty($filters['limit']) ? 60 : $filters['limit']);
         $max_id = $this->$modelName->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
-        $max_id = intval($max_id[0][0]['max_id']);
-        if ($max_id < $offset) {
-            return true;
-        }
-        return false;
+        return (int)$max_id[0][0]['max_id'] <= $offset;
     }
 
     /**
