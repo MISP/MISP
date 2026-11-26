@@ -172,7 +172,7 @@ $renderElement = function (array $element) use ($typeMeta, $baseurl) {
         . '</div>';
 };
 ?>
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="event-template-structure">
     <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
         <span>
             <i class="fas fa-list-check me-2"></i><?= __('What the reporter is asked for') ?>
@@ -197,10 +197,10 @@ $renderElement = function (array $element) use ($typeMeta, $baseurl) {
 
                 <?php if (!empty($orphans)): ?>
                     <div>
-                        <div class="text-primary fw-bold text-uppercase mb-2"
-                             style="font-size:.65rem; letter-spacing:.1em;">
-                            <?= __('Outside any section') ?>
-                        </div>
+                        <?= $this->element('genericElementsBS5/Forms/section_label', [
+                            'accent' => 'primary',
+                            'label' => __('Outside any section'),
+                        ]) ?>
                         <div class="d-flex flex-column gap-2">
                             <?php foreach ($orphans as $element): ?>
                                 <?= $renderElement($element) ?>

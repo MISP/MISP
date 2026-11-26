@@ -439,6 +439,11 @@ class AuthKey extends AppModel
         if (!empty($currentUser['Role']['perm_site_admin'])) {
             return true;
         }
+        if (!is_int($user_id) &&
+            !(is_string($user_id) && ctype_digit($user_id))
+        ) {
+            return false;
+        }
         if (!empty($currentUser['Role']['perm_admin'])) {
             // org admin only for non-admin users and themselves
             $user = $this->User->find('first', [

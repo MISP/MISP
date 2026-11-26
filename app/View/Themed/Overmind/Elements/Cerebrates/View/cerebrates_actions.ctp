@@ -12,19 +12,19 @@ if ($isSiteAdmin) {
     ];
     $actions[] = [
         'url' => "$baseurl/cerebrates/pull_orgs/$cerebrateId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/cerebrates/pull_orgs/$cerebrateId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/cerebrates/pull_orgs/$cerebrateId', 'md');",
         'icon' => 'fas fa-arrow-circle-down',
         'label' => __('Sync organisation information')
     ];
     $actions[] = [
         'url' => "$baseurl/cerebrates/pull_sgs/$cerebrateId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/cerebrates/pull_sgs/$cerebrateId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/cerebrates/pull_sgs/$cerebrateId', 'md');",
         'icon' => 'fas fa-arrow-circle-down',
         'label' => __('Sync sharing group information')
     ];
     $actions[] = [
         'url' => "$baseurl/cerebrates/delete/$cerebrateId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/cerebrates/deleteSelection/$cerebrateId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/cerebrates/deleteSelection/$cerebrateId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Cerebrate'),
         'danger' => true

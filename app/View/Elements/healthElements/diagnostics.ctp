@@ -364,6 +364,11 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
             'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
             'indexes' => $dbSchemaDiagnostics['indexes'],
+            'migrationsPending' => $dbSchemaDiagnostics['migrations_pending'],
+            'migrationsPendingIds' => $dbSchemaDiagnostics['migrations_pending_ids'],
+            'migrationsFailed' => $dbSchemaDiagnostics['migrations_failed'],
+            'migrationsFailedIds' => $dbSchemaDiagnostics['migrations_failed_ids'],
+            'migrationsApplied' => $dbSchemaDiagnostics['migrations_applied'],
         )); ?>
     </div>
 
@@ -611,9 +616,6 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         <?php echo __('Non existing attachments referenced in Database');?>…<span id="orphanedFileCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br>
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
-    <h3><?php echo __('Recover deleted events'); ?></h3>
-    <p><?php echo __('Due to a bug introduced after 2.4.129, users could occasionally accidentally and unknowingly trigger event deletions. Use the tool below to display any events deleted during the timeframe when the bug was active and optionally recover individual events if you believe they were removed in error.')?></p>
-    <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Recover deleted events');?>" title="<?php echo __('Recover deleted events');?>" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/events/restoreDeletedEvents';"><?php echo __('Recover deleted events');?></span>
 </div>
 
 <?php if (Configure::read('MISP.self_update') || !Configure::check('MISP.self_update')): ?>
@@ -649,7 +651,8 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     function updateAllJson() {
         $.ajax({
             url: '<?php echo $baseurl . '/servers/updateJSON/'; ?>',
-            type: "get",
+            type: "post",
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             beforeSend: function() {
                 $('#submoduleGitResultDiv').show();
                 $('#submoduleGitResult').append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');

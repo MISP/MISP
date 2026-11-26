@@ -261,10 +261,23 @@ jobs:
           sudo chmod +x /home
           sudo chmod +x /
 
+      # PyMISP 3 needs Python 3.11+, jammy ships 3.10
+      - name: Python 3.12 for jammy
+        if: matrix.os == 'ubuntu-22.04'
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
       - name: Python setup
         run: |
           # Dirty install python stuff
-          python3 -m virtualenv -p python3 ./venv
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            python -m venv ./venv
+            # MISP runs this venv as www-data: fail here if it cannot
+            sudo -u www-data ./venv/bin/python -c 'import ssl, sqlite3'
+          else
+            python3 -m virtualenv -p python3 ./venv
+          fi
           app/Console/cake Admin setSetting "MISP.python_bin" "$GITHUB_WORKSPACE/venv/bin/python"
           . ./venv/bin/activate
           export PYTHONPATH=$PYTHONPATH:./app/files/scripts
@@ -277,6 +290,25 @@ jobs:
           app/Console/cake Admin setSetting "MISP.osuser" $USER
           app/Console/cake Admin runUpdates
           app/Console/cake Admin schemaDiagnostics
+          # A fresh install starts at the current schema: the legacy corpus had nothing
+          # to do, and no migration is pending.
+          test "$(mysql -h 127.0.0.1 --port 3306 -u misp -pblah -N -e "SELECT value FROM admin_settings WHERE setting = 'db_version'" misp)" = "159"
+          app/Console/cake Admin migrationStatus | grep -q "Everything on disk has been applied."
+
+      - name: Legacy upgrade path
+        # INSTALL/MYSQL.sql no longer exercises the legacy corpus, so this does: the
+        # previous release's baseline, carried through every legacy update and then
+        # every migration - the path every existing instance takes - has to end up as
+        # the schema a fresh install starts with. Bump the tag when a release moves
+        # the baseline.
+        run: |
+          git fetch --depth 1 origin tag v2.5.45
+          mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "create database misp_legacy; grant all privileges on misp_legacy.* to misp@'%';"
+          git show v2.5.45:INSTALL/MYSQL.sql | mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp_legacy
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin runUpdates
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin schemaDiagnostics
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin migrationStatus | grep -q "Everything on disk has been applied."
+          app/Console/cake Admin verifyInstallBaseline --connection legacy --database misp
 
       - name: Configure MISP
         run: |
@@ -288,6 +320,7 @@ jobs:
           app/Console/cake Admin setSetting "MISP.host_org_id" 1
           app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
           app/Console/cake Admin setSetting "MISP.disable_emailing" false
+          app/Console/cake Admin setSetting "MISP.enable_themes" 1
           app/Console/cake Admin setSetting --force "debug" true
           app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false
           app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
@@ -375,6 +408,7 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/tmp/logs
 
           . ./venv/bin/activate
+          python -m pytest -v tests/test_misp_framing.py tests/test_misp2stix2_wrapper.py tests/test_stix2misp_wrapper.py tests/test_stix1_import_wrapper.py
           pushd PyMISP
           cp tests/keys.py .
           python -m pytest -v --durations=0 tests/test_mispevent.py
@@ -383,6 +417,8 @@ jobs:
           python tests/testlive_comprehensive_local.py -v
           python tests/testlive_sync.py -v
           python tests/testlive_security.py -v
+          python tests/testlive_ai_ux.py -v
+          python tests/testregressions.py -v
           cp PyMISP/tests/keys.py PyMISP/examples/events/
           pushd PyMISP/examples/events/
           python ./create_massive_dummy_events.py -l 5 -a 30
@@ -451,6 +487,14 @@ jobs:
 
       - name: Check requirements.txt
         run: python tests/check_requirements.py
+
+      - name: Audit PHP dependencies
+        if: ${{ !cancelled() }}
+        working-directory: app
+        env:
+          # Two dependencies are abandoned upstream: list them, don't fail
+          COMPOSER_AUDIT_ABANDONED: report
+        run: composer audit --no-dev
 
       - name: System logs
         if: ${{ always() }}

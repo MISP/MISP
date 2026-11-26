@@ -158,6 +158,43 @@ class SharingGroupBlueprintsController extends AppController
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'globalActions', 'menuItem' => 'viewMG'));
+        $this->__setRuleVocabulary();
+        try {
+            $orgIds = $this->__matchingOrgIds($this->viewVars['data']);
+            $matchingOrgs = empty($orgIds) ? [] : $this->SharingGroupBlueprint->SharingGroup->Organisation->find('all', [
+                'recursive' => -1,
+                'fields' => ['id', 'uuid', 'name', 'sector', 'type', 'nationality', 'local'],
+                'conditions' => ['id' => $orgIds],
+                'order' => ['Organisation.name'],
+            ]);
+            $this->set('matchingOrgs', $matchingOrgs);
+            $this->set('matchingOrgCount', count($matchingOrgs));
+        } catch (Exception $e) {
+            $this->set('matchingOrgs', null);
+            $this->set('matchingOrgCount', null);
+        }
+    }
+
+    /**
+     * The organisations the blueprint selects, evaluated as its creator org so
+     * an admin looking at it sees what its owner would get.
+     *
+     * @param array $sharingGroupBlueprint
+     * @return array organisation ids
+     */
+    private function __matchingOrgIds(array $sharingGroupBlueprint)
+    {
+        $creator = [
+            'Role' => [
+                'perm_site_admin' => false
+            ],
+            'org_id' => $sharingGroupBlueprint['SharingGroupBlueprint']['org_id'],
+            'id' => 1
+        ];
+        $rules = $sharingGroupBlueprint['SharingGroupBlueprint']['rules'];
+        $sharingGroupBlueprint['SharingGroupBlueprint']['rules'] = json_encode(json_decode($rules, true));
+        $result = $this->SharingGroupBlueprint->evaluateSharingGroupBlueprint($sharingGroupBlueprint, $creator);
+        return array_values(array_unique($result['orgs'] ?? []));
     }
 
     public function viewOrgs($id)
@@ -170,19 +207,10 @@ class SharingGroupBlueprintsController extends AppController
         if (empty($sharingGroupBlueprint)) {
             throw new NotFoundException(__('Invalid Sharing Group Blueprint'));
         }
-        // we create a fake user to restrict the visible sharing groups to the creator of the SharingGroupBlueprint, in case an admin wants to update it
-        $fake_user = [
-            'Role' => [
-                'perm_site_admin' => false
-            ],
-            'org_id' => $sharingGroupBlueprint['SharingGroupBlueprint']['org_id'],
-            'id' => 1
-        ];
-        $temp = $this->SharingGroupBlueprint->evaluateSharingGroupBlueprint($sharingGroupBlueprint, $fake_user);
         $orgs = $this->SharingGroupBlueprint->SharingGroup->Organisation->find('all', [
             'recursive' => -1,
             'fields' => ['id', 'uuid', 'name', 'sector', 'type', 'nationality'],
-            'conditions' => ['id' => $temp['orgs']]
+            'conditions' => ['id' => $this->__matchingOrgIds($sharingGroupBlueprint)]
         ]);
         if ($this->IndexFilter->isRest()) {
             return $this->RestResponse->viewData($orgs, 'json');

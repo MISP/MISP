@@ -1,5 +1,6 @@
 <?php
-    $headerTitle = __('Report #') . ($report['EventReport']['id'] ?? '');
+    $this->set('headerIdentity', $report['EventReport']);
+    $headerTitle = $report['EventReport']['name'] ?? '';
     $headerDescription = '';
     $headerActions = [];
 
@@ -8,12 +9,24 @@
     $this->set('headerActions', $headerActions);
 
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it']
+        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown']
     ]);
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $report,
+        'ownership' => [
+            'orgc' => $report['Event']['Orgc'] ?? [],
+            'org' => $report['Event']['Org'] ?? [],
+            'distribution' => $report['EventReport']['distribution'] ?? null,
+            'sharingGroup' => $report['SharingGroup'] ?? [],
+            'inherited' => empty($parentEvent) ? [] : [
+                'distribution' => $parentEvent['Event']['distribution'],
+                'sharingGroup' => $parentEvent['SharingGroup'] ?? [],
+                'label' => __('Inherited from event #%s', $parentEvent['Event']['id']),
+                'url' => $baseurl . '/events/view2/' . $parentEvent['Event']['id'],
+            ],
+        ],
         'tabs' => [
             [
                 'id'    => 'general',

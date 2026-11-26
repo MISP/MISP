@@ -40,8 +40,10 @@
                 fetch('<?php echo $baseurl; ?>/user_settings/setTheme/' + safeTheme, {
                     method: 'POST',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
+                    },
+                    credentials: 'same-origin'
                 })
                 .then(response => {
                     if (response.ok) {
@@ -74,8 +76,10 @@
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': (window.csrfToken || '')
                     },
+                    credentials: 'same-origin',
                     body: JSON.stringify({ path: window.location.pathname })
                 })
                 .then(response => {

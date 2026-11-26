@@ -33,6 +33,9 @@ class LinOTPAuthenticate extends BaseAuthenticate
      */
     private static function _linotp_verify($baseUrl, $realm, $user, $password, $verifyssl)
     {
+        // A missing setting means verification on; only an explicit false opts out
+        $verifyssl = $verifyssl === null
+            || filter_var($verifyssl, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) !== false;
         $params = array();
         $params['ssl_allow_self_signed'] = !$verifyssl;
         $params['ssl_verify_peer_name'] = $verifyssl;
@@ -117,9 +120,20 @@ class LinOTPAuthenticate extends BaseAuthenticate
         }
 
         $userFields = $request->data['User'];
-        $email = $userFields['email'];
-        $password = $userFields['password'];
-        $otp = $userFields['otp'];
+        $email = isset($userFields['email']) ? $userFields['email'] : '';
+        $password = isset($userFields['password']) ? $userFields['password'] : '';
+        $otp = isset($userFields['otp']) ? $userFields['otp'] : '';
+
+        // Same missing guard as LdapAuthenticate had: this class replaces
+        // FormAuthenticate without repeating its _checkFields() check. A non-string
+        // credential would be concatenated into the LinOTP request below, and an
+        // array reaching _findUser() would be taken as a set of find conditions.
+        // The empty-password case is rejected further down, on the mixedauth branch
+        // only - see there.
+        if (!is_string($email) || $email === '' || !is_string($password)) {
+            CakeLog::error("[LinOTPAuth] Rejected login attempt with a missing or invalid email or password.");
+            return false;
+        }
 
         CakeLog::debug("getUser email: ${email}");
 
@@ -175,6 +189,17 @@ class LinOTPAuthenticate extends BaseAuthenticate
                 $this->settings['fields'] = array('username' => "email");
 
                 if ($mixedauth) {
+                    // Here the password is the local MISP credential, checked against
+                    // the database rather than against LinOTP, so an empty one must be
+                    // refused: a stored hash of '' verifies against it. In the
+                    // non-mixedauth branch above the password is the token PIN, which
+                    // is concatenated with the OTP and verified by LinOTP, and which
+                    // is legitimately empty for PIN-less tokens - so the check belongs
+                    // here and not at the top of the method.
+                    if ($password === '') {
+                        CakeLog::error("[LinOTPAuth] Rejected login attempt with an empty password.");
+                        return false;
+                    }
                     $this->settings['fields'] += array('password' => "password");
                     $this->settings['passwordHasher'] = "BlowfishConstant";
                     $user = $this->_findUser($email, $password);

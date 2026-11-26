@@ -4,7 +4,13 @@
     'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
     'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
     'error' => $dbSchemaDiagnostics['error'],
+    'warnings' => $dbSchemaDiagnostics['warnings'] ?? array(),
     'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
     'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
-    'updateLocked' => $dbSchemaDiagnostics['update_locked']
+    'updateLocked' => $dbSchemaDiagnostics['update_locked'],
+    'migrationsPending' => $dbSchemaDiagnostics['migrations_pending'],
+    'migrationsPendingIds' => $dbSchemaDiagnostics['migrations_pending_ids'],
+    'migrationsFailed' => $dbSchemaDiagnostics['migrations_failed'],
+    'migrationsFailedIds' => $dbSchemaDiagnostics['migrations_failed_ids'],
+    'migrationsApplied' => $dbSchemaDiagnostics['migrations_applied'],
 )); ?>

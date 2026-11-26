@@ -1,5 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('BetterSecurity', 'Tools');
+App::uses('EncryptedValue', 'Tools');
+App::uses('JsonTool', 'Tools');
+App::uses('Module', 'Model');
 
 /**
  * @property User $User
@@ -27,8 +31,14 @@ class UserSetting extends AppModel
         'User'
     );
 
+    const MODULE_SECRET_MASK = '*****';
+
     // private
     const VALID_SETTINGS = array(
+        'module_api_keys' => [
+            'placeholder' => ['Enrichment' => ['virustotal' => ['apikey' => 'your-personal-key']]],
+            'validation' => 'validate_module_api_keys',
+        ],
         'publish_alert_filter' => array(
             'placeholder' => array(
                 'AND' => array(
@@ -143,18 +153,85 @@ class UserSetting extends AppModel
             'options' => ['auto', 'light', 'dark'],
             'validation' => 'validate_dashboard_theme',
         ],
+        // One-shot marker for the Overmind onboarding tour. Set at a user's
+        // very first login and cleared the first time the tour is actually
+        // displayed, so a brand new account is walked through the interface
+        // exactly once. Internal: it is plumbing, not a user preference.
+        'onboarding_pending' => [
+            'internal' => true,
+            'placeholder' => true,
+            'validation' => 'validate_json',
+        ],
     );
+
+    public static function validate_module_api_keys($value, $user)
+    {
+        $value = is_string($value) ? json_decode($value, true) : $value;
+        if (!is_array($value)) {
+            return false;
+        }
+        foreach ($value as $family => $modules) {
+            if (!in_array($family, ['Enrichment', 'Import', 'Export'], true) || !is_array($modules)) {
+                return false;
+            }
+            foreach ($modules as $module => $credentials) {
+                if (!is_string($module) || !preg_match('/^[a-zA-Z0-9_-]+$/D', $module) || !is_array($credentials)) {
+                    return false;
+                }
+                foreach ($credentials as $name => $credential) {
+                    if (!Module::isPersonalCredential($name) || ($credential !== null && !is_string($credential))) {
+                        return false;
+                    }
+                    // A masked secret keeps the saved one; account names are never masked.
+                    if ($credential === self::MODULE_SECRET_MASK && !Module::isPersonalSecret($name)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 
     public static function validate_homepage($value, $user)
     {
         // If it's already an array, use it. Otherwise, decode the string.
         $path = is_string($value) ? json_decode($value, true) : $value;
-        
-        if (empty($path['path'])) {
+
+        if (!is_array($path) || empty($path['path']) || !is_string($path['path'])) {
             return false;
         }
-        return str_starts_with($path['path'], '/');
+        // A leading '/' is not enough: '//attacker.example' also starts with
+        // one and is a protocol-relative, off-site URL once it reaches a
+        // Location header. Share the check with the other post-login
+        // navigation target (pre_login_requested_url) instead of keeping a
+        // second, weaker variant of it here.
+        App::uses('InternalRedirectValidator', 'Tools');
+        return InternalRedirectValidator::sanitize($path['path']) !== '';
     }
+
+    /**
+     * The user's homepage as a safe, same-origin path.
+     *
+     * Revalidated on read, not merely on write: the rows this reads may
+     * predate the store-time check above, and setSettingInternal() writes
+     * without running any validator at all. Every consumer of the homepage
+     * setting - the post-login redirect, the news page's "continue" link
+     * and the menu logo - goes through here, so one guard covers all of
+     * them and there is nothing left to sweep in the database.
+     *
+     * @param int $userId
+     * @return string The path to navigate to, or '' when unset or unsafe.
+     */
+    public function getHomepagePath($userId)
+    {
+        $homepage = $this->getValueForUser($userId, 'homepage');
+        if (!is_array($homepage) || empty($homepage['path']) || !is_string($homepage['path'])) {
+            return '';
+        }
+        App::uses('InternalRedirectValidator', 'Tools');
+        return InternalRedirectValidator::sanitize($homepage['path']);
+    }
+
     public static function validate_theme($value, $user)
     {
         if (empty($value)) {
@@ -180,7 +257,6 @@ class UserSetting extends AppModel
                 'report_count',
                 'sightings',
                 'proposals',
-                'discussion',
                 'creator_user',
                 'timestamp',
                 'publish_timestamp'
@@ -263,12 +339,153 @@ class UserSetting extends AppModel
         return true;
     }
 
+    public function beforeSave($options = array())
+    {
+        $setting = $this->data['UserSetting'] ?? [];
+        if (($setting['setting'] ?? null) !== 'module_api_keys' || !isset($setting['value'])) {
+            return true;
+        }
+        $value = $this->data['UserSetting']['value'];
+        $value = is_string($value) ? json_decode($value, true) : $value;
+        if (!self::validate_module_api_keys($value, [])) {
+            return false;
+        }
+        $userId = $this->data['UserSetting']['user_id'] ?? null;
+        $saved = null;
+        $missing = false;
+        $keep = function ($credential, $name, $module, $family) use ($userId, &$saved, &$missing) {
+            if ($credential !== self::MODULE_SECRET_MASK) {
+                return $credential;
+            }
+            if ($saved === null) {
+                $saved = $userId ? $this->getModuleApiKeys($userId) : [];
+            }
+            if (!isset($saved[$family][$module][$name])) {
+                $missing = true;
+                return null;
+            }
+            return $saved[$family][$module][$name];
+        };
+        $credentials = self::mapModuleCredentials($value, $keep);
+        if ($missing) {
+            return false;
+        }
+        $key = Configure::read('Security.encryption_key');
+        $this->data['UserSetting']['value'] = $this->encodeModuleApiKeys($credentials, $key);
+        return true;
+    }
+
+    /**
+     * @param array $credentials family => module => credential name => value
+     * @param callable $callback ($value, $name, $module, $family), returns the new value
+     * @return array
+     */
+    private static function mapModuleCredentials(array $credentials, callable $callback)
+    {
+        foreach ($credentials as $family => $modules) {
+            foreach ((array)$modules as $module => $fields) {
+                foreach ((array)$fields as $name => $value) {
+                    $credentials[$family][$module][$name] = $callback($value, $name, $module, $family);
+                }
+            }
+        }
+        return $credentials;
+    }
+
+    /** Secrets are encrypted one by one, so account names stay readable without the key. */
+    private function encodeModuleApiKeys(array $credentials, $key)
+    {
+        if ($key) {
+            $credentials = self::mapModuleCredentials($credentials, function ($value, $name) use ($key) {
+                if (!Module::isPersonalSecret($name) || !is_string($value) || $value === '') {
+                    return $value;
+                }
+                $encrypted = EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($value, $key);
+                return ['encrypted' => base64_encode($encrypted)];
+            });
+        }
+        return JsonTool::encode($credentials);
+    }
+
+    private function decodeModuleApiKeys($json, $key)
+    {
+        $credentials = JsonTool::decode($json);
+        if (!is_array($credentials)) {
+            return [];
+        }
+        return self::mapModuleCredentials($credentials, function ($value) use ($key) {
+            if (!is_array($value)) {
+                return $value;
+            }
+            $encrypted = base64_decode((string)($value['encrypted'] ?? ''), true);
+            if ($encrypted === false || !EncryptedValue::isEncrypted($encrypted)) {
+                throw new RuntimeException('Invalid encrypted personal module credentials.');
+            }
+            return BetterSecurity::decrypt(substr($encrypted, 2), $key);
+        });
+    }
+
+    /** Account names as saved; every other set value is masked, encrypted or not. */
+    private static function maskModuleApiKeys($json)
+    {
+        $credentials = is_array($json) ? $json : json_decode((string)$json, true);
+        if (!is_array($credentials)) {
+            return self::MODULE_SECRET_MASK;
+        }
+        return self::mapModuleCredentials($credentials, function ($value, $name) {
+            if ($value === null || $value === '' || (Module::isPersonalIdentifier($name) && is_string($value))) {
+                return $value;
+            }
+            return self::MODULE_SECRET_MASK;
+        });
+    }
+
+    /** Credentials are decrypted only for execution, never by the generic settings endpoints. */
+    public function getModuleApiKeys($userId)
+    {
+        $row = $this->find('first', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['UserSetting.value'],
+            'conditions' => ['UserSetting.user_id' => $userId, 'UserSetting.setting' => 'module_api_keys'],
+        ]);
+        return $row ? $this->decodeModuleApiKeys($row['UserSetting']['value'], Configure::read('Security.encryption_key')) : [];
+    }
+
+    /** Participate in the same encryption-key rotation as instance credentials. */
+    public function reencryptModuleApiKeys($old, $new)
+    {
+        $rows = $this->find('all', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => ['UserSetting.id', 'UserSetting.value'],
+            'conditions' => ['UserSetting.setting' => 'module_api_keys'],
+        ]);
+        foreach ($rows as $row) {
+            $value = $this->encodeModuleApiKeys($this->decodeModuleApiKeys($row['UserSetting']['value'], $old), $new);
+            if (!$this->updateAll(['UserSetting.value' => $this->getDataSource()->value($value, 'text')], ['UserSetting.id' => $row['UserSetting']['id']])) {
+                throw new RuntimeException('Could not rotate personal module credentials.');
+            }
+        }
+    }
+
     // Once we run a find, let us decode the JSON field so we can interact with the contents as if it was an array
     public function afterFind($results, $primary = false)
     {
+        // Cake also passes unwrapped rows when loading UserSetting as an association.
+        if (($results['setting'] ?? null) === 'module_api_keys' && array_key_exists('value', $results)) {
+            $results['value'] = self::maskModuleApiKeys($results['value']);
+            return $results;
+        }
         foreach ($results as $k => $v) {
+            if (is_array($v) && ($v['setting'] ?? null) === 'module_api_keys' && array_key_exists('value', $v)) {
+                $results[$k]['value'] = self::maskModuleApiKeys($v['value']);
+                continue;
+            }
             if (isset($v['UserSetting']['value'])) {
-                $results[$k]['UserSetting']['value'] = json_decode($v['UserSetting']['value'], true);
+                $results[$k]['UserSetting']['value'] = ($v['UserSetting']['setting'] ?? null) === 'module_api_keys'
+                    ? self::maskModuleApiKeys($v['UserSetting']['value'])
+                    : json_decode($v['UserSetting']['value'], true);
             }
         }
         return $results;
@@ -303,6 +520,9 @@ class UserSetting extends AppModel
     {
         $output = [];
         foreach (self::VALID_SETTINGS as $setting => $config) {
+            if ($setting === 'module_api_keys' && !Configure::read('Plugin.Modules_allow_personal_credentials')) {
+                continue;
+            }
             if ($this->checkSettingAccess($user, $setting) === true) {
                 $output[$setting]['placeholder'] = $config['placeholder'];
                 if (!empty($config['options'])) {
@@ -311,6 +531,33 @@ class UserSetting extends AppModel
             }
         }
         return $output;
+    }
+
+    /**
+     * One line per setting on what it changes for the user it belongs to.
+     * Kept apart from VALID_SETTINGS because a constant cannot be translated.
+     *
+     * @return array<string, string>
+     */
+    public function settingDescriptions()
+    {
+        return [
+            'module_api_keys' => __('Your own credentials for the Enrichment, Import and Export modules you may use, as a JSON object keyed by family, module and credential name. Once you set any credential for a module, none of its credentials come from the instance. Saving replaces the whole object; leave a secret as ***** to keep the saved one. Secrets are hidden after saving, account names are not.'),
+            'publish_alert_filter' => __('Filters which published events send you an email alert. Matched against the event, its tags and its organisations.'),
+            'dashboard_access' => __('Legacy flag that granted access to the dashboard. Kept for compatibility, it no longer gates anything.'),
+            'dashboard' => __('Layout of your legacy dashboard: the widgets shown, their configuration and their position on the grid.'),
+            'homepage' => __('The page you land on after logging in and when clicking the MISP logo.'),
+            'default_restsearch_parameters' => __('Parameters merged into every restSearch query you run, unless the query overrides them.'),
+            'tag_numerical_value_override' => __('Replaces the numerical value of the listed tags with your own, for the scores computed on your behalf (e.g. decaying models).'),
+            'event_index_hide_columns' => __('Columns hidden from your event index.'),
+            'oidc' => __('Data stored by the OpenID Connect plugin for this account. Managed automatically.'),
+            'periodic_notification_filters' => __('Filters which events make it into your periodic (daily, weekly, monthly) summary emails.'),
+            'ui_beta_opt_in' => __('Opts you in to interface features still in beta.'),
+            'ui_theme' => __('The interface theme used for your account.'),
+            'event_template_user_form_mode' => __('How an event template form is shown to you: every step at once (all) or one step at a time (wizard).'),
+            'dashboard_theme' => __('Light or dark appearance of the dashboard; auto follows your browser.'),
+            'onboarding_pending' => __('Marks that the onboarding tour still has to be shown. Cleared once the tour has been displayed.'),
+        ];
     }
 
     public function getInternalSettingNames()
@@ -386,6 +633,14 @@ class UserSetting extends AppModel
      {
          if (is_numeric($user)) {
              $user = $this->User->getAuthUser($user);
+         }
+         if (($setting['UserSetting']['setting'] ?? null) === 'module_api_keys') {
+             // Site admins may view (secrets masked) and delete it; only the owner writes it.
+             if (!empty($user['Role']['perm_site_admin'])) {
+                 return true;
+             }
+             return $user['id'] == $setting['UserSetting']['user_id'] &&
+                 (empty(Configure::read('MISP.disableUserSelfManagement')) || !empty($user['Role']['perm_admin']));
          }
          if ($this->isInternal($setting['UserSetting']['setting']) && !$user['Role']['perm_site_admin']) {
              return false;
@@ -470,7 +725,7 @@ class UserSetting extends AppModel
      {
          $output = $this->find('first', array(
              'recursive' => -1,
-             'fields' => ['value'],
+             'fields' => ['setting', 'value'],
              'conditions' => array(
                  'UserSetting.user_id' => $userId,
                  'UserSetting.setting' => $setting,
@@ -650,6 +905,14 @@ class UserSetting extends AppModel
         if (empty($data['UserSetting']['setting'])) {
             throw new MethodNotAllowedException(__('This endpoint expects both a setting and a value to be set.'));
         }
+        if ($data['UserSetting']['setting'] === 'module_api_keys') {
+            if ($userSetting['user_id'] != $user['id']) {
+                throw new MethodNotAllowedException(__('Personal module credentials can only be changed by their owner.'));
+            }
+            if (!Configure::read('Plugin.Modules_allow_personal_credentials')) {
+                throw new MethodNotAllowedException(__('Personal module credentials are disabled on this instance.'));
+            }
+        }
         if (!$this->checkSettingValidity($data['UserSetting']['setting'])) {
             throw new MethodNotAllowedException(__('Invalid setting.'));
         }
@@ -724,5 +987,58 @@ class UserSetting extends AppModel
     public function getSetting($user_id, $setting)
     {
         return $this->getValueForUser($user_id, $setting) ?: [];
+    }
+
+    /**
+     * Re-encrypt the OIDC refresh tokens, stored in the format Oidc::storeMetadata() writes.
+     *
+     * @param string|null $old Old (or current) encryption key.
+     * @param string|null $new New encryption key. If empty, tokens are stored as plaintext.
+     * @return bool
+     * @throws Exception
+     */
+    public function reencryptOidcRefreshTokens($old, $new)
+    {
+        $settings = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['UserSetting.setting' => 'oidc'],
+            'fields' => ['UserSetting.id', 'UserSetting.value'],
+        ]);
+        $result = true;
+        foreach ($settings as $setting) {
+            $id = $setting['UserSetting']['id'];
+            $original = $setting['UserSetting']['value'];
+            if (!is_array($original) || !isset($original['refresh_token']) || !is_string($original['refresh_token'])) {
+                continue;
+            }
+            $value = $original;
+            $token = $value['refresh_token'];
+            if (!empty($value['refresh_token_encrypted'])) {
+                $encrypted = base64_decode($token, true);
+                if ($encrypted === false || !EncryptedValue::isEncrypted($encrypted)) {
+                    throw new Exception("Could not decrypt OIDC refresh token for user setting #$id");
+                }
+                try {
+                    $token = BetterSecurity::decrypt(substr($encrypted, 2), $old);
+                } catch (Exception $e) {
+                    throw new Exception("Could not decrypt OIDC refresh token for user setting #$id", 0, $e);
+                }
+            }
+            if (!empty($new)) {
+                $value['refresh_token'] = base64_encode(EncryptedValue::ENCRYPTED_MAGIC . BetterSecurity::encrypt($token, $new));
+                $value['refresh_token_encrypted'] = true;
+            } else {
+                $value['refresh_token'] = $token;
+                unset($value['refresh_token_encrypted']);
+            }
+            if ($value === $original) {
+                continue;
+            }
+            $result = $this->save(
+                ['id' => $id, 'value' => json_encode($value)],
+                ['skipAuditLog' => true, 'fieldList' => ['value', 'timestamp']]
+            ) && $result;
+        }
+        return $result;
     }
 }

@@ -1,5 +1,6 @@
 <?php
 App::uses('OrgImgHelper', 'View/Helper');
+App::uses('Galaxy', 'Model');
 
   class CorrelationGraphTool
   {
@@ -277,7 +278,7 @@ App::uses('OrgImgHelper', 'View/Helper');
               'source' => $data['GalaxyCluster'][0]['source'],
               'tag_name' => $data['GalaxyCluster'][0]['tag_name'],
               'description' => $data['GalaxyCluster'][0]['description'],
-              'imgClass' => empty($data['icon']) ? 'globe' : $data['icon'],
+              'imgClass' => (empty($data['icon']) || !Galaxy::isValidIconName($data['icon'])) ? 'globe' : $data['icon'],
               'authors' => !empty($data['GalaxyCluster'][0]['authors']) ? implode(',', $data['GalaxyCluster'][0]['authors']) : '',
               'synonyms' => !empty($data['GalaxyCluster'][0]['meta']['synonyms']) ? implode(',', $data['GalaxyCluster'][0]['meta']['synonyms']) : ''
             );

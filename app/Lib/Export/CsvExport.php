@@ -140,7 +140,7 @@ class CsvExport
 		if (is_bool($field)) {
 			return $field ? '1' : '0';
 		}
-		if (is_numeric($field)) {
+		if (is_int($field) || is_float($field) || (is_string($field) && preg_match('/^-?[0-9]+(\.[0-9]+)?\z/', $field))) {
 			return $field;
 		}
 		$field = str_replace(array('"'), '""', $field);

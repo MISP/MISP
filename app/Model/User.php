@@ -219,8 +219,9 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'Post',
-        'UserSetting',
+        'UserSetting' => array(
+            'dependent' => true
+        ),
         'UserLoginProfile'
         // 'AuthKey' - readd once the initial update storm is over
     );
@@ -252,14 +253,38 @@ class User extends AppModel
     /** @var CryptGpgExtended|null|false */
     private $gpg;
 
+    /**
+     * Whether $user may be shown other users' e-mail addresses.
+     *
+     * Site admins always may; everyone else only on an instance that has
+     * opted in with `Security.disclose_user_emails` (default off, and
+     * described as "allow for the user e-mail addresses to be shown to
+     * non site-admin users"). Static so the dashboard widgets, which hold
+     * an auth-user array rather than a model instance, can share it -
+     * NewUsersWidget and UserContributionToplistWidget each carried their
+     * own copy of this expression, and DashboardsController::listTemplates
+     * carried a fourth, different rule that was gated on the render mode.
+     *
+     * @param array $user An auth user array.
+     * @return bool
+     */
+    public static function canSeeEmails(array $user)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return !empty(Configure::read('Security.disclose_user_emails'));
+    }
+
     public function __construct($id = false, $table = null, $ds = null)
     {
         parent::__construct($id, $table, $ds);
 
         // bind AuthKey just when authkey table already exists. This is important for updating from old versions
         if (in_array('auth_keys', $this->getDataSource()->listSources(), true)) {
+            // dependent: a deleted user's keys would otherwise pass to a user given its id again
             $this->bindModel([
-                'hasMany' => ['AuthKey']
+                'hasMany' => ['AuthKey' => ['dependent' => true]]
             ], false);
         }
     }
@@ -795,7 +820,7 @@ class User extends AppModel
     }
 
     /**
-     * Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+     * Fetch all users that have access to an event for e-mailing (or maybe something else in the future.
      * parameters are an array of org IDs that are owners (for an event this would be orgc and org)
      * @param array $owners Event owners
      * @param int $distribution
@@ -1013,6 +1038,13 @@ class User extends AppModel
                 ),
                 'fields' => array('User.id', 'User.email', 'User.org_id')
             ));
+        }
+        // With neither an org admin nor a site admin on the instance both finds
+        // come back empty, and the caller tests isset($admin['email']) - so
+        // return the shape it expects rather than reading a key off an empty
+        // array.
+        if (empty($admin['User'])) {
+            return array();
         }
 
         return $admin['User'];
@@ -1467,11 +1499,7 @@ class User extends AppModel
         $sparklineData = array();
         foreach ($events as $event) {
             $date = date("Y-m-d", $event['Event']['timestamp']);
-            if (!isset($sparklineData[$event['Event']['attribute_count']][$date])) {
-                $sparklineData[$date] = $event['Event']['attribute_count'];
-            } else {
-                $sparklineData[$date] += $event['Event']['attribute_count'];
-            }
+            $sparklineData[$date] = ($sparklineData[$date] ?? 0) + (int)$event['Event']['attribute_count'];
         }
 
         // get first and last timestamp
@@ -2180,13 +2208,7 @@ class User extends AppModel
         }
 
         list($cutoff, $allcutoff) = $redis->mGet(['misp:session_destroy:' . $id, 'misp:session_destroy:all']);
-        if (
-            empty($cutoff) ||
-            (
-                !empty($allcutoff) &&
-                $allcutoff < $cutoff
-            )
-        ) {
+        if (empty($cutoff) || (!empty($allcutoff) && $allcutoff > $cutoff)) {
             $cutoff = $allcutoff;
         }
         if ($cutoff && $sessionCreationTimestamp < $cutoff) {
@@ -2241,9 +2263,16 @@ class User extends AppModel
         if (empty($user)) {
             return false;
         }
+        $baseurl = Configure::read('MISP.external_baseurl');
+        if (empty($baseurl) && !Configure::read('BaseurlFromRequest')) {
+            $baseurl = Configure::read('MISP.baseurl');
+        }
+        if (empty($baseurl)) {
+            $this->log('Password reset needs MISP.baseurl or MISP.external_baseurl to be set, no reset mail was sent.', LOG_ERR);
+            return false;
+        }
         $token = RandomTool::random_str(true, 40);
         RedisTool::init()->set('misp:forgot:' . $token, $user['User']['id'], ['nx', 'ex' => 600]);
-        $baseurl = Configure::check('MISP.external_baseurl') ? Configure::read('MISP.external_baseurl') : Configure::read('MISP.baseurl');
         $default_forgot_email = [];
         $default_forgot_email['enc'] = Configure::read('MISP.forgotPasswordText') ? 
             Configure::read('MISP.forgotPasswordText') :
@@ -2311,11 +2340,8 @@ class User extends AppModel
                 'perm_tagger' => 1,
             ]];
             $this->Role->save($siteAdmin);
-            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-            if (!$this->isMysql()) {
-                $sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
-                $this->Role->query($sql);
-            }
+            // The id was set by force above, so the sequence has to catch up.
+            $this->Role->resetAutoIncrement();
         }
 
         if (!$this->Organisation->hasAny(['Organisation.local' => true])) {
@@ -2329,11 +2355,8 @@ class User extends AppModel
                 'local' => 1,
             ]];
             $this->Organisation->save($org);
-            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-            if (!$this->isMysql()) {
-                $sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
-                $this->Organisation->query($sql);
-            }
+            // The id was set by force above, so the sequence has to catch up.
+            $this->Organisation->resetAutoIncrement();
             $orgId = $this->Organisation->id;
         }
 

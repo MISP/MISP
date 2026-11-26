@@ -1,6 +1,7 @@
 <?php
 
 App::uses('WidgetSchema', 'Lib/Dashboard/Tools');
+App::uses('DashboardURLValidator', 'Lib/Dashboard/Tools');
 
 /**
  * Canonical-type adapter (PRD §5.5 keystone).
@@ -975,12 +976,41 @@ class CanonicalTypeAdapter
                 case 'event_id_filter':
                     $error = self::validateEventIdFilter($value);
                     break;
+                case 'url':
+                    $error = self::validateUrl($value);
+                    break;
             }
             if ($error !== null) {
                 $errors[$key] = $error;
             }
         }
         return $errors === [] ? null : $errors;
+    }
+
+    /**
+     * Same-origin MISP URL, gated by DashboardURLValidator - the house
+     * gate the renderers and ButtonWidget::handler() already apply.
+     * Running it here as well means a hostile value is refused at the
+     * store rather than neutralised on every read. Null and the empty
+     * string mean "no URL" and are the widget's own no-op, so they pass.
+     *
+     * @param mixed $value
+     * @return string|null Error message, or null when acceptable
+     */
+    public static function validateUrl($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (!is_string($value)) {
+            return 'url must be a string.';
+        }
+        if (DashboardURLValidator::validate($value) === null) {
+            return 'url must stay on this instance - an absolute path '
+                 . 'such as "/events/index", or a full URL whose host is '
+                 . 'this MISP.';
+        }
+        return null;
     }
 
     /** scalar / null only; PRD §5.5 wire-shape table. */

@@ -1,4 +1,6 @@
 <?php
+App::uses('EncryptedValue', 'Tools');
+
 class Oidc
 {
     private $oidcClient;
@@ -230,7 +232,8 @@ class Oidc
         }
 
         $userInfo = $this->findUserInfo($user);
-        if (!isset($userInfo['refresh_token'])) {
+        $refreshToken = $this->readRefreshToken($userInfo);
+        if ($refreshToken === null) {
             $this->log($user['email'], "User don't have refresh token, considering user is not valid");
             return false;
         }
@@ -242,7 +245,7 @@ class Oidc
         $oidc = $this->prepareClient();
 
         try {
-            $oidc->refreshToken($userInfo['refresh_token']);
+            $oidc->refreshToken($refreshToken);
         } catch (CertMichelin\ErrorResponse | JakubOnderka\ErrorResponse $e) {
             if ($e->getError() === 'invalid_grant') {
                 $this->log($user['email'], "Refreshing token is not possible because of `{$e->getMessage()}`, considering user is not valid");
@@ -620,6 +623,30 @@ class Oidc
     }
 
     /**
+     * @param array $userInfo
+     * @return string|null Null when missing or not decryptable
+     */
+    private function readRefreshToken(array $userInfo)
+    {
+        if (!isset($userInfo['refresh_token'])) {
+            return null;
+        }
+        if (empty($userInfo['refresh_token_encrypted'])) {
+            return $userInfo['refresh_token']; // plaintext, stored without encryption key
+        }
+        try {
+            $encrypted = base64_decode($userInfo['refresh_token'], true);
+            if ($encrypted === false || !EncryptedValue::isEncrypted($encrypted)) {
+                return null;
+            }
+            return (new EncryptedValue($encrypted))->decrypt();
+        } catch (Throwable $e) {
+            $this->log(null, "Stored refresh token could not be decrypted: {$e->getMessage()}", LOG_WARNING);
+            return null;
+        }
+    }
+
+    /**
      * @param int $userId
      * @param stdClass $verifiedClaims
      * @param string|null $refreshToken
@@ -641,7 +668,13 @@ class Oidc
         }
         if ($refreshToken) {
             $value['validity_check_timestamp'] = time();
-            $value['refresh_token'] = $refreshToken;
+            if (Configure::read('Security.encryption_key')) {
+                // Encrypted form is binary, so keep it JSON-safe as base64
+                $value['refresh_token'] = base64_encode(EncryptedValue::encryptIfEnabled($refreshToken));
+                $value['refresh_token_encrypted'] = true;
+            } else {
+                $value['refresh_token'] = $refreshToken;
+            }
         }
 
         return $this->User->UserSetting->setSettingInternal($userId, 'oidc', $value);

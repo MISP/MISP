@@ -429,6 +429,38 @@ class RestResponseComponent extends Component
             )
         ),
         'Warninglist' => array(
+            'add' => array(
+                'description' => "POST a Warninglist object to create a custom warninglist.",
+                'operationId' => 'addWarninglist',
+                'method' => 'POST',
+                'mandatory' => array('name', 'type', 'entries'),
+                'optional' => array('description', 'category', 'matching_attributes')
+            ),
+            'edit' => array(
+                'description' => "POST an updated Warninglist object to modify an existing custom warninglist.",
+                'operationId' => 'editWarninglist',
+                'method' => 'POST',
+                'optional' => array('name', 'description', 'type', 'category', 'matching_attributes', 'entries'),
+                'params' => array('warninglist_id')
+            ),
+            'delete' => array(
+                'description' => "POST to this endpoint to delete a custom warninglist.",
+                'operationId' => 'deleteWarninglist',
+                'method' => 'POST',
+                'params' => array('warninglist_id')
+            ),
+            'export' => array(
+                'description' => "GET a warninglist in standard MISP JSON export format by its ID.",
+                'operationId' => 'exportWarninglist',
+                'method' => 'GET',
+                'params' => array('warninglist_id')
+            ),
+            'import' => array(
+                'description' => "POST a warninglist JSON export structure to import a custom warninglist.",
+                'operationId' => 'importWarninglist',
+                'method' => 'POST',
+                'mandatory' => array('name', 'type', 'version', 'description', 'matching_attributes', 'list')
+            ),
             'checkValue' => array(
                 'description' => "POST a JSON list with value(s) to check against the warninglists to get a JSON dictionary as a response with any hits, if there are any (with the key being the passed value triggering a warning).",
                 'operationId' => 'checkValueWarninglistsMatches',
@@ -436,7 +468,7 @@ class RestResponseComponent extends Component
                 'mandatory' => array('[]'),
             ),
             'toggleEnable' => array(
-                'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => array('id'),
+                'description' => "POST a json object with a single or a list of warninglist IDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",
                 'operationId' => 'toggleEnableWarninglist',
                 'method' => 'POST',
                 'optional' => array('id', 'name', 'enabled')
@@ -900,10 +932,44 @@ class RestResponseComponent extends Component
         $cakeResponse->type('application/octet-stream');
         $cakeResponse->type($type);
         $cakeResponse->file($path, ['name' => $name, 'download' => $download]);
+        if (!$download) {
+            $this->sandboxInlineFile($cakeResponse, $type);
+        }
         if (Configure::read('Security.disable_browser_cache')) {
             $cakeResponse->disableCache();
         }
         return $cakeResponse;
+    }
+
+    /**
+     * Neutralise script in a file that is served inline and would run it
+     * when opened as a document.
+     *
+     * SVG is an XML document format: rendered through <img> it can never
+     * execute anything, but navigated to directly (or embedded through
+     * <object> or <iframe>) its <script> elements, event handlers and
+     * javascript: links run on this origin with the viewer's session.
+     * The upload gates only decide what gets stored; a file planted while
+     * SVG uploads were allowed keeps being served after they are turned
+     * off again, so the serve path has to be safe on its own. A CSP
+     * `sandbox` gives the document an opaque origin and disables script,
+     * plugins and form submission, while still letting it render; the
+     * other directives keep an inline stylesheet, an embedded raster and
+     * a data: font working, which is what a logo exported from a design
+     * tool tends to contain. Raster images and downloads are left alone.
+     *
+     * @param CakeResponse $response The response carrying the file
+     * @param string|null $type Extension or MIME type the file is served as
+     * @return void
+     */
+    public function sandboxInlineFile(CakeResponse $response, $type)
+    {
+        $type = strtolower((string)$type);
+        if (!in_array($type, ['svg', 'svgz', 'image/svg+xml'], true)) {
+            return;
+        }
+        $response->header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src data:; frame-ancestors 'self'; sandbox");
+        $response->header('X-Content-Type-Options', 'nosniff');
     }
 
     public function sendStringAsFile($content, $type = null, $filename = 'download')
@@ -1235,6 +1301,11 @@ class RestResponseComponent extends Component
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('Should the warning list be enforced. Adds `blocked` field for matching attributes')
             ),
+            'entries' => array(
+                'input' => 'textarea',
+                'type' => 'string',
+                'help' => __('List of warninglist entries (newline-separated string or array)')
+            ),
             'event' => array(
                 'input' => 'number',
                 'type' => 'integer',
@@ -1487,6 +1558,11 @@ class RestResponseComponent extends Component
                 'validation' => array('min' => 0, 'step' => 1),
                 'help' => __('Limit on the pagination. Lower bounded by the one set by the admin')
             ),
+            'list' => array(
+                'input' => 'text',
+                'type' => 'array',
+                'help' => __('Array of warninglist entries')
+            ),
             'local' => array(
                 'input' => 'radio',
                 'type' => 'integer',
@@ -1498,6 +1574,11 @@ class RestResponseComponent extends Component
                 'type' => 'integer',
                 'values' => array(1 => 'True', 0 => 'False' ),
                 'help' => __('The lookup will not be visible in the feed correlation')
+            ),
+            'matching_attributes' => array(
+                'input' => 'text',
+                'type' => 'array',
+                'help' => __('Array of attribute types to match against')
             ),
             'message' => array(
                 'input' => 'text',
@@ -2182,8 +2263,14 @@ class RestResponseComponent extends Component
     }
     private function __overwriteDecayingModel($scope, &$field) {
         $this->{$scope} = ClassRegistry::init("DecayingModel");
+        $user = $this->Controller->Auth->user();
+        $conditions = array();
+        if (empty($user['Role']['perm_site_admin'])) {
+            $conditions['OR'] = array('org_id' => $user['org_id'], 'all_orgs' => 1);
+        }
         $models = $this->{$scope}->find('list', array(
             'recursive' => -1,
+            'conditions' => $conditions,
             'fields' => array('name')
         ));
         $field['values'] = array();

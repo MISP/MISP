@@ -12,11 +12,18 @@
                                 'type' => 'text',
                                 'text' => __('Cache age: %s%s', $age, $age_unit),
                                 'requirement' => !$onDemandEngine
-                            ],
+                            ]
+                        ]
+                    ],
+                    [
+                        'type' => 'raw',
+                        'children' => [
                             [
-                                'type' => 'simple',
-                                'url' => $baseurl . '/correlations/generateTopCorrelations',
-                                'text' => __('Regenerate cache')
+                                'html' => $this->Form->postLink(
+                                    __('Regenerate cache'),
+                                    $baseurl . '/correlations/generateTopCorrelations',
+                                    ['class' => 'btn btn-small btn-inverse']
+                                )
                             ]
                         ]
                     ]

@@ -156,7 +156,7 @@ $fields = [
                 'label' => __('Discard'),
                 'icon' => 'trash',
                 'class' => 'text-danger',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/users/discardRegistrations/%id%',
             ],
         ],

@@ -2,35 +2,29 @@
 $event    = $data['Event']      ?? [];
 $org      = $data['Org']        ?? [];
 $orgc     = $data['Orgc']       ?? [];
-$threat   = $data['ThreatLevel'] ?? [];
 $sg       = $data['SharingGroup'] ?? [];
 $eventTags= $data['EventTag']  ?? [];
 $user     = $data['User']       ?? [];
 
-$analysisMap = [
-    0 => ['label' => __('Initial'),   'color' => 'secondary', 'icon' => 'fa-seedling', 'dot' => '#0d6efd'],
-    1 => ['label' => __('Ongoing'),   'color' => 'warning',   'icon' => 'fa-spinner',  'dot' => '#fd7e14'],
-    2 => ['label' => __('Completed'), 'color' => 'success',   'icon' => 'fa-check',    'dot' => '#198754'],
+$analysisStops = [
+    ['value' => 0, 'title' => __('Initial'),   'tone' => '#0d6efd', 'sub' => __('Raw intelligence')],
+    ['value' => 1, 'title' => __('Ongoing'),   'tone' => '#fd7e14', 'sub' => __('Under investigation')],
+    ['value' => 2, 'title' => __('Completed'), 'tone' => '#198754', 'sub' => __('Verified & closed')],
 ];
 
-$threatMap = [
-    0 => ['label' => __('Low'),       'color' => '#ffc107', 'icon' => 'fa-minus-circle'],
-    1 => ['label' => __('Medium'),    'color' => '#fd7e14', 'icon' => 'fa-exclamation-triangle'],
-    2 => ['label' => __('High'),      'color' => '#dc3545', 'icon' => 'fa-exclamation-circle'],
-    3 => ['label' => __('Undefined'), 'color' => '#41464b', 'icon' => 'fa-question-circle'],
+/* Lowest risk first — the ids themselves run the other way (1 is High). */
+$threatStops = [
+    ['value' => 4, 'title' => __('Undefined'), 'tone' => '#41464b', 'sub' => __('No risk')],
+    ['value' => 3, 'title' => __('Low'),       'tone' => '#ffc107', 'sub' => __('Opportunistic')],
+    ['value' => 2, 'title' => __('Medium'),    'tone' => '#fd7e14', 'sub' => __('Targeted campaign')],
+    ['value' => 1, 'title' => __('High'),      'tone' => '#dc3545', 'sub' => __('Active exploitation')],
 ];
 
 $analysisLevel  = (int)($event['analysis']        ?? 0);
-// Backend: 1=High, 2=Medium, 3=Low, 4=Undefined
-// Map to display index: 0=Low, 1=Medium, 2=High, 3=Undefined
 $threatLevelId  = (int)($event['threat_level_id'] ?? 4);
-$threatLevel    = [1 => 2, 2 => 1, 3 => 0, 4 => 3][$threatLevelId] ?? 3;
 $distribution   = (int)($event['distribution']    ?? 0);
 $isPublished    = !empty($event['published']);
 $disableCorrel  = !empty($event['disable_correlation']);
-
-$analysis = $analysisMap[$analysisLevel]  ?? $analysisMap[0];
-$threat   = $threatMap[$threatLevel]    ?? $threatMap[3];
 
 $descParts = [];
 if (!empty($event['date'])) {
@@ -51,224 +45,72 @@ $headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
 $this->set('headerDescription', $headerDescription);
 ?>
 
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="event-general">
     <div class="card-body">
 
-        <!-- ── EVENT REPORT PREVIEW ──────────────────────────── -->
-        <?php
-        $erReportData  = $data['EventReport'] ?? [];
-        $erContent     = $erReportData['content'] ?? '';
-        $erHasReport   = !empty($erReportData);
-        $erCardId      = 'er-general-card';
-        $erBodyId      = 'er-general-body';
-        $erOverlayId   = 'er-general-overlay';
-        $erMaxH        = '300px';
-        $erCanAddReport = $this->Acl->canModifyEvent($data);
-        ?>
-        <div class="mb-4">
-
-            <?php if ($erHasReport): ?>
-                <div class="border rounded-3 position-relative"
-                     id="<?= h($erCardId) ?>"
-                     style="max-height:<?= $erMaxH ?>;overflow:hidden;">
-                    <div class="p-3">
-                        <div id="<?= h($erBodyId) ?>" class="markdown-preview-body"></div>
-                    </div>
-                    <div id="<?= h($erOverlayId) ?>"
-                         class="position-absolute bottom-0 start-0 end-0"
-                         style="display:none;">
-                        <div style="height:60px;
-                                    background:linear-gradient(to bottom,transparent,var(--bs-card-bg,#fff));
-                                    pointer-events:none;"></div>
-                        <div class="text-center py-1"
-                             style="background:var(--bs-card-bg,#fff);">
-                            <a href="#"
-                               class="small text-muted text-decoration-none"
-                               onclick="erPreviewToggle(this,'<?= h($erCardId) ?>','<?= h($erOverlayId) ?>','<?= $erMaxH ?>');return false;">
-                               <i class="fas fa-chevron-down me-1"></i>
-                                <?= __('Show full content') ?>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="border rounded-3 d-flex flex-column align-items-center
-                            justify-content-center text-muted py-4">
-                    <span class="misp-icon misp-icon-report misp-hexagone mb-2 opacity-50" style="font-size:2em;"></span>
-                    <p class="mb-1 fw-semibold small">
-                        <?= __("This event doesn't have a report for the moment") ?>
-                    </p>
-                    <?php if ($erCanAddReport): ?>
-                        <p class="small mb-0">
-                            <a href="<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>"
-                               onclick="event.preventDefault(); openModal('<?= h($baseurl . '/event_reports/add/' . ($data['Event']['id'] ?? '')) ?>');">
-                                   <?= __('Create the first report') ?>
-                            </a>
-                        </p>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-
-        </div>
-
-        <!-- ── PRIMARY: Identifiers + Creator ───────────────── -->
-        <div class="row g-3 mb-3">
-
-            <!-- ID + UUID -->
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <i class="fas fa-fingerprint me-1"></i>
-                        <?= __('Identifiers') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted small fw-bold">ID</span>
-                            <span class="bg-light border rounded px-2 py-1 fw-semibold small font-monospace">
-                                #<?= h($event['id'] ?? '') ?>
-                            </span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted small fw-bold flex-shrink-0">UUID</span>
-                            <div class="d-inline-flex align-items-center gap-1 bg-light border rounded px-2 py-1">
-                                <span class="font-monospace small text-truncate"><?= h($event['uuid'] ?? '') ?></span>
-                                <button
-                                    class="text-muted border-0 bg-transparent p-0 ms-1 flex-shrink-0"
-                                    onclick="copyToClipboard(this, '<?= h($event['uuid'] ?? '') ?>')"
-                                    data-bs-toggle="tooltip"
-                                    title="<?= __('Copy UUID') ?>"
-                                    aria-label="<?= __('Copy UUID') ?>">
-                                    <i class="fas fa-copy" style="font-size:0.75rem;"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Created by -->
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <span class="misp-icon misp-icon-user1 misp-hexagone"></span>
-                        <?= __('Created by') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 py-1">
-                        <div class="d-inline-flex align-items-center gap-2">
-                            <?php $logo = $this->OrgImg->getOrgLogoV2($orgc, 24); ?>
-                            <?= $logo !== '' ? $logo : '<i class="misp-icon misp-icon-organisation misp-simple text-muted"></i>' ?>
-                            <a href="<?= h($baseurl . '/organisations/view/' . $orgc['id']) ?>" 
-                               class="text-decoration-none fw-semibold text-primary"><?= h($orgc['name'] ?? '') ?>
-                            </a>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 text-muted small">
-                            <?php $email = h($user['email'] ?? '') ?>
-                            <?= $email !== '' ? '<span><i class="misp-icon misp-icon-user1 misp-simple"></i>' . $email . '</span>'  : '' ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ── PRIMARY: Distribution + Publication ─────────── -->
-        <div class="row g-3 mb-4">
-
-            <!-- DISTRIBUTION + SHARING GROUP -->
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <i class="fas fa-broadcast-tower me-1"></i>
-                        <?= __('Distribution') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between">
-                        <?= $this->element('genericElementsBS5/Badges/distribution', [
-                            'distribution' => $distribution,
-                            'full'         => true
-                        ]); ?>
-                        <?php if ($distribution === 4 && !empty($sg)): ?>
-                            <a href="<?= h($baseurl . '/sharing_groups/view/' . ($sg['id'] ?? '')) ?>"
-                            class="d-inline-flex align-items-center gap-1 text-decoration-none small">
-                                <span class="misp-icon misp-icon-sharing-group misp-hexagone text-primary"></span>
-                                <?= h($sg['name'] ?? '') ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PUBLICATION: status + dates -->
-            <div class="col-md-6">
-                <div class="rounded-3 border p-3 h-100">
-                    <div class="text-muted small text-uppercase fw-bold mb-2">
-                        <i class="fas fa-paper-plane me-1"></i>
-                        <?= __('Publication') ?>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
-                        <?= $this->element('genericElementsBS5/Badges/boolean', [
-                            'boolean'    => $isPublished,
-                            'full'       => true,
-                            'true'       => __('Published'),
-                            'false'      => __('Unpublished'),
-                            'trueColor'  => 'success',
-                            'falseColor' => 'warning',
-                            'trueIcon'   => 'fa-upload',
-                            'falseIcon'  => 'fa-warning',
-                        ]); ?>
-                        <?php if ($isPublished && !empty($event['first_publication'])): ?>
-                            <div class="d-flex align-items-center gap-1 text-muted small">
-                                <i class="fas fa-flag fa-fw"></i>
-                                <span class="fw-medium"><?= __('First:') ?></span>
-                                <?= $this->Time->time($event['first_publication']) ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($isPublished && !empty($event['publish_timestamp'])): ?>
-                            <div class="d-flex align-items-center gap-1 text-muted small">
-                                <i class="fas fa-history fa-fw"></i>
-                                <span class="fw-medium"><?= __('Last:') ?></span>
-                                <?= $this->Time->time($event['publish_timestamp']) ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ── SECONDARY ─────────────────────────────────────── -->
-
-        <div class="row g-2 align-items-start mb-3">
-
-            <!-- ANALYSIS -->
-            <div class="col-md-3">
+        <!-- ── ANALYSIS + THREAT LEVEL ────────────────────────── -->
+        <div class="row g-4 mb-3">
+            <div class="col-12 col-md-6">
                 <div class="text-muted small text-uppercase fw-bold mb-2">
                     <?= __('Analysis') ?>
                 </div>
-                <?php $analysisPct = (int)(($analysisLevel + 1) / 3 * 100); ?>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="flex-fill" style="height:4px;border-radius:2px;background:#e9ecef;overflow:hidden;">
-                        <div style="height:100%;width:<?= $analysisPct ?>%;border-radius:2px;background:<?= h($analysis['dot']) ?>;"></div>
-                    </div>
-                    <span class="small fw-semibold flex-shrink-0" style="color:<?= h($analysis['dot']) ?>;"><?= h($analysis['label']) ?></span>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                    'field'    => 'analysis',
+                    'value'    => $analysisLevel,
+                    'options'  => $analysisStops,
+                    'readonly' => true,
+                ]) ?>
             </div>
-
-            <!-- THREAT LEVEL -->
-            <div class="col-md-3">
+            <div class="col-12 col-md-6">
                 <div class="text-muted small text-uppercase fw-bold mb-2">
                     <?= __('Threat Level') ?>
                 </div>
-                <?php $threatPct = $threatLevel < 3 ? (int)(($threatLevel + 1) / 3 * 100) : 5; ?>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="flex-fill" style="height:4px;border-radius:2px;background:#e9ecef;overflow:hidden;">
-                        <div style="height:100%;width:<?= $threatPct ?>%;border-radius:2px;background:<?= h($threat['color']) ?>;"></div>
-                    </div>
-                    <span class="small fw-semibold flex-shrink-0" style="color:<?= h($threat['color']) ?>;"><?= h($threat['label']) ?></span>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                    'field'    => 'threat_level_id',
+                    'value'    => $threatLevelId,
+                    'options'  => $threatStops,
+                    'readonly' => true,
+                ]) ?>
             </div>
+        </div>
 
-            <!-- CORRELATION -->
-            <div class="col-md-2">
+        <!-- ── PUBLICATION ───────────────────────────────────── -->
+        <div class="mb-3">
+            <div class="text-muted small text-uppercase fw-bold mb-1">
+                <?= __('Publication') ?>
+            </div>
+            <div class="d-flex align-items-center flex-wrap column-gap-3 row-gap-1">
+                <?= $this->element('genericElementsBS5/Badges/boolean', [
+                    'boolean'    => $isPublished,
+                    'full'       => true,
+                    'true'       => __('Published'),
+                    'false'      => __('Unpublished'),
+                    'trueColor'  => 'success',
+                    'falseColor' => 'warning',
+                    'trueIcon'   => 'fa-upload',
+                    'falseIcon'  => 'fa-warning',
+                ]); ?>
+                <?php if (!empty($event['first_publication'])): ?>
+                    <span class="d-inline-flex align-items-center gap-1 text-muted small">
+                        <i class="fas fa-flag fa-fw"></i>
+                        <span class="fw-medium"><?= __('First:') ?></span>
+                        <?= $this->Time->time($event['first_publication']) ?>
+                    </span>
+                <?php endif; ?>
+                <?php if (!empty($event['publish_timestamp'])): ?>
+                    <span class="d-inline-flex align-items-center gap-1 text-muted small">
+                        <i class="fas fa-history fa-fw"></i>
+                        <span class="fw-medium"><?= __('Last:') ?></span>
+                        <?= $this->Time->time($event['publish_timestamp']) ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ── CORRELATION + STATUS + EXTENSIONS ─────────────── -->
+        <div class="row g-2 align-items-start mb-3">
+
+            <div class="col-12 col-md-6">
                 <div class="text-muted small text-uppercase fw-bold mb-1">
                     <?= __('Correlation') ?>
                 </div>
@@ -284,8 +126,7 @@ $this->set('headerDescription', $headerDescription);
                 ]); ?>
             </div>
 
-            <!-- STATUS: LOCKED + PROTECTED -->
-            <div class="col-md-3">
+            <div class="col-12 col-md-6">
                 <div class="text-muted small text-uppercase fw-bold mb-1">
                     <?= __('Status') ?>
                 </div>
@@ -316,38 +157,38 @@ $this->set('headerDescription', $headerDescription);
                 </div>
             </div>
 
-            <!-- EXTENDS UUID -->
-            <?php if (!empty($event['extends_uuid'])): ?>
-            <div class="col-12">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Extends Event') ?>
-                </div>
-                <a href="<?= h($baseurl . '/events/view/' . $event['extends_uuid']) ?>"
-                   class="font-monospace small text-decoration-none">
-                    <i class="fas fa-code-branch me-1 text-muted"></i>
-                    <?= h($event['extends_uuid']) ?>
-                </a>
-            </div>
-            <?php endif; ?>
+            <!-- EXTENSIONS: what this event extends, what extends it -->
+            <?= $this->element('Events/View/event_extensions', [
+                'data' => $data,
+            ]) ?>
 
         </div>
+
+        <hr class="my-4">
 
         <!--  STATISTICS  -->
         <?php
         $eventId = h($event['id'] ?? '');
         $statsUid = 'evtstats-' . $eventId;
 
-        /* Counts available immediately from already-loaded data */
-        $tagCount = count(array_filter(
-            $eventTags, fn($et) => empty($et['Tag']['is_galaxy'])
-        ));
         $clusterCount = 0;
+        $galaxyTagNames = [];
         foreach ($data['Galaxy'] ?? [] as $gal) {
             $clusterCount += count($gal['GalaxyCluster'] ?? []);
+            foreach ($gal['GalaxyCluster'] ?? [] as $cluster) {
+                if (!empty($cluster['tag_name'])) {
+                    $galaxyTagNames[strtolower($cluster['tag_name'])] = true;
+                }
+            }
         }
+        $tagCount = count(array_filter(
+            $eventTags,
+            fn($et) => empty($et['Tag']['is_galaxy'])
+                || !isset(
+                    $galaxyTagNames[strtolower($et['Tag']['name'] ?? '')]
+                )
+        ));
         ?>
-
-        <hr class="my-4">
 
         <div id="<?= $statsUid ?>">
 
@@ -397,15 +238,15 @@ $this->set('headerDescription', $headerDescription);
                     ]); ?>
                 </div>
 
-                <!-- Reports  -->
+                <!-- Analyst data -->
                 <div class="col-6 col-md-3">
                     <?= $this->element('genericElementsBS5/Stats/metric_pill', [
-                        'icon'  => 'misp-icon misp-icon-report misp-simple',
-                        'color' => '#4DA167',
-                        'label' => __('Reports'),
+                        'icon'  => 'fas fa-comment-dots',
+                        'color' => '#8F2D56',
+                        'label' => __('Analyst datas'),
                         'value' => null,
-                        'id'    => $statsUid . '-reports',
-                        'onclick' => "window.scrollTo({top: document.getElementById('report-card').offsetTop - window.innerHeight * 0.1, behavior:'smooth'});",
+                        'id'    => $statsUid . '-analyst-datas',
+                        'onclick' => "window.scrollTo({top: document.getElementById('analyst-data-card').offsetTop - window.innerHeight * 0.1, behavior:'smooth'});",
                     ]); ?>
                 </div>
 
@@ -415,69 +256,6 @@ $this->set('headerDescription', $headerDescription);
 
     </div>
 </div>
-
-<?php if ($erHasReport): ?>
-    <script>
-    (function () {
-        var raw       = <?= json_encode($erContent) ?>;
-        var bodyId    = <?= json_encode($erBodyId) ?>;
-        var cardId    = <?= json_encode($erCardId) ?>;
-        var overlayId = <?= json_encode($erOverlayId) ?>;
-        var maxH      = <?= json_encode($erMaxH) ?>;
-
-        function checkOverflow() {
-            var card    = document.getElementById(cardId);
-            var overlay = document.getElementById(overlayId);
-            if (!card || !overlay) { return; }
-            if (card.scrollHeight > card.offsetHeight + 4) {
-                overlay.style.display = 'block';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            var target = document.getElementById(bodyId);
-            if (!target) { return; }
-            function render() {
-                if (window.markdownit) {
-                    var md = window.markdownit({
-                        html: false, linkify: true, typographer: true
-                    });
-                    target.innerHTML = md.render(raw);
-                    checkOverflow();
-                } else {
-                    setTimeout(render, 100);
-                }
-            }
-            render();
-        });
-
-        if (typeof erPreviewToggle === 'undefined') {
-            window.erPreviewToggle = function (link, cId, oId, mH) {
-                var card     = document.getElementById(cId);
-                var overlay  = document.getElementById(oId);
-                var gradient = overlay.querySelector('div');
-                var icon     = link.querySelector('i');
-                var expanded = card.dataset.erExpanded === '1';
-                if (expanded) {
-                    card.style.maxHeight    = mH;
-                    card.style.overflow     = 'hidden';
-                    card.dataset.erExpanded = '0';
-                    gradient.style.display  = '';
-                    icon.className = 'fas fa-chevron-down me-1';
-                    link.lastChild.textContent = ' <?= __('Show full content') ?>';
-                } else {
-                    card.style.maxHeight    = 'none';
-                    card.style.overflow     = 'visible';
-                    card.dataset.erExpanded = '1';
-                    gradient.style.display  = 'none';
-                    icon.className = 'fas fa-chevron-up me-1';
-                    link.lastChild.textContent = ' <?= __('Collapse') ?>';
-                }
-            };
-        }
-    }());
-    </script>
-<?php endif; ?>
 
 <script>
 (function () {
@@ -492,20 +270,28 @@ $this->set('headerDescription', $headerDescription);
         '#06B6D4','#E11D48'
     ];
 
-    fetch(fetchUrl)
-        .then(function (r) { return r.json(); })
-        .then(function (stats) {
-            renderCharts(stats);
-            updatePill(uid + '-attachments', stats.attachments);
-            updatePill(uid + '-reports',     stats.reports);
-        })
-        .catch(function () {
-            document.getElementById(uid + '-charts').innerHTML =
-                '<div class="col-12 text-center text-muted small py-2">'
-                + '<i class="fas fa-exclamation-triangle me-1"></i>'
-                + <?= json_encode(__('Could not load statistics.')) ?>
-                + '</div>';
-        });
+    var loaded = false;
+
+    function loadStats() {
+        if (loaded) { return; }
+        loaded = true;
+        fetch(fetchUrl)
+            .then(function (r) { return r.json(); })
+            .then(function (stats) {
+                renderCharts(stats);
+                updatePill(uid + '-attachments', stats.attachments);
+                updatePill(uid + '-analyst-datas',     stats.analyst_datas);
+            })
+            .catch(function () {
+                document.getElementById(uid + '-charts').innerHTML =
+                    '<div class="col-12 text-center text-muted small py-2">'
+                    + '<i class="fas fa-exclamation-triangle me-1"></i>'
+                    + <?= json_encode(__('Could not load statistics.')) ?>
+                    + '</div>';
+            });
+    }
+
+    loadStats();
 
     /* ---- Update a pill value S ---- */
     function updatePill(pillId, value) {
@@ -595,7 +381,7 @@ $this->set('headerDescription', $headerDescription);
                         + ' style="width:10px;height:10px;background:'
                         + colors[i] + ';display:inline-block;"></span>'
                         + '<span class="text-truncate flex-fill"'
-                        + ' title="' + lbl + '">' + lbl + '</span>'
+                        + ' title="' + escapeHtml(lbl) + '">' + escapeHtml(lbl) + '</span>'
                         + '<span class="text-muted ms-1 flex-shrink-0">'
                         + values[i] + ' <span class="opacity-50">(' + pct + '%)</span>'
                         + '</span>'

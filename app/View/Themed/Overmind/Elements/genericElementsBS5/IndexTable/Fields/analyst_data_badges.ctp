@@ -23,10 +23,14 @@ if ($uuid === '') {
     echo '<span class="text-muted">&mdash;</span>';
     return;
 }
-$onclick = sprintf(
-    "event.stopPropagation(); openModal('%s/analystData/viewForObject/%s/%s');",
-    h($baseurl), h($objectType), h($uuid)
-);
+// The server preview passes the remote side's uuid, which nothing validated
+$onclick = h(sprintf(
+    'event.stopPropagation(); openModal(%s);',
+    json_encode(sprintf(
+        '%s/analystData/viewForObject/%s/%s',
+        $baseurl, rawurlencode($objectType), rawurlencode($uuid)
+    ))
+));
 ?>
 <?php if ($total === 0): ?>
     <a href="#" class="text-muted text-decoration-none" title="<?= __('View / add analyst data') ?>"

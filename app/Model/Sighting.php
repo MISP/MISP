@@ -66,7 +66,8 @@ class Sighting extends AppModel
     public $validFormats = array(
         'json' => array('json', 'JsonExport', 'json'),
         'xml' => array('xml', 'XmlExport', 'xml'),
-        'csv' => array('csv', 'CsvExport', 'csv')
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        'xlsx' => array('xlsx', 'XlsxExport', 'xlsx')
     );
 
     public function beforeValidate($options = array())
@@ -184,7 +185,8 @@ class Sighting extends AppModel
             }
 
             $orgId = 0;
-            if (isset($sighting['Organisation'])) {
+            // Only sync users and site admins record sightings on behalf of other organisations
+            if (isset($sighting['Organisation']) && (!empty($user['Role']['perm_sync']) || !empty($user['Role']['perm_site_admin']))) {
                 if (isset($existingOrganisations[$sighting['Organisation']['uuid']])) {
                     $orgId = $existingOrganisations[$sighting['Organisation']['uuid']];
                 } else {
@@ -193,7 +195,7 @@ class Sighting extends AppModel
             } else if (isset($user['org_id'])) {
                 $orgId = $user['org_id'];
             }
-            unset($sighting['id']);
+            unset($sighting['id'], $sighting[$this->alias]);
 
             $sighting['org_id'] = $orgId;
             $sighting['event_id'] = $eventId;
@@ -435,9 +437,10 @@ class Sighting extends AppModel
     /**
      * @param array $user
      * @param array $attributes Attributes with `Attribute.id`, `Event.id` and `Event.org_id` fields
+     * @param array $reporterCache isReporter results keyed by event ID, shared across chunks
      * @return array
      */
-    private function createConditionsByAttributes(array $user, array $attributes)
+    private function createConditionsByAttributes(array $user, array $attributes, array &$reporterCache = [])
     {
         $sightingsPolicy = $this->sightingsPolicy();
 
@@ -461,23 +464,52 @@ class Sighting extends AppModel
             }
         }
 
-        // Create conditions for merged attributes
+        // Create conditions for merged attributes. Under every policy the per event conditions collapse to at most
+        // two distinct shapes (no org filter for own events, one fixed org filter for foreign events), so group the
+        // attribute IDs by shape instead of emitting one `OR` branch per event - a chunk spanning thousands of events
+        // would otherwise produce thousands of `OR` branches, which is much slower than a single large `IN` list.
         $hostOrgId = Configure::read('MISP.host_org_id');
-        $conditions = [];
+        $unfilteredIds = []; // attribute IDs that need no org filter
+        $orgFilteredIds = []; // attribute IDs that need the org filter below
+        $orgFilter = null;
         foreach ($attributesByEventId as $eventId => $eventAttributes) {
-            $attributeConditions = ['Sighting.attribute_id' => $eventAttributes['ids']];
+            $filtered = false;
             if (!$eventAttributes['ownEvent']) {
                 if ($sightingsPolicy === self::SIGHTING_POLICY_EVENT_OWNER) {
-                    $attributeConditions['Sighting.org_id'] = $userOrgId;
+                    $orgFilter = $userOrgId;
+                    $filtered = true;
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
-                    if (!$this->isReporter($eventId, $userOrgId)) {
+                    if (!isset($reporterCache[$eventId])) {
+                        $reporterCache[$eventId] = $this->isReporter($eventId, $userOrgId);
+                    }
+                    if (!$reporterCache[$eventId]) {
                         continue; // skip event
                     }
                 } else if ($sightingsPolicy === self::SIGHTING_POLICY_HOST_ORG) {
-                    $attributeConditions['Sighting.org_id'] = [$userOrgId, $hostOrgId];
+                    $orgFilter = [$userOrgId, $hostOrgId];
+                    $filtered = true;
                 }
             }
-            $conditions['OR'][] = $attributeConditions;
+            if ($filtered) {
+                foreach ($eventAttributes['ids'] as $id) {
+                    $orgFilteredIds[] = $id;
+                }
+            } else {
+                foreach ($eventAttributes['ids'] as $id) {
+                    $unfilteredIds[] = $id;
+                }
+            }
+        }
+
+        $conditions = [];
+        if (!empty($unfilteredIds)) {
+            $conditions['OR'][] = ['Sighting.attribute_id' => $unfilteredIds];
+        }
+        if (!empty($orgFilteredIds)) {
+            $conditions['OR'][] = [
+                'Sighting.attribute_id' => $orgFilteredIds,
+                'Sighting.org_id' => $orgFilter,
+            ];
         }
         return $conditions;
     }
@@ -733,6 +765,56 @@ class Sighting extends AppModel
     }
 
     /**
+     * Bulk variant of `attachToEvent` for a whole batch of attributes. Instead of running two queries per attribute,
+     * sightings for all provided attributes are fetched with a few grouped queries.
+     *
+     * @param array $attributes Attributes with `Attribute.id`, `Attribute.uuid`, `Event.id` and `Event.org_id` fields
+     * @param array $user
+     * @param bool $forSync
+     * @return array Sightings grouped by attribute ID
+     */
+    public function attachToAttributes(array $attributes, array $user, $forSync = false)
+    {
+        if (empty($attributes)) {
+            return [];
+        }
+
+        $attributeUuids = [];
+        foreach ($attributes as $attribute) {
+            $attributeUuids[$attribute['Attribute']['id']] = $attribute['Attribute']['uuid'];
+        }
+
+        $sightings = [];
+        $reporterCache = []; // memoize isReporter per event ID across chunks
+        // Chunk attributes to keep the generated `IN` conditions reasonably sized
+        foreach (array_chunk($attributes, 5000) as $chunk) {
+            $conditions = $this->createConditionsByAttributes($user, $chunk, $reporterCache);
+            if (empty($conditions)) {
+                continue; // user is not allowed to see any sighting for this chunk
+            }
+            $chunkSightings = $this->find('all', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+            ]);
+            foreach ($chunkSightings as $sighting) {
+                $sighting['Sighting']['attribute_uuid'] = $attributeUuids[$sighting['Sighting']['attribute_id']];
+                $sightings[] = $sighting;
+            }
+        }
+        if (empty($sightings)) {
+            return [];
+        }
+
+        $sightings = $this->attachOrgToSightings($sightings, $user, $forSync);
+
+        $grouped = [];
+        foreach ($sightings as $sighting) {
+            $grouped[$sighting['attribute_id']][] = $sighting;
+        }
+        return $grouped;
+    }
+
+    /**
      * @param array $event Just 'Event' object is enough
      * @param array $user
      * @param array|int|null $attribute Attribute model or attribute ID
@@ -843,8 +925,13 @@ class Sighting extends AppModel
                 'fields' => ['Attribute.id', 'Attribute.event_id'],
             ]);
         } else {
-            $filters['value'] = $values;
+            if (!empty($values)) {
+                $filters['value'] = $values;
+            }
             $params = $this->Attribute->restSearch($user, 'json', $filters, true);
+            if (!empty($conditions)) {
+                $params['conditions'] = ['AND' => [$params['conditions'], $conditions]];
+            }
             $attributes = $this->Attribute->fetchAttributes($user, $params);
         }
         if (empty($attributes)) {
@@ -883,33 +970,6 @@ class Sighting extends AppModel
             }
         }
         return $sightingsAdded;
-    }
-
-    public function handleStixSighting($data)
-    {
-        $randomFileName = $this->generateRandomFileName();
-        $tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
-
-        // save the json_encoded event(s) to the temporary file
-        if (!$tempFile->write($data)) {
-            return array('success' => 0, 'message' => 'Could not write the Sightings file to disk.');
-        }
-        $tempFile->close();
-        $scriptFile = APP . "files" . DS . "scripts" . DS . "stixsighting2misp.py";
-        // Execute the python script and point it to the temporary filename
-        $result = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile, $randomFileName]);
-        // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
-        // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
-        $result = json_decode($result, true);
-
-        if ($result['success'] == 1) {
-            $file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-            $result['data'] = $file->read();
-            $file->close();
-            $file->delete();
-        }
-        $tempFile->delete();
-        return $result;
     }
 
     /**
@@ -981,6 +1041,9 @@ class Sighting extends AppModel
             'Sighting.' . $context . '_id' => $objectIds
         );
         if ($orgId) {
+            if (!$this->orgFilterAllowed($user, $orgId)) {
+                return [];
+            }
             $conditions[] = array('Sighting.org_id' => $orgId);
         }
         if ($sightingsType !== false) {
@@ -1040,6 +1103,21 @@ class Sighting extends AppModel
             }
         }
         return $sightings;
+    }
+
+    /**
+     * With anonymised sightings, a filter on another organisation would name
+     * the reporter of what it returns.
+     *
+     * @param array $user
+     * @param int|string|null $orgId
+     * @return bool
+     */
+    private function orgFilterAllowed(array $user, $orgId)
+    {
+        return !Configure::read('Plugin.Sightings_anonymise') ||
+            !empty($user['Role']['perm_site_admin']) ||
+            $orgId == $user['org_id'];
     }
 
      /**
@@ -1132,6 +1210,12 @@ class Sighting extends AppModel
                     if (!empty($org)) {
                         $temp = $org['Organisation']['id'];
                     }
+                }
+                if (!$this->orgFilterAllowed($user, $temp ?? null)) {
+                    if ($negation) {
+                        continue;
+                    }
+                    $temp = -1;
                 }
                 if ($negation) {
                     $conditions['Sighting.org_id NOT IN'][] = $temp;
@@ -1240,7 +1324,11 @@ class Sighting extends AppModel
             }
         }
 
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 
@@ -1268,12 +1356,15 @@ class Sighting extends AppModel
 
         // Fetch attributes IDs and event IDs
         $attributesToTransform = $this->Attribute->fetchAttributesSimple($user, [
-            'conditions' => ['Attribute.uuid' => array_unique(array_column($sightings, 'attribute_uuid'))],
-            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.event_id'],
+            'conditions' => [
+                'Attribute.uuid' => array_unique(array_column($sightings, 'attribute_uuid')),
+                'Attribute.event_id' => $event['Event']['id'],
+            ],
+            'fields' => ['Attribute.id', 'Attribute.uuid'],
         ]);
         $attributes = [];
         foreach ($attributesToTransform as $attribute) {
-            $attributes[$attribute['Attribute']['uuid']] = [$attribute['Attribute']['id'], $attribute['Attribute']['event_id']];
+            $attributes[$attribute['Attribute']['uuid']] = $attribute['Attribute']['id'];
         }
 
         $toSave = [];
@@ -1286,7 +1377,7 @@ class Sighting extends AppModel
             }
             $existingSighting[$s['uuid']] = true; // just to be sure that there are no sightings with duplicated UUID
 
-            list($attributeId, $eventId) = $attributes[$s['attribute_uuid']];
+            $attributeId = $attributes[$s['attribute_uuid']];
 
             if ($s['type'] === '2') {
                 // remove existing expiration by the same org if it exists
@@ -1311,7 +1402,7 @@ class Sighting extends AppModel
 
             $toSave[] = [
                 'attribute_id' => $attributeId,
-                'event_id' => $eventId,
+                'event_id' => $event['Event']['id'],
                 'org_id' => $saveOnBehalfOf === false ? $user['org_id'] : $saveOnBehalfOf,
                 'date_sighting' => $s['date_sighting'],
                 'type' => $s['type'],
@@ -1451,6 +1542,24 @@ class Sighting extends AppModel
             }
         }
         unset($remoteEvents, $localEvents);
+        if (empty($eventUuids)) {
+            return 0;
+        }
+
+        $server = $serverSync->server();
+        if (!isset($server['RemoteOrg'])) {
+            $remoteOrg = $this->Event->Orgc->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Orgc.id' => $server['Server']['remote_org_id']],
+                'fields' => ['Orgc.id', 'Orgc.uuid'],
+            ]);
+            $server['RemoteOrg'] = $remoteOrg ? $remoteOrg['Orgc'] : [];
+        }
+        foreach (array_keys($eventUuids) as $eventUuid) {
+            if (!$this->Event->syncedWithServer($eventUuid, $server, $user)) {
+                unset($eventUuids[$eventUuid]);
+            }
+        }
         if (empty($eventUuids)) {
             return 0;
         }
@@ -1720,11 +1829,8 @@ class Sighting extends AppModel
 
     private function dateVirtualColumn()
     {
-        if ($this->isMysql()) {
-            return 'DATE(FROM_UNIXTIME(Sighting.date_sighting))';
-        } else {
-            return "to_char(date(to_timestamp(Sighting.date_sighting)), 'YYYY-MM-DD')"; // PostgreSQL
-        }
+        $dialect = $this->getSqlDialect();
+        return $dialect->dateOf($dialect->fromUnixtime('Sighting.date_sighting'));
     }
 
     /**

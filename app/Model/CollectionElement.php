@@ -130,61 +130,6 @@ class CollectionElement extends AppModel
         );
     }
 
-    public function mayModify(int $user_id, int $collection_id)
-    {
-        $user = $this->User->getAuthUser($user_id);
-        $collection = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Collection.id' => $collection_id]
-        ]);
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if (empty($user['Role']['perm_modify'])) {
-            return false;
-        }
-        if (!empty($user['Role']['perm_modify_org'])) {
-            if ($user['org_id'] == $collection['Collection']['orgc_id']) {
-                return true;
-            }
-            if ($user['Role']['perm_sync'] && $user['org_id'] == $collection['Collection']['org_id']) {
-                return true;
-            }            
-        }
-        if (!empty($user['Role']['perm_modify']) && $user['id'] === $collection['Collection']['user_id']) {
-            return true;
-        }
-        return false;
-    }
-
-    public function mayView(int $user_id, int $collection_id)
-    {
-        $user = $this->User->getAuthUser($user_id);
-        $collection = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Collection.id' => $collection_id]
-        ]);
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if ($collection['Collection']['org_id'] == $user['org_id']) {
-            return true;
-        }
-        if (in_array($collection['Collection']['distribution'], [1,2,3])) {
-            return true;
-        }
-        if ($collection['Collection']['distribution'] === 4) {
-            $SharingGroup = ClassRegistry::init('SharingGroup');
-            $sgs = $this->SharingGroup->fetchAllAuthorised($user, 'uuid');
-            if (isset($sgs[$collection['Collection']['sharing_group_id']])) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return false;
-    }
-
     public function deduceType(string $uuid)
     {
         foreach ($this->valid_types as $valid_type) {
@@ -215,12 +160,24 @@ class CollectionElement extends AppModel
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
         ]);
         $oldElements = [];
+        $oldByTarget = [];
         foreach ($temp as $oldElement) {
             $oldElements[$oldElement['CollectionElement']['uuid']] = $oldElement['CollectionElement'];
+            $oldByTarget[$this->targetKey($oldElement['CollectionElement'])] = $oldElement['CollectionElement']['uuid'];
         }
         if (isset($data['Collection']['CollectionElement'])) {
             $elementsToSave = [];
             foreach ($data['Collection']['CollectionElement'] as $k => $element) {
+                // Without a known uuid, a stored element with the same target is
+                // this one: a new row would hit the unique key, and the stored one
+                // would then be culled as absent
+                $key = $this->targetKey($element);
+                if (
+                    (empty($element['uuid']) || !isset($oldElements[$element['uuid']])) &&
+                    $key !== '' && isset($oldByTarget[$key]) && isset($oldElements[$oldByTarget[$key]])
+                ) {
+                    $element['uuid'] = $oldByTarget[$key];
+                }
                 if (empty($element['uuid'])) {
                     $element['uuid'] = CakeText::uuid();
                 }
@@ -287,5 +244,16 @@ class CollectionElement extends AppModel
             $this->skipCollectionModifiedBump = false;
         }
         return $data;
+    }
+
+    /**
+     * @param array $element
+     * @return string What the unique key on the target holds, lowercased; ''
+     *      when the element names no target.
+     */
+    private function targetKey(array $element)
+    {
+        $address = $element['element_uuid'] ?? null;
+        return is_string($address) ? strtolower(trim($address)) : '';
     }
 }
