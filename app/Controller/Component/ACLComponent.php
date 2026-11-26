@@ -171,6 +171,7 @@ class ACLComponent extends Component
             'holding' => ['*'],
             'index' => ['*'],
             'indexMinimal' => ['*'],
+            'peek' => ['*'],
             'publish' => ['AND' => ['perm_modify', 'perm_publish']],
             'queryDescribe' => ['perm_complex_query'],
             'quickAdd' => ['perm_modify'],

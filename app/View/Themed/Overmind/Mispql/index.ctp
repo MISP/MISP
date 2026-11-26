@@ -7,6 +7,8 @@
  * @var array $history MispQLHistory entries
  * @var array|null $intelGraph set when the workspace dock boots: the grid's
  *                             rows can then be added to collections
+ * @var array $inPlace which of MISP's views a cell opens in place:
+ *                     {peeks, valueCard, reportReader}
  */
 $this->set('headerTitle', __('Query console'));
 $this->set('headerBreadcrumb', [__('API'), 'MispQL']);
@@ -36,12 +38,28 @@ if (empty($intelGraph)) {
     ]);
 }
 
-$modules = ['client', 'console', 'popover', 'results', 'rewrite', 'selection', 'snippets', 'suggest', 'tokens', 'util', 'writer'];
+$asset = function ($path) use ($baseurl, $queryVersion) {
+    $version = is_file(WWW_ROOT . $path) ? filemtime(WWW_ROOT . $path) : $queryVersion;
+    return $baseurl . '/' . $path . '?v=' . $version;
+};
+$modules = [
+    'client', 'console', 'inplace', 'popover', 'results', 'rewrite', 'selection', 'snippets', 'suggest', 'tokens',
+    'util', 'writer',
+];
 $imports = [];
 foreach ($modules as $module) {
     $path = 'js/mispql/' . $module . '.mjs';
-    $version = is_file(WWW_ROOT . $path) ? filemtime(WWW_ROOT . $path) : $queryVersion;
-    $imports[$baseurl . '/' . $path] = $baseurl . '/' . $path . '?v=' . $version;
+    $imports[$baseurl . '/' . $path] = $asset($path);
+}
+// A report opens in the event page's reader, its scripts loaded on the first one opened
+$inPlace = $inPlace ?? [];
+if (!empty($inPlace['reportReader'])) {
+    $inPlace['reportReader'] = [
+        'css' => [$asset('css/event-overview.css')],
+        'js' => array_map(function ($name) use ($asset) {
+            return $asset('js/' . $name . '.js');
+        }, ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'event-report-reader']),
+    ];
 }
 $entry = $imports[$baseurl . '/js/mispql/console.mjs'];
 $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES;
@@ -127,5 +145,9 @@ $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_
 <?php endif; ?>
 <script type="application/json" id="mispql-language-pack"><?= json_encode($pack, $jsonFlags) ?></script>
 <script type="application/json" id="mispql-history"><?= json_encode($history, $jsonFlags) ?></script>
+<script type="application/json" id="mispql-in-place"><?= json_encode($inPlace, $jsonFlags) ?></script>
+<?php if (!empty($inPlace['reportReader'])): ?>
+<?= $this->element('Events/View/report_reader') ?>
+<?php endif; ?>
 <script type="importmap"><?= json_encode(['imports' => $imports], $jsonFlags) ?></script>
 <script type="module" src="<?= h($entry) ?>"></script>

@@ -300,6 +300,11 @@ class MispQLTables
         'Event.Org.id', 'Event.Org.uuid', 'Event.Orgc.id', 'Event.Orgc.uuid',
     ];
 
+    /** Sharing group columns, linked wherever a table's rows carry them. */
+    const SHARING_GROUP_LINKS = [
+        'sharing_group_id', 'Object.sharing_group_id', 'SharingGroup.id', 'SharingGroup.uuid',
+    ];
+
     /** Fields offered from a list or looked up wherever a table has them. */
     const FIELD_VALUES = ['distribution' => 'distribution'];
 
@@ -367,6 +372,7 @@ class MispQLTables
         'Collection' => ['/collections/view/%s', 'collections'],
         'Tag' => ['/events/index/searchtag:%s', 'events'],
         'Organisation' => ['/organisations/view/%s', 'organisations'],
+        'SharingGroup' => ['/sharing_groups/view/%s', null],
         'Value' => ['/values/view/%s', null],
     ];
 
@@ -469,7 +475,8 @@ class MispQLTables
      */
     public function links($name)
     {
-        return self::TABLES[$name]['links'] + array_fill_keys(self::ORGANISATION_LINKS, 'Organisation');
+        return self::TABLES[$name]['links'] + array_fill_keys(self::ORGANISATION_LINKS, 'Organisation')
+            + array_fill_keys(self::SHARING_GROUP_LINKS, 'SharingGroup');
     }
 
     /**

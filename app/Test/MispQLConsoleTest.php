@@ -98,6 +98,8 @@ class MispQLConsoleTest extends TestCase
         $this->assertSame('Organisation', $links->{'Event.Orgc.id'});
         $this->assertSame('Tag', $pack['tables']->tags['links']->id);
         $this->assertSame('Organisation', $pack['tables']->tags['links']->org_id);
+        $this->assertSame('SharingGroup', $links->sharing_group_id);
+        $this->assertSame('SharingGroup', $pack['tables']->attributes['links']->{'Object.sharing_group_id'});
     }
 
     public function testPackPagesFollowTheTablesTheUserMayQuery()
@@ -105,6 +107,7 @@ class MispQLConsoleTest extends TestCase
         $pack = $this->pack(new MispQLConsoleTestBackend());
         $this->assertSame([
             'Attribute' => '/attributes/view/%s',
+            'SharingGroup' => '/sharing_groups/view/%s',
             'Value' => '/values/view/%s',
         ], (array)$pack['pages'], 'a tag opens the events carrying it, which this user cannot search');
 
@@ -115,7 +118,7 @@ class MispQLConsoleTest extends TestCase
         $backend = new MispQLConsoleTestBackend();
         $backend->tables = [];
         $this->assertStringContainsString(
-            '"pages":{"Value":"/values/view/%s"}',
+            '"pages":{"SharingGroup":"/sharing_groups/view/%s","Value":"/values/view/%s"}',
             json_encode($this->pack($backend), JSON_UNESCAPED_SLASHES)
         );
     }

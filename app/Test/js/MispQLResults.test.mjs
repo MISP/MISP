@@ -2,7 +2,7 @@ import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient, failureMessage } from '../../webroot/js/mispql/client.mjs';
 import { snippets } from '../../webroot/js/mispql/snippets.mjs';
-import { cellLink, columnField, filterEntries, tagEntries, sortNameOf, nextOrder, levelNames, tagLane, tagParts } from '../../webroot/js/mispql/results.mjs';
+import { cellLink, openSpec, columnField, filterEntries, tagEntries, sortNameOf, nextOrder, levelNames, tagLane, tagParts } from '../../webroot/js/mispql/results.mjs';
 
 const f = (type, level, operators) => ({ type: type, level: [level], operators: operators });
 const EQ = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
@@ -108,6 +108,14 @@ describe('Cells', () => {
         assert.equal(cellLink(ctx('notes'), 'object_uuid', uuid, {}), null, 'without the type column');
         const sha = 'A'.repeat(64);
         assert.equal(cellLink(ctx('notes'), 'object_sha256', sha, {}).href, '/misp/values/view/sha256:' + 'a'.repeat(64));
+    });
+
+    test('a sharing group links to its page once the pack has it', () => {
+        const withSg = { pages: Object.assign({ SharingGroup: '/sharing_groups/view/%s' }, PACK.pages),
+            tables: { events: { links: { sharing_group_id: 'SharingGroup' } } } };
+        const c = { pack: withSg, tableName: 'events', baseurl: '/misp' };
+        assert.deepEqual(cellLink(c, 'sharing_group_id', '3', {}), { href: '/misp/sharing_groups/view/3', type: 'SharingGroup', address: '3' });
+        assert.equal(cellLink(c, 'sharing_group_id', '0', {}), null, 'no sharing group');
     });
 });
 
@@ -352,5 +360,25 @@ describe('Header sort', () => {
             [{ name: 'timestamp', dir: 'DESC' }, { name: 'value', dir: 'ASC' }]);
         assert.deepEqual(nextOrder(attributes, [{ name: 'timestamp', dir: 'DESC' }, { name: 'value', dir: 'ASC' }], 'value', true),
             [{ name: 'timestamp', dir: 'DESC' }, { name: 'value', dir: 'DESC' }]);
+    });
+});
+
+describe('Opened in place', () => {
+    const link = (type, address) => ({ type: type, address: address, href: '/x' });
+
+    test('a type mapped to true opens with a plain caret, named by its record', () => {
+        assert.deepEqual(openSpec({ Object: true }, link('Object', '12')), { label: 'the object', cls: '', attrs: {} });
+    });
+
+    test("a view's label and caret: the class and attributes of its own trigger", () => {
+        const opens = { Event: { label: 'the event', caret: (l) => (l.address === '1' ? { cls: 'ev-ref', attrs: { 'data-ev-peek': '1' } } : null) } };
+        assert.deepEqual(openSpec(opens, link('Event', '1')), { label: 'the event', cls: 'ev-ref', attrs: { 'data-ev-peek': '1' } });
+        assert.equal(openSpec(opens, link('Event', '2')), null, 'a cell the view cannot open');
+    });
+
+    test('nothing for a type the page does not open, nor without a link', () => {
+        assert.equal(openSpec({ Object: true }, link('Event', '1')), null);
+        assert.equal(openSpec({ Object: true }, null), null);
+        assert.equal(openSpec(null, link('Object', '1')), null);
     });
 });

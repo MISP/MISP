@@ -10,7 +10,7 @@ import { createClient } from './client.mjs';
 import * as R from './results.mjs';
 import { apiCallPanel } from './snippets.mjs';
 import { addableRecords, blockedReason, itemsOf } from './selection.mjs';
-import { objectView } from './popover.mjs';
+import { createInPlace } from './inplace.mjs';
 import { el, esc, fmtInt, ago, clock } from './util.mjs';
 
 const SESSION_KEEP = 20;
@@ -232,7 +232,7 @@ function boot() {
         return ex.tables.every(function (t) { return pack.tables[t]; });
     });
     const sessionResults = new Map();
-    const openedViews = new Map();
+    const inPlace = createInPlace({ baseurl: baseurl, client: client, config: readJsonScript('mispql-in-place', {}) });
     const selBarEl = document.getElementById('mql-selbar');
     const selection = selBarEl ? selectionBar(selBarEl) : null;
     let tab = 'history';
@@ -397,7 +397,7 @@ function boot() {
         if (selection) {
             selection.hide();
         }
-        openedViews.clear();
+        inPlace.reset();
         const head = el('div', 'wb-result-head');
         const meta = [];
         if (r.table) {
@@ -481,43 +481,12 @@ function boot() {
             onInsert: function (text) { writer.insert(text + ' '); },
             onPick: function (table) { writer.setValue('DESCRIBE ' + table); run(writer.statementAtCursor()); },
             onLocate: function (e) { locate(r, e); },
-            opens: window.IntelGraphWorking ? { Object: true } : null,
-            onOpen: openInPlace,
+            opens: inPlace.views,
+            onOpen: inPlace.open,
         }, selecting)));
         if (runnable) {
             resultEl.appendChild(apiCallPanel(r.statement, r.plan, apiBase, { explain: true }));
         }
-    }
-
-    /**
-     * A record opened in place, in the workspace's popover: an object, read
-     * once per result. A second open of the same object closes it.
-     */
-    function openInPlace(link, anchor) {
-        if (!link || link.type !== 'Object' || !window.IntelGraphWorking) {
-            return;
-        }
-        let view = openedViews.get(link.address);
-        if (!view) {
-            view = client.object(link.address).then(objectView);
-            openedViews.set(link.address, view);
-        }
-        anchor.setAttribute('aria-busy', 'true');
-        view.then(function (v) {
-            anchor.removeAttribute('aria-busy');
-            if (!v) {
-                throw new Error('no object');
-            }
-            if (document.contains(anchor)) {
-                window.IntelGraphWorking.openObject(v, anchor, null);
-            }
-        }).catch(function () {
-            anchor.removeAttribute('aria-busy');
-            openedViews.delete(link.address);
-            if (typeof window.showToast === 'function') {
-                window.showToast('The object could not be read: it may be deleted, or not shared with you.', 'danger');
-            }
-        });
     }
 
     /** The request behind a result: explain's plan, else what run sent back. */

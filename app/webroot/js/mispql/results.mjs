@@ -347,7 +347,7 @@ var RECORD_LABEL = {
     Attribute: 'the attribute', Event: 'the event', Object: 'the object', GalaxyCluster: 'the galaxy cluster',
     Galaxy: 'the galaxy', EventReport: 'the event report', Note: 'the note', Opinion: 'the opinion',
     Relationship: 'the relationship', Collection: 'the collection', Tag: 'the events carrying the tag',
-    Organisation: 'the organisation',
+    Organisation: 'the organisation', SharingGroup: 'the sharing group',
     Value: 'the value\'s page'
 };
 
@@ -409,6 +409,39 @@ function cellLink(ctx, column, value, row) {
         address = s;
     }
     return address === null ? null : { href: (ctx.baseurl || '') + pages[type].replace('%s', address), type: type, address: address };
+}
+
+/**
+ * How a linked record opens in place, from the page's `opens` (record type
+ * => true, or {label, caret(link)}): {label, cls, attrs}, or null when it
+ * does not. `cls` and `attrs` make the caret the trigger of a view MISP
+ * opens itself (a hover card, a peek).
+ */
+function openSpec(opens, link) {
+    var view = link && opens ? opens[link.type] : null;
+    if (!view) {
+        return null;
+    }
+    var caret = view === true || typeof view.caret !== 'function' ? {} : view.caret(link);
+    if (!caret) {
+        return null;
+    }
+    return {
+        label: (view !== true && view.label) || RECORD_LABEL[link.type] || link.type,
+        cls: caret.cls || '',
+        attrs: caret.attrs || {},
+    };
+}
+
+function caretHTML(open, value) {
+    var attrs = Object.keys(open.attrs).map(function (k) {
+        return ' ' + k + '="' + esc(String(open.attrs[k])) + '"';
+    }).join('');
+    // A trigger of MISP's own opens on hover: a native tooltip would cover it
+    return '<button type="button" class="cq-open' + (open.cls ? ' ' + esc(open.cls) : '') + '" tabindex="-1" aria-haspopup="dialog"' +
+        ' aria-label="Open ' + esc(open.label + ' ' + String(value)) + ' here"' +
+        (open.cls ? '' : ' title="Open ' + esc(open.label) + ' here"') + attrs + '>' +
+        '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>';
 }
 
 var TIMELIKE = { timestamp: 1, date: 1, datetime: 1 };
@@ -702,10 +735,10 @@ function csvOf(columns, rows) {
  * SELECT *, CSV text for FORMAT flat; pager driven by `total`.
  * opts: {pack, baseurl, valueAddress(value), onPage(statement), onFilter(statement),
  *        onSelect(indices, {drawn, returned, clear}), unselectable(index) → reason or '',
- *        opens: {RecordType: true}, onOpen(link, cell)}
+ *        opens: {RecordType: true | {label, caret(link)}}, onOpen(link, cell)}
  * With onSelect, the grid draws a checkbox column over the rows it draws. A
  * linked record of a type in `opens` gets a caret and a menu entry that hand
- * it to onOpen, for the page to open it in place.
+ * it to onOpen, for the page to open it in place (openSpec()).
  */
 function renderRows(r, opts) {
     opts = opts || {};
@@ -800,10 +833,9 @@ function renderRows(r, opts) {
                 if (link) {
                     content = '<a class="cq-link" href="' + esc(link.href) + '" target="_blank" rel="noopener" tabindex="-1" title="Open ' +
                         esc(RECORD_LABEL[link.type] || link.type) + ' in a new tab">' + content + '<i class="fa-solid fa-arrow-up-right-from-square cq-ext" aria-hidden="true"></i></a>';
-                    if (opens(link)) {
-                        content += '<button type="button" class="cq-open" tabindex="-1" aria-haspopup="dialog" aria-label="Open ' +
-                            esc(RECORD_LABEL[link.type] + ' ' + String(v)) + ' here" title="Open ' + esc(RECORD_LABEL[link.type]) + ' here">' +
-                            '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>';
+                    var open = openOf(link);
+                    if (open) {
+                        content += caretHTML(open, v);
                     }
                 }
                 if (isEmpty(v)) {
@@ -847,9 +879,9 @@ function renderRows(r, opts) {
         fitLanes();
     }
 
-    /** Whether the page opens this record in place (a popover), beside its link. */
-    function opens(link) {
-        return !!(link && typeof opts.onOpen === 'function' && opts.opens && opts.opens[link.type]);
+    /** How the page opens this record in place, beside its link, or null. */
+    function openOf(link) {
+        return typeof opts.onOpen === 'function' ? openSpec(opts.opens, link) : null;
     }
 
     function linkOf(td) {
@@ -1026,8 +1058,9 @@ function renderRows(r, opts) {
         }
         items.push({ label: 'Copy value', icon: 'fa-copy', copy: copyable(value) });
         var link = linkOf(td);
-        if (opens(link)) {
-            items.unshift({ label: 'Open ' + RECORD_LABEL[link.type], icon: 'fa-up-right-and-down-left-from-center', run: function () {
+        var open = openOf(link);
+        if (open) {
+            items.unshift({ label: 'Open ' + open.label, icon: 'fa-up-right-and-down-left-from-center', run: function () {
                 opts.onOpen(link, td);
             } }, { divider: true });
         }
@@ -1122,6 +1155,18 @@ function renderRows(r, opts) {
 
     body.addEventListener('keydown', function (e) {
         var td = e.target;
+        // A view opened from a caret by keyboard leaves the focus on it: Escape
+        // and the grid's moves take it back to the cell
+        if (td.classList && td.classList.contains('cq-open') && body.contains(td)) {
+            if (e.key !== 'Escape' && !/^(Arrow|Home$|End$)/.test(e.key)) {
+                return;
+            }
+            td = td.closest('td[data-c]');
+            focusCell(td, true);
+            if (e.key === 'Escape') {
+                return;
+            }
+        }
         if (!td.matches || !td.matches('.cq-grid td[data-c], .cq-grid th[data-c]')) {
             return;
         }
@@ -1489,6 +1534,7 @@ function render(r, opts) {
 
 export {
     render,
+    openSpec,
     highlight,
     summary,
     isClient,

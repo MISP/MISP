@@ -54,6 +54,18 @@ class MispqlController extends AppController
         $this->set('pack', $pack);
         $this->set('history', $this->__history($user));
         $this->set('title_for_layout', __('Query console'));
+        // The peeks are drawn by Overmind's own views; the user's theme is
+        // still theirs here, before beforeRender() moves the console to Overmind.
+        $reports = isset($pack['tables']->event_reports);
+        $this->set('inPlace', [
+            'peeks' => $this->theme === 'Overmind',
+            'valueCard' => (bool)Configure::read('MISP.value_hover_card'),
+            'reportReader' => $reports,
+        ]);
+        if ($reports) {
+            $this->loadModel('EventReportTemplateVariable');
+            $this->set('reportTemplateVariables', $this->EventReportTemplateVariable->getAll());
+        }
     }
 
     public function explain()

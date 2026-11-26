@@ -738,6 +738,83 @@
 .cq-open:hover { background: var(--bs-secondary-bg); color: var(--bs-emphasis-color); }
 .cq-grid td[aria-busy="true"] .cq-open { cursor: progress; opacity: .5; }
 
+/* A caret that is the trigger of a view of MISP's own (event peek, sharing
+   group badge, value card) keeps the caret's look over that trigger's. */
+.cq-grid .cq-open:is(.ev-ref, .dk-dist, .vp-hc-trigger) {
+    position: static;
+    z-index: auto;
+    flex: none;
+    gap: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-left: 4px;
+    border: 0;
+    border-radius: var(--bs-border-radius);
+    background: transparent;
+    color: var(--bs-secondary-color);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.cq-grid .cq-open:is(.ev-ref, .dk-dist, .vp-hc-trigger):is(:hover, .is-open, .is-popped, [aria-expanded="true"]),
+.cq-grid .cq-open[aria-expanded="true"] {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-emphasis-color);
+}
+
+.cq-open:focus-visible {
+    outline: 2px solid var(--cq-accent);
+    outline-offset: 1px;
+}
+
+/* A collection's members: its page's elements card, in a popover that never
+   scrolls, in the shell of the other peeks (event-peek.css, events-index-cards.css) */
+.cq-members-pop {
+    --bs-popover-max-width: min(34rem, calc(100vw - 2rem));
+    --bs-popover-border-color: var(--bs-border-color);
+    --bs-popover-border-radius: 12px;
+    --bs-popover-inner-border-radius: 11px;
+    --bs-popover-body-padding-x: 0;
+    --bs-popover-body-padding-y: 0;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .16), 0 2px 6px rgba(0, 0, 0, .08);
+    animation: ev-pop-in .12s ease-out;
+}
+
+[data-misp-mode="dark"] .cq-members-pop {
+    --bs-popover-bg: color-mix(in srgb, var(--bs-body-color) 6%, var(--bs-body-bg));
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
+
+.cq-members-pop:focus { outline: 0; }
+
+.cq-members-pop .cq-members {
+    width: min(34rem, calc(100vw - 2rem));
+    overflow: hidden;
+    border-radius: var(--bs-popover-inner-border-radius);
+}
+
+/* The card's bands take the popover's surface, lifted in dark as the other peeks are */
+.cq-members-pop .list-group { --bs-list-group-bg: transparent; }
+.cq-members-pop .card-footer.bg-body { background-color: transparent !important; }
+
+.cq-members-pop [data-collection-elements] {
+    margin: 0 !important;
+    border: 0;
+    box-shadow: none !important;
+    background: transparent;
+}
+
+.cq-members-pop [data-ce-list] {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.cq-members-pop [data-ce-more] { display: none; }
+
+@media (max-width: 575.98px) {
+    .cq-members-pop .popover-arrow { display: none; }
+}
+
 #mql-selbar .mql-sel-note {
     max-width: 30ch;
     white-space: normal;
