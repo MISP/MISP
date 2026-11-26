@@ -1819,6 +1819,10 @@ class Server extends AppModel
 
     private function __serverSettingsRead($serverSettings, $currentSettings)
     {
+        $lockedSettings = Configure::read('MISP.locked_settings');
+        if (!is_array($lockedSettings)) {
+            $lockedSettings = array();
+        }
         foreach ($serverSettings as $branchKey => &$branchValue) {
             if (isset($branchValue['branch'])) {
                 foreach ($branchValue as $leafKey => &$leafValue) {
@@ -1844,6 +1848,7 @@ class Server extends AppModel
                         } else {
                             $leafValue['tab'] = $branchKey;
                         }
+                        $leafValue['locked'] = in_array($branchKey . '.' . $leafKey, $lockedSettings);
                         $finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
                     }
                 }
@@ -1854,6 +1859,7 @@ class Server extends AppModel
                 }
                 $branchValue = $this->__evaluateLeaf($branchValue, $branchKey, $setting);
                 $branchValue['tab'] = 'misc';
+                $branchValue['locked'] = in_array($branchKey, $lockedSettings);
                 $finalSettingsUnsorted[$branchKey] = $branchValue;
             }
         }
@@ -3038,6 +3044,10 @@ class Server extends AppModel
         App::uses('EnvSetting', 'Tools');
         if (EnvSetting::isSetViaEnv($setting['name'])) {
             return __('This setting is set via an environment variable and cannot be changed here. Change request ignored.');
+        }
+        $lockedSettings = Configure::read('MISP.locked_settings');
+        if (is_array($lockedSettings) && in_array($setting['name'], $lockedSettings)) {
+            return __('This setting is locked in the configuration file and cannot be modified. Change request ignored.');
         }
         $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
         if ($settingSaveResult) {

@@ -26,6 +26,7 @@ $config = array(
     ),
     'MISP' => array(
         'baseurl'                        => '',
+        'locked_settings'                => array(),
         'footermidleft'                  => '',
         'footermidright'                 => '',
         'org'                            => 'ORGNAME',
