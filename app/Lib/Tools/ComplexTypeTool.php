@@ -311,8 +311,12 @@ class ComplexTypeTool
         // convert non breaking space to normal space and all unicode chars from "other" category
         $input = preg_replace("/\p{C}+|\xc2\xa0/u", ' ', $input);
         $iocArray = preg_split("/\r\n|\n|\r|\s|\p{Z}+|,|<|>|;/u", $input);
-        preg_match_all('/\"([^\"]+)\"/', $input, $matches);
-        array_push($iocArray, ...$matches[1]);
+        // Most feeds (plain IP/domain/hash lists) contain no quotes at all: skip the second
+        // full-string scan and the $matches allocation it would otherwise always produce.
+        if (strpos($input, '"') !== false) {
+            preg_match_all('/\"([^\"]+)\"/', $input, $matches);
+            array_push($iocArray, ...$matches[1]);
+        }
 
         return $iocArray;
     }
