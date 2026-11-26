@@ -24,9 +24,12 @@ class UserSettingsController extends AppController
         ),
         'contain' => array(
             'User' => array(
-                'fields' => array('id', 'email', 'org_id'),
+                'fields' => array('id', 'email', 'org_id', 'role_id'),
                 'Organisation' => array(
                     'fields' => array('id', 'name', 'uuid')
+                ),
+                'Role' => array(
+                    'fields' => array('id', 'name')
                 )
             )
         )
@@ -128,9 +131,13 @@ class UserSettingsController extends AppController
                 );
             }
         }
-        // Do not show internal settings
         if (!$this->_isSiteAdmin()) {
+            // Do not show internal settings, nor anyone else's module credentials
             $conditions['AND'][] = ['NOT' => ['UserSetting.setting' => $this->UserSetting->getInternalSettingNames()]];
+            $conditions['AND'][] = ['OR' => [
+                'UserSetting.setting !=' => 'module_api_keys',
+                'UserSetting.user_id' => $this->Auth->user('id'),
+            ]];
         }
 
         if ($this->_isRest()) {
@@ -162,7 +169,15 @@ class UserSettingsController extends AppController
                 );
             }
             $this->set('data', $data);
+            $this->set('settingDescriptions', $this->UserSetting->settingDescriptions());
             $this->set('context', empty($context) ? 'null' : $context);
+            if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+                // The Settings tab of a user's profile
+                $this->layout = false;
+                if (!empty($filters['user_id']) && is_numeric($filters['user_id'])) {
+                    $this->set('scopedUserId', (int)$filters['user_id']);
+                }
+            }
         }
     }
 
@@ -210,9 +225,10 @@ class UserSettingsController extends AppController
                 'conditions' => array(
                     'UserSetting.user_id' => $user_id,
                     'UserSetting.setting' => $setting
-                )
+                ),
+                'contain' => array('User.id', 'User.org_id')
             ));
-            if (!empty($current_setting)) {
+            if (!empty($current_setting) && $this->UserSetting->checkAccess($this->Auth->user(), $current_setting)) {
                 $this->set('current_setting', $current_setting['UserSetting']['value']);
             }
         }
@@ -242,6 +258,9 @@ class UserSettingsController extends AppController
                 } else {
                     // if we are dealing with a UI request, redirect the user to the user view with the proper flash message
                     $this->Flash->success(__('Setting saved.'));
+                    if ($this->theme === 'Overmind') {
+                        return $this->redirect($this->__overmindReturnUrl());
+                    }
                     $this->redirect(array('controller' => 'user_settings', 'action' => 'index', $this->Auth->User('id')));
                 }
             } else {
@@ -282,8 +301,9 @@ class UserSettingsController extends AppController
         $this->set('setting', $setting);
         $this->set('users', $users);
         $this->set('validSettings', $this->UserSetting->settingPlaceholders($this->Auth->user()));
+        $this->set('settingDescriptions', $this->UserSetting->settingDescriptions());
         $this->set('title_for_layout', __('Set User Setting'));
-        if ($this->theme === 'Overmind') {
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
     }
@@ -469,6 +489,9 @@ class UserSettingsController extends AppController
             } else {
                 $this->Flash->error($message ?: __('No settings were deleted.'));
             }
+            if ($this->theme === 'Overmind') {
+                return $this->redirect($this->__overmindReturnUrl());
+            }
             return $this->redirect(array('action' => 'index'));
         }
 
@@ -509,6 +532,19 @@ class UserSettingsController extends AppController
         $this->set('blocked', $blocked);
         $this->layout = false;
         $this->render('/UserSettings/ajax/user_setting_delete_confirmation');
+    }
+
+    /**
+     * Back to the page the modal was opened from (the index or a user's
+     * profile), unless that page was the form itself after a failed save.
+     */
+    private function __overmindReturnUrl()
+    {
+        $referer = $this->referer(array('action' => 'index'), true);
+        if (stripos($referer, '/user_settings/setSetting') !== false) {
+            return array('action' => 'index');
+        }
+        return $referer;
     }
 
     public function setHomePage()

@@ -63,6 +63,35 @@ class SysLog
         if (!is_int($type)) {
             throw new InvalidArgumentException("Invalid log type `$type`, must be one of LOG_* constant.");
         }
+        return $this->emit($type, self::sanitize($message));
+    }
+
+    /**
+     * Makes a message safe as a single syslog line: whitespace controls
+     * become one space, other C0 controls and DEL are dropped. Byte-wise on
+     * ASCII only, so UTF-8 multibyte sequences and invalid input survive.
+     *
+     * @param mixed $message
+     * @return string
+     */
+    public static function sanitize($message)
+    {
+        $message = (string)$message;
+        $clean = preg_replace('/[\t\n\r\x0B\x0C]+/', ' ', $message);
+        if ($clean === null) {
+            return '';
+        }
+        $clean = preg_replace('/[\x00-\x08\x0E-\x1F\x7F]/', '', $clean);
+        return $clean === null ? '' : $clean;
+    }
+
+    /**
+     * @param int $type
+     * @param string $message
+     * @return bool
+     */
+    protected function emit($type, $message)
+    {
         return syslog($type, $message);
     }
 }

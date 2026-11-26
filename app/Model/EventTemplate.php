@@ -345,6 +345,33 @@ class EventTemplate extends AppModel
     const LIBRARY_DIR = APP . 'files' . DS . 'misp-event-templates' . DS . 'templates';
 
     /**
+     * Sharing group ids only mean something on the instance that wrote the
+     * definition, so one brought in from elsewhere distributes to the org.
+     *
+     * @param array $definition
+     * @return array
+     */
+    public function withoutSharingGroup(array $definition)
+    {
+        if (empty($definition['event_defaults'])
+            || !is_array($definition['event_defaults'])
+        ) {
+            return $definition;
+        }
+        $defaults = &$definition['event_defaults'];
+        if (isset($defaults['distribution'])
+            && (int)$defaults['distribution'] === 4
+        ) {
+            $defaults['distribution'] = 0;
+        }
+        if (array_key_exists('sharing_group_id', $defaults)) {
+            $defaults['sharing_group_id'] = null;
+        }
+        unset($defaults);
+        return $definition;
+    }
+
+    /**
      * Walk the bundled misp-event-templates submodule and reconcile its
      * contents with this instance's `event_templates` table. Each on-disk
      * `definition.json` is parsed, validated against the v1 schema +
@@ -445,6 +472,7 @@ class EventTemplate extends AppModel
                 );
                 continue;
             }
+            $definition = $this->withoutSharingGroup($definition);
 
             $libraryUuid = isset($definition['uuid']) ? strtolower((string)$definition['uuid']) : '';
             if ($libraryUuid === '') {

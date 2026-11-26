@@ -8,7 +8,7 @@
 <?php
   endif;
 ?>
-<div id="Object_<?php echo $object['id']; ?>_referenced_by_collapsible" class="collapse">
+<div id="Object_<?php echo h($object['id']); ?>_referenced_by_collapsible" class="collapse">
 <?php
   foreach ($object['referenced_by'] as $type => $reference):
     foreach ($reference as $ref):
@@ -21,7 +21,7 @@
       }
 ?>
       &nbsp;&nbsp;
-        <a class="bold white useCursorPointer" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')">
+        <a class="bold white useCursorPointer" onClick="pivotObjectReferences(<?php echo h(json_encode($currentUri)); ?>, <?php echo h(json_encode($uuid)); ?>)">
           <?php echo h($ref['relationship_type']) . ' ' . ucfirst($type) . ' ' . h($ref['id']) . h($output);?>
         </a>
       <br />

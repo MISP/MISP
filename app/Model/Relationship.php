@@ -27,7 +27,12 @@ class Relationship extends AnalystData
         'related_object_uuid' => [
             'uuid' => [
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID',
+                'required' => 'create',
+            ],
+            'notSelf' => [
+                'rule' => 'notSelfReference',
+                'message' => 'A relationship cannot point at itself.',
             ],
         ],
         'related_object_type' => [
@@ -60,15 +65,30 @@ class Relationship extends AnalystData
     public function beforeValidate($options = array())
     {
         parent::beforeValidate($options);
-        // Prevent self-referencing relationships
-        if ($this->data[$this->current_type]['object_uuid'] == $this->data[$this->current_type]['related_object_uuid']) {
-            return false;
-        }
         if (!empty($this->data[$this->current_type]['related_object_uuid'])) {
             $this->data[$this->current_type]['related_object_uuid'] = trim($this->data[$this->current_type]['related_object_uuid']);
         }
         return true;
+    }
 
+    /**
+     * @param array $check
+     * @return bool
+     */
+    public function notSelfReference($check)
+    {
+        return !self::isSelfReference($this->data[$this->current_type]);
+    }
+
+    /**
+     * @param array $relationship
+     * @return bool True when both ends name the same uuid.
+     */
+    public static function isSelfReference(array $relationship)
+    {
+        $from = trim((string)($relationship['object_uuid'] ?? ''));
+        $to = trim((string)($relationship['related_object_uuid'] ?? ''));
+        return $from !== '' && strcasecmp($from, $to) === 0;
     }
 
     public function afterFind($results, $primary = false)
@@ -187,22 +207,9 @@ class Relationship extends AnalystData
             'related_object_type' => $object_type,
             'related_object_uuid' => $object_uuid,
         ];
-        $type = 'Relationship';
-        if (empty($user['Role']['perm_site_admin'])) {
-            if ($this->__valid_sharing_groups === null) {
-                $this->__valid_sharing_groups = $this->SharingGroup->authorizedIds($user, true);
-            }
-            $conditions['AND'][] = [
-                'OR' => [
-                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
-                    $type . '.org_uuid' => $user['Organisation']['uuid'],
-                    $type . '.distribution IN' => [1, 2, 3],
-                    'AND' => [
-                        $type . '.distribution' => 4,
-                        $type . '.sharing_group_id IN' => $this->__valid_sharing_groups
-                    ]
-                ]
-            ];
+        $acl = $this->analystDataConditions($user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
         }
         $inboundRelations = $this->find('all', [
             'recursive' => -1,
@@ -212,7 +219,7 @@ class Relationship extends AnalystData
 
         foreach ($inboundRelations as $i => $relationship) {
             $relationship = $relationship['Relationship'];
-            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($this->__currentUser, $relationship['object_type'], $relationship['object_uuid']);
+            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($user, $relationship['object_type'], $relationship['object_uuid']);
         }
 
         return $inboundRelations;

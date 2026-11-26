@@ -111,6 +111,7 @@ class MispObject extends AppModel
         'description' => array(
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty'),
+                'allowEmpty' => true,
                 'on' => 'create'
             ),
         ),
@@ -139,7 +140,7 @@ class MispObject extends AppModel
         $this->_schema['distribution']['default'] = Configure::read('MISP.default_object_distribution') ?? 5;
     }
 
-    public function buildFilterConditions(&$params)
+    public function buildFilterConditions(array $user, &$params)
     {
         $conditions = [];
         if (isset($params['wildcard'])) {
@@ -205,17 +206,18 @@ class MispObject extends AppModel
                             'filter' => $param,
                             'scope' => $scope,
                             'pop' => !empty($simple_param_scoped[$param]['pop']),
-                            'context' => 'Object'
+                            'context' => 'Object',
+                            'user' => $user
                         );
                         if ($scope === 'Attribute') {
                             $subQueryOptions = array(
                                 'fields' => ['Attribute.object_id'],
                                 'group' => 'Attribute.object_id',
                                 'recursive' => -1,
-                                'conditions' => array(
+                                'conditions' => $this->Event->visibleElementConditions($user, 'Attribute', array(
                                     'Attribute.object_id NOT' => 0,
                                     $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options)
-                                )
+                                ))
                             );
                             $conditions['AND'][] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id');
                         } else {
@@ -586,6 +588,26 @@ class MispObject extends AppModel
         ];
     }
 
+    /**
+     * buildConditions() for the objects of one event the user can already see:
+     * the event's owner org and site admins see all of them.
+     */
+    public function buildConditionsInEvent(array $user, $eventOrgId)
+    {
+        if ($user['Role']['perm_site_admin'] || $eventOrgId == $user['org_id']) {
+            return [];
+        }
+        return [
+            'OR' => [
+                'Object.distribution' => [1, 2, 3, 5],
+                'AND' => [
+                    'Object.distribution' => 4,
+                    'Object.sharing_group_id' => $this->SharingGroup->authorizedIds($user),
+                ],
+            ],
+        ];
+    }
+
     public function fetchObjectSimple(array $user, $options = array())
     {
         $params = array(
@@ -630,9 +652,7 @@ class MispObject extends AppModel
             $sgids = $this->SharingGroup->authorizedIds($user);
             $attributeConditions = array(
                 'OR' => array(
-                    array(
-                        '(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
-                    ),
+                    $this->correlatedLookup('events', 'org_id', 'Attribute', 'event_id') . ' = ' . (int)$user['org_id'],
                     array(
                         'OR' => array(
                             'Attribute.distribution' => array(1, 2, 3, 5),
@@ -676,6 +696,11 @@ class MispObject extends AppModel
                 'contain' => array(
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        // MySQL hands an object's attributes back in
+                        // primary-key order off the object_id index without
+                        // being asked; PostgreSQL must be asked, or an edited
+                        // attribute moves to the end of the list.
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -699,6 +724,7 @@ class MispObject extends AppModel
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
+                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -721,29 +747,6 @@ class MispObject extends AppModel
                 unset($tempOptions['contain']['Event']);
             }
             $params['contain'] = array_merge_recursive($params['contain'], $tempOptions['contain']);
-        }
-        if (
-            empty($options['metadata']) &&
-            Configure::read('MISP.proposals_block_attributes') &&
-            isset($options['conditions']['AND']['Attribute.to_ids']) &&
-            $options['conditions']['AND']['Attribute.to_ids'] == 1
-        ) {
-            $this->Attribute->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
-            $proposalRestriction =  array(
-                    'ShadowAttribute' => array(
-                            'conditions' => array(
-                                    'AND' => array(
-                                            'ShadowAttribute.deleted' => 0,
-                                            'OR' => array(
-                                                    'ShadowAttribute.proposal_to_delete' => 1,
-                                                    'ShadowAttribute.to_ids' => 0
-                                            )
-                                    )
-                            ),
-                            'fields' => array('ShadowAttribute.id')
-                    )
-            );
-            $params['contain'] = array_merge($params['contain']['Attribute'], $proposalRestriction);
         }
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
@@ -778,20 +781,12 @@ class MispObject extends AppModel
                 $results[$key]['Object']['event_uuid'] = $object['Event']['uuid'];
             }
         }
-        $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
-                        unset($results[$key][$key2]);
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute)) {
+                        unset($results[$key]['Attribute'][$key2]);
                         continue;
-                    }
-                    if ($proposals_block_attributes) {
-                        if (!empty($attribute['ShadowAttribute'])) {
-                            unset($results[$key][$key2]);
-                        } else {
-                            unset($results[$key][$key2]['ShadowAttribute']);
-                        }
                     }
                     if ($options['withAttachments']) {
                         if ($this->Attribute->typeIsAttachment($attribute['type'])) {
@@ -800,9 +795,192 @@ class MispObject extends AppModel
                         }
                     }
                 }
+                $results[$key]['Attribute'] = array_values($results[$key]['Attribute']);
             }
         }
         return $results;
+    }
+
+    /**
+     * The display order an object's fields are meant to be read in, per
+     * template.
+     *
+     * A template gives every field a `ui-priority`, and the highest is what
+     * the object leads with — a file object opens on its hashes and its
+     * filename, not on `access-time` because "a" sorts first. Ties keep the
+     * order the definition file lists them in (the order they were imported
+     * in), which is more faithful than falling back to the alphabet.
+     *
+     * The object's own `template_version` is deliberately not matched
+     * against: objects routinely predate the installed revision (a v7 `file`
+     * object against the v25 template), and insisting on the exact revision
+     * would mean no order at all rather than a slightly dated one. Where an
+     * instance holds several revisions of one uuid, the newest wins.
+     *
+     * @param array $templateUuids Object.template_uuid values
+     * @return array template_uuid => [object_relation => rank], lowest first
+     */
+    public function fieldOrderByTemplate(array $templateUuids)
+    {
+        $templateUuids = array_values(array_unique(array_filter($templateUuids)));
+        if (empty($templateUuids)) {
+            return array();
+        }
+
+        $templates = $this->ObjectTemplate->find('all', array(
+            'conditions' => array('ObjectTemplate.uuid' => $templateUuids),
+            'fields' => array(
+                'ObjectTemplate.id',
+                'ObjectTemplate.uuid',
+                'ObjectTemplate.version',
+            ),
+            'recursive' => -1,
+            // Ascending, so the last row written into the map is the newest.
+            'order' => array('ObjectTemplate.version' => 'ASC'),
+        ));
+        if (empty($templates)) {
+            return array();
+        }
+
+        $templateIdByUuid = array();
+        foreach ($templates as $template) {
+            $templateIdByUuid[$template['ObjectTemplate']['uuid']] =
+                $template['ObjectTemplate']['id'];
+        }
+        $uuidByTemplateId = array_flip($templateIdByUuid);
+
+        $elements = $this->ObjectTemplate->ObjectTemplateElement->find('all', array(
+            'conditions' => array(
+                'ObjectTemplateElement.object_template_id' =>
+                    array_values($templateIdByUuid),
+            ),
+            'fields' => array(
+                'ObjectTemplateElement.object_template_id',
+                'ObjectTemplateElement.object_relation',
+                'ObjectTemplateElement.ui-priority',
+            ),
+            'recursive' => -1,
+            'order' => array(
+                'ObjectTemplateElement.ui-priority' => 'DESC',
+                'ObjectTemplateElement.id' => 'ASC',
+            ),
+        ));
+
+        $order = array();
+        foreach ($elements as $element) {
+            $row = $element['ObjectTemplateElement'];
+            $uuid = isset($uuidByTemplateId[$row['object_template_id']])
+                ? $uuidByTemplateId[$row['object_template_id']] : null;
+            if ($uuid === null || $row['object_relation'] === null) {
+                continue;
+            }
+            if (!isset($order[$uuid])) {
+                $order[$uuid] = array();
+            }
+            // A relation is listed once per template; the guard is for the
+            // rare template that repeats one, where the first (highest
+            // priority) mention is the one that decides.
+            if (!isset($order[$uuid][$row['object_relation']])) {
+                $order[$uuid][$row['object_relation']] = count($order[$uuid]);
+            }
+        }
+
+        return $order;
+    }
+
+    /**
+     * Reorder each object's attributes the way its template means them to be
+     * read, in place.
+     *
+     * Module, import and merge results arrive in whatever order the producer
+     * built them in, which is usually alphabetical: an
+     * `original-imported-file` then leads with `imported-sample` although the
+     * template puts `format` first. The object card in the event view already
+     * reads fieldOrderByTemplate(); this gives the same order to the screens
+     * that review an object before it exists.
+     *
+     * An object the producer did not tag with a template_uuid is matched on
+     * its name, and one matching no installed template keeps the order it
+     * arrived in.
+     *
+     * @param array $objects Objects in the misp_standard shape, by reference
+     * @return void
+     */
+    public function sortAttributesByTemplate(array &$objects)
+    {
+        if (empty($objects)) {
+            return;
+        }
+
+        $namesToResolve = array();
+        foreach ($objects as $object) {
+            if (empty($object['template_uuid']) && !empty($object['name'])) {
+                $namesToResolve[$object['name']] = true;
+            }
+        }
+        $uuidByName = array();
+        if (!empty($namesToResolve)) {
+            $rows = $this->ObjectTemplate->find('all', array(
+                'conditions' => array(
+                    'ObjectTemplate.name' => array_keys($namesToResolve),
+                ),
+                'fields' => array(
+                    'ObjectTemplate.name',
+                    'ObjectTemplate.uuid',
+                    'ObjectTemplate.version',
+                ),
+                'recursive' => -1,
+                // Ascending, so the last row written into the map is the newest.
+                'order' => array('ObjectTemplate.version' => 'ASC'),
+            ));
+            foreach ($rows as $row) {
+                $uuidByName[$row['ObjectTemplate']['name']] =
+                    $row['ObjectTemplate']['uuid'];
+            }
+        }
+
+        $templateUuid = function ($object) use ($uuidByName) {
+            if (!empty($object['template_uuid'])) {
+                return $object['template_uuid'];
+            }
+            if (!empty($object['name']) && isset($uuidByName[$object['name']])) {
+                return $uuidByName[$object['name']];
+            }
+            return null;
+        };
+
+        $uuids = array();
+        foreach ($objects as $object) {
+            $uuid = $templateUuid($object);
+            if ($uuid !== null) {
+                $uuids[] = $uuid;
+            }
+        }
+        $order = $this->fieldOrderByTemplate($uuids);
+        if (empty($order)) {
+            return;
+        }
+
+        foreach ($objects as &$object) {
+            if (empty($object['Attribute']) || count($object['Attribute']) < 2) {
+                continue;
+            }
+            $uuid = $templateUuid($object);
+            if ($uuid === null || empty($order[$uuid])) {
+                continue;
+            }
+            $rank = $order[$uuid];
+            // usort is stable as of PHP 8, so a repeated relation and anything
+            // the template does not list keep the order they arrived in.
+            usort($object['Attribute'], function ($a, $b) use ($rank) {
+                $left = isset($a['object_relation'], $rank[$a['object_relation']])
+                    ? $rank[$a['object_relation']] : PHP_INT_MAX;
+                $right = isset($b['object_relation'], $rank[$b['object_relation']])
+                    ? $rank[$b['object_relation']] : PHP_INT_MAX;
+                return $left <=> $right;
+            });
+        }
+        unset($object);
     }
 
     /**
@@ -865,6 +1043,10 @@ class MispObject extends AppModel
                             }
                         }
                         $v['disable_correlation'] = $request_item['disable_correlation'];
+                        if (isset($request_item['distribution'])) {
+                            $v['distribution'] = $request_item['distribution'];
+                            $v['sharing_group_id'] = $request_item['sharing_group_id'] ?? 0;
+                        }
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
@@ -1140,6 +1322,7 @@ class MispObject extends AppModel
                         $newAttribute['distribution'] = $this->Event->Attribute->defaultDistribution();
                     }
                     $this->Event->Attribute->create();
+                    unset($newAttribute[$this->Event->Attribute->alias]);
                     $saveResult = $this->Event->Attribute->save($newAttribute);
                     if ($saveResult) {
                         $newAttribute['id'] = $this->Event->Attribute->id;
@@ -1331,6 +1514,7 @@ class MispObject extends AppModel
         $object['id'] = $existingObject['Object']['id'];
         $object['uuid'] = $existingObject['Object']['uuid'];
         $object['event_id'] = $eventId;
+        unset($object[$this->alias]);
         if ($object['distribution'] == 4) {
             $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
         }
@@ -1687,7 +1871,17 @@ class MispObject extends AppModel
         }
         $non_restrictive_export = !empty($exportTool->non_restrictive_export);
         $filters = $this->Event->restSearchFilterMassageAttributeLevel($filters, $non_restrictive_export, $user);
-        $conditions = $this->buildFilterConditions($filters);
+        $conditions = $this->buildFilterConditions($user, $filters);
+        // Same rules as fetchAttributes(); fetchObjects() itself keeps
+        // returning soft-deleted objects to its other callers
+        if (isset($filters['deleted']) && $filters['deleted'] === 'only') {
+            $conditions['AND'][] = ['Object.deleted' => 1];
+            if (!$user['Role']['perm_sync']) {
+                $conditions['AND'][] = ['Event.org_id' => $user['org_id']];
+            }
+        } elseif (!$user['Role']['perm_sync'] || empty($filters['deleted'])) {
+            $conditions['AND'][] = ['Object.deleted' => 0];
+        }
         $params = array_merge(array(
             'conditions' => $conditions,
             'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
@@ -1764,7 +1958,11 @@ class MispObject extends AppModel
             $params['page'] = 1;
         }
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 
@@ -1773,7 +1971,6 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $this->Allowedlist = ClassRegistry::init('Allowedlist');
             $results = $this->fetchObjects($user, $params, $continue);
             if (empty($results)) {
                 $loop = false;
@@ -1787,9 +1984,6 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            foreach ($results as $k => $result) {
-                $results[$k]['Attribute'] = $this->Allowedlist->removeAllowedlistedFromArray($result['Attribute'], true);
-            }
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

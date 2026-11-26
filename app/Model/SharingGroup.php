@@ -7,7 +7,6 @@ App::uses('AppModel', 'Model');
  * @property Organisation $Organisation
  * @property Event $Event
  * @property MispAttribute $Attribute
- * @property Thread $Thread
  */
 class SharingGroup extends AppModel
 {
@@ -61,7 +60,6 @@ class SharingGroup extends AppModel
             'foreignKey' => 'sharing_group_id',
             'dependent' => false,
         ],
-        'Thread'
     );
 
     public $belongsTo = array(
@@ -77,6 +75,9 @@ class SharingGroup extends AppModel
     );
 
     private $authorizedIds = [];
+
+    /** @var array|null While a pull or a feed captures data: whether the link is internal, and the remote's org id */
+    private static $remoteCapture = null;
 
     public function beforeValidate($options = array())
     {
@@ -102,9 +103,6 @@ class SharingGroup extends AppModel
     public function beforeDelete($cascade = false)
     {
         if ($this->Event->hasAny(['sharing_group_id' => $this->id])) {
-            return false;
-        }
-        if ($this->Thread->hasAny(['sharing_group_id' => $this->id])) {
             return false;
         }
         if ($this->Attribute->hasAny(['sharing_group_id' => $this->id])) {
@@ -682,7 +680,8 @@ class SharingGroup extends AppModel
             $forceUpdate = true;
         }
         unset($sg['Organisation']);
-        $creatorOrgFound = $this->captureSGOrgs($user, $sg, $sg_id, $forceUpdate);
+        $updateOrgDetails = $forceUpdate && $this->__mayUpdateOrgDetails($user);
+        $creatorOrgFound = $this->captureSGOrgs($user, $sg, $sg_id, $forceUpdate, $updateOrgDetails);
         $creatorOrgFound = $this->captureSGServers($user, $sg, $sg_id, $forceUpdate) || $creatorOrgFound;
         if (!$creatorOrgFound && !empty($server)) {
             $this->captureCreatorOrg($user, $sg_id);
@@ -691,6 +690,77 @@ class SharingGroup extends AppModel
             return $existingSG[$this->alias]['id'];
         }
         return $this->id;
+    }
+
+    /**
+     * Pulls and feeds run as the admin who started them, so the role cannot tell their data from the
+     * admin's own: they capture through here.
+     *
+     * @param array|null $server The server pulled from, null for a feed
+     * @param callable $capture
+     * @return mixed What $capture returns
+     */
+    public static function captureRemote($server, callable $capture)
+    {
+        $previous = self::$remoteCapture;
+        self::$remoteCapture = [
+            'internal' => !empty($server['Server']['internal']),
+            'remote_org_id' => empty($server['Server']['remote_org_id']) ? null : (int)$server['Server']['remote_org_id'],
+        ];
+        try {
+            return $capture();
+        } finally {
+            self::$remoteCapture = $previous;
+        }
+    }
+
+    /**
+     * Organisation details in a sharing group (sector, nationality, contacts, ...) update existing
+     * organisations only for internal sync and site admins; regular sync, other pulls and feeds only
+     * reference them.
+     *
+     * @param array $user
+     * @return bool
+     */
+    private function __mayUpdateOrgDetails(array $user)
+    {
+        if (self::$remoteCapture !== null) {
+            return self::$remoteCapture['internal'];
+        }
+        return !empty($user['Role']['perm_site_admin']) || !empty($user['Role']['perm_sync_internal']);
+    }
+
+    /**
+     * A pull over a link that is not internal updates an existing sharing group only when the group is
+     * not local and the pulled-from server's organisation belongs to it, as for a push by its sync
+     * user; a feed only attaches to existing groups.
+     *
+     * @param array $existingSG
+     * @return bool
+     */
+    private function __remoteMayUpdate(array $existingSG)
+    {
+        if (self::$remoteCapture['internal']) {
+            return true;
+        }
+        $remoteOrgId = self::$remoteCapture['remote_org_id'];
+        if ($remoteOrgId === null || !empty($existingSG['SharingGroup']['local'])) {
+            return false;
+        }
+        if ((int)$existingSG['SharingGroup']['org_id'] === $remoteOrgId) {
+            return true;
+        }
+        foreach ($existingSG['SharingGroupOrg'] as $sgOrg) {
+            if ((int)$sgOrg['org_id'] === $remoteOrgId) {
+                return true;
+            }
+        }
+        foreach ($existingSG['SharingGroupServer'] as $sgServer) {
+            if ((int)$sgServer['server_id'] === 0 && $sgServer['all_orgs']) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /*
@@ -706,10 +776,13 @@ class SharingGroup extends AppModel
      */
     private function captureSGExisting($user, $existingSG, $sg)
     {
-        if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
+        if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) {
             return false;
         }
         if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {
+            if (self::$remoteCapture !== null && !$this->__remoteMayUpdate($existingSG)) {
+                return $existingSG['SharingGroup']['id'];
+            }
             // consider the local field being set to be equivalent to an event's locked == 0 state
             $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
             // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
@@ -865,9 +938,10 @@ class SharingGroup extends AppModel
      * @param array $sg
      * @param int $sg_id
      * @param bool $force
+     * @param bool $updateOrgDetails
      * @return void
      */
-    public function captureSGOrgs(array $user, array $sg, int $sg_id, bool $force)
+    public function captureSGOrgs(array $user, array $sg, int $sg_id, bool $force, bool $updateOrgDetails = false)
     {
         $creatorOrgFound = false;
         if (!empty($sg['SharingGroupOrg'])) {
@@ -883,7 +957,7 @@ class SharingGroup extends AppModel
                 if (isset($org['Organisation'][0])) {
                     $org['Organisation'] = $org['Organisation'][0];
                 }
-                $sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
+                $sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $updateOrgDetails);
                 if ($sg['SharingGroupOrg'][$k]['org_id'] == $user['org_id']) {
                     $creatorOrgFound = true;
                 }

@@ -57,17 +57,14 @@ echo $this->Form->create('Event', [
             </div>
 
             <div>
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                <?= $this->element('genericElementsBS5/Forms/json_field', [
+                    'field' => 'environment_variables',
                     'label' => __('Environment variables'),
-                ]) ?>
-                <?= $this->Form->textarea('environment_variables', [
-                    'class' => 'form-control font-monospace',
+                    'shape' => 'object',
                     'rows' => 3,
-                    'style' => 'font-size:.8rem;',
+                    'minHeight' => '90px',
                     'placeholder' => '{"key": "value"}',
-                ]) ?>
-                <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                    'text' => __('JSON object handed to the workflows as their environment. Left empty, they run with none.'),
+                    'hint' => __('JSON object handed to the workflows as their environment. Left empty, they run with none.'),
                 ]) ?>
             </div>
         <?php endif; ?>

@@ -55,6 +55,22 @@
             '<i class="fas fa-user"></i> <i class="fas fa-plus"></i>'
         );
     }
+    // AI tag recommendations (A3): anyone who may add a tag here may accept
+    // suggestions; without edit rights they land as local tags.
+    if (
+        $scope === 'event' && $renderAddButtons && ($full || $fullLocal) &&
+        Configure::read('Plugin.AI_services_enable') &&
+        $this->Acl->canAccess('events', 'aiRecommendTags')
+    ) {
+        $buttonData[] = sprintf(
+            '<button title="%s" role="button" tabindex="0" aria-label="%s" class="%s" onclick="openGenericModal(\'%s\');">%s</button>',
+            __('Recommend tags with AI'),
+            __('Recommend tags with AI'),
+            'aiRecommendTagsButton addButton btn btn-inverse noPrint',
+            h($baseurl . '/events/aiRecommendTags/' . $id),
+            '<i class="fas fa-robot"></i>'
+        );
+    }
 
     $highlightedTagsString = "";
     if (isset($highlightedTags) && $scope === 'event') {

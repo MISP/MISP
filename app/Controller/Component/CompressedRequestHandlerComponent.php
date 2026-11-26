@@ -1,26 +1,68 @@
 <?php
+App::uses('DecompressTool', 'Tools');
+App::uses('DecompressLimitException', 'Tools');
+
 class CompressedRequestHandlerComponent extends Component
 {
     /**
-     * @throws Exception
+     * Nothing is decoded here: initialize() runs before the user is authenticated.
+     * AppController::beforeFilter() calls decodeRequest() or rejectEncodedRequest().
      */
     public function initialize(Controller $controller)
+    {
+    }
+
+    /**
+     * To be called for authenticated users only, after their memory_limit is applied.
+     *
+     * @param Controller $controller
+     * @throws Exception
+     */
+    public function decodeRequest(Controller $controller)
     {
         if ($controller instanceof CakeErrorController) {
             return; // do not try to decode compressed content again for error controller
         }
 
-        $contentEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
-        if (!empty($contentEncoding)) {
-            if ($contentEncoding === 'zstd') {
-                $controller->request->setInput($this->decodeZstdEncodedContent());
-            } else if ($contentEncoding === 'br') {
-                $controller->request->setInput($this->decodeBrotliEncodedContent());
-            } else if ($contentEncoding === 'gzip') {
-                $controller->request->setInput($this->decodeGzipEncodedContent());
-            } else {
-                throw new BadRequestException("Unsupported content encoding '$contentEncoding'.");
-            }
+        $contentEncoding = $this->contentEncoding();
+        if (empty($contentEncoding)) {
+            return;
+        }
+        if (!in_array($contentEncoding, ['zstd', 'br', 'gzip'], true)) {
+            throw new BadRequestException("Unsupported content encoding '$contentEncoding'.");
+        }
+        $names = ['zstd' => 'zstd', 'br' => 'brotli', 'gzip' => 'GZIP'];
+        if (!in_array($contentEncoding, DecompressTool::supportedEncodings(), true)) {
+            throw new BadRequestException("This server doesn't support {$names[$contentEncoding]} compressed requests.");
+        }
+
+        $input = $controller->request->input();
+        if ($input === false || $input === null || $input === '') {
+            throw new BadRequestException('Request data should be encoded, but request is empty.');
+        }
+        try {
+            $decoded = DecompressTool::decode($contentEncoding, $input, $this->maxDecompressedSize());
+        } catch (DecompressLimitException $e) {
+            throw new HttpException('Decompressed request body is larger than the allowed maximum.', 413);
+        } catch (InvalidArgumentException $e) {
+            throw new BadRequestException('Invalid compressed data.');
+        }
+        $controller->request->setInput($decoded);
+    }
+
+    /**
+     * To be called for requests that are not authenticated.
+     *
+     * @param Controller $controller
+     * @throws BadRequestException
+     */
+    public function rejectEncodedRequest(Controller $controller)
+    {
+        if ($controller instanceof CakeErrorController) {
+            return;
+        }
+        if (!empty($this->contentEncoding())) {
+            throw new BadRequestException('Compressed requests are accepted only from authenticated users.');
         }
     }
 
@@ -29,82 +71,22 @@ class CompressedRequestHandlerComponent extends Component
      */
     public function supportedEncodings()
     {
-        $supportedEncodings = [];
-        if (function_exists('gzdecode')) {
-            $supportedEncodings[] = 'gzip';
-        }
-        if (function_exists('brotli_uncompress')) {
-            $supportedEncodings[] = 'br';
-        }
-        if (function_exists('zstd_uncompress')) {
-            $supportedEncodings[] = 'zstd';
-        }
-        return $supportedEncodings;
+        return DecompressTool::supportedEncodings();
     }
 
     /**
-     * @return string
-     * @throws Exception
+     * @return int|null Null for no limit
      */
-    private function decodeGzipEncodedContent()
+    public function maxDecompressedSize()
     {
-        if (function_exists('gzdecode')) {
-            $decoded = gzdecode($this->input());
-            if ($decoded === false) {
-                throw new BadRequestException('Invalid compressed data.');
-            }
-            return $decoded;
-        }
-        throw new BadRequestException("This server doesn't support GZIP compressed requests.");
+        return DecompressTool::limit();
     }
 
     /**
-     * @return string
-     * @throws Exception
+     * @return string|null
      */
-    private function decodeBrotliEncodedContent()
+    private function contentEncoding()
     {
-        if (function_exists('brotli_uncompress')) {
-            $decoded = brotli_uncompress($this->input());
-            if ($decoded === false) {
-                throw new BadRequestException('Invalid compressed data.');
-            }
-            return $decoded;
-        } else {
-            throw new BadRequestException("This server doesn't support brotli compressed requests.");
-        }
-    }
-
-    /**
-     * @return string
-     * @throws Exception
-     */
-    private function decodeZstdEncodedContent()
-    {
-        if (function_exists('zstd_uncompress')) {
-            $decoded = zstd_uncompress($this->input());
-            if ($decoded === false) {
-                throw new BadRequestException('Invalid compressed data.');
-            }
-            return $decoded;
-        } else {
-            throw new BadRequestException("This server doesn't support zstd compressed requests.");
-        }
-    }
-
-    /**
-     * @return string
-     * @throws Exception
-     */
-    private function input()
-    {
-        $input = file_get_contents('php://input');
-        if ($input === false) {
-            throw new Exception("Could not read input");
-        }
-        if (empty($input)) {
-            throw new BadRequestException('Request data should be encoded, but request is empty.');
-        }
-        return $input;
+        return $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
     }
 }

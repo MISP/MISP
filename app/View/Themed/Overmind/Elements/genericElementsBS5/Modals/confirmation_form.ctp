@@ -15,8 +15,9 @@
  *   $url          => POST target
  *   $message      => the question
  * Optional:
- *   $hiddenField  => name of the hidden field carrying the payload (default 'id');
- *                    false when the payload already travels in the POST URL
+ *   $hiddenField  => name of the hidden field carrying the payload (default 'id'),
+ *                    or a list of them; false when the payload already travels
+ *                    in the POST URL
  *   $submitLabel  => submit button label (default Yes)
  *   $submitIcon   => Font Awesome icon name without the "fa-" prefix; it also
  *                    becomes the header's watermark glyph
@@ -30,6 +31,8 @@
  *                    $submitClass names, then 'primary'
  *   $eyebrow      => small uppercase label above the title (default Confirmation)
  *   $description  => muted one-liner under the title
+ *   $descriptionClass => extra classes on it, e.g. 'font-monospace' for a
+ *                    namespace or a uuid
  *   $titleIcon    => full class attribute of the glyph left of the title
  *   $icon         => full class attribute of the right-hand watermark glyph
  *   $warning      => a cautionary line, or an array of them, rendered as a
@@ -111,6 +114,7 @@ $text = function ($value) use ($escape) {
         'eyebrow' => $eyebrow,
         'title' => $title,
         'description' => $description ?? '',
+        'descriptionClass' => $descriptionClass ?? '',
         'titleIcon' => $titleIcon,
         'icon' => $icon,
     ]) ?>
@@ -122,7 +126,9 @@ $text = function ($value) use ($escape) {
         'class' => 'm-0',
     ]);
     if ($hiddenField !== false) {
-        echo $this->Form->hidden($hiddenField);
+        foreach ((array)$hiddenField as $field) {
+            echo $this->Form->hidden($field);
+        }
     }
     ?>
 

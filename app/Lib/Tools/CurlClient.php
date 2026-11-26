@@ -1,8 +1,11 @@
 <?php
 App::uses('HttpSocketExtended', 'Tools');
+App::uses('DecompressTool', 'Tools');
 
 class CurlClient extends HttpSocketExtended
 {
+    /** @var resource|null Streamed download destination; ordinary requests are unchanged. */
+    private $downloadStream;
     /** @var resource */
     private $ch;
 
@@ -112,6 +115,20 @@ class CurlClient extends HttpSocketExtended
     public function get($uri = null, $query = [], $request = [])
     {
         return $this->internalRequest('GET', $uri, $query, $request);
+    }
+
+    /** Download without retaining the response body in PHP memory. */
+    public function download($uri, $destination, array $request = [])
+    {
+        $stream = fopen($destination, 'xb');
+        if ($stream === false) { throw new RuntimeException('Could not open download destination.'); }
+        $this->downloadStream = $stream;
+        try {
+            return $this->get($uri, [], $request);
+        } finally {
+            fclose($stream);
+            $this->downloadStream = null;
+        }
     }
 
     /**
@@ -274,6 +291,28 @@ class CurlClient extends HttpSocketExtended
     }
 
     /**
+     * Returns a CURLOPT_WRITEFUNCTION that appends to $body and fails the
+     * transfer (CURLE_WRITE_ERROR) once more than $limit bytes have arrived.
+     *
+     * @param string $body filled by the returned callback
+     * @param int|null $limit null or 0 for no limit
+     * @return Closure
+     */
+    public static function bodyCollector(&$body, $limit)
+    {
+        $received = 0;
+        return function ($curl, $data) use (&$body, &$received, $limit) {
+            $length = strlen($data);
+            $received += $length;
+            if ($limit && $received > $limit) {
+                return -1; // any value other than $length aborts the transfer
+            }
+            $body .= $data;
+            return $length;
+        };
+    }
+
+    /**
      * @param string $method
      * @param string $url
      * @param array|string $query
@@ -343,15 +382,59 @@ class CurlClient extends HttpSocketExtended
             }
             return $len;
         };
+        $validateRedirects = $this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD');
+        // The write function sees the body after libcurl has decoded it, so
+        // the limit covers what a small compressed response inflates to.
+        $limit = $this->maxSize ?: DecompressTool::limit();
+        $body = '';
+        $stream = $this->downloadStream;
+        $streaming = is_resource($stream);
+        $streamLimitExceeded = false;
+        if ($streaming) {
+            $options[CURLOPT_RETURNTRANSFER] = false;
+            $received = 0;
+            $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use (
+                $stream, $limit, $validateRedirects, $url, &$responseHeaders, &$received, &$streamLimitExceeded
+            ) {
+                $length = strlen($chunk);
+                $received += $length;
+                if ($limit && $received > $limit) {
+                    $streamLimitExceeded = true;
+                    return 0;
+                }
+                // The next request will stream its own body into the same destination.
+                if ($validateRedirects && self::redirectTarget(
+                    curl_getinfo($curl, CURLINFO_HTTP_CODE),
+                    $responseHeaders,
+                    $url
+                ) !== null) {
+                    return $length;
+                }
+                $offset = 0;
+                while ($offset < $length) {
+                    $written = fwrite($stream, substr($chunk, $offset));
+                    if (!$written) {
+                        return 0;
+                    }
+                    $offset += $written;
+                }
+                return $length;
+            };
+        } else {
+            $options[CURLOPT_WRITEFUNCTION] = self::bodyCollector($body, $limit);
+        }
         if (!curl_setopt_array($this->ch, $options)) {
             throw new \RuntimeException('curl error: Could not set options');
         }
 
         // Download the given URL, and return output
-        $output = curl_exec($this->ch);
+        $output = curl_exec($this->ch) === false ? false : $body;
 
         if ($output === false) {
             $errorCode = curl_errno($this->ch);
+            if ($limit && $errorCode === CURLE_WRITE_ERROR && (!$streaming || $streamLimitExceeded)) {
+                throw new SocketException("Response exceeds the maximum allowed size of $limit bytes.");
+            }
             // Both of these mean the size limit tripped: 63 when the server
             // advertised too large a Content-Length, 42 when the progress
             // callback aborted a body that grew past the limit anyway.
@@ -371,8 +454,8 @@ class CurlClient extends HttpSocketExtended
         // See https://github.com/php-mod/curl/issues/95
         curl_reset($this->ch);
 
-        if ($this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD')) {
-            $target = $this->redirectTarget($code, $responseHeaders, $url);
+        if ($validateRedirects) {
+            $target = self::redirectTarget($code, $responseHeaders, $url);
             if ($target !== null) {
                 if ($redirectsFollowed >= 10) {
                     throw new SocketException("Too many redirects while fetching $url.");
@@ -395,7 +478,7 @@ class CurlClient extends HttpSocketExtended
      * @param string $currentUrl
      * @return string|null absolute redirect target, or null if not a redirect
      */
-    private function redirectTarget($code, array $responseHeaders, $currentUrl)
+    private static function redirectTarget($code, array $responseHeaders, $currentUrl)
     {
         if (!in_array((int)$code, [301, 302, 303, 307, 308], true)) {
             return null;

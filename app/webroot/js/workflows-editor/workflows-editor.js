@@ -1155,7 +1155,7 @@ function fetchWorkflow(id, callback) {
             }
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            showMessage('fail', saveFailedMessage + ': ' + errorThrown);
+            showMessage('fail', 'Failed to fetch the workflow: ' + errorThrown);
             if (callback !== undefined) {
                 callback(false)
             }
@@ -1163,7 +1163,7 @@ function fetchWorkflow(id, callback) {
         complete: function () {
             toggleEditorLoading(false)
         },
-        type: "post",
+        type: "get",
         url: url
     })
 }

@@ -4,10 +4,11 @@ $uid      = 'evt-galaxies-' . $eventId;
 $fetchUrl = h($baseurl . '/events/viewEventGalaxies/' . $eventId
     . ($extensionSuffix ?? ''));
 $editUrl  = h($baseurl . '/events/editEventGalaxies/' . $eventId);
+$relUrl   = h($baseurl . '/events/editEventGalaxyRelationships/' . $eventId);
 $mayModify = $this->Acl->canModifyTag($data);
 ?>
 
-<div class="card shadow-sm mb-3" id="galaxy-card">
+<div class="card shadow-sm mb-3 flex-grow-1" id="galaxy-card">
 
     <!-- HEADER -->
     <div class="p-3 border-bottom">
@@ -38,21 +39,34 @@ $mayModify = $this->Acl->canModifyTag($data);
                        aria-label="<?= __('Filter galaxy clusters') ?>">
             </div>
 
-            <?php if ($mayModify || $isSiteAdmin): ?>
-            <button type="button"
-                    class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-                    data-tour="event-galaxies-edit"
-                    onclick="openModal('<?= $editUrl ?>', 'xl')">
-                <i class="fas fa-pen-to-square"></i>
-                <?= __('Edit Galaxy Clusters') ?>
-            </button>
-            <?php endif; ?>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0" data-card-actions>
+                <?php if ($mayModify || $isSiteAdmin): ?>
+                <button type="button"
+                        class="btn btn-sm btn-outline-galaxy d-flex align-items-center gap-1"
+                        data-tour="event-galaxies-relationships"
+                        onclick="openModal('<?= $relUrl ?>', 'xl')"
+                        title="<?= __('Set how this event relates to its clusters') ?>">
+                    <i class="fas fa-diagram-project"></i>
+                    <?= __('Relationships') ?>
+                </button>
+
+                <button type="button"
+                        class="btn btn-sm btn-galaxy d-flex align-items-center gap-1"
+                        data-tour="event-galaxies-edit"
+                        onclick="openModal('<?= $editUrl ?>', 'xl')">
+                    <i class="fas fa-pen-to-square"></i>
+                    <?= __('Edit Galaxy Clusters') ?>
+                </button>
+                <?php endif; ?>
+            </div>
+            <?= $this->element('genericElementsBS5/Cards/actions_overflow_menu') ?>
 
         </div>
     </div>
 
     <!-- BODY -->
-    <div id="<?= $uid ?>-body">
+    <div id="<?= $uid ?>-body"
+         data-collapse-tall="400">
         <div class="text-center py-4 text-muted" id="<?= $uid ?>-spinner">
             <div class="spinner-border spinner-border-sm" role="status"></div>
         </div>
@@ -71,7 +85,10 @@ $mayModify = $this->Acl->canModifyTag($data);
     loadGalaxies();
 
     /* Expose a reload hook so the edit modal can refresh this card after save. */
-    window['reloadGalaxiesCard_' + uid] = loadGalaxies;
+    window['reloadGalaxiesCard_' + uid] = function () {
+        loadGalaxies();
+        document.dispatchEvent(new CustomEvent('misp:event-galaxies-changed'));
+    };
 
     function loadGalaxies() {
         fetch(fetchUrl)

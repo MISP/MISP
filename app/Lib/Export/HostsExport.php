@@ -28,11 +28,11 @@ class HostsExport
         if ($options['scope'] === 'Event') {
             $result = array();
             foreach ($data['Attribute'] as $attribute) {
-                if ($this->isNewDomain($data['Attribute'])) {
-                    $result[] = $this->__convertToRule($data['Attribute']);
+                if ($this->isNewDomain($attribute)) {
+                    $result[] = $this->__convertToRule($attribute) . "\n";
                 }
             }
-            return implode($this->separator(), $result) . "\n";
+            return implode($this->separator(), $result);
         }
         return '';
     }
@@ -53,7 +53,11 @@ class HostsExport
 
     public function header($options = array())
     {
-        $this->ip_address = !empty($options['filters']['ip_address']) ? $options['filters']['ip_address'] : $this->default_ip_address;
+        $this->ip_address = $this->default_ip_address;
+        $requested = $options['filters']['ip_address'] ?? null;
+        if (is_string($requested) && filter_var($requested, FILTER_VALIDATE_IP) !== false) {
+            $this->ip_address = $requested;
+        }
         $header = "# Blocklist in the HOSTS format\n";
         $header .= sprintf("# Generated: %s\n", date("Y-m-d H:i:s O"));
         return $header;
