@@ -5949,6 +5949,11 @@ tr.evt-extension-row td:first-child { position: relative; }
 .ms-float .ms-clear { padding-left: 4px; padding-right: 4px; text-decoration: none; }
 .ms-float .ms-clear:hover { text-decoration: underline; }
 body.ms-float-open { padding-bottom: calc(var(--ms-float-h, 56px) + 32px); }
+/* On a phone the bar wraps: no separator left at a line's end */
+@media (max-width: 575.98px) {
+    .ms-float .ms-sep:has(+ .ms-clear) { display: none; }
+    .ms-float .ms-clear { margin-left: auto; }
+}
 
 /* Attribute values (Attributes/value_display.ctp, value_flags.ctp) */
 .om-value-text { white-space: pre-wrap; }

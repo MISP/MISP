@@ -666,10 +666,27 @@ function cellMenu(host) {
         }
     }
 
+    // Follows its cell while the cell stays in sight (the grid scrolls a
+    // half-hidden cell into view as it takes the focus); closes once it leaves
     function onScroll(e) {
-        if (!e || !e.target || !menu.contains(e.target)) {
+        if (e && e.target && e.target.nodeType === 1 && menu.contains(e.target)) {
+            return;
+        }
+        if (inSight(cell)) {
+            place();
+        } else {
             close(false);
         }
+    }
+
+    function inSight(td) {
+        var r = td.getBoundingClientRect();
+        var wrap = td.closest('.cq-grid-wrap');
+        var box = wrap ? wrap.getBoundingClientRect() : { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
+        var head = wrap ? wrap.querySelector('thead') : null;
+        var top = Math.max(0, box.top + (head ? head.offsetHeight : 0));
+        return r.bottom > top && r.top < Math.min(box.bottom, window.innerHeight) &&
+            r.right > Math.max(0, box.left) && r.left < Math.min(box.right, window.innerWidth);
     }
 
     function choose(e) {
@@ -686,7 +703,7 @@ function cellMenu(host) {
             close(true);
             copyText(it.copy, flash);
         } else if (it.run) {
-            close(false);
+            close(true);
             it.run();
         }
     }

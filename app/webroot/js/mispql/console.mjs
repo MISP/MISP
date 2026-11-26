@@ -16,6 +16,7 @@ import { el, esc, fmtInt, ago, clock } from './util.mjs';
 const SESSION_KEEP = 20;
 const HISTORY_KEEP = 50;
 const DRAFT_KEY = 'mispql-console-draft';
+const NARROW = 900;
 
 const EXAMPLES = [
     { label: 'Domains seen this month', icon: 'fa-table-cells', tables: ['attributes'], text: "SELECT * FROM attributes\nWHERE type IN ('domain', 'hostname') AND to_ids = TRUE AND timestamp >= '30d'\nORDER BY timestamp DESC\nLIMIT 20" },
@@ -325,6 +326,9 @@ function boot() {
             }
             showResult(r);
             drawList();
+            if (opts && opts.then) {
+                opts.then();
+            }
         });
     }
 
@@ -504,15 +508,54 @@ function boot() {
      */
     function pageTo(r, next, opts) {
         const remember = !!(opts && opts.remember);
+        const back = focusInResult();
         const range = r.range;
         const text = writer.value;
         if (range && text.slice(range.from, range.to) === r.statement) {
             writer.setValue(text.slice(0, range.from) + next + text.slice(range.to), range.from + next.length);
-            run({ text: next, from: range.from, to: range.from + next.length }, { remember: remember });
+            run({ text: next, from: range.from, to: range.from + next.length }, { remember: remember, then: back });
         } else {
             writer.setValue(next);
-            run({ text: next, from: 0, to: next.length }, { remember: remember });
+            run({ text: next, from: 0, to: next.length }, { remember: remember, then: back });
         }
+    }
+
+    /**
+     * Where in the result the focus was when a rewrite started from it (a
+     * header, a cell's menu, the pager): setting the writer's text takes the
+     * focus, this gives it back to the same place in the next result.
+     */
+    function focusInResult() {
+        const a = document.activeElement;
+        if (!a || !resultEl.contains(a)) {
+            return null;
+        }
+        const cell = a.closest('.cq-grid [data-c]');
+        let sel = null;
+        if (cell) {
+            sel = (cell.tagName === 'TH' ? '.cq-grid thead' : '.cq-grid tbody tr:first-child') + ' [data-c="' + cell.dataset.c + '"]';
+        } else if (a.matches('[data-go]')) {
+            sel = '[data-go="' + a.dataset.go + '"]';
+        } else if (a.matches('.cq-size select')) {
+            sel = '.cq-size select';
+        }
+        return function () {
+            let to = sel && resultEl.querySelector(sel);
+            if (!to || to.disabled) {
+                to = resultEl.querySelector('.cq-grid [data-c][tabindex="0"]');
+            }
+            if (!to) {
+                return;
+            }
+            if (to.matches('[data-c]')) {
+                const was = resultEl.querySelector('.cq-grid [data-c][tabindex="0"]');
+                if (was && was !== to) {
+                    was.removeAttribute('tabindex');
+                }
+                to.setAttribute('tabindex', '0');
+            }
+            to.focus();
+        };
     }
 
     function locate(r, e) {
@@ -619,15 +662,29 @@ function boot() {
         }
     });
     filterEl.addEventListener('input', drawList);
-    page.querySelectorAll('[data-lib-tab]').forEach(function (b) {
+    const libTabs = Array.prototype.slice.call(page.querySelectorAll('[data-lib-tab]'));
+    libTabs.forEach(function (b) {
+        b.setAttribute('tabindex', b.classList.contains('active') ? '0' : '-1');
         b.addEventListener('click', function () {
             tab = b.dataset.libTab;
-            page.querySelectorAll('[data-lib-tab]').forEach(function (o) {
+            libTabs.forEach(function (o) {
                 o.classList.toggle('active', o === b);
                 o.setAttribute('aria-selected', o === b ? 'true' : 'false');
+                o.setAttribute('tabindex', o === b ? '0' : '-1');
             });
             filterEl.placeholder = tab === 'history' ? 'Filter history' : 'Filter tables and fields';
             drawList();
+        });
+        b.addEventListener('keydown', function (e) {
+            const at = libTabs.indexOf(b);
+            const to = { ArrowLeft: at - 1, ArrowRight: at + 1, Home: 0, End: libTabs.length - 1 }[e.key];
+            if (to === undefined) {
+                return;
+            }
+            e.preventDefault();
+            const next = libTabs[(to + libTabs.length) % libTabs.length];
+            next.focus();
+            next.click();
         });
     });
 
@@ -642,6 +699,14 @@ function boot() {
     }
     statusLine(statusEl, writer, null);
     writer.focus();
+
+    // Beside the workspace dock the page can be narrower than its two columns need
+    const wide = window.matchMedia('(min-width: 992px)');
+    if (window.ResizeObserver) {
+        new ResizeObserver(function (entries) {
+            page.classList.toggle('is-narrow', wide.matches && entries[0].contentRect.width < NARROW);
+        }).observe(page);
+    }
 }
 
 if (document.readyState === 'loading') {
