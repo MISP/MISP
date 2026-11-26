@@ -1,5 +1,5 @@
 <?php
-
+    $this->set('headerIdentity', $event['Event']);
     $headerTitle = __('') . ($event['Event']['info'] ?? '');
     $headerDescription = '';
     $headerActions = [];
@@ -21,6 +21,14 @@
             'icon' => 'plus',
             'url' => sprintf('%s/objects/add/%s', $baseurl, h($event['Event']['id'])),
         ];
+
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'reports',
+            'label' => __('Add report'),
+            'icon' => 'plus',
+            'url' => sprintf('%s/event_reports/add/%s', $baseurl, h($event['Event']['id'])),
+        ];
     }
 
     $this->set('headerTitle', $headerTitle);
@@ -28,7 +36,7 @@
     $this->set('headerActions', $headerActions);
 
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it', 'Chart.min']
+        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'Chart.min']
     ]);
 
     // Extended / extending view: say so, and carry the mode into every lazy
@@ -36,9 +44,39 @@
     echo $this->element('Events/View/extension_banner');
     $extensionSuffix = $extensionSuffix ?? '';
 
+    $searchFor = $this->request->params['named']['searchFor'] ?? '';
+    $distributionFilter = $this->request->params['named']['distribution'] ?? '';
+    $listSuffix = $extensionSuffix
+        . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '')
+        . ($distributionFilter !== '' ? '/distribution:' . (int)$distributionFilter : '');
+
+    $outliers = [];
+    foreach (['Attribute' => 'attributes', 'Object' => 'objects'] as $scope => $tab) {
+        foreach ($distributionOutliers[$scope] ?? [] as $level => $count) {
+            $outliers[] = [
+                'level' => $level,
+                'text' => $scope === 'Attribute'
+                    ? __n('%s attribute', '%s attributes', $count, $count)
+                    : __n('%s object', '%s objects', $count, $count),
+                'url' => sprintf(
+                    '%s/events/view2/%s%s/distribution:%s#tab-%s',
+                    $baseurl, h($event['Event']['id']), $extensionSuffix, $level, $tab
+                ),
+            ];
+        }
+    }
+
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $event,
+        'ownership' => [
+            'orgc' => $event['Orgc'] ?? [],
+            'org' => $event['Org'] ?? [],
+            'user' => $event['User'] ?? [],
+            'distribution' => $event['Event']['distribution'] ?? null,
+            'sharingGroup' => $event['SharingGroup'] ?? [],
+            'outliers' => $outliers,
+        ],
         'report' => $event['EventReport'] ?? null,
         'tabs' => [
             [
@@ -48,15 +86,14 @@
 
                 // Content
                 'left' => [
-                    'Events/View/event_general',
                     'EventReports/View/eventReport_preview',
-                    'Events/View/event_tags',
-                    'Events/View/event_galaxies',
-                    'Events/View/event_attachments',
+                    ['row' => ['Events/View/event_tags', 'Events/View/event_galaxies']],
+                    ['row' => ['Events/View/event_attachments', 'Events/View/event_analyst_data']],
+                    'Events/View/event_general',
                 ],
                 'right' => [
                     'Events/View/event_actions',
-                    'Events/View/event_analyst_data',
+                    'Events/View/event_galaxy_matrices',
                     'Events/View/event_sightings',
                     'Events/View/event_related',
                     'Events/View/event_warninglists',
@@ -72,7 +109,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $extensionSuffix)
+                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $listSuffix)
                     ]
                 ],
             ],
@@ -85,7 +122,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewAttributes/%s%s', h($event['Event']['id']), $extensionSuffix)
+                        'ajax' => sprintf('/events/viewAttributes/%s%s', h($event['Event']['id']), $listSuffix)
                     ]
                 ],
             ],
@@ -123,16 +160,16 @@
                     'Events/View/event_pivot_explorer',
                 ],
             ],
-            // [
-            //     'id' => 'timeline',
-            //     'title' => __('Timeline'),
-            //     'icon' => 'fas fa-clock',
+            [
+                'id' => 'timeline',
+                'title' => __('Timeline'),
+                'icon' => 'fas fa-timeline',
 
-            //     // Content
-            //     'left' => [
-            //         'Events/View/event_timeline',
-            //     ],
-            // ],
+                // Content
+                'left' => [
+                    'Events/View/event_timeline',
+                ],
+            ],
             [
                 'id' => 'history',
                 'title' => __('History'),

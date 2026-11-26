@@ -639,7 +639,7 @@ class EventGraph {
                     btn_plot.data('network-preview', preview);
                     btn_plot.popover({
                         container: 'body',
-                        content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
+                        content: function() { return $('<img style="width: 500px; height: 150px;">').prop('src', $(this).data('network-preview')); },
                         placement: 'right',
                         trigger: 'hover',
                         template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -825,7 +825,7 @@ class EventGraph {
                 from: rel.from,
                 to: rel.to,
                 label: rel.type,
-                title: escapeHtml(rel.comment),
+                title: escapeHtml(rel.comment || ''),
                 color: {
                     opacity: 1.0,
                 }
@@ -1482,6 +1482,7 @@ class DataHandler {
                 type: 'post',
                 contentType: 'application/json',
                 data: JSON.stringify( payload ),
+                headers: {'X-CSRF-Token': (window.csrfToken || '')},
                 processData: false,
                 success: function( data, textStatus, jQxhr ){
                     if (updateOnly === undefined || updateOnly === false) {
@@ -1515,6 +1516,8 @@ class DataHandler {
                     }
                 },
                 error: function( jqXhr, textStatus, errorThrown ){
+                    eventGraph.network_loading(false, "");
+                    showMessage('fail', 'Could not fetch the event graph data');
                     console.log( errorThrown );
                 }
             });
@@ -2016,7 +2019,7 @@ function reset_graph_history() {
                 btn_plot.data('network-preview', preview);
                 btn_plot.popover({
                     container: 'body',
-                    content: function() { return '<img style="width: 500px; height: 150px;" src="' + $('<div>').text($(this).data('network-preview')).html() + '" />'; },
+                    content: function() { return $('<img style="width: 500px; height: 150px;">').prop('src', $(this).data('network-preview')); },
                     placement: 'right',
                     trigger: 'hover',
                     template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -2562,8 +2565,9 @@ function global_processProperties(clusterOptions, childNodes) {
     that.cluster_index = that.cluster_index + 1;
     var childrenCount = 0;
     for (var i = 0; i < childNodes.length; i++) {
-        var childNodeID = childNodes[i].id
-        if ( childNodeID.includes("rootNode:")) {
+        var childNodeID = childNodes[i].id;
+        if (typeof childNodeID === 'string' &&
+            childNodeID.startsWith('rootNode:')) {
             concerned_root_node = childNodeID;
         }
         childrenCount += childNodes[i].childrenCount || 1;
@@ -2602,4 +2606,3 @@ function isPicture(filename) {
     var validExtensions = ['jpg', 'jpeg', 'png', 'gif']
     return validExtensions.includes(extension)
 }
-

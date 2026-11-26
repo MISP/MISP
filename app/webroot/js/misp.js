@@ -189,10 +189,6 @@ function screenshotPopup(url, title) {
     $("#gray_out").fadeIn();
 }
 
-function editTemplateElement(type, id) {
-    simplePopup(baseurl + "/template_elements/edit/" + type + "/" + id);
-}
-
 function cancelPrompt(isolated) {
     if (isolated == undefined) {
         $("#gray_out").fadeOut();
@@ -204,7 +200,6 @@ function cancelPrompt(isolated) {
 
 function submitDeletion(context_id, action, type, id) {
     var context = 'event';
-    if (type == 'template_elements') context = 'template';
     var formData = $('#PromptForm').serialize();
     xhr({
         data: formData,
@@ -378,36 +373,6 @@ function submitPasswordReset(id) {
     });
 }
 
-function submitMessageForm(url) {
-    if (!$('#PostMessage').val()) {
-        showMessage("fail", "Cannot submit empty message.");
-    } else {
-        var message = $('#PostMessage').val()
-        fetchFormDataAjax(url, function (formData) {
-            var $formData = $(formData);
-            $formData.find('#PostMessage').val(message);
-            $.ajax({
-                data: $formData.find('form').serialize(),
-                beforeSend: function () {
-                    $(".loading").show();
-                },
-                success: function (data) {
-                    showMessage("success", "Message added.");
-                    $('#top').html(data);
-                },
-                error: function () {
-                    showMessage('fail', 'Could not add message.');
-                },
-                complete: function () {
-                    $(".loading").hide();
-                },
-                type: "post",
-                url: $formData.find('form').attr('action')
-            });
-        });
-    }
-}
-
 function acceptObject(type, id) {
     var name = '#ShadowAttribute_' + id + '_accept';
     var formData = $(name).serialize();
@@ -481,9 +446,6 @@ function updateIndex(id, context, callback) {
         }
         url = currentUri;
         div = "#attributes_div";
-    } else if (context === 'template') {
-        url = "/template_elements/index/" + id;
-        div = "#templateElements";
     }
     xhr({
         dataType: "html",
@@ -1412,33 +1374,6 @@ function submitPopoverForm(context_id, referer, update_context_id, modal, popove
     var contextNamingConvention = 'Attribute';
     var closePopover = true;
     switch (referer) {
-        case 'addTextElement':
-            context = 'template';
-            contextNamingConvention = 'TemplateElementText';
-            break;
-        case 'editTextElement':
-            context = 'template';
-            context_id = update_context_id;
-            contextNamingConvention = 'TemplateElementText';
-            break;
-        case 'addAttributeElement':
-            context = 'template';
-            contextNamingConvention = 'TemplateElementAttribute';
-            break;
-        case 'editAttributeElement':
-            context = 'template';
-            context_id = update_context_id;
-            contextNamingConvention = 'TemplateElementAttribute';
-            break;
-        case 'addFileElement':
-            context = 'template';
-            contextNamingConvention = 'TemplateElementFile';
-            break;
-        case 'editFileElement':
-            context = 'template';
-            context_id = update_context_id;
-            contextNamingConvention = 'TemplateElementFile';
-            break;
         case 'addSighting':
             closePopover = false;
             break;
@@ -1668,166 +1603,6 @@ function cancelPopoverForm(id) {
     }
 }
 
-function activateTagField() {
-    $("#addTagButton").hide();
-    $("#addTagField").show();
-}
-
-function tagFieldChange() {
-    if ($("#addTagField :selected").val() > 0) {
-        var selected_id = $("#addTagField :selected").val();
-        var selected_text = $("#addTagField :selected").text();
-        if ($.inArray(selected_id, selectedTags)==-1) {
-            selectedTags.push(selected_id);
-            appendTemplateTag(selected_id);
-        }
-    }
-    $("#addTagButton").show();
-    $("#addTagField").hide();
-}
-
-function appendTemplateTag(selected_id)     {
-    xhr({
-        dataType: "html",
-        success: function (data) {
-            $("#tags").append(data);
-        },
-        url: "/tags/viewTag/" + selected_id,
-    });
-    updateSelectedTags();
-}
-
-function addAllTags(tagArray) {
-    parsedTagArray = JSON.parse(tagArray);
-    parsedTagArray.forEach(function(tag) {
-        appendTemplateTag(tag);
-    });
-}
-
-function removeTemplateTag(id) {
-    selectedTags.forEach(function(tag) {
-        if (tag == id) {
-            var index = selectedTags.indexOf(id);
-            if (index > -1) {
-                selectedTags.splice(index, 1);
-                updateSelectedTags();
-            }
-        }
-    });
-    $('#tag_bubble_' + id).remove();
-}
-
-function updateSelectedTags() {
-    $('#hiddenTags').attr("value", JSON.stringify(selectedTags));
-}
-
-function saveElementSorting(order) {
-    $.ajax({
-        data: order,
-        dataType:"json",
-        contentType: "application/json",
-        success:function (data) {
-            handleGenericAjaxResponse(data);
-        },
-        error: xhrFailCallback,
-        type:"post",
-        cache: false,
-        url: baseurl + "/templates/saveElementSorting/",
-    });
-}
-
-function templateAddElementClicked(id) {
-    simplePopup(baseurl + "/template_elements/templateElementAddChoices/" + id);
-}
-
-function templateAddElement(type, id) {
-    simplePopup(baseurl + "/template_elements/add/" + type + "/" + id);
-}
-
-function templateUpdateAvailableTypes() {
-    $("#innerTypes").empty();
-    var type = $("#TemplateElementAttributeType option:selected").text();
-    var complex = $('#TemplateElementAttributeComplex:checked').val();
-    if (complex && type != 'Select Type') {
-        currentTypes.forEach(function(entry) {
-            $("#innerTypes").append("<div class=\"templateTypeBox\" id=\"" + entry + "TypeBox\">" + entry + "</div>");
-        });
-        $('#outerTypes').show();
-    }
-    else $('#outerTypes').hide();
-}
-
-function populateTemplateTypeDropdown() {
-    var cat = $("#TemplateElementAttributeCategory option:selected").text();
-    currentTypes = [];
-    if (cat == 'Select Category') {
-        $('#TemplateElementAttributeType').html("<option>Select Type</option>");
-    } else {
-        var complex = $('#TemplateElementAttributeComplex:checked').val();
-        if (cat in typeGroupCategoryMapping) {
-            $('#TemplateElementAttributeType').html("<option>Select Type</option>");
-            typeGroupCategoryMapping[cat].forEach(function(entry) {
-                $('#TemplateElementAttributeType').append("<option>" + entry + "</option>");
-            });
-        } else {
-            complex = false;
-        }
-        if (!complex) {
-            $('#TemplateElementAttributeType').html("<option>Select Type</option>");
-            categoryTypes[cat].forEach(function(entry) {
-                $('#TemplateElementAttributeType').append("<option>" + entry + "</option>");
-            });
-        }
-    }
-}
-
-function templateElementAttributeTypeChange() {
-    var complex = $('#TemplateElementAttributeComplex:checked').val();
-    var type = $("#TemplateElementAttributeType option:selected").text();
-    currentTypes = [];
-    if (type != 'Select Type') {
-        if (complex) {
-            complexTypes[type]["types"].forEach(function(entry) {
-                currentTypes.push(entry);
-            });
-        } else {
-            currentTypes.push(type);
-        }
-    } else {
-        currentTypes = [];
-    }
-    $("#typeJSON").html(JSON.stringify(currentTypes));
-    templateUpdateAvailableTypes();
-}
-
-function templateElementAttributeCategoryChange(category) {
-    if (category in typeGroupCategoryMapping) {
-        $('#complexToggle').show();
-    } else {
-        $('#complexToggle').hide();
-    }
-    if (category != 'Select Type') {
-        populateTemplateTypeDropdown();
-    }
-    templateUpdateAvailableTypes();
-}
-
-function templateElementFileCategoryChange(category) {
-    if (category == '') {
-        $("#TemplateElementFileMalware")[0].disabled = true;
-        $("#TemplateElementFileMalware")[0].checked = false;
-    } else {
-        if (categoryArray[category].length == 2) {
-            $("#TemplateElementFileMalware")[0].disabled = false;
-            $("#TemplateElementFileMalware")[0].checked = true;
-        } else {
-            $("#TemplateElementFileMalware")[0].disabled = true;
-            if (categoryArray[category] == 'attachment') $("#TemplateElementFileMalware")[0].checked = false;
-            else $("#TemplateElementFileMalware")[0].checked = true;
-        }
-    }
-}
-
 function openConfirmation(data) {
     var $box = $("#confirmation_box");
     $box.html(data);
@@ -1883,8 +1658,17 @@ function openPopover(clicked, data, hover, placement, callback) {
             container: 'body',
             template: '<div class="popover" role="tooltip" data-dismissId="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
         };
-        $clicked.popover(popoverOptions)
-        .on('shown.bs.popover', function() {
+        $clicked.popover(popoverOptions);
+        // html: true is for the content; Bootstrap would render the title as HTML too
+        var bootstrapPopover = $clicked.data('popover');
+        if (bootstrapPopover) {
+            var bootstrapTitle = bootstrapPopover.getTitle;
+            bootstrapPopover.getTitle = function () {
+                var title = bootstrapTitle.call(this);
+                return typeof title === 'string' ? escapeHtml(title) : title;
+            };
+        }
+        $clicked.on('shown.bs.popover', function() {
             var $this = $(this); // should be the same as $clicked
             var $popover = $this.data("popover").tip(); // should be the content of popover
             var title = $this.attr('title');
@@ -1899,6 +1683,8 @@ function openPopover(clicked, data, hover, placement, callback) {
                 // adjust popover position (title was empty)
                 var top = $popover.offset().top;
                 $popover.css('top', (top-17) + 'px');
+            } else if (typeof title === 'string') {
+                title = escapeHtml(title);
             }
             var popoverTitle = $popover.find('h3.popover-title');
             popoverTitle.html(title + closeButtonHtml);
@@ -2162,102 +1948,8 @@ function resizePopoverBody() {
     $("#popover_choice_main").css({"max-height": bodyheight});
 }
 
-function populateTemplateHiddenFileDiv(files) {
-    $('#TemplateFileArray').val(JSON.stringify(files));
-}
-
-function populateTemplateFileBubbles() {
-    var fileObjectArray = JSON.parse($('#TemplateFileArray').val());
-    fileObjectArray.forEach(function(entry) {
-        templateAddFileBubble(entry.element_id, false, entry.filename, entry.tmp_name, 'yes');
-    });
-}
-
-function templateFileHiddenAdd(files, element_id, batch) {
-    var fileArray = $.parseJSON($('#TemplateFileArray', window.parent.document).val());
-    var contained = false;
-    for (var j=0; j< files.length; j++) {
-        for (var i=0; i< fileArray.length; i++) {
-            if (fileArray[i].filename == files[j].filename) {
-                contained = true;
-            }
-            if (batch == 'no' && fileArray[i].element_id == element_id) {
-                templateDeleteFileBubble(fileArray[i].filename, fileArray[i].tmp_name, fileArray[i].element_id, 'iframe', batch);
-                contained = false;
-                var removeId = i;
-            }
-        }
-        if (batch == 'no') fileArray.splice(removeId, 1);
-        if (contained == false) {
-            fileArray.push(files[j]);
-            templateAddFileBubble(element_id, true, files[j].filename, files[j].tmp_name, batch);
-            $('#TemplateFileArray', window.parent.document).val(JSON.stringify(fileArray));
-        }
-    }
-}
-
 function htmlEncode(value){
     return $('<div/>').text(value).html();
-}
-
-function templateAddFileBubble(element_id, iframe, filename, tmp_name, batch) {
-    filename = htmlEncode(filename);
-    tmp_name = htmlEncode(tmp_name);
-    if (batch == 'no') {
-        if (iframe == true) {
-            $('#filenames_' + element_id, window.parent.document).html('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'no\');" class="tagSecondHalf useCursorPointer">x</span></div>');
-        } else {
-            $('#filenames_' + element_id).html('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'no\');" class="tagSecondHalf useCursorPointer">x</span></div>');
-        }
-    } else {
-        if (iframe == true) {
-            $('#filenames_' + element_id, window.parent.document).append('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'yes\');" class="tagSecondHalf useCursorPointer">x</span></div>');
-        } else {
-            $('#filenames_' + element_id).append('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'yes\');" class="tagSecondHalf useCursorPointer">x</span></div>');
-        }
-    }
-}
-
-function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch) {
-    $(".loading").show();
-    $.ajax({
-        type:"post",
-        cache: false,
-        url: baseurl + "/templates/deleteTemporaryFile/" + tmp_name,
-    });
-    var c = this;
-    if (context == 'iframe') {
-        $('#' + tmp_name + '_container', window.parent.document).remove();
-        var oldArray = JSON.parse($('#TemplateFileArray', window.parent.document).val());
-    } else {
-        $('#' + tmp_name + '_container').remove();
-        var oldArray = JSON.parse($('#TemplateFileArray').val());
-    }
-    var newArray = [];
-    oldArray.forEach(function(entry) {
-        if (batch == 'no') {
-            if (entry.element_id != element_id) {
-                newArray.push(entry);
-            }
-        } else {
-            if (entry.tmp_name != tmp_name) {
-                newArray.push(entry);
-            }
-        }
-    });
-    if (batch == 'no') {
-        $('#fileUploadButton_' + element_id, $('#iframe_' + element_id).contents()).html('Upload File');
-    }
-    if (context == 'iframe') {
-        $('#TemplateFileArray', window.parent.document).val(JSON.stringify(newArray));
-    } else {
-        $('#TemplateFileArray').val(JSON.stringify(newArray));
-    }
-    $(".loading").hide();
-}
-
-function templateFileUploadTriggerBrowse(id) {
-    $('#upload_' + id + '_file').click();
 }
 
 function indexEvaluateFiltering() {
@@ -2722,9 +2414,9 @@ function indexFilterClearRow(field) {
         filtering.published = 2;
     } else if (field == "hasproposal") {
         filtering.hasproposal = 2;
-    } else if (field == "extending") {
+    } else if (field == "is_extension") {
         filtering.is_extension = 2;
-    } else if (field == "extended") {
+    } else if (field == "is_extended") {
         filtering.is_extended = 2;
     } else if (differentFilters.indexOf(field) != -1) {
         filtering[field] = "";
@@ -2971,7 +2663,8 @@ function freetextSerializeAttributes() {
                 sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
                 data:$('#Attribute' + i + 'Data').val(),
                 data_is_handled:$('#Attribute' + i + 'DataIsHandled').val(),
-                tags:$('#Attribute' + i + 'Tags').val()
+                tags:$('#Attribute' + i + 'Tags').val(),
+                remove_tags:$('#Attribute' + i + 'RemoveTags').val()
             })
         }
     });
@@ -3004,6 +2697,11 @@ function freetextRemoveRow(id, event_id) {
 
 function freetextCreateObject(objectId) {
     var attributeArray = freetextSerializeAttributes();
+    // Tag removals only apply to attributes already in the event, they have no
+    // meaning for the object that is about to be created.
+    attributeArray.forEach(function (attribute) {
+        delete attribute.remove_tags;
+    });
     $('#ObjectSelectedTemplateId').val(objectId);
     $('#ObjectAttributes').val(JSON.stringify(attributeArray));
     $('#ObjectFreeTextImportForm').submit();
@@ -3723,7 +3421,7 @@ function testConnection(id) {
                 var compatibility_colour = "green";
                 var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
                 var issue_colour = "red";
-                if (result.mismatch == "hotfix") issue_colour = "orange";
+                if (result.mismatch == "hotfix" || result.mismatch == "major_compatible") issue_colour = "orange";
                 if (result.newer == "local") {
                     colours.remote = 'class="' + issue_colour + '"';
                     if (result.mismatch == "minor") {
@@ -3732,12 +3430,12 @@ function testConnection(id) {
                     } else if (result.mismatch == "major") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
-                    } else if (result.mismatch == "minor_compatible") {
+                    } else if (result.mismatch == "minor_compatible" || result.mismatch == "major_compatible") {
                         compatibility_colour = "green";
                     }
                 } else if (result.newer == "remote") {
                     colours.local = 'class="' + issue_colour + '"';
-                    if (result.mismatch != "hotfix") {
+                    if (result.mismatch != "hotfix" && result.mismatch != "major_compatible") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
                     }
@@ -3747,10 +3445,16 @@ function testConnection(id) {
                 }
                 if (result.mismatch != false && result.mismatch != "proposal") {
                     if (result.newer == "remote") {
-                        status_message = "Local instance outdated, update!";
+                        if (result.mismatch == "major_compatible") {
+                            status_message = "Local instance on 2.5, moving to 3.0 is recommended.";
+                        } else {
+                            status_message = "Local instance outdated, update!";
+                        }
                     } else if (result.newer == "local") {
                         if (result.mismatch == "minor_compatible") {
                             status_message = "Remote on 2.4, moving to 2.5 is recommended.";
+                        } else if (result.mismatch == "major_compatible") {
+                            status_message = "Remote on 2.5, moving to 3.0 is recommended.";
                         } else {
                             status_message = "Remote outdated, notify admin!";
                         }
@@ -4530,6 +4234,16 @@ function malwareCheckboxSetter(context) {
 
 function feedFormUpdate() {
     $('.optionalField').hide();
+    var gathering = $('#FeedInputSource').val() === 'misp-modules';
+    if (gathering) {
+        $('#FeedSourceFormat').val('misp');
+        $('#FeedCachingEnabled').prop('checked', false);
+    }
+    $('#FeedSourceFormat, #FeedCachingEnabled').prop('disabled', gathering);
+    $('#FeedUrl').prop('required', !gathering).closest('.input').toggle(!gathering);
+    if (gathering) {
+        $('#GatheringModuleDiv, #GatheringParametersDiv').show();
+    }
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
@@ -4556,7 +4270,9 @@ function feedFormUpdate() {
             $('#settingsCommonExcluderegexDiv').show();
             break;
     }
-    if ($('#FeedInputSource').val() == 'local') {
+    if (gathering) {
+        $('#DeleteLocalFileDiv, #HeadersDiv').hide();
+    } else if ($('#FeedInputSource').val() == 'local') {
         $('#DeleteLocalFileDiv').show();
         $('#HeadersDiv').hide();
     } else {
@@ -5391,8 +5107,10 @@ function insertRawRestResponse() {
 }
 
 function insertHTMLRestResponse() {
-    $('#rest-response-container').append('<div id="html-response-container" style="border: 1px solid blue; padding:5px;" />');
-    $('#html-response-container').html($('#rest-response-hidden-container').text());
+    // The response can be any server's: the empty sandbox keeps its scripts off this page
+    var $frame = $('<iframe id="html-response-container" sandbox="" style="border: 1px solid blue; padding:5px; width:100%; height:60vh; resize:vertical;" />');
+    $frame.attr('srcdoc', $('#rest-response-hidden-container').text());
+    $('#rest-response-container').append($frame);
 }
 
 function insertJSONRestResponse() {
@@ -5806,7 +5524,8 @@ $(document.body).on('click', '.populateActionTrigger', function() {
         data: JSON.stringify(populate_script['body']),
         headers: {
             "Accept": "application/json",
-            "Content-type": "application/json"
+            "Content-type": "application/json",
+            "X-CSRF-Token": (window.csrfToken || '')
         },
         success: function (data) {
             if (typeof(data) != 'object') {
@@ -5820,7 +5539,16 @@ $(document.body).on('click', '.populateActionTrigger', function() {
             }
         },
         error: function(data) {
-            showMessage('fail', data['responseJSON']['errors']);
+            var response = data.responseJSON || {};
+            var message = response.errors || response.message;
+            if (Array.isArray(message)) {
+                message = message.join('\n');
+            }
+            if (typeof message === 'string' && message.length > 0) {
+                showMessage('fail', escapeHtml(message));
+            } else {
+                xhrFailCallback(data);
+            }
         },
         type: populate_script['type'],
         url: baseurl + populate_script['uri']
@@ -6151,7 +5879,7 @@ function parseGpxToLayers(xmlString, map) {
         var nameEl = wpts[i].querySelector('name');
         var marker = L.marker(ll).addTo(map);
         if (nameEl && nameEl.textContent) {
-            marker.bindPopup(nameEl.textContent);
+            marker.bindPopup(escapeHtml(nameEl.textContent));
         }
         bounds.extend(ll);
         hasData = true;
@@ -6335,9 +6063,9 @@ $(document).on("click", ".geojson-map-icon", function() {
                             for (var key in feature.properties) {
                                 if (feature.properties[key] !== null) {
                                     props.push(
-                                        '<strong>' + key +
+                                        '<strong>' + escapeHtml(key) +
                                         '</strong>: ' +
-                                        feature.properties[key]
+                                        escapeHtml(String(feature.properties[key]))
                                     );
                                 }
                             }

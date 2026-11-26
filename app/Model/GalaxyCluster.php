@@ -79,6 +79,13 @@ class GalaxyCluster extends AppModel
         )
     );
 
+    // What captureCluster() may write: never `default`; an update also keeps org_id and orgc_id.
+    private const CAPTURE_FIELDS = [
+        'uuid', 'collection_uuid', 'type', 'value', 'tag_name', 'description', 'galaxy_id',
+        'source', 'authors', 'version', 'distribution', 'sharing_group_id', 'org_id', 'orgc_id',
+        'locked', 'extends_uuid', 'extends_version', 'published', 'deleted',
+    ];
+
     private $__clusterCache = array();
     private $deletedClusterUUID;
     public $bulkEntry = false;
@@ -750,21 +757,13 @@ class GalaxyCluster extends AppModel
             return $results;
         }
 
-        if (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['Orgc'])) {
+        if (!$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
+            // Only sync users and site admins create clusters on behalf of other organisations;
+            // captureOrganisationAndSG() would take the creator from Orgc
+            unset($cluster['Orgc'], $cluster['GalaxyCluster']['Orgc']);
             $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id'];
-        } else {
-            if (!isset($cluster['GalaxyCluster']['Orgc'])) {
-                if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            } else {
-                if ($cluster['GalaxyCluster']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                    $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-                }
-            }
-            if (isset($cluster['GalaxyCluster']['orgc_id']) && $cluster['GalaxyCluster']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) {
-                $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id']; // Only sync user can create cluster on behalf of other users
-            }
+        } elseif (!isset($cluster['GalaxyCluster']['orgc_id']) && !isset($cluster['GalaxyCluster']['Orgc'])) {
+            $cluster['GalaxyCluster']['orgc_id'] = $cluster['GalaxyCluster']['org_id'];
         }
 
         if (!Configure::check('MISP.enableOrgBlocklisting') || Configure::read('MISP.enableOrgBlocklisting') !== false) {
@@ -787,10 +786,22 @@ class GalaxyCluster extends AppModel
             return $results;
         }
 
-        $cluster = $this->captureOrganisationAndSG($cluster, 'GalaxyCluster', $user);
         $existingGalaxyCluster = $this->find('first', array('conditions' => array(
             'GalaxyCluster.uuid' => $cluster['GalaxyCluster']['uuid']
         )));
+        if (!empty($existingGalaxyCluster)) {
+            if (!$existingGalaxyCluster['GalaxyCluster']['locked'] && empty($server['Server']['internal'])) {
+                $results['errors'][] = __('Blocked an edit to a cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
+                $results['failed']++;
+                return $results;
+            }
+            if (!$this->__mayUpdateCapturedCluster($user, $existingGalaxyCluster['GalaxyCluster'])) {
+                $results['errors'][] = __('Blocked an update to cluster (%s): only its owner organisation, a sync user that can see it or a site admin may update it.', $cluster['GalaxyCluster']['uuid']);
+                $results['failed']++;
+                return $results;
+            }
+        }
+        $cluster = $this->captureOrganisationAndSG($cluster, 'GalaxyCluster', $user);
         $cluster['GalaxyCluster']['tag_name'] = sprintf('misp-galaxy:%s="%s"', $cluster['GalaxyCluster']['type'], $cluster['GalaxyCluster']['uuid']);
         if (!isset($cluster['GalaxyCluster']['distribution'])) {
             $cluster['GalaxyCluster']['distribution'] = Configure::read('MISP.default_event_distribution'); // use default event distribution
@@ -809,19 +820,17 @@ class GalaxyCluster extends AppModel
                 return $results;
             }
             $cluster['GalaxyCluster']['galaxy_id'] = $galaxy['Galaxy']['id'];
+            // Cake adds the primary key to any fieldList: dropping or forcing the id is what pins the row.
             unset($cluster['GalaxyCluster']['id']);
             $this->create();
-            $saveSuccess = $this->save($cluster);
+            $saveSuccess = $this->save($cluster, ['fieldList' => self::CAPTURE_FIELDS]);
         } else {
-            if (!$existingGalaxyCluster['GalaxyCluster']['locked'] && empty($server['Server']['internal'])) {
-                $results['errors'][] = __('Blocked an edit to a cluster that was created locally. This can happen if a synchronised cluster that was created on this instance was modified by an administrator on the remote side.');
-                $results['failed']++;
-                return $results;
-            }
             if ($cluster['GalaxyCluster']['version'] > $existingGalaxyCluster['GalaxyCluster']['version']) {
                 $cluster['GalaxyCluster']['id'] = $existingGalaxyCluster['GalaxyCluster']['id'];
                 $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxyCluster['GalaxyCluster']['galaxy_id'];
-                $saveSuccess = $this->save($cluster);
+                $saveSuccess = $this->save($cluster, [
+                    'fieldList' => array_values(array_diff(self::CAPTURE_FIELDS, ['org_id', 'orgc_id'])),
+                ]);
             } else {
                 $results['errors'][] = __('Remote version is not newer than local one for cluster (%s)', $cluster['GalaxyCluster']['uuid']);
                 $results['ignored']++;
@@ -857,6 +866,24 @@ class GalaxyCluster extends AppModel
         }
         $results['success'] = $results['imported'] > 0;
         return $results;
+    }
+
+    /**
+     * A captured cluster may replace an existing one only for a site admin, the
+     * cluster's owner organisation or a sync user that can see it.
+     */
+    private function __mayUpdateCapturedCluster(array $user, array $existing)
+    {
+        if ($user['Role']['perm_site_admin'] || $existing['org_id'] == $user['org_id']) {
+            return true;
+        }
+        if (!$user['Role']['perm_sync']) {
+            return false;
+        }
+        return $this->hasAny(array_merge(
+            ['GalaxyCluster.id' => $existing['id']],
+            $this->buildConditions($user)
+        ));
     }
 
     public function captureOrganisationAndSG($element, $model, $user)
@@ -1635,7 +1662,7 @@ class GalaxyCluster extends AppModel
                 }
             }
             if (in_array('publish', $authorizations)) {
-                if ($cluster[$this->alias]['orgc_id'] != $user['org_id'] && $user['Role']['perm_publish']) {
+                if ($cluster[$this->alias]['orgc_id'] != $user['org_id']) {
                     $message = __('Only the creator organisation with publishing capabilities can publish the galaxy cluster');
                     if ($throwErrors) {
                         throw new MethodNotAllowedException($message);
@@ -1728,9 +1755,7 @@ class GalaxyCluster extends AppModel
             $tag_id = $this->Tag->find(
                 'first',
                 array(
-                    'conditions' => array(
-                        'LOWER(Tag.name)' => strtolower($cluster['GalaxyCluster']['tag_name'])
-                    ),
+                    'conditions' => $this->Tag->nameCondition($cluster['GalaxyCluster']['tag_name']),
                     'recursive' => -1,
                     'fields' => array('Tag.id')
                 )

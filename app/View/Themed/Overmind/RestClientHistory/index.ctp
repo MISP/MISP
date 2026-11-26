@@ -1,27 +1,22 @@
 <?php
-    $isBookmark = !empty($bookmarked);
-    $jsVarName = $isBookmark ? 'bookmarkedQueriesData' : 'historyQueriesData';
+$isBookmark = !empty($bookmarked);
 ?>
-
 <?php if (empty($data)): ?>
-    <div class="text-muted small p-3 text-center border rounded bg-light">
-        <?= __('No queries found.') ?>
+    <div class="text-center text-body-secondary small p-4">
+        <?= $isBookmark ? __('No bookmarks yet. Use the star next to Send.') : __('No queries yet.') ?>
     </div>
 <?php else: ?>
-    <?php foreach ($data as $k => $item): ?>
-        <?php
-            $payload = htmlspecialchars(json_encode($item), ENT_QUOTES, 'UTF-8');
-
-            echo $this->element('genericElementsBS5/Cards/card_query', [
-                'method' => $item['http_method'],
-                'title' => !empty($item['bookmark_name']) ? $item['bookmark_name'] : "#{$item['id']}",
-                'url' => $item['url'] ?? '#',
-                'id' => $item['id'],
-                'favorite' => (!empty($bookmarked)),
-                'status' => $item['outcome'],
-                'payload' => $payload,
-                'onClickAction' => "applyQuery(this)"
-            ]);
-        ?>
+    <?php foreach ($data as $item): ?>
+        <?= $this->element('Api/View/endpoint_row', [
+            'kind' => 'query',
+            'method' => $item['http_method'],
+            'url' => $item['url'] ?? '',
+            'title' => $isBookmark ? ($item['bookmark_name'] ?: '#' . $item['id']) : null,
+            'bookmark' => !$isBookmark && !empty($item['bookmark']),
+            'status' => $item['outcome'],
+            'timestamp' => $item['timestamp'],
+            'id' => $item['id'],
+            'payload' => $item,
+        ]) ?>
     <?php endforeach; ?>
 <?php endif; ?>

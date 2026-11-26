@@ -40,22 +40,14 @@ echo $this->Form->create('DecayingModel', [
 
         <!-- ── Decaying Model DOCUMENT ───────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Decaying Model JSON') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
-            <?= $this->Form->textarea('json', [
-                'class' => 'form-control bg-light font-monospace',
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'json',
+                'label' => __('Decaying Model JSON'),
+                'shape' => 'object',
                 'rows' => 14,
-                'style' => 'font-size:.8rem;',
-                'placeholder' => __(
-                    '{ "name": "...", "formula": "Polynomial", "parameters": { ... } }'
-                ),
+                'minHeight' => '280px',
+                'placeholder' => "{\n    \"name\": \"…\",\n    \"formula\": \"Polynomial\",\n    \"parameters\": {}\n}",
+                'hint' => __('The export document of a model — leave it empty to upload the file instead.'),
             ]) ?>
         </div>
 

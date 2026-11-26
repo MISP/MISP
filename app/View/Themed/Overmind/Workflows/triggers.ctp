@@ -171,12 +171,12 @@ $fields =  [
                 'icon' => 'code',
                 'url' => $baseurl . '/workflows/editor/%id%',
             ],
-            // [
-            //     'type' => 'navigate',
-            //     'label' => __('Trigger details'),
-            //     'icon' => 'eye',
-            //     'url' => $baseurl . '/workflows/moduleView/%id%',
-            // ],
+            [
+                'type' => 'navigate',
+                'label' => __('Trigger details'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/workflows/moduleView/%id%',
+            ],
             [
                 'type' => 'navigate',
                 'label' => __('Execution logs'),
@@ -284,7 +284,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'filter_bar' => $filterBar,
             'fields' => $fields,
             'primary_id_path' => 'id',
-            //'row_dblclick_url' => $baseurl . '/workflows/editor/%id%',
+            'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
         ]
     ],
     'item_url' => '/workflows'

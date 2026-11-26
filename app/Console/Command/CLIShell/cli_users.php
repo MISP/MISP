@@ -395,10 +395,11 @@ trait CLIUsersTrait
             $values
         );
         $this->User->id = $id;
+        // date_modified makes open sessions reload the user
         $result = $this->User->save(
             ['User' => $data],
             true,
-            $editableFields
+            array_merge($editableFields, ['date_modified'])
         );
         if ($result) {
             $this->__logUserEdit(
@@ -563,7 +564,8 @@ trait CLIUsersTrait
                     ],
                 ],
                 true,
-                ['disabled']
+                // date_modified makes open sessions reload the user
+                ['disabled', 'date_modified']
             );
             if ($result) {
                 $this->__logUserEdit(

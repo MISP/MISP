@@ -1,7 +1,7 @@
 <?php
 
 $formatValue = function (array $attribute) {
-    if (($attribute['type'] ?? '') === 'link') {
+    if (($attribute['type'] ?? '') === 'link' && preg_match('/^https?:\/\//i', $attribute['value'])) {
         return '<a href="' . h($attribute['value']) . '" rel="noreferrer noopener" target="_blank">' . h($attribute['value']) . '</a>';
     }
     return h($attribute['value']);

@@ -198,255 +198,258 @@
 ]) ?>
 <?php endif; ?>
 
-<div class="eventTemplates builder <?= $isModal ? 'p-4' : 'container-fluid mt-3' ?>"
+
+<div class= "container-fluid eventTemplates builder px-4 py-4"
      x-data="etBuilder" x-cloak>
+    <div class= <?= $isModal ? 'px-2' : '' ?>>
+        <div class="alert alert-danger" x-show="errors.length">
+            <strong><?= __('Could not save:') ?></strong>
+            <ul class="mb-0">
+                <template x-for="err in errors" :key="err">
+                    <li x-text="err"></li>
+                </template>
+            </ul>
+        </div>
 
-    <div class="alert alert-danger" x-show="errors.length">
-        <strong><?= __('Could not save:') ?></strong>
-        <ul class="mb-0">
-            <template x-for="err in errors" :key="err">
-                <li x-text="err"></li>
-            </template>
-        </ul>
-    </div>
-
-    <div class="alert alert-warning" x-show="envelope.misp_default">
-        <div class="d-flex align-items-start gap-3">
-            <i class="fas fa-cube fs-4 mt-1"></i>
-            <div>
-                <strong><?= __('Library-managed template') ?></strong>
-                <div class="small">
-                    <?= __('This template is managed by the <code>misp-event-templates</code> submodule. The next <em>Update from library</em> run will overwrite your edits unless you uncheck <em>Library-managed</em> below — that flips this row to a fork and library updates will leave it alone.') ?>
+        <div class="alert alert-warning" x-show="envelope.misp_default">
+            <div class="d-flex align-items-start gap-3">
+                <i class="fas fa-cube fs-4 mt-1"></i>
+                <div>
+                    <strong><?= __('Library-managed template') ?></strong>
+                    <div class="small">
+                        <?= __('This template is managed by the <code>misp-event-templates</code> submodule. The next <em>Update from library</em> run will overwrite your edits unless you uncheck <em>Library-managed</em> below — that flips this row to a fork and library updates will leave it alone.') ?>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- ── ENVELOPE ───────────────────────────────────────────── -->
-    <div class="d-flex flex-column gap-4 mb-4 et-envelope">
+        <!-- ── ENVELOPE ───────────────────────────────────────────── -->
+        <div class="d-flex flex-column gap-4 mb-4 et-envelope">
 
-        <!-- Template name -->
-        <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Template Name') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
-            <input type="text" id="et-envelope-name"
-                   class="w-100 border-0 bg-transparent fs-5 py-1"
-                   style="border-bottom:1px solid #d8dde3 !important; outline:none;"
-                   placeholder="<?= __('Spearphishing email triage') ?>"
-                   x-model="envelope.name">
-        </div>
-
-        <!-- Description -->
-        <div class="w-100 px-2">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
-                'accent' => 'primary',
-                'label' => __('Description (Markdown)'),
-            ]) ?>
-            <div class="border rounded px-2 py-2"
-                 style="border-color:#d8dde3;">
-                <textarea id="et-envelope-description" rows="2"
-                          class="w-100 border-0 bg-transparent p-0"
-                          style="outline:none; font-size:.925rem; resize:vertical;"
-                          placeholder="<?= h(__('What this template is for, and when to use it…')) ?>"
-                          x-model="envelope.description"></textarea>
-            </div>
-        </div>
-
-        <!-- Distribution + flags -->
-        <div class="row g-3 px-2">
-            <div class="col-md-4">
-                <!-- ── DISTRIBUTION ───────────────────────────────────── -->
-                <div class="w-100">
-                    <?= $this->element('genericElementsBS5/Forms/section_label', [
-                        'accent' => 'primary',
-                        'label' => __('Distribution'),
-                    ]) ?>
-                    <select id="et-envelope-distribution" class="form-select"
-                            x-init="initEnvelopeDistributionSelect($el)"
-                            x-model.number="envelope.distribution">
-                        <?php foreach ($distributionLevels as $level => $label): ?>
-                            <option value="<?= (int)$level ?>"><?= h($label) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+            <!-- Template name -->
+            <div class="w-100">
+                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                            text-uppercase mb-2"
+                    style="font-size:.65rem; letter-spacing:.1em;">
+                    <?= __('Template Name') ?>
+                    <span class="badge bg-primary"
+                        style="font-size:.55rem; opacity:.8; font-weight:700;">
+                        <?= __('REQUIRED') ?>
+                    </span>
                 </div>
+                <input type="text" id="et-envelope-name"
+                    class="w-100 border-0 bg-transparent fs-5 py-1"
+                    style="border-bottom:1px solid #d8dde3 !important; outline:none;"
+                    placeholder="<?= __('Spearphishing email triage') ?>"
+                    x-model="envelope.name">
             </div>
-            <div class="col-md-8">
+
+            <!-- Description -->
+            <div class="w-100">
                 <?= $this->element('genericElementsBS5/Forms/section_label', [
                     'accent' => 'primary',
-                    'label' => __('Options'),
+                    'label' => __('Description (Markdown)'),
                 ]) ?>
-                <div class="border rounded px-3 py-2 d-flex flex-wrap gap-3"
-                     style="border-color:#d8dde3;">
-                    <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox"
-                               id="et-envelope-active"
-                               x-model="envelope.active">
-                        <label class="form-check-label" for="et-envelope-active"
-                               style="font-size:.85rem;">
-                            <?= __('Active') ?>
-                        </label>
-                    </div>
-                    <div class="form-check form-switch mb-0"
-                         title="<?= h(__('When checked, the template is managed by the misp-event-templates submodule and library updates will overwrite it. Uncheck to fork — your edits will be preserved across library updates.')) ?>">
-                        <input class="form-check-input" type="checkbox"
-                               id="et-envelope-misp-default"
-                               x-model="envelope.misp_default">
-                        <label class="form-check-label" for="et-envelope-misp-default"
-                               style="font-size:.85rem;">
-                            <?= __('Library-managed') ?>
-                        </label>
-                    </div>
-                    <div class="form-check form-switch mb-0"
-                         title="<?= h(__('When checked, this template is offered to anonymous community reporters through Draugnet (if the CSIRT runs it with the MISP template source). Off by default — exposing is an explicit opt-in.')) ?>">
-                        <input class="form-check-input" type="checkbox"
-                               id="et-envelope-exposed"
-                               x-model="envelope.exposed">
-                        <label class="form-check-label" for="et-envelope-exposed"
-                               style="font-size:.85rem;">
-                            <?= __('Expose to Draugnet') ?>
-                        </label>
-                    </div>
+                <div class="border rounded p-2"
+                    style="border-color:#d8dde3;">
+                    <textarea id="et-envelope-description" rows="2"
+                            class="w-100 border-0 bg-transparent p-0"
+                            style="outline:none; font-size:.925rem; resize:vertical;"
+                            placeholder="<?= h(__('What this template is for, and when to use it…')) ?>"
+                            x-model="envelope.description"></textarea>
                 </div>
             </div>
-        </div>
 
-    </div>
-
-    <div class="row g-3">
-
-        <!-- PALETTE -->
-        <div class="col-lg-2 col-md-3">
-            <div class="text-primary fw-bold text-uppercase mb-2 px-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Add Element') ?>
-            </div>
-            <div class="card shadow-sm et-palette">
-                <div class="card-body">
-                    <?php foreach ($paletteButtons as $type => $meta): ?>
-                        <button type="button"
-                                class="btn btn-sm btn-outline-secondary w-100 mb-2 text-start"
-                                @click="addElement('<?= h($type) ?>')">
-                            <i class="fas fa-<?= h($meta['icon']) ?> me-2"></i>
-                            <?= h($meta['label']) ?>
-                        </button>
-                    <?php endforeach; ?>
+            <!-- Distribution + flags -->
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <!-- ── DISTRIBUTION ───────────────────────────────────── -->
+                    <div class="w-100">
+                        <?php
+                        echo $this->element('genericElementsBS5/Forms/distribution_field', [
+                            'accent' => 'primary',
+                            'levels' => $distributionLevels,
+                            'value' => $envelope['distribution'],
+                            'compact' => true,
+                            'id' => 'et-envelope-distribution',
+                            'selectAttrs' => [
+                                'x-init' => 'initEnvelopeDistributionSelect($el)',
+                            ],
+                        ]);
+                        ?>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- CANVAS -->
-        <div class="col-lg-5 col-md-4">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2 px-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Structure') ?>
-                <span class="badge bg-secondary" x-show="hasElements"
-                      style="font-size:.55rem; font-weight:700;"
-                      x-text="definition.structure.length"></span>
-            </div>
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="et-canvas" id="et-canvas" style="min-height:420px;">
-                        <div class="et-empty" x-show="!hasElements">
-                            <?= __('No elements yet. Use the palette on the left to add one.') ?>
+                <div class="col-md-8">
+                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                        'accent' => 'primary',
+                        'label' => __('Options'),
+                    ]) ?>
+                    <div class="border rounded px-3 py-2 d-flex flex-wrap gap-3"
+                        style="border-color:#d8dde3;">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox"
+                                id="et-envelope-active"
+                                x-model="envelope.active">
+                            <label class="form-check-label" for="et-envelope-active"
+                                style="font-size:.85rem;">
+                                <?= __('Active') ?>
+                            </label>
                         </div>
-                        <template x-for="el in definition.structure" :key="el.id">
-                            <div class="et-canvas-element"
-                                 :class="{
-                                     selected: el.id === selectedId,
-                                     'et-has-error': errorsForElement(el.id).length
-                                 }"
-                                 :data-element-id="el.id"
-                                 @click.self="selectElement(el.id)">
-                                <div class="et-element-header d-flex align-items-center gap-2"
-                                     @click="selectElement(el.id)">
-                                    <span class="et-drag-handle"
-                                          title="<?= __('Drag to reorder') ?>">☰</span>
-                                    <span class="et-element-type-badge"
-                                          x-text="typeLabel(el)"></span>
-                                    <span class="et-element-summary"
-                                          x-text="elementSummary(el)"></span>
-                                    <code class="et-element-id" x-text="el.id"></code>
-                                    <span class="badge bg-danger"
-                                          x-show="errorsForElement(el.id).length"
-                                          x-text="errorsForElement(el.id).length"
-                                          :title="'<?= __('Validation errors on this element') ?>'"></span>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger et-delete-button"
-                                            title="<?= __('Delete element') ?>"
-                                            @click.stop="removeElement(el.id)">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                                <div class="et-element-errors alert alert-danger py-1 px-2 mt-2 mb-0 small"
-                                     x-show="errorsForElement(el.id).length">
-                                    <ul class="mb-0 ps-3">
-                                        <template x-for="msg in errorsForElement(el.id)"
-                                                  :key="msg">
-                                            <li x-text="msg"></li>
-                                        </template>
-                                    </ul>
-                                </div>
+                        <div class="form-check form-switch mb-0"
+                            title="<?= h(__('When checked, the template is managed by the misp-event-templates submodule and library updates will overwrite it. Uncheck to fork — your edits will be preserved across library updates.')) ?>">
+                            <input class="form-check-input" type="checkbox"
+                                id="et-envelope-misp-default"
+                                x-model="envelope.misp_default">
+                            <label class="form-check-label" for="et-envelope-misp-default"
+                                style="font-size:.85rem;">
+                                <?= __('Library-managed') ?>
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-0"
+                            title="<?= h(__('When checked, this template is offered to anonymous community reporters through Draugnet (if the CSIRT runs it with the MISP template source). Off by default — exposing is an explicit opt-in.')) ?>">
+                            <input class="form-check-input" type="checkbox"
+                                id="et-envelope-exposed"
+                                x-model="envelope.exposed">
+                            <label class="form-check-label" for="et-envelope-exposed"
+                                style="font-size:.85rem;">
+                                <?= __('Expose to Draugnet') ?>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-3">
+
+            <!-- PALETTE -->
+            <div class="col-lg-2 col-md-3">
+                <div class="text-primary fw-bold text-uppercase mb-2"
+                    style="font-size:.65rem; letter-spacing:.1em;">
+                    <?= __('Add Element') ?>
+                </div>
+                <div class="card shadow-sm et-palette">
+                    <div class="card-body">
+                        <?php foreach ($paletteButtons as $type => $meta): ?>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary w-100 mb-2 text-start"
+                                    @click="addElement('<?= h($type) ?>')">
+                                <i class="fas fa-<?= h($meta['icon']) ?> me-2"></i>
+                                <?= h($meta['label']) ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CANVAS -->
+            <div class="col-lg-5 col-md-4">
+                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                            text-uppercase mb-2"
+                    style="font-size:.65rem; letter-spacing:.1em;">
+                    <?= __('Structure') ?>
+                    <span class="badge bg-secondary" x-show="hasElements"
+                        style="font-size:.55rem; font-weight:700;"
+                        x-text="definition.structure.length"></span>
+                </div>
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="et-canvas" id="et-canvas" style="min-height:420px;">
+                            <div class="et-empty" x-show="!hasElements">
+                                <?= __('No elements yet. Use the palette on the left to add one.') ?>
                             </div>
-                        </template>
+                            <template x-for="el in definition.structure" :key="el.id">
+                                <div class="et-canvas-element"
+                                    :class="{
+                                        selected: el.id === selectedId,
+                                        'et-has-error': errorsForElement(el.id).length
+                                    }"
+                                    :data-element-id="el.id"
+                                    @click.self="selectElement(el.id)">
+                                    <div class="et-element-header d-flex align-items-center gap-2"
+                                        @click="selectElement(el.id)">
+                                        <span class="et-drag-handle"
+                                            title="<?= __('Drag to reorder') ?>">☰</span>
+                                        <span class="et-element-type-badge"
+                                            x-text="typeLabel(el)"></span>
+                                        <span class="et-element-summary"
+                                            x-text="elementSummary(el)"></span>
+                                        <code class="et-element-id" x-text="el.id"></code>
+                                        <span class="badge bg-danger"
+                                            x-show="errorsForElement(el.id).length"
+                                            x-text="errorsForElement(el.id).length"
+                                            :title="'<?= __('Validation errors on this element') ?>'"></span>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger et-delete-button"
+                                                title="<?= __('Delete element') ?>"
+                                                @click.stop="removeElement(el.id)">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="et-element-errors alert alert-danger py-1 mt-2 mb-0 small"
+                                        x-show="errorsForElement(el.id).length">
+                                        <ul class="mb-0 ps-3">
+                                            <template x-for="msg in errorsForElement(el.id)"
+                                                    :key="msg">
+                                                <li x-text="msg"></li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- PROPERTIES -->
-        <div class="col-lg-5 col-md-5">
-            <div class="text-primary fw-bold text-uppercase mb-2 px-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Properties') ?>
-            </div>
-            <div class="card shadow-sm et-properties-pane">
-                <div class="card-body">
-                    <div class="et-empty" x-show="!selectedId">
-                        <?= __('Select an element in the canvas to edit its properties.') ?>
-                    </div>
-                    <div x-show="selectedType === 'section'">
-                        <?= $this->element('eventTemplates/builder/properties_section') ?>
-                    </div>
-                    <div x-show="selectedType === 'text_block'">
-                        <?= $this->element('eventTemplates/builder/properties_text_block') ?>
-                    </div>
-                    <div x-show="selectedType === 'attribute_field'">
-                        <?= $this->element('eventTemplates/builder/properties_attribute_field', [
-                            'attributeCategoryDefinitions' => $attrCategories,
-                        ]) ?>
-                    </div>
-                    <div x-show="selectedType === 'object_field'">
-                        <?= $this->element('eventTemplates/builder/properties_object_field', [
-                            'objectTemplatesAvailable' => $objectTemplates,
-                        ]) ?>
-                    </div>
-                    <div x-show="selectedType === 'tag_field'">
-                        <?= $this->element('eventTemplates/builder/properties_tag_field') ?>
-                    </div>
-                    <div x-show="selectedType === 'galaxy_field'">
-                        <?= $this->element('eventTemplates/builder/properties_galaxy_field') ?>
-                    </div>
-                    <div x-show="selectedType === 'file_field'">
-                        <?= $this->element('eventTemplates/builder/properties_file_field') ?>
-                    </div>
-                    <div x-show="selectedType === 'event_report'">
-                        <?= $this->element('eventTemplates/builder/properties_event_report') ?>
-                    </div>
-                    <div x-show="selectedType === 'object_reference'">
-                        <?= $this->element('eventTemplates/builder/properties_object_reference') ?>
+            <!-- PROPERTIES -->
+            <div class="col-lg-5 col-md-5">
+                <div class="text-primary fw-bold text-uppercase mb-2"
+                    style="font-size:.65rem; letter-spacing:.1em;">
+                    <?= __('Properties') ?>
+                </div>
+                <div class="card shadow-sm et-properties-pane">
+                    <div class="card-body">
+                        <div class="et-empty" x-show="!selectedId">
+                            <?= __('Select an element in the canvas to edit its properties.') ?>
+                        </div>
+                        <div x-show="selectedType === 'section'">
+                            <?= $this->element('eventTemplates/builder/properties_section') ?>
+                        </div>
+                        <div x-show="selectedType === 'text_block'">
+                            <?= $this->element('eventTemplates/builder/properties_text_block') ?>
+                        </div>
+                        <div x-show="selectedType === 'attribute_field'">
+                            <?= $this->element('eventTemplates/builder/properties_attribute_field', [
+                                'attributeCategoryDefinitions' => $attrCategories,
+                            ]) ?>
+                        </div>
+                        <div x-show="selectedType === 'object_field'">
+                            <?= $this->element('eventTemplates/builder/properties_object_field', [
+                                'objectTemplatesAvailable' => $objectTemplates,
+                            ]) ?>
+                        </div>
+                        <div x-show="selectedType === 'tag_field'">
+                            <?= $this->element('eventTemplates/builder/properties_tag_field') ?>
+                        </div>
+                        <div x-show="selectedType === 'galaxy_field'">
+                            <?= $this->element('eventTemplates/builder/properties_galaxy_field') ?>
+                        </div>
+                        <div x-show="selectedType === 'file_field'">
+                            <?= $this->element('eventTemplates/builder/properties_file_field') ?>
+                        </div>
+                        <div x-show="selectedType === 'event_report'">
+                            <?= $this->element('eventTemplates/builder/properties_event_report') ?>
+                        </div>
+                        <div x-show="selectedType === 'object_reference'">
+                            <?= $this->element('eventTemplates/builder/properties_object_reference') ?>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
+        </div>
     </div>
 
     <?php

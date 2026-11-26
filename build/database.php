@@ -69,5 +69,38 @@ class DATABASE_CONFIG {
 		'database' => 'misp',
 		'prefix' => '',
 		//'encoding' => 'utf8',
+		'flags' => array(
+			PDO::ATTR_STRINGIFY_FETCHES => true
+		),
+	);
+
+	/**
+	 * CI's legacy-upgrade step runs the cake commands against a second
+	 * database by exporting MISP_DB_NAME; everything else keeps `misp`.
+	 */
+	public function __construct()
+	{
+		$database = getenv('MISP_DB_NAME');
+		if ($database !== false && $database !== '') {
+			$this->default['database'] = $database;
+		}
+	}
+
+	/**
+	 * The database CI carries from the previous release's install baseline to
+	 * the current schema, for `verifyInstallBaseline --connection legacy`.
+	 */
+	public $legacy = array(
+		'datasource' => 'Database/MysqlExtended',
+		'persistent' => false,
+		'host' => '127.0.0.1',
+		'login' => 'misp',
+		'port' => 3306,
+		'password' => 'blah',
+		'database' => 'misp_legacy',
+		'prefix' => '',
+		'flags' => array(
+			PDO::ATTR_STRINGIFY_FETCHES => true
+		),
 	);
 }

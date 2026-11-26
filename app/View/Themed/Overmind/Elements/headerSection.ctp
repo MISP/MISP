@@ -77,6 +77,34 @@ if (isset($headerCountText)) {
 }
 
 /*
+ * `$headerDescription` is a string, or — like an action's 'tab' — one line per
+ * view_layout tab: ['' => shown when the active tab has none of its own,
+ * '<tab id>' => ...]. Both are printed raw, as the plain string always was.
+ */
+$headerDescriptions = is_array($headerDescription ?? null)
+    ? $headerDescription
+    : ['' => $headerDescription ?? null];
+$headerDescriptions = array_filter($headerDescriptions, function ($text) {
+    return $text !== null && $text !== '';
+});
+
+// `$headerIdentity` is the page's record; its id/uuid pill leads every description line.
+$identityHtml = empty($headerIdentity) ? '' : trim($this->element(
+    'genericElementsBS5/Badges/identity_pill',
+    ['id' => $headerIdentity['id'] ?? null, 'uuid' => $headerIdentity['uuid'] ?? null]
+));
+if ($identityHtml !== '') {
+    foreach ($headerDescriptions as $tabId => $text) {
+        $headerDescriptions[$tabId] = '<span class="d-inline-flex align-items-center gap-3 flex-wrap">'
+            . $identityHtml . '<span>' . $text . '</span></span>';
+    }
+    if (!isset($headerDescriptions[''])) {
+        $headerDescriptions[''] = $identityHtml;
+    }
+}
+$headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true])) > 0;
+
+/*
  * ==============================================================
  * Header action strip
  * ==============================================================
@@ -358,9 +386,9 @@ if (!empty($headerActions)) {
 
     <div class="d-flex justify-content-between align-items-center">
 
-        <div class="d-flex flex-column align-items-start" data-tour="page-title">
+        <div class="d-flex flex-column align-items-start gap-1" data-tour="page-title">
             <?php if ($breadcrumb): ?>
-                <span class="text-muted text-uppercase fw-semibold mb-1"
+                <span class="text-muted text-uppercase fw-semibold"
                         style="font-size:0.68rem; letter-spacing:0.07em;">
                     <?= $breadcrumb ?>
                 </span>
@@ -371,16 +399,34 @@ if (!empty($headerActions)) {
                 </h1>
                 <?php // headerCountText => '' is the opt-out for pages whose paginator counts something other than the page's subject ?>
                 <?php if ($countDisplay !== null && $countDisplay !== ''): ?>
-                    <span class="badge rounded-pill bg-primary fw-semibold px-3">
+                    <span class="badge rounded-pill bg-primary fw-semibold px-3" id="headerCountBadge">
                         <?= h($countDisplay) ?>
                     </span>
                 <?php endif; ?>
             </div>
 
-            <?php if (!empty($headerDescription)): ?>
-                <p class="text-muted mt-1" style="font-size:0.85rem;">
-                    <?= $headerDescription ?>
-                </p>
+            <?php if (!$headerDescriptionTabbed && !empty($headerDescriptions[''])): ?>
+                <span class="text-mute mt-1" style="font-size:0.85rem;">
+                    <?= $headerDescriptions[''] ?>
+                </span>
+            <?php elseif ($headerDescriptionTabbed): ?>
+                <div>
+                    <?php foreach ($headerDescriptions as $tabId => $text): ?>
+                        <?php if ($tabId === ''): continue; endif; ?>
+                        <p class="text-muted mt-1 d-none" style="font-size:0.85rem;"
+                           data-header-tab="<?= h($tabId) ?>">
+                            <?= $text ?>
+                        </p>
+                    <?php endforeach; ?>
+                    <?php if (!empty($headerDescriptions[''])): ?>
+                        <p class="text-muted mt-1" style="font-size:0.85rem;"
+                           data-header-tab-fallback>
+                            <?= $headerDescriptions[''] ?>
+                        </p>
+                    <?php else: ?>
+                        <div style="height: 0.5rem;" data-header-tab-fallback></div>
+                    <?php endif; ?>
+                </div>
             <?php else: //small space, just to match the size of the Flash messages ?>
                 <div style="height: 0.5rem;"></div>
             <?php endif; ?>

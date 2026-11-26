@@ -5,6 +5,15 @@ App::uses('Sanitize', 'Utility');
 
 class Bruteforce extends AppModel
 {
+    /**
+     * The one form an address is stored and matched under: MariaDB's LOWER()
+     * and PHP's strtolower() disagree beyond ASCII.
+     */
+    public function usernameKey($username)
+    {
+        return mb_strtolower(trim($username));
+    }
+
     public function insert($username)
     {
         $this->Log = ClassRegistry::init('Log');
@@ -15,7 +24,7 @@ class Bruteforce extends AppModel
         $expireTime = date('Y-m-d H:i:s', $expireTime);
         $bruteforceEntry = array(
             'ip' => $ip,
-            'username' => trim(strtolower($username)),
+            'username' => $this->usernameKey($username),
             'expire' => $expireTime
         );
         $this->save($bruteforceEntry);
@@ -51,12 +60,15 @@ class Bruteforce extends AppModel
     public function clean()
     {
         $expire = date('Y-m-d H:i:s', time());
-        if ($this->isMysql()) {
-            $sql = 'DELETE FROM bruteforces WHERE `expire` <= "' . $expire . '";';
-        } else {
-            $sql = 'DELETE FROM bruteforces WHERE expire <= \'' . $expire . '\';';
-        }
-        $this->query($sql);
+        // Two branches used to differ only in how they spelled a backtick and a
+        // quote. The datasource already knows both.
+        $db = $this->getDataSource();
+        $this->query(sprintf(
+            'DELETE FROM %s WHERE %s <= %s;',
+            $db->name('bruteforces'),
+            $db->name('expire'),
+            $db->value($expire, 'string')
+        ));
     }
 
     public function isBlocklisted($username)
@@ -68,7 +80,7 @@ class Bruteforce extends AppModel
         $params = array(
             'conditions' => array(
             'Bruteforce.ip' => $ip,
-            'LOWER(Bruteforce.username)' => trim(strtolower($username)))
+            'Bruteforce.username' => $this->usernameKey($username))
         );
         $count = $this->find('count', $params);
         $amount = Configure::check('SecureAuth.amount') ? Configure::read('SecureAuth.amount') : 5;

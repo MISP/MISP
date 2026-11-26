@@ -2,141 +2,177 @@
 
 $reportData  = $data['EventReport'] ?? [];
 $reportId    = (int)($reportData['id'] ?? 0);
+$eventId     = (int)($reportData['event_id'] ?? ($data['Event']['id'] ?? 0));
 $content     = $reportData['content'] ?? '';
 $editable    = !empty($canEdit);
 $pdfModule   = !empty($isDownloadAsPDFModuleAvailable);
+$live        = $editable && empty($reportData['deleted']);
 
-$menuItems = [
-    // ── Download ──────────────────────────────────────────────────
-    ['type' => 'header', 'icon' => 'fas fa-download', 'label' => __('Download')],
+/*
+ * The parsing and rendering rules, as the Display menu lists them. The keys
+ * are the ones MispReportMarkdown knows (setParsingRule / RENDERING_RULES in
+ * js/misp-report-markdown.js) — a key with no counterpart there is a switch
+ * that toggles nothing.
+ */
+$parsingRules = [
+    ['key' => 'image', 'icon' => 'fas fa-image',       'label' => __('Images')],
+    ['key' => 'link',  'icon' => 'fas fa-link',        'label' => __('Links')],
+    ['key' => 'misp',  'icon' => 'fas fa-fingerprint', 'label' => __('MISP elements')],
+];
+$renderingRules = [
+    ['key' => 'attribute',         'icon' => 'misp-icon misp-icon-attribute misp-simple', 'label' => __('Attribute')],
+    ['key' => 'attribute-picture', 'icon' => 'fas fa-images',                             'label' => __('Attribute picture')],
+    ['key' => 'object',            'icon' => 'misp-icon misp-icon-object misp-simple',    'label' => __('Object')],
+    ['key' => 'object-attribute',  'icon' => 'misp-icon misp-icon-object misp-simple',    'label' => __('Object attribute')],
+    ['key' => 'tag',               'icon' => 'misp-icon misp-icon-tag misp-simple',       'label' => __('Tag')],
+    ['key' => 'galaxymatrix',      'icon' => 'misp-icon misp-icon-galaxy misp-simple',    'label' => __('Galaxy matrix')],
+];
+
+/*
+ * The writing toolbar, the stock editor's #top-bar. The action names are
+ * MispReportMarkdown's (ACTIONS in bindSourceEditing) — the module owns what
+ * each one does to the text, this array only says how it is drawn.
+ */
+$toolbarGroups = [
     [
-        'type'       => 'item',
-        'onclick'    => "erDownloadMarkdown('pdf-module', event)",
-        'icon'       => 'fas fa-file-pdf',
-        'disabled'   => !$pdfModule,
-        'label_html' => $pdfModule
-            ? h(__('Download PDF (via misp-module)'))
-            : '<span class="text-decoration-line-through">'
-              . h(__('Download PDF (via misp-module)'))
-              . '</span> <i class="fas fa-info-circle ms-1 text-muted" data-bs-toggle="tooltip" title="'
-              . h(__('Module `convert_markdown_to_pdf` not available'))
-              . '"></i>',
+        ['action' => 'bold',          'icon' => 'fas fa-bold',          'label' => __('Bold'),          'keys' => 'Ctrl+B'],
+        ['action' => 'italic',        'icon' => 'fas fa-italic',        'label' => __('Italic'),        'keys' => 'Ctrl+I'],
+        ['action' => 'heading',       'icon' => 'fas fa-heading',       'label' => __('Heading'),       'keys' => 'Ctrl+H'],
+        ['action' => 'strikethrough', 'icon' => 'fas fa-strikethrough', 'label' => __('Strikethrough')],
     ],
     [
-        'type'    => 'item',
-        'onclick' => "erDownloadMarkdown('pdf-print', event)",
-        'icon'    => 'fas fa-print',
-        'label'   => __('Download PDF (via print)'),
+        ['action' => 'list-ul', 'icon' => 'fas fa-list-ul', 'label' => __('Unordered list')],
+        ['action' => 'list-ol', 'icon' => 'fas fa-list-ol', 'label' => __('Ordered list')],
     ],
     [
-        'type'    => 'item',
-        'onclick' => "erDownloadMarkdown('text', event)",
-        'icon'    => 'fab fa-markdown',
-        'label'   => __('Download Markdown'),
+        ['action' => 'quote', 'icon' => 'fas fa-quote-left', 'label' => __('Quote')],
+        ['action' => 'code',  'icon' => 'fas fa-code',       'label' => __('Code')],
+        ['action' => 'table', 'icon' => 'fas fa-table',      'label' => __('Table')],
     ],
     [
-        'type'    => 'item',
-        'onclick' => "erDownloadMarkdown('text-gfm', event)",
-        'icon'    => 'fab fa-markdown',
-        'label'   => __('Download GFM simplified format'),
-        'title'   => __('Replace custom syntax by a valid one'),
-    ],
-    // ── Parsing rules ─────────────────────────────────────────────
-    ['type' => 'divider'],
-    ['type' => 'header', 'icon' => 'fas fa-cog', 'label' => __('Markdown parsing rules')],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRule('image', event)",
-        'icon'     => 'fas fa-image',
-        'label'    => __('Image parsing'),
-        'badge_id' => 'er-rule-image',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRule('link', event)",
-        'icon'     => 'fas fa-link',
-        'label'    => __('Link parsing'),
-        'badge_id' => 'er-rule-link',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRule('link', event)",
-        'icon'     => 'fas fa-link',
-        'label'    => __('MISP Elements'),
-        'badge_id' => 'er-rule-misp',
-    ],
-    // ── Rendering rules ─────────────────────────────────────────────
-    ['type' => 'divider'],
-    ['type' => 'header', 'icon' => 'fas fa-cog', 'label' => __('Markdown rendering rules')],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('attribute', event)",
-        'icon'     => 'misp-icon misp-icon-attribute misp-simple',
-        'label'    => __('Attribute'),
-        'badge_id' => 'er-render-attribute',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('attribute-picture', event)",
-        'icon'     => 'fas fa-images',
-        'label'    => __('Attribute picture'),
-        'badge_id' => 'er-render-attribute-picture',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('object', event)",
-        'icon'     => 'misp-icon misp-icon-object misp-simple',
-        'label'    => __('Object'),
-        'badge_id' => 'er-render-object',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('object-attribute', event)",
-        'icon'     => 'misp-icon misp-icon-object misp-simple',
-        'label'    => __('Object Attribute'),
-        'badge_id' => 'er-render-object-attribute',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('tag', event)",
-        'icon'     => 'misp-icon misp-icon-tag misp-simple',
-        'label'    => __('Tag'),
-        'badge_id' => 'er-render-tag',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('galaxymatrix', event)",
-        'icon'     => 'fas fa-book-atlas',
-        'label'    => __('Galaxy matrix'),
-        'badge_id' => 'er-render-galaxymatrix',
-    ],
-    [
-        'type'     => 'toggle',
-        'onclick'  => "erToggleRenderingRule('suggestion', event)",
-        'icon'     => 'fas fa-wand-magic-sparkles',
-        'label'    => __('Suggestion'),
-        'badge_id' => 'er-render-suggestion',
-    ],
-    // ── Templating ─────────────────────────────────────────────
-    ['type' => 'divider'],
-    ['type' => 'header', 'icon' => 'fas fa-screwdriver-wrench', 'label' => __('Templating')],
-    [
-        'type'    => 'item',
-        'url'     => $baseurl . '/EventReportTemplateVariables/index/',
-        'icon'    => 'fas fa-screwdriver',
-        'label'   => __('Configure Template variables'),
-    ],
-    // ── LLM ─────────────────────────────────────────────
-    ['type' => 'divider'],
-    ['type' => 'header', 'icon' => 'fas fa-robot', 'label' => __('LLM')],
-    [
-        'type'    => 'item',
-        'onclick' => "erSendToLLM(event)",
-        'icon'    => 'fas fa-robot',
-        'label'   => __('Send report to LLM'),
+        ['action' => 'attribute',         'icon' => 'misp-icon misp-icon-attribute misp-simple', 'label' => __('Attribute'), 'keys' => 'Ctrl+M'],
+        ['action' => 'attribute-picture', 'icon' => 'fas fa-images',                             'label' => __('Attribute picture')],
+        ['action' => 'object',            'icon' => 'misp-icon misp-icon-object misp-simple',    'label' => __('Object')],
+        ['action' => 'tag',               'icon' => 'misp-icon misp-icon-tag misp-simple',       'label' => __('Tag')],
+        ['action' => 'galaxymatrix',      'icon' => 'misp-icon misp-icon-galaxy misp-simple',    'label' => __('Galaxy matrix')],
     ],
 ];
 
+$downloadItems = [
+    [
+        'onclick'  => "erDownloadMarkdown('pdf-module', event)",
+        'icon'     => 'fas fa-file-pdf',
+        'label'    => __('PDF (via misp-module)'),
+        'disabled' => !$pdfModule,
+        'note'     => $pdfModule ? '' : __('needs the convert_markdown_to_pdf module'),
+    ],
+    ['onclick' => "erDownloadMarkdown('pdf-print', event)", 'icon' => 'fas fa-print', 'label' => __('PDF (via print)')],
+    ['onclick' => "erDownloadMarkdown('text', event)", 'icon' => 'fab fa-markdown', 'label' => __('Markdown')],
+    [
+        'onclick' => "erDownloadMarkdown('text-gfm', event)",
+        'icon'    => 'fab fa-markdown',
+        'label'   => __('GFM simplified format'),
+        'title'   => __('Replace custom syntax by a valid one'),
+    ],
+];
+
+/* Tools: each section only when the user may run what is in it. */
+$toolSections = [];
+if ($live && $this->Acl->canAccess('eventReports', 'extractFromReport')) {
+    $toolSections[] = [
+        'label' => __('Extract entities'),
+        'items' => [
+            [
+                'onclick' => 'erStartManualExtraction(event)',
+                'icon'    => 'fas fa-highlighter',
+                'label'   => __('Manual extraction'),
+                'title'   => __('Review what the report holds and pick, occurrence by occurrence, what becomes an attribute or a reference'),
+            ],
+            [
+                'onclick' => 'erOpenAutomaticExtraction(event)',
+                'icon'    => 'fas fa-wand-magic-sparkles',
+                'label'   => __('Automatic extraction'),
+                'title'   => __('Create every attribute the freetext tools find and reference them in the report'),
+            ],
+        ],
+    ];
+}
+// The AI module from the report page: a summary put on top of the report (a
+// previous AI summary is replaced), or indicators proposed from this report
+// only and reviewed in the modal before they are added to the event.
+$aiItems = [];
+$aiOn = $live && Configure::read('Plugin.AI_services_enable');
+if ($aiOn && $this->Acl->canAccess('eventReports', 'aiExtractIndicators')) {
+    $url = $baseurl . '/eventReports/aiExtractIndicators/' . $reportId;
+    $aiItems[] = [
+        'url'     => $url,
+        'onclick' => "event.preventDefault(); openModal('" . $url . "', 'md');",
+        'icon'    => 'fas fa-magnifying-glass',
+        'label'   => __('Extract indicators'),
+        'title'   => __('The AI module reads this report and proposes attributes and objects, reviewed before they are added'),
+    ];
+}
+if ($aiOn && $this->Acl->canAccess('eventReports', 'aiSummarize')) {
+    $url = $baseurl . '/eventReports/aiSummarize/' . $reportId;
+    $aiItems[] = [
+        'url'     => $url,
+        'onclick' => "event.preventDefault(); openModal('" . $url . "', 'md');",
+        'icon'    => 'fas fa-file-lines',
+        'label'   => __('Summarise report'),
+        'title'   => __('The AI module puts its summary on top of the report; a previous AI summary is replaced'),
+    ];
+}
+if ($aiItems) {
+    $toolSections[] = ['label' => __('AI'), 'items' => $aiItems];
+}
+$toolSections[] = [
+    'label' => __('Templating'),
+    'items' => [[
+        'url'    => $baseurl . '/EventReportTemplateVariables/index/',
+        'target' => '_blank',
+        'icon'   => 'fas fa-screwdriver-wrench',
+        'label'  => __('Template variables'),
+        'title'  => __('Configure the {{ variables }} a report can use (opens in a new tab)'),
+    ]],
+];
+
+$extractionStrings = [
+    'title' => __('Manual extraction'),
+    'hint' => __('Pick a row, then untick the occurrences to leave alone in the preview.'),
+    'close' => __('Close'),
+    'working' => __('Working…'),
+    'extracting' => __('Extracting entities…'),
+    'applying' => __('Creating the attribute…'),
+    'saving' => __('Saving the report…'),
+    'extractFailed' => __('Could not extract entities from the report:'),
+    'applyFailed' => __('Could not apply the suggestion:'),
+    'applied' => __('Suggestion applied'),
+    'noForm' => __('The suggestion form could not be read.'),
+    'noneTicked' => __('No occurrence is ticked in the preview.'),
+    'toggle' => __('Click to include or leave out this occurrence'),
+    'notRendered' => __('%s occurrence(s) sit in code or another construct the preview does not draw: they are left as they are.'),
+    'tab_replacement' => __('Data replacement'),
+    'tab_context' => __('Context replacement'),
+    'tab_extraction' => __('Data extraction'),
+    'tip_replacement' => __('Text already present as an attribute of the event: reference that attribute'),
+    'tip_context' => __('Text naming a tag or a galaxy cluster: reference it'),
+    'tip_extraction' => __('Values the freetext tools recognise: create the attribute and reference it'),
+    'empty_replacement' => __('No raw text matches an attribute of the event.'),
+    'empty_context' => __('No raw text matches a tag or a galaxy cluster.'),
+    'empty_extraction' => __('The freetext tools found nothing to extract.'),
+    'value' => __('Value'),
+    'type' => __('Type'),
+    'category' => __('Category'),
+    'existingAttribute' => __('Existing attribute'),
+    'existingContext' => __('Existing context'),
+    'occurrences' => __('Occurrences'),
+    'previous' => __('Previous occurrence'),
+    'next' => __('Next occurrence'),
+    'extractSave' => __('Extract & save'),
+    'replaceSave' => __('Replace & save'),
+];
+
+echo $this->element('genericElements/assetLoader', ['js' => ['overmind-report-extraction']]);
 ?>
 
 <div class="card shadow-sm mb-3" id="er-content-card">
@@ -150,12 +186,30 @@ $menuItems = [
                   style="display:none; font-size:0.7rem;">
                 <?= __('Unsaved changes') ?>
             </span>
+
+            <?php if ($editable): ?>
+            <!-- WRITING TOOLBAR -->
+            <div id="er-toolbar" class="ov-md-toolbar" role="toolbar"
+                 aria-label="<?= __('Formatting') ?>">
+                <?php foreach ($toolbarGroups as $i => $group): ?>
+                    <?php if ($i): ?><span class="ov-md-tool-sep"></span><?php endif; ?>
+                    <?php foreach ($group as $tool): ?>
+                        <button type="button"
+                                class="ov-md-tool"
+                                data-md-action="<?= h($tool['action']) ?>"
+                                title="<?= h($tool['label'] . (empty($tool['keys']) ? '' : ' (' . $tool['keys'] . ')')) ?>"
+                                aria-label="<?= h($tool['label']) ?>">
+                            <i class="<?= h($tool['icon']) ?>"></i>
+                        </button>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="d-flex align-items-center gap-2">
 
             <?php if ($editable): ?>
-            <!-- SAVE -->
             <button type="button"
                     id="er-save-btn"
                     class="btn btn-sm btn-primary"
@@ -165,58 +219,108 @@ $menuItems = [
             </button>
             <?php endif; ?>
 
-            <!-- MENU DROPDOWN -->
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#er-help-modal"
+                    title="<?= __('Markdown help') ?>"
+                    aria-label="<?= __('Markdown help') ?>">
+                <i class="fas fa-circle-question"></i>
+            </button>
+
+            <!-- DOWNLOAD -->
             <div class="dropdown">
-                <button type="button"
-                        class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                    <i class="fas fa-ellipsis-h me-1"></i><?= __('Menu') ?>
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false" title="<?= __('Download') ?>">
+                    <i class="fas fa-download me-1"></i><?= __('Download') ?>
                 </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <?php foreach ($downloadItems as $item): ?>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center gap-2 <?= !empty($item['disabled']) ? 'disabled' : '' ?>"
+                           href="#"
+                           <?= !empty($item['title']) ? 'title="' . h($item['title']) . '"' : '' ?>
+                           onclick="<?= h($item['onclick']) ?>">
+                            <i class="<?= h($item['icon']) ?> fa-fw text-body-secondary"></i>
+                            <span>
+                                <?= h($item['label']) ?>
+                                <?php if (!empty($item['note'])): ?>
+                                    <small class="d-block"><?= h($item['note']) ?></small>
+                                <?php endif; ?>
+                            </span>
+                        </a>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
 
-                <ul class="dropdown-menu dropdown-menu-end" style="min-width:240px;">
-                    <?php foreach ($menuItems as $item): ?>
-                        <?php if ($item['type'] === 'header'): ?>
-                            <li>
-                                <h6 class="dropdown-header">
-                                    <i class="<?= h($item['icon']) ?> me-1"></i>
-                                    <?= h($item['label']) ?>
-                                </h6>
-                            </li>
+            <!-- DISPLAY: parsing and rendering rules -->
+            <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="fas fa-eye me-1"></i><?= __('Display') ?>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3 small" style="min-width:31rem;" id="er-rules">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-uppercase text-body-secondary fw-semibold mb-2" style="font-size:.7rem;">
+                                <?= __('Parsing') ?>
+                            </div>
+                            <?php foreach ($parsingRules as $rule): ?>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" checked
+                                       id="er-rule-<?= h($rule['key']) ?>" data-er-parsing="<?= h($rule['key']) ?>">
+                                <label class="form-check-label" for="er-rule-<?= h($rule['key']) ?>">
+                                    <i class="<?= h($rule['icon']) ?> fa-fw me-1 text-body-secondary"></i><?= h($rule['label']) ?>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="col-6 border-start">
+                            <div class="text-uppercase text-body-secondary fw-semibold mb-2" style="font-size:.7rem;">
+                                <?= __('Rendering') ?>
+                            </div>
+                            <?php foreach ($renderingRules as $rule): ?>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" role="switch" checked
+                                       id="er-render-<?= h($rule['key']) ?>" data-er-rendering="<?= h($rule['key']) ?>">
+                                <label class="form-check-label" for="er-render-<?= h($rule['key']) ?>">
+                                    <i class="<?= h($rule['icon']) ?> fa-fw me-1 text-body-secondary"></i><?= h($rule['label']) ?>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div class="text-body-secondary mt-2" style="font-size:.7rem;">
+                        <?= __('Off: the element keeps its value but is drawn as plain text.') ?>
+                    </div>
+                </div>
+            </div>
 
-                        <?php elseif ($item['type'] === 'divider'): ?>
-                            <li><hr class="dropdown-divider"></li>
-
-                        <?php elseif ($item['type'] === 'item'): ?>
-                            <li>
-                                <a class="dropdown-item <?= !empty($item['disabled']) ? 'disabled text-muted' : '' ?>"
-                                   href="<?= !empty($item['url']) && empty($item['disabled']) ? h($item['url']) : '#' ?>"
-                                   <?= !empty($item['title']) ? 'title="' . h($item['title']) . '"' : '' ?>
-                                   <?= !empty($item['onclick']) ? 'onclick="' . h($item['onclick']) . '"' : '' ?>>
-                                    <i class="<?= h($item['icon']) ?> me-2"></i>
-                                    <?php if (!empty($item['label_html'])): ?>
-                                        <?= $item['label_html'] ?>
-                                    <?php else: ?>
-                                        <?= h($item['label'] ?? '') ?>
-                                    <?php endif; ?>
-                                </a>
-                            </li>
-
-                        <?php elseif ($item['type'] === 'toggle'): ?>
-                            <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2"
-                                   href="#"
-                                   onclick="<?= h($item['onclick'] ?? '') ?>">
-                                    <i class="<?= h($item['icon']) ?>"></i>
-                                    <?= h($item['label'] ?? '') ?>
-                                    <span id="<?= h($item['badge_id']) ?>"
-                                          class="badge bg-success">
-                                        <?= __('enabled') ?>
-                                    </span>
-                                </a>
-                            </li>
-
-                        <?php endif; ?>
+            <!-- TOOLS -->
+            <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-toolbox me-1"></i><?= __('Tools') ?>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width:15rem;">
+                    <?php foreach ($toolSections as $i => $section): ?>
+                        <?php if ($i): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                        <li><h6 class="dropdown-header"><?= h($section['label']) ?></h6></li>
+                        <?php foreach ($section['items'] as $item): ?>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2"
+                               href="<?= h($item['url'] ?? '#') ?>"
+                               <?= !empty($item['target']) ? 'target="' . h($item['target']) . '"' : '' ?>
+                               <?= !empty($item['title']) ? 'title="' . h($item['title']) . '"' : '' ?>
+                               <?= !empty($item['onclick']) ? 'onclick="' . h($item['onclick']) . '"' : '' ?>>
+                                <i class="<?= h($item['icon']) ?> fa-fw text-body-secondary"></i><?= h($item['label']) ?>
+                                <?php if (!empty($item['target'])): ?>
+                                    <i class="fas fa-arrow-up-right-from-square ms-auto text-body-secondary" style="font-size:.7rem;"></i>
+                                <?php endif; ?>
+                            </a>
+                        </li>
+                        <?php endforeach; ?>
                     <?php endforeach; ?>
                 </ul>
             </div>
@@ -227,18 +331,24 @@ $menuItems = [
     <!-- ─── SPLIT SCREEN ─────────────────────────────────────── -->
     <div class="row g-0" style="min-height:70vh;">
 
-        <!-- EDITOR -->
+        <!-- EDITOR (or the manual extraction panel in its place) -->
         <div class="col-lg-6 d-flex flex-column border-end">
-            <div class="px-2 py-1 border-bottom bg-body-tertiary small text-muted fw-semibold">
+            <div class="px-2 py-1 border-bottom bg-body-tertiary small text-muted fw-semibold" data-er-editor-part>
                 <i class="fas fa-pen me-1"></i><?= __('Edit') ?>
             </div>
-            <textarea
-                id="er-editor"
-                class="form-control border-0 rounded-0 font-monospace flex-grow-1"
-                style="height:100%; min-height:68vh; font-size:0.875rem; resize:none;"
-                spellcheck="false"
-                <?= $editable ? '' : 'readonly' ?>
-            ><?= h($content) ?></textarea>
+            <!-- The colours are a <pre> under a textarea whose own text is
+                 transparent; both are filled by MispReportMarkdown. -->
+            <div class="ov-raw-wrap" data-er-editor-part>
+                <pre id="er-editor-layer" class="ov-raw-layer" aria-hidden="true"></pre>
+                <textarea
+                    id="er-editor"
+                    class="ov-raw-input"
+                    spellcheck="false"
+                    <?= $editable ? '' : 'readonly' ?>
+                ><?= h($content) ?></textarea>
+            </div>
+            <div id="er-extraction-panel" class="position-relative d-flex flex-column flex-grow-1 d-none"
+                 style="min-height:68vh;"></div>
         </div>
 
         <!-- LIVE PREVIEW -->
@@ -255,128 +365,96 @@ $menuItems = [
 
 </div>
 
-<!-- ─── LLM CONFIRMATION MODAL ───────────────────────────────── -->
-<div class="modal fade"
-     id="er-llm-modal"
-     tabindex="-1"
-     aria-labelledby="er-llm-modal-label"
-     aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+<?= $this->element('EventReports/View/eventReport_help_modal') ?>
 
-            <div class="modal-header">
-                <h5 class="modal-title d-flex align-items-center gap-2"
-                    id="er-llm-modal-label">
-                    <i class="fas fa-robot text-primary"></i>
-                    <?= __('Send to LLM') ?>
-                </h5>
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="<?= __('Close') ?>">
-                </button>
-            </div>
-
-            <div class="modal-body">
-                <p class="mb-0">
-                    <?= __('Send this report to the LLM for processing?') ?>
-                </p>
-                <p class="text-muted small mt-1 mb-0">
-                    <i class="fas fa-clock me-1"></i>
-                    <?= __('This may take a moment.') ?>
-                </p>
-            </div>
-
-            <div class="modal-footer gap-2">
-                <button type="button"
-                        class="btn btn-outline-secondary"
-                        data-bs-dismiss="modal">
-                    <?= __('Cancel') ?>
-                </button>
-                <button type="button"
-                        id="er-llm-confirm-btn"
-                        class="btn btn-primary"
-                        onclick="erConfirmLLM()">
-                    <i class="fas fa-robot me-1"></i>
-                    <?= __('Confirm') ?>
-                </button>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<style>
-    .markdown-preview-body h1,
-    .markdown-preview-body h2,
-    .markdown-preview-body h3,
-    .markdown-preview-body h4 { margin-top:1.2rem; margin-bottom:.4rem; font-weight:600; }
-    .markdown-preview-body p  { margin-bottom:.75rem; }
-    .markdown-preview-body pre { background:var(--bs-tertiary-bg); padding:.75rem 1rem; border-radius:.375rem; overflow-x:auto; }
-    .markdown-preview-body code { font-size:.85em; }
-    .markdown-preview-body blockquote { border-left:4px solid var(--bs-border-color); padding:.25rem .75rem; color:var(--bs-secondary-color); margin:.5rem 0; }
-    .markdown-preview-body table { width:100%; border-collapse:collapse; margin-bottom:1rem; }
-    .markdown-preview-body th,
-    .markdown-preview-body td  { border:1px solid var(--bs-border-color); padding:.4rem .6rem; }
-    .markdown-preview-body th  { background:var(--bs-tertiary-bg); font-weight:600; }
-    .markdown-preview-body img { max-width:100%; height:auto; }
-    .markdown-preview-body a   { color:var(--bs-link-color); }
-    .markdown-preview-body hr  { border-color:var(--bs-border-color); }
-</style>
+<script type="application/json" id="er-extraction-strings"><?= json_encode($extractionStrings, JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 
 <script>
 (function () {
     'use strict';
 
     /* ── Constants ───────────────────────────────────────────── */
-    var erReportId       = <?= json_encode($reportId) ?>;
-    var erEditable       = <?= $editable ? 'true' : 'false' ?>;
+    var erReportId        = <?= json_encode($reportId) ?>;
+    var erEventId         = <?= json_encode($eventId) ?>;
+    var erEditable        = <?= $editable ? 'true' : 'false' ?>;
     var erOriginalContent = <?= json_encode($content) ?>;
-    var erMd             = null;
-    var erDisabledRules  = {};   /* rulename → true when disabled */
-    var erRenderingRules = {
-        'attribute':         true,
-        'attribute-picture': true,
-        'object':            true,
-        'object-attribute':  true,
-        'tag':               true,
-        'galaxymatrix':      true,
-        'suggestion':        true,
-    };
-    var erRenderTimer    = null;
+    /* {{ name }} substitutions — the renderer normalises MISP's row shape. */
+    var erTemplateVars    = <?= json_encode($templateVariables ?? []) ?>;
+    var erRenderer        = null;
+    var erRenderTimer     = null;
+    var L = <?= json_encode([
+        'saveFirst' => __('Save or discard your changes first: the extraction works on the saved report.'),
+        'saved' => __('Content saved'),
+        'saveFailed' => __('Save failed'),
+        'saving' => __('Saving…'),
+        'save' => __('Save'),
+    ], JSON_HEX_TAG | JSON_HEX_AMP) ?>;
 
     /* ── Bootstrap ───────────────────────────────────────────── */
     document.addEventListener('DOMContentLoaded', function () {
-        /* Init markdown-it */
-        if (window.markdownit) {
-            erMd = window.markdownit({ html: false, linkify: true, typographer: true });
+        var editor  = document.getElementById('er-editor');
+        var preview = document.getElementById('er-live-preview');
+        if (!editor) { return; }
+
+        editor.addEventListener('input', function () {
+            erUpdateUnsavedBadge();
+            erScheduleRender();
+        });
+        editor.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (erEditable) { erSaveContent(); }
+            }
+        });
+
+        var rules = document.getElementById('er-rules');
+        if (rules) {
+            rules.addEventListener('change', erOnRuleChange);
         }
 
-        var editor = document.getElementById('er-editor');
-        if (editor) {
-            editor.addEventListener('input', function () {
-                erUpdateUnsavedBadge();
-                erScheduleRender();
-            });
-            editor.addEventListener('keydown', function (e) {
-                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                    e.preventDefault();
-                    if (erEditable) { erSaveContent(); }
-                }
-            });
+        if (!window.MispReportMarkdown) { return; }
+
+        var layer = document.getElementById('er-editor-layer');
+        if (layer) { window.MispReportMarkdown.bindSourceHighlight(editor, layer); }
+
+        if (!preview) { return; }
+        erRenderer = window.MispReportMarkdown.create({
+            reportId: erReportId,
+            eventId: erEventId,
+            templateVariables: erTemplateVars,
+            invalidMessage: <?= json_encode(__('invalid scope or id')) ?>,
+            onProxyError: function () {
+                showToast(
+                    <?= json_encode(__('Could not load the event\'s MISP elements: attributes, objects and tags will not be rendered.')) ?>,
+                    'warning'
+                );
+            }
+        });
+
+        // The shortcuts the Help modal lists, and the Ctrl+Space suggestion
+        if (erEditable) {
+            window.MispReportMarkdown.bindSourceEditing(
+                editor, erRenderer, document.getElementById('er-toolbar')
+            );
         }
 
-        /* Initial render + sync all rule badges */
-        erRenderLivePreview();
+        erRenderer.ready.then(function () {
+            erRenderLivePreview();
+            erUpdateRuleUI();
+        });
         erUpdateRuleUI();
     });
 
+    function erIsDirty() {
+        var editor = document.getElementById('er-editor');
+        return !!editor && editor.value !== erOriginalContent;
+    }
+
     /* ── Unsaved badge ───────────────────────────────────────── */
     function erUpdateUnsavedBadge() {
-        var editor = document.getElementById('er-editor');
-        var badge  = document.getElementById('er-unsaved-badge');
-        if (!editor || !badge) { return; }
-        badge.style.display = (editor.value !== erOriginalContent) ? '' : 'none';
+        var badge = document.getElementById('er-unsaved-badge');
+        if (!badge) { return; }
+        badge.style.display = erIsDirty() ? '' : 'none';
     }
 
     /* ── Live preview (debounced 150 ms) ─────────────────────── */
@@ -385,67 +463,75 @@ $menuItems = [
         erRenderTimer = setTimeout(erRenderLivePreview, 150);
     }
 
+    /* While the manual extraction is open the preview shows its marked copy. */
     function erRenderLivePreview() {
+        if (window.OvReportExtraction && OvReportExtraction.isActive()) {
+            OvReportExtraction.refresh();
+            return;
+        }
         var editor  = document.getElementById('er-editor');
         var preview = document.getElementById('er-live-preview');
-        if (!editor || !preview) { return; }
-
-        if (erMd) {
-            preview.innerHTML = erMd.render(editor.value);
-        } else {
-            preview.innerHTML =
-                '<pre style="white-space:pre-wrap">' +
-                editor.value
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;') +
-                '</pre>';
-        }
+        if (!editor || !preview || !erRenderer) { return; }
+        erRenderer.render(editor.value, preview);
     }
 
-    /* ── Parsing rules toggle ────────────────────────────────── */
-    window.erToggleRule = function (rulename, e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        if (!erMd) { return; }
-
-        if (erDisabledRules[rulename]) {
-            erMd.enable([rulename]);
-            delete erDisabledRules[rulename];
-        } else {
-            erMd.disable([rulename]);
-            erDisabledRules[rulename] = true;
+    /* ── Parsing and rendering rules (the Display menu) ──────── */
+    function erOnRuleChange(e) {
+        var input = e.target;
+        if (!erRenderer || !input.matches('input[type="checkbox"]')) { return; }
+        if (input.dataset.erParsing) {
+            erRenderer.setParsingRule(input.dataset.erParsing, input.checked);
+        } else if (input.dataset.erRendering) {
+            erRenderer.setRenderingRule(input.dataset.erRendering, input.checked);
         }
-
         erUpdateRuleUI();
         erRenderLivePreview();
-    };
+    }
 
     function erUpdateRuleUI() {
-        ['image', 'link'].forEach(function (rule) {
-            var badge = document.getElementById('er-rule-' + rule);
-            if (!badge) { return; }
-            var enabled = !erDisabledRules[rule];
-            badge.textContent = enabled ? '<?= __('enabled') ?>' : '<?= __('disabled') ?>';
-            badge.className   = 'badge ' + (enabled ? 'bg-success' : 'bg-secondary');
+        if (!erRenderer) { return; }
+        document.querySelectorAll('[data-er-parsing]').forEach(function (input) {
+            input.checked = erRenderer.getParsingRule(input.dataset.erParsing);
         });
-
-        Object.keys(erRenderingRules).forEach(function (rule) {
-            var badge = document.getElementById('er-render-' + rule);
-            if (!badge) { return; }
-            var enabled = erRenderingRules[rule];
-            badge.textContent = enabled ? '<?= __('enabled') ?>' : '<?= __('disabled') ?>';
-            badge.className   = 'badge ' + (enabled ? 'bg-success' : 'bg-secondary');
+        document.querySelectorAll('[data-er-rendering]').forEach(function (input) {
+            input.checked = erRenderer.getRenderingRule(input.dataset.erRendering);
         });
     }
 
-    /* ── Rendering rules toggle ──────────────────────────────── */
-    window.erToggleRenderingRule = function (rulename, e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        if (erRenderingRules[rulename] === undefined) { return; }
+    /* ── Extraction (the Tools menu) ─────────────────────────── */
+    window.erStartManualExtraction = function (e) {
+        if (e) { e.preventDefault(); }
+        if (!erRenderer || !window.OvReportExtraction) { return; }
+        if (erIsDirty()) {
+            showToast(L.saveFirst, 'warning');
+            return;
+        }
+        var toolbar = document.getElementById('er-toolbar');
+        if (toolbar) { toolbar.classList.add('pe-none', 'opacity-50'); }
+        OvReportExtraction.start({
+            reportId: erReportId,
+            panel: document.getElementById('er-extraction-panel'),
+            editorParts: Array.prototype.slice.call(document.querySelectorAll('[data-er-editor-part]')),
+            preview: document.getElementById('er-live-preview'),
+            renderer: erRenderer,
+            strings: JSON.parse(document.getElementById('er-extraction-strings').textContent),
+            getContent: function () { return document.getElementById('er-editor').value; },
+            save: erPersist,
+            onSaved: erAdoptSavedContent,
+            onClose: function () {
+                if (toolbar) { toolbar.classList.remove('pe-none', 'opacity-50'); }
+                erRenderLivePreview();
+            }
+        });
+    };
 
-        erRenderingRules[rulename] = !erRenderingRules[rulename];
-        erUpdateRuleUI();
-        erRenderLivePreview();
+    window.erOpenAutomaticExtraction = function (e) {
+        if (e) { e.preventDefault(); }
+        if (erIsDirty()) {
+            showToast(L.saveFirst, 'warning');
+            return;
+        }
+        openModal(baseurl + '/eventReports/extractAllFromReport/' + erReportId, 'md');
     };
 
     /* ── Download ────────────────────────────────────────────── */
@@ -454,27 +540,11 @@ $menuItems = [
 
         var editor = document.getElementById('er-editor');
         if (!editor) { return; }
-        var raw       = editor.value;
-        var timestamp = new Date().getTime();
-        var filename  = 'event-report-' + timestamp + '.md';
+        var raw      = editor.value;
+        var filename = 'event-report-' + new Date().getTime() + '.md';
 
         if (type === 'pdf-print') {
-            var rendered = erMd
-                ? erMd.render(raw)
-                : '<pre>' + raw.replace(/</g, '&lt;') + '</pre>';
-
-            var win = window.open('', '_blank', 'width=900,height=700');
-            win.document.write(
-                '<!DOCTYPE html><html><head>' +
-                '<meta charset="utf-8"><title>Event Report ' + erReportId + '</title>' +
-                '<style>body{font-family:sans-serif;padding:2rem;max-width:800px;margin:auto}' +
-                'pre{background:#f4f4f4;padding:1rem;border-radius:4px;overflow-x:auto}' +
-                'table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:.4rem .6rem}' +
-                '</style></head><body>' + rendered + '</body></html>'
-            );
-            win.document.close();
-            win.focus();
-            setTimeout(function () { win.print(); }, 400);
+            erPrintPreview();
             return;
         }
 
@@ -485,6 +555,9 @@ $menuItems = [
 
         /* text / text-gfm — Blob download */
         var fileContent = raw;
+        if (type === 'text-gfm' && erRenderer) {
+            fileContent = erRenderer.toGfm(raw);
+        }
         var blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8' });
         var url  = URL.createObjectURL(blob);
         var a    = document.createElement('a');
@@ -496,19 +569,80 @@ $menuItems = [
         URL.revokeObjectURL(url);
     };
 
+    /**
+     * Print window. The report's own stylesheets are linked rather
+     * than re-declared
+     */
+    function erPrintPreview() {
+        var preview = document.getElementById('er-live-preview');
+        if (!preview) { return; }
+
+        var version = <?= json_encode($queryVersion ?? '') ?>;
+        var suffix  = version ? ('?v=' + encodeURIComponent(version)) : '';
+        var sheets  = ['bootstrap5-custom.min', 'mainOvermind', 'fontawesome7.min'];
+        var links   = sheets.map(function (name) {
+            return '<link rel="stylesheet" href="'
+                + baseurl + '/css/' + name + '.css' + suffix + '">';
+        }).join('');
+
+        var win = window.open('', '_blank', 'width=900,height=700');
+        if (!win) {
+            showToast(
+                <?= json_encode(__('The print window was blocked by the browser.')) ?>,
+                'danger'
+            );
+            return;
+        }
+        var printed = false;
+        function printOnce() {
+            if (printed) { return; }
+            printed = true;
+            win.focus();
+            win.print();
+        }
+        /* Listen before writing: document.close() can fire load right away,
+           and a stylesheet that never answers must not leave the window
+           sitting there unprinted either. */
+        win.addEventListener('load', printOnce);
+        win.document.write(
+            '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            + '<title>' + <?= json_encode(__('Event Report')) ?> + ' ' + erReportId + '</title>'
+            + links
+            + '<style>body{padding:2rem;max-width:900px;margin:auto;}</style>'
+            + '</head><body><div class="markdown-preview-body">'
+            + preview.innerHTML
+            + '</div></body></html>'
+        );
+        win.document.close();
+        setTimeout(printOnce, 1500);
+    }
+
     /* ── Save ────────────────────────────────────────────────── */
-    window.erSaveContent = async function () {
-        if (!erEditable) { return; }
 
-        var btn    = document.getElementById('er-save-btn');
+    /* The text the server now holds becomes the editor's baseline. */
+    function erAdoptSavedContent(content) {
         var editor = document.getElementById('er-editor');
-        if (!btn || !editor) { return; }
+        if (editor && editor.value !== content) {
+            editor.value = content;
+            editor.dispatchEvent(new Event('input'));
+        }
+        erOriginalContent = content;
+        erUpdateUnsavedBadge();
+        document.dispatchEvent(new CustomEvent('misp:report-saved', {
+            detail: { reportId: erReportId, content: content }
+        }));
+    }
 
+    /* Saves `content` through the edit form (its tokens come with it);
+       resolves to whether the server took it. */
+    async function erPersist(content) {
+        var btn     = document.getElementById('er-save-btn');
         var editUrl = baseurl + '/eventReports/edit/' + erReportId;
 
-        btn.disabled   = true;
-        btn.innerHTML  = '<span class="spinner-border spinner-border-sm me-1" role="status"></span><?= __('Saving…') ?>';
-
+        if (btn) {
+            btn.disabled  = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>' + L.saving;
+        }
         try {
             /* Fetch edit form to obtain CSRF tokens and existing fields */
             var formResp = await fetch(editUrl, {
@@ -516,107 +650,42 @@ $menuItems = [
             });
             var formHtml = await formResp.text();
 
-            var parser = new DOMParser();
-            var doc    = parser.parseFromString(formHtml, 'text/html');
-            var form   = doc.querySelector('form');
+            var doc  = new DOMParser().parseFromString(formHtml, 'text/html');
+            var form = doc.querySelector('form');
             if (!form) { throw new Error('Edit form not found'); }
 
             var formData = new FormData(form);
-            formData.set('data[EventReport][content]', editor.value);
+            formData.set('data[EventReport][content]', content);
 
             var postResp = await fetch(form.action || editUrl, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 body: new URLSearchParams(formData)
             });
-
             var result = await postResp.json();
 
             if (result.saved !== false) {
-                showToast(result.message || '<?= __('Content saved') ?>', 'success');
-                erOriginalContent = editor.value;
-                erUpdateUnsavedBadge();
-                /* Sync the read-only preview in the General tab */
-                var readonlyPreview = document.getElementById('er-preview-readonly');
-                if (readonlyPreview && erMd) {
-                    readonlyPreview.innerHTML = erMd.render(editor.value);
-                }
-            } else {
-                showToast(result.message || '<?= __('Save failed') ?>', 'danger');
+                showToast(result.message || L.saved, 'success');
+                erAdoptSavedContent(content);
+                return true;
             }
-
+            showToast(result.message || L.saveFailed, 'danger');
+            return false;
         } catch (err) {
-            showToast('<?= __('Save failed') ?>: ' + err.message, 'danger');
+            showToast(L.saveFailed + ': ' + err.message, 'danger');
+            return false;
         } finally {
-            btn.disabled  = false;
-            btn.innerHTML = '<i class="fas fa-save me-1"></i><?= __('Save') ?>';
-        }
-    };
-
-    /* ── Send to LLM ─────────────────────────────────────────── */
-
-    /* Step 1 — open the BS5 confirmation modal */
-    window.erSendToLLM = function (e) {
-        if (e) { e.preventDefault(); }
-        var modal = new bootstrap.Modal(document.getElementById('er-llm-modal'));
-        modal.show();
-    };
-
-    /* Step 2 — user clicked "Confirm" inside the modal */
-    window.erConfirmLLM = async function () {
-        /* Close the confirmation modal */
-        var modalEl = document.getElementById('er-llm-modal');
-        var modal   = bootstrap.Modal.getInstance(modalEl);
-        if (modal) { modal.hide(); }
-
-        var confirmBtn = document.getElementById('er-llm-confirm-btn');
-        if (confirmBtn) {
-            confirmBtn.disabled  = true;
-            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span><?= __('Sending…') ?>';
-        }
-
-        showToast('<?= __('Sending to LLM… please wait.') ?>', 'primary');
-
-        var url = baseurl + '/eventReports/sendToLLM/' + erReportId;
-
-        try {
-            /* GET the Overmind sendToLLM view to obtain the CSRF token */
-            var formResp = await fetch(url, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!formResp.ok) { throw new Error('HTTP ' + formResp.status); }
-
-            var formHtml = await formResp.text();
-            var parser   = new DOMParser();
-            var doc      = parser.parseFromString(formHtml, 'text/html');
-            var form     = doc.querySelector('form');
-            if (!form) { throw new Error('<?= __('CSRF form not found in response') ?>'); }
-
-            /* POST back with CSRF tokens */
-            var postResp = await fetch(form.action || url, {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: new URLSearchParams(new FormData(form))
-            });
-
-            var result = await postResp.json();
-
-            if (result.saved !== false) {
-                showToast(result.message || '<?= __('Report sent to LLM successfully') ?>', 'success');
-                setTimeout(function () { window.location.reload(); }, 1500);
-            } else {
-                var errDetail = result.errors || result.message || '<?= __('Failed to send to LLM') ?>';
-                showToast(errDetail, 'danger');
-            }
-
-        } catch (err) {
-            showToast('<?= __('Failed to send to LLM') ?>: ' + err.message, 'danger');
-        } finally {
-            if (confirmBtn) {
-                confirmBtn.disabled  = false;
-                confirmBtn.innerHTML = '<i class="fas fa-robot me-1"></i><?= __('Confirm') ?>';
+            if (btn) {
+                btn.disabled  = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>' + L.save;
             }
         }
+    }
+
+    window.erSaveContent = function () {
+        if (!erEditable) { return Promise.resolve(false); }
+        var editor = document.getElementById('er-editor');
+        return editor ? erPersist(editor.value) : Promise.resolve(false);
     };
 
 })();

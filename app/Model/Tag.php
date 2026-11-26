@@ -57,7 +57,6 @@ class Tag extends AppModel
             'className' => 'EventTag',
             'dependent' => true
         ),
-        'TemplateTag',
         'FavouriteTag' => array(
             'dependent' => true
         ),
@@ -176,6 +175,37 @@ class Tag extends AppModel
     }
 
     /**
+     * The condition matching tag names the way the unique index does.
+     *
+     * tags.name is case-insensitive. On MySQL that is the column's collation
+     * (utf8mb4_unicode_ci), so a plain equality matches every casing straight
+     * off the unique key, and wrapping the column in LOWER() would throw that
+     * key away and scan the table per lookup (#11114). PostgreSQL has no
+     * collation that does this; there the uniqueness is a unique index over
+     * lower(name), and the comparison is spelled through LOWER() so the
+     * planner takes that index instead.
+     *
+     * @param string|array $names One name, or a list of them for an IN.
+     * @param string|null $operator An operator to append CakePHP-style, such
+     *   as 'LIKE'; a pattern is lower-cased with the column on PostgreSQL.
+     * @return array One condition, keyed on the field expression.
+     */
+    public function nameCondition($names, $operator = null)
+    {
+        $field = 'Tag.name';
+        if (!$this->isMysql()) {
+            $field = 'LOWER(Tag.name)';
+            $names = is_array($names)
+                ? array_map('mb_strtolower', $names)
+                : mb_strtolower((string)$names);
+        }
+        if ($operator !== null) {
+            $field .= ' ' . $operator;
+        }
+        return array($field => $names);
+    }
+
+    /**
      * @param array $user
      * @param string $tagName
      * @return mixed|null
@@ -183,7 +213,7 @@ class Tag extends AppModel
     public function lookupTagIdForUser(array $user, $tagName)
     {
         $conditions = $this->createConditions($user);
-        $conditions['LOWER(Tag.name)'] = mb_strtolower($tagName);
+        $conditions = array_merge($conditions, $this->nameCondition($tagName));
 
         $tagId = $this->find('first', array(
             'conditions' => $conditions,
@@ -198,13 +228,40 @@ class Tag extends AppModel
     }
 
     /**
+     * Tags among $tagIds that $user may attach, restricted tags included only for their org/user.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array Tag.id => local_only flag
+     */
+    public function attachableTagIdsForUser(array $user, array $tagIds)
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+        $conditions = $this->createConditions($user);
+        $conditions['Tag.id'] = $tagIds;
+        $tags = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.local_only'],
+            'callbacks' => false,
+        ]);
+        $result = [];
+        foreach ($tags as $tag) {
+            $result[(int)$tag['Tag']['id']] = !empty($tag['Tag']['local_only']);
+        }
+        return $result;
+    }
+
+    /**
      * @param string $tagName
      * @return int|mixed
      */
     public function lookupTagIdFromName($tagName)
     {
         $tagId = $this->find('first', array(
-            'conditions' => array('LOWER(Tag.name)' => mb_strtolower($tagName)),
+            'conditions' => $this->nameCondition($tagName),
             'recursive' => -1,
             'fields' => array('Tag.id'),
             'callbacks' => false,
@@ -233,16 +290,6 @@ class Tag extends AppModel
             $conditions['Tag.is_galaxy'] = $isGalaxy;
         }
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
-    }
-
-    /**
-     * @param array $accept
-     * @param array $reject
-     * @deprecated Use EventTag::fetchEventTagIds instead
-     */
-    public function fetchEventTagIds($accept, $reject)
-    {
-        $this->EventTag->fetchEventTagIds($accept, $reject);
     }
 
     // find all of the tag Ids that belong to the accepted tags and the rejected tags
@@ -329,9 +376,11 @@ class Tag extends AppModel
      */
     public function captureTag(array $tag, array $user, $force=false)
     {
+        // Every casing of the name matches, off the unique index - see
+        // nameCondition() for how each engine spells that.
         $existingTag = $this->find('first', array(
             'recursive' => -1,
-            'conditions' => array('LOWER(name)' => mb_strtolower($tag['name'])),
+            'conditions' => $this->nameCondition($tag['name']),
             'fields' => ['id', 'org_id', 'user_id'],
             'callbacks' => false,
         ));
@@ -372,6 +421,49 @@ class Tag extends AppModel
             return false;
         }
         return $existingTag['Tag']['id'];
+    }
+
+    /**
+     * The two ai-computer-assisted provenance tags the AI module puts on
+     * everything it produces (Module::AI_PROVENANCE_TAGS), guaranteed to
+     * exist before an AI write: a name the taxonomy knows is enabled through
+     * the Taxonomy model (its colour, linked to the taxonomy, the taxonomy
+     * itself left as it is); a name it does not know (taxonomy not loaded,
+     * or an older version) is created as a plain tag. No perm_tag_editor is
+     * needed for these two names. An existing row reserved for another
+     * organisation or user stays unusable and comes back as false.
+     *
+     * @param array $user
+     * @return array tag name => tag id, or false when the tag cannot be used
+     */
+    public function captureAiProvenanceTags(array $user)
+    {
+        App::uses('Module', 'Model');
+        $names = Module::AI_PROVENANCE_TAGS;
+        // Every casing matches, off the unique index - see nameCondition().
+        $existing = $this->find('list', array(
+            'conditions' => $this->nameCondition($names),
+            'fields' => array('Tag.name', 'Tag.id'),
+            'recursive' => -1,
+        ));
+        $existingLower = array_map('mb_strtolower', array_keys($existing));
+        $missing = array();
+        foreach ($names as $name) {
+            if (!in_array(mb_strtolower($name), $existingLower, true)) {
+                $missing[] = $name;
+            }
+        }
+        if (!empty($missing)) {
+            // Creates only the listed names the taxonomy knows; false when
+            // the taxonomy is not loaded. captureTag() below covers the rest.
+            $Taxonomy = ClassRegistry::init('Taxonomy');
+            $Taxonomy->addTags(Module::AI_PROVENANCE_TAXONOMY, $missing);
+        }
+        $ids = array();
+        foreach ($names as $name) {
+            $ids[$name] = $this->captureTag(array('name' => $name), $user, true);
+        }
+        return $ids;
     }
 
     /**
@@ -1001,6 +1093,67 @@ class Tag extends AppModel
             $tags[] = $this->pickerTagEntry($tag);
         }
         return $tags;
+    }
+
+    /**
+     * The per-taxonomy categories of the tag picker: the enabled
+     * taxonomies, each with those of its tags present in $pickerTags. A
+     * taxonomy tag is enabled once its Tag row exists and is not hidden, which
+     * getAllTagsForPicker() has already filtered for.
+     *
+     * @param array $pickerTags output of getAllTagsForPicker()
+     * @return array [['id', 'namespace', 'description', 'tags' => [...]], ...]
+     */
+    public function getTaxonomiesForPicker(array $pickerTags)
+    {
+        $taxonomies = ClassRegistry::init('Taxonomy')->find('all', [
+            'fields' => ['id', 'namespace', 'description'],
+            'conditions' => ['Taxonomy.enabled' => 1],
+            'recursive' => -1,
+            'contain' => ['TaxonomyPredicate' => [
+                'fields' => ['value'],
+                'TaxonomyEntry' => ['fields' => ['value']],
+            ]],
+            'order' => ['Taxonomy.namespace ASC'],
+        ]);
+
+        $owner = [];
+        foreach ($taxonomies as $index => $taxonomy) {
+            $namespace = $taxonomy['Taxonomy']['namespace'];
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                $prefix = $namespace . ':' . $predicate['value'];
+                if (empty($predicate['TaxonomyEntry'])) {
+                    $owner[mb_strtolower($prefix)] = $index;
+                    continue;
+                }
+                foreach ($predicate['TaxonomyEntry'] as $entry) {
+                    $name = $prefix . '="' . $entry['value'] . '"';
+                    $owner[mb_strtolower($name)] = $index;
+                }
+            }
+        }
+
+        $grouped = [];
+        foreach ($pickerTags as $tag) {
+            $key = mb_strtolower($tag['name']);
+            if (isset($owner[$key])) {
+                $grouped[$owner[$key]][] = $tag;
+            }
+        }
+
+        $result = [];
+        foreach ($taxonomies as $index => $taxonomy) {
+            if (empty($grouped[$index])) {
+                continue;
+            }
+            $result[] = [
+                'id' => (int)$taxonomy['Taxonomy']['id'],
+                'namespace' => $taxonomy['Taxonomy']['namespace'],
+                'description' => $taxonomy['Taxonomy']['description'],
+                'tags' => $grouped[$index],
+            ];
+        }
+        return $result;
     }
 
     /**
