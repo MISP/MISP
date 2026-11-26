@@ -1,4 +1,6 @@
 <?php
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
+
 // Title of the index displayed in the header section, leaving it empty will fallback to controller name
 $headerTitle = __('');
 
@@ -45,7 +47,7 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
  * - label_on/off   : Text for toggle
  * - icon           : FontAwesome icon
  * - icon_on/off    : Toggle icon
- * - url            : URL (supports %id% and %action%)
+ * - url            : URL (supports %id% and %action%), or fn($row) → URL
  * - data_path      : Value to copy (for type = copy)
  * - copy_message   : Toast text shown after copy (for type = copy)
  * - class          : CSS class
@@ -282,6 +284,19 @@ $fields = array_merge($fields, [
         'data_path' => 'Attribute.id',
         'card_section' => 'actions',
         'actions' => [
+            [
+                'type' => 'navigate',
+                'label' => __('Open value intelligence'),
+                'icon' => 'misp-icon misp-icon-value-intelligence misp-simple',
+                'url' => function ($row) use ($path, $baseurl) {
+                    return $baseurl . '/values/view/'
+                        . ValueUrlTool::address(Hash::get($row, $path('value')));
+                },
+                'requirement' => function ($row) use ($path) {
+                    return empty($row['is_proposal'])
+                        && (string)Hash::get($row, $path('value')) !== '';
+                }
+            ],
             [
                 'type' => 'copy',
                 'label' => __('Copy UUID'),
