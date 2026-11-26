@@ -608,6 +608,7 @@ CREATE TABLE `feeds` (
     `caching_enabled` tinyint(1) DEFAULT '0' NOT NULL,
     `force_to_ids` tinyint(1) DEFAULT '0' NOT NULL,
     `orgc_id` int(11) DEFAULT 0 NOT NULL,
+    `job_id` int(11) DEFAULT 0  NOT NULL,
     `tag_collection_id` int(11) DEFAULT 0 NOT NULL,
     `lock_events` tinyint(1) DEFAULT '0' NOT NULL,
     PRIMARY KEY (`id`),

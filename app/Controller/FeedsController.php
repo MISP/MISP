@@ -296,6 +296,8 @@ class FeedsController extends AppController
                         $feed['Feed']['fixed_event'] = '1';
                     }
                 }
+                
+                $feed['Feed']['job_id'] = 0;
 
                 if (isset($feed['Feed']['pull_rules'])) {
                     $feed['Feed']['rules'] = $feed['Feed']['pull_rules'];
@@ -607,6 +609,20 @@ class FeedsController extends AppController
         }
         $this->render('add');
     }
+    
+    private function updateFeedwithJobId($feedId, $jobId)
+    {
+        $query = [
+            'recursive' => -1,
+            'conditions' => [
+                'Feed.id' => $feedId
+            ],
+        ];
+        $data = $this->Feed->find('first', $query);
+        $data['Feed']['job_id'] = $jobId;
+        $result = array('result' => $this->Feed->save($data));
+        return $result;
+    } 
 
     public function delete($feedId)
     {
@@ -678,8 +694,10 @@ class FeedsController extends AppController
                 true,
                 $jobId
             );
+            
+            $this->updateFeedwithJobId($feedId, $jobId);
 
-            $message = __('Pull queued for background execution.');
+            $message = __('Pull queued for background execution. Job id %s', $jobId);
         } else {
             $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
             if (!$result) {
