@@ -1744,6 +1744,7 @@ class Feed extends AppModel
 
         // Convert values to MD5 hashes
         $md5Values = array_map('md5', array_column($values, 'value'));
+        unset($values); // no longer needed, drop it before the chunked Redis caching loop below
 
         $redis->del('misp:feed_cache:' . $feedId);
         foreach (array_chunk($md5Values, 5000) as $k => $chunk) {
