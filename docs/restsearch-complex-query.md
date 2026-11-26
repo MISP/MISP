@@ -37,6 +37,10 @@ and [Organisations](#organisations).
 - `returnFormat` and the other output parameters work as usual. `query` only
   selects which attributes, events or objects are returned; on events and
   objects, a negated `tags` also strips the attributes carrying the tag.
+- When a role reduces an explicit page size, a paged search response includes
+  `X-Result-Page-Limit` with the applied size. Page numbers are interpreted
+  using that size. This header lets clients detect when a requested page
+  would start at a different offset.
 
 ## Grammar
 
@@ -141,6 +145,9 @@ under the same names.
 ## Attributes
 
 `POST /attributes/restSearch`. The tree selects attributes.
+
+With a `query` tree, `"returnFormat": "count"` counts matching attributes
+without applying `limit`, `page`, or the role's page size.
 
 | Field | Type | Operators | Notes |
 |---|---|---|---|
