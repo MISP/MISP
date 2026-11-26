@@ -146,8 +146,12 @@ under the same names.
 
 `POST /attributes/restSearch`. The tree selects attributes.
 
-With a `query` tree, `"returnFormat": "count"` counts matching attributes
-without applying `limit`, `page`, or the role's page size.
+With a `query` tree, `"returnFormat": "count"` returns the number of matching
+attributes as the body and in `X-Result-Count`, counted in the database,
+without applying `limit`, `page`, or the role's page size. With
+`enforceWarninglist` or `excludeDecayed`, the matching attributes are read and
+the body counts those the filter keeps; `X-Result-Count` is then the number
+read.
 
 | Field | Type | Operators | Notes |
 |---|---|---|---|

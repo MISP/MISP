@@ -2478,6 +2478,8 @@ class MispAttribute extends AppModel
      *  - conditions
      *  - order
      *  - group
+     *  - count: return the number of matching attributes instead, counted before any
+     *    filter that drops rows after the fetch (warninglists, decay, proposals)
      *
      * @param array $user
      * @param array $options
@@ -2485,7 +2487,7 @@ class MispAttribute extends AppModel
      * @param bool $real_count
      * @param int|false $skipped_item_count Rows read but not returned (warninglists, decay, proposals)
      * @param int $last_read_id Id of the last row read, returned or not
-     * @return array
+     * @return array|int
      * @throws Exception
      */
         public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false, &$last_read_id = 0)
@@ -2693,6 +2695,10 @@ class MispAttribute extends AppModel
             // Resolved once for the count and every page
             $params['conditions'] = $this->loadAttributeValue()->rewriteConditions($params['conditions'], $this->alias);
 
+            if (!empty($options['count'])) {
+                unset($params['limit'], $params['page'], $params['offset']);
+                return $this->find('count', $params);
+            }
             if ($result_count !== false && $real_count) {
                 $cnt = $params;
                 unset($cnt['limit'], $cnt['page']);
@@ -4212,6 +4218,15 @@ class MispAttribute extends AppModel
         if ($complexQuery !== null && $returnFormat === 'count') {
             // A complex count covers all matches, independent of page and role limit.
             unset($params['limit'], $params['page']);
+            // Rows dropped after the fetch can only be counted by walking them
+            $dropsRows = !empty($params['enforceWarninglist']) || !empty($params['excludeDecayed'])
+                || (!empty($params['allow_proposal_blocking']) && Configure::read('MISP.proposals_block_attributes'));
+            if (!$dropsRows) {
+                $elementCounter = $this->fetchAttributes($user, ['count' => true] + $params);
+                $tmpfile = new TmpFileTool();
+                $tmpfile->write((string)$elementCounter);
+                return $tmpfile;
+            }
         }
         if (method_exists($exportTool, 'modify_params')) {
             $params = $exportTool->modify_params($user, $params);

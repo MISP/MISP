@@ -719,7 +719,7 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame(1, $this->resolvedPatterns());
     }
 
-    public function testComplexSearchKeepsItsPageAndCountsAllBatches()
+    public function testComplexSearchKeepsItsPageAndCountsInOneQuery()
     {
         $ids = $this->ids(...array_keys($this->ids));
         $memoryLimit = ini_get('memory_limit');
@@ -731,6 +731,7 @@ class AttributeValueFilterDbTest extends TestCase
             $query = ['id' => ['IN' => $ids]];
             $tmp = $this->attribute->restSearch($this->user, 'json', $paging,
                 false, false, $count, $renderView, $skipped, $query);
+            $this->clearLog();
             $total = $this->attribute->restSearch($this->user, 'count', $paging,
                 false, false, $count, $renderView, $skipped, $query);
         } finally {
@@ -740,6 +741,9 @@ class AttributeValueFilterDbTest extends TestCase
         $rows = json_decode($tmp->intoString(), true)['response']['Attribute'];
         $this->assertSame(array_slice($ids, 4, 4), array_map('intval', array_column($rows, 'id')));
         $this->assertSame(count($ids), (int)$total->intoString());
+        $this->assertSame(count($ids), $count);
+        $this->assertCount(1, $this->statements('/SELECT COUNT\(\*\) AS `count` FROM .*`attributes` AS `Attribute`/s'));
+        $this->assertSame([], $this->statements('/`attributes` AS `Attribute`.* LIMIT \d+$/s'));
     }
 
     public function testBatchingGoesOnPastTheRowsAWarninglistDrops()
@@ -771,6 +775,9 @@ class AttributeValueFilterDbTest extends TestCase
             $export = $search([]);
             $first = $search(['limit' => 4, 'page' => 1]);
             $second = $search(['limit' => 4, 'page' => 2]);
+            // A warninglist drops rows after the fetch: counted by walking them
+            $counted = $this->attribute->restSearch($this->user, 'count', ['enforceWarninglist' => 1],
+                false, false, $count, $renderView, $skipped, ['id' => ['IN' => $ids]]);
         } finally {
             ini_set('memory_limit', $memoryLimit);
             Configure::write('MISP.default_attribute_memory_coefficient', $coefficient);
@@ -781,6 +788,7 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame([$this->ids('domain', 'other', 'regkey'), 6, 3], $export);
         $this->assertSame([$this->ids('domain'), 4, 3], $first);
         $this->assertSame([$this->ids('other', 'regkey'), 2, 0], $second);
+        $this->assertSame(3, (int)$counted->intoString());
     }
 
     public function testAFetchReadsTheValuesOfItsCorrelationsAtOnce()
