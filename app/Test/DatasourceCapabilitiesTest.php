@@ -127,9 +127,9 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
             return false;
         }
 
-        public function getVirtualField($field)
+        public function getVirtualField($field = null)
         {
-            return null;
+            return $field === null ? array() : null;
         }
 
         public function __get($name)
@@ -166,6 +166,19 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
 
         public function closeCursor()
         {
+        }
+    }
+}
+
+if (!class_exists('DatasourceTestDescribedModel', false)) {
+    /** A model whose described columns a test can change, as DDL would. */
+    class DatasourceTestDescribedModel extends Model
+    {
+        public $columns = array();
+
+        public function schema($field = false)
+        {
+            return $this->columns;
         }
     }
 }
@@ -410,6 +423,69 @@ class DatasourceCapabilitiesTest extends TestCase
         $expected = ' ORDER BY "News"."date_created" DESC, "News"."id" ASC';
         $this->assertSame($expected, $db->order('date_created DESC, id', 'ASC', $News), 'a comma-separated string');
         $this->assertSame($expected, $db->order(array(array('date_created' => 'DESC'), 'id'), 'ASC', $News), 'nested');
+    }
+
+    public static function columnListDatasources()
+    {
+        return array(
+            'MySQL' => array('MigrationTestMysqlExtended', '`Probe`.`%1$s`'),
+            'PostgreSQL' => array('DatasourceTestPostgresObserverExtended', '"Probe"."%1$s" AS "Probe__%1$s"'),
+        );
+    }
+
+    /**
+     * Cake caches the column list of a find without a field list under a key
+     * without the columns, and every process writes that cache back on exit, so
+     * after a schema change it kept selecting the old columns. Keyed by the
+     * columns, a list from before the change is never hit again.
+     *
+     * @dataProvider columnListDatasources
+     */
+    public function testTheColumnListOfAFindWithoutFieldsFollowsTheColumns($class, $format)
+    {
+        $quoted = function (array $columns) use ($format) {
+            return array_map(function ($column) use ($format) {
+                return sprintf($format, $column);
+            }, $columns);
+        };
+        $db = new $class();
+        $db->cacheMethods = true;
+        $db->flushMethodCache();
+        $model = new DatasourceTestDescribedModel('Probe', array());
+        $model->columns = array('id' => array(), 'a' => array());
+        try {
+            $this->assertSame($quoted(array('id', 'a')), $db->fields($model));
+            $model->columns['b'] = array();
+            $this->assertSame($quoted(array('id', 'a', 'b')), $db->fields($model), 'a column added since is selected');
+            unset($model->columns['a']);
+            $this->assertSame($quoted(array('id', 'b')), $db->fields($model), 'a column dropped since is not');
+            $this->assertSame($quoted(array('id', 'b')), $db->fields($model), 'a repeat');
+            $this->assertCount(3, DboSource::$methodCache['currentColumnList'], 'still cached, once per column set');
+        } finally {
+            $db->cacheMethods = false;
+            DboSource::$methodCache = array();
+        }
+    }
+
+    /**
+     * Why the datasources above key the list themselves: Cake's own driver
+     * keeps serving the first list it built.
+     */
+    public function testCakesOwnDriverKeepsTheOldColumnList()
+    {
+        $db = new MigrationTestMysql();
+        $db->cacheMethods = true;
+        $db->flushMethodCache();
+        $model = new DatasourceTestDescribedModel('Probe', array());
+        $model->columns = array('id' => array(), 'a' => array());
+        try {
+            $db->fields($model);
+            $model->columns['b'] = array();
+            $this->assertSame(array('`Probe`.`id`', '`Probe`.`a`'), $db->fields($model));
+        } finally {
+            $db->cacheMethods = false;
+            DboSource::$methodCache = array();
+        }
     }
 
     /**

@@ -16,4 +16,10 @@ App::uses('AppHelper', 'View/Helper');
                 return 'black';
             }
         }
+
+        // Tags from a remote server or a feed are shown without being saved, so
+        // nothing has validated their colour.
+        public function validColour($colour, $fallback = '#ffffff') {
+            return is_string($colour) && preg_match('/^#[0-9a-f]{6}$/i', $colour) ? $colour : $fallback;
+        }
     }

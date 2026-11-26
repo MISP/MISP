@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
 App::uses('SystemSetting', 'Model');
 
@@ -191,7 +192,7 @@ class ServersController extends AppController
         $this->set('shortDist', $shortDist);
         $this->set('id', $id);
         $this->set('urlparams', $urlparams);
-        $this->set('passedArgs', json_encode($passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
         $this->set('server', $server);
     }
@@ -557,19 +558,11 @@ class ServersController extends AppController
                     if (empty($this->request->data['Server']['remote_org_id'])) {
                         return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s id/uuid not given (remote_org_id)'), $this->response->type());
                     }
-                    if (Validation::uuid($this->request->data['Server']['remote_org_id'])) {
-                        $orgCondition = array('uuid' => $this->request->data['Server']['remote_org_id']);
-                    } else {
-                        $orgCondition = array('id' => $this->request->data['Server']['remote_org_id']);
-                    }
-                    $existingOrgs = $this->Server->Organisation->find('first', array(
-                            'conditions' => $orgCondition,
-                            'recursive' => -1,
-                            'fields' => array('id', 'uuid')
-                    ));
-                    if (empty($existingOrgs)) {
+                    $remoteOrgId = $this->__findOrgId($this->request->data['Server']['remote_org_id']);
+                    if ($remoteOrgId === false) {
                         return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
                     }
+                    $this->request->data['Server']['remote_org_id'] = $remoteOrgId;
                 } else {
                     if ($this->request->data['Server']['organisation_type'] === ""){
                         $fail = true;
@@ -774,6 +767,13 @@ class ServersController extends AppController
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
                 }
+                if ($this->_isRest() && !isset($json) && !empty($this->request->data['Server']['remote_org_id'])) {
+                    $remoteOrgId = $this->__findOrgId($this->request->data['Server']['remote_org_id']);
+                    if ($remoteOrgId === false) {
+                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
+                    }
+                    $this->request->data['Server']['remote_org_id'] = $remoteOrgId;
+                }
                 if (isset($this->request->data['Server']['organisation_type']) && isset($json)) {
                     // adds 'remote_org_id' in the fields to update
                     $fieldList[] = 'remote_org_id';
@@ -933,7 +933,7 @@ class ServersController extends AppController
         if ($this->Server->delete()) {
             $message = __('Server deleted');
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $id, $this->response->type(), $message);
             } else {
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'servers', 'action' => 'index'));
@@ -969,44 +969,72 @@ class ServersController extends AppController
     public function eventBlockRule()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $setting = $this->AdminSetting->find('first', [
-            'conditions' => ['setting' => 'eventBlockRule'],
-            'recursive' => -1
-        ]);
-        if (empty($setting)) {
-            $setting = ['setting' => 'eventBlockRule'];
-            if ($this->request->is('post')) {
-                $this->AdminSetting->create();
-            }
-        }
+        $value = $this->AdminSetting->getSetting('eventBlockRule') ?: '';
         if ($this->request->is('post')) {
-            if (!empty($this->request->data['Server'])) {
-                $this->request->data = $this->request->data['Server'];
-            }
-            $setting['AdminSetting']['setting'] = 'eventBlockRule';
-            $setting['AdminSetting']['value'] = $this->request->data['value'];
-            $result = $this->AdminSetting->save($setting);
-            if ($result) {
-                $message = __('Settings saved');
-            } else {
-                $message = __('Could not save the settings. Invalid input.');
+            $data = $this->request->data['Server'] ?? $this->request->data;
+            $value = $data['value'] ?? null;
+            $message = $this->__eventBlockRuleError($value);
+            $result = false;
+            if ($message === null) {
+                $result = $this->AdminSetting->changeSetting('eventBlockRule', $value) === true;
+                $message = $result ? __('Settings saved') : __('Could not save the settings.');
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', false, $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
                 }
             } else {
                 if ($result) {
                     $this->Flash->success($message);
-                    $this->redirect('/');
+                    return $this->redirect(['action' => 'eventBlockRule']);
                 } else {
                     $this->Flash->error($message);
                 }
             }
+        } elseif ($this->_isRest()) {
+            return $this->RestResponse->viewData(['value' => $value], $this->response->type());
         }
-        $this->set('setting', $setting);
+        $this->set('setting', ['AdminSetting' => ['setting' => 'eventBlockRule', 'value' => is_string($value) ? $value : '']]);
+    }
+
+    /**
+     * The rule set Event::checkEventBlockRules() understands: empty for none,
+     * or a JSON object whose only key, "tags", holds a tag name or a list of them.
+     *
+     * @param mixed $value
+     * @return string|null Why the rule set is refused, null when it is valid
+     */
+    private function __eventBlockRuleError($value)
+    {
+        if (!is_string($value)) {
+            return __('The rule set has to be given as a JSON string in "value".');
+        }
+        if (trim($value) === '') {
+            return null;
+        }
+        try {
+            $rules = json_decode($value, false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            return __('The rule set is not valid JSON: %s', $e->getMessage());
+        }
+        if (!$rules instanceof stdClass) {
+            return __('The rule set has to be a JSON object, such as {"tags": ["tlp:red"]}.');
+        }
+        $unknown = array_diff(array_keys((array)$rules), ['tags']);
+        if (!empty($unknown)) {
+            return __('Unknown key(s) in the rule set: %s. Only "tags" is supported.', implode(', ', $unknown));
+        }
+        if (isset($rules->tags)) {
+            $tags = is_array($rules->tags) ? $rules->tags : [$rules->tags];
+            foreach ($tags as $tag) {
+                if (!is_string($tag)) {
+                    return __('"tags" has to be a tag name or a list of tag names.');
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -1169,11 +1197,25 @@ class ServersController extends AppController
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
 
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), $message);
             }
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    /**
+     * @param int|string $idOrUuid
+     * @return int|false
+     */
+    private function __findOrgId($idOrUuid)
+    {
+        $org = $this->Server->Organisation->find('first', [
+            'conditions' => [Validation::uuid($idOrUuid) ? 'uuid' : 'id' => $idOrUuid],
+            'recursive' => -1,
+            'fields' => ['id'],
+        ]);
+        return empty($org) ? false : (int)$org['Organisation']['id'];
     }
 
     private function __saveCert($server, $id, $client = false, $delete = false)
@@ -1254,14 +1296,7 @@ class ServersController extends AppController
     public function serverSettingsReloadSetting($setting, $id)
     {
         $pathToSetting = explode('.', $setting);
-        if (
-            strpos($setting, 'Plugin.Enrichment') !== false ||
-            strpos($setting, 'Plugin.Import') !== false ||
-            strpos($setting, 'Plugin.Export') !== false ||
-            strpos($setting, 'Plugin.Cortex') !== false ||
-            strpos($setting, 'Plugin.Action') !== false ||
-            strpos($setting, 'Plugin.Workflow') !== false
-        ) {
+        if ($this->Server->isDynamicSetting($setting)) {
             $settingObject = $this->Server->getCurrentServerSettings();
         } else {
             $settingObject = $this->Server->serverSettings;
@@ -1290,8 +1325,13 @@ class ServersController extends AppController
         }
         $this->set('subGroup', $subGroup);
 
-        // Overmind swaps the edited row in place with its own BS5 markup.
         if ($this->theme === 'Overmind') {
+            $this->set('variant', $this->request->query('variant') === 'essential' ? 'essential' : 'standard');
+            $this->set('rowDestination', (string)$this->request->query('dest'));
+            $this->set('rowDestinationTitle', (string)$this->request->query('destTitle'));
+            $this->set('label', (string)$this->request->query('label'));
+            App::uses('ServerSettingGroups', 'Tools');
+            $this->set('setting', ServerSettingGroups::markModule($result, (string)$this->request->query('module')));
             return $this->render('/Elements/healthElementsBS5/setting_row');
         }
 
@@ -1304,12 +1344,8 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('Just GET method is allowed.');
         }
 
-        App::uses('ServerSettingGroups', 'Tools');
-        if ($this->theme === 'Overmind' && $tab !== 'download') {
-            $tabRequired = $tab !== false || $this->request->is('ajax');
-            if ($tabRequired && !ServerSettingGroups::isKnownTab($tab)) {
-                throw new NotFoundException(__('Unknown server settings section.'));
-            }
+        if ($this->theme === 'Overmind' && $tab !== 'download' && !$this->_isRest()) {
+            return $this->__overmindServerSettings($tab);
         }
 
         $tabs = array(
@@ -1322,19 +1358,7 @@ class ServersController extends AppController
             'SimpleBackgroundJobs' => array('count' => 0, 'errors' => 0, 'severity' => 5)
         );
 
-        $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
-        $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
-        $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
-        $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
-        $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $sessionErrors = array(
-            0 => __('OK'),
-            1 => __('Too many expired sessions in the database, please clear the expired sessions'),
-            2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
-            8 => __('Alternative setting used'),
-            9 => __('Test failed')
-        );
-        $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
+        extract($this->__diagnosticLabels());
         $backgroundJobsErrors = array(
             0 => __('OK'),
             1 => __('Not configured (so not tested)'),
@@ -1433,36 +1457,7 @@ class ServersController extends AppController
             $this->set('latestCommit', $gitStatus['latestCommit']);
             $this->set('version', $gitStatus['version']);
 
-            $phpSettings = array(
-                'max_execution_time' => array(
-                    'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
-                    'recommended' => 300,
-                    'unit' => 'seconds',
-                ),
-                'memory_limit' => array(
-                    'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
-                    'recommended' => 2048,
-                    'unit' => 'MB'
-                ),
-                'upload_max_filesize' => array(
-                    'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
-                    'recommended' => 50,
-                    'unit' => 'MB'
-                ),
-                'post_max_size' => array(
-                    'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
-                    'recommended' => 50,
-                    'unit' => 'MB'
-                )
-            );
-
-            foreach ($phpSettings as $setting => $settingArray) {
-                $phpSettings[$setting]['value'] = $this->Server->getIniSetting($setting);
-                if ($phpSettings[$setting]['value'] && $settingArray['unit'] && $settingArray['unit'] === 'MB') {
-                    // convert basic unit to M
-                    $phpSettings[$setting]['value'] = (int) floor($phpSettings[$setting]['value'] / 1024 / 1024);
-                }
-            }
+            $phpSettings = $this->__phpSettings();
             $this->set('phpSettings', $phpSettings);
 
             if ($gitStatus['version'] && $gitStatus['version']['upToDate'] === 'older') {
@@ -1493,7 +1488,7 @@ class ServersController extends AppController
 
             $redisInfo = $this->Server->redisInfo();
 
-            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
+            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Gathering', 'Cortex', 'AI');
             foreach ($moduleTypes as $type) {
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
@@ -1536,7 +1531,7 @@ class ServersController extends AppController
         $this->set('worker_array', $worker_array);
         if ($tab === 'download' || $this->_isRest()) {
             foreach ($dumpResults as $key => $dr) {
-                unset($dumpResults[$key]['description']);
+                unset($dumpResults[$key]['description'], $dumpResults[$key]['modified']);
             }
             $dump = array(
                 'version' => $gitStatus['version'],
@@ -1579,16 +1574,341 @@ class ServersController extends AppController
         $this->set('phprec', $this->phprec);
         $this->set('phptoonew', $this->phptoonew);
         $this->set('title_for_layout', __('Diagnostics'));
+    }
 
-        /*
-         * Overmind renders the page as a shell (health cards + tab bar) and
-         * pulls the content of each tab over ajax from this very action, so an
-         * XHR gets the bare fragment for $tab instead of the whole page.
-         */
-        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+    /**
+     * Overmind's server settings: a navigation of destinations (see
+     * ServerSettingGroups::destinations()), each answering both as a full
+     * page and, for an XHR, as the bare fragment the navigation swaps in.
+     * Nothing slow runs here: the health checks are fetched one by one from
+     * serverDiagnostic().
+     *
+     * @param string|false $tab A destination id, or one of the former tab names
+     */
+    private function __overmindServerSettings($tab)
+    {
+        App::uses('ServerSettingGroups', 'Tools');
+        App::uses('ServerHealthProbes', 'Tools');
+        $isAjax = $this->request->is('ajax');
+
+        $settings = $this->Server->serverSettingsRead();
+        foreach ($settings as $key => $setting) {
+            if (isset($setting['optionsSource']) && is_callable($setting['optionsSource'])) {
+                $settings[$key]['options'] = $setting['optionsSource']();
+            }
+        }
+        $routed = ServerSettingGroups::byDestination($settings);
+        $destinations = ServerSettingGroups::destinations($routed['subGroups']);
+
+        if ($tab === 'searchIndex' && $isAjax) {
+            return $this->RestResponse->viewData($this->__settingsSearchIndex($routed['sections'], $destinations), 'json');
+        }
+
+        $destination = ServerSettingGroups::resolve($tab, $routed['subGroups']);
+        if ($destination === false) {
+            throw new NotFoundException(__('Unknown server settings section.'));
+        }
+        if ($tab !== false && $tab !== $destination && !$isAjax) {
+            return $this->redirect('/servers/serverSettings/' . $destination);
+        }
+        $definition = $destinations[$destination];
+        if ($definition['kind'] === 'files' && !empty(Configure::read('Security.disable_instance_file_uploads'))) {
+            throw new MethodNotAllowedException(__('This functionality is disabled.'));
+        }
+
+        $counters = array();
+        foreach ($routed['sections'] as $id => $sections) {
+            $counters[$id] = ServerSettingGroups::counters($sections);
+        }
+        $counters['integrations'] = array(0 => 0, 1 => 0, 2 => 0);
+        foreach ($destinations as $id => $entry) {
+            if (isset($entry['parent'], $counters[$id])) {
+                foreach ($counters[$id] as $level => $count) {
+                    $counters['integrations'][$level] += $count;
+                }
+            }
+        }
+
+        if ($definition['kind'] === 'overview') {
+            $this->set($this->__settingsOverview($routed['sections'], $destinations));
+        } elseif ($definition['kind'] === 'correlations') {
+            $this->loadModel('Correlation');
+            $this->set('correlation_metrics', $this->Correlation->collectMetrics());
+        } elseif ($definition['kind'] === 'files') {
+            $this->set('files', $this->Server->grabFiles());
+        } elseif ($destination === 'ai') {
+            $this->loadModel('Module');
+            $this->set('aiModuleStatus', $this->Module->aiStatus());
+        }
+
+        $this->set('destination', $destination);
+        $this->set('definition', $definition);
+        $this->set('destinations', $destinations);
+        $this->set('sectionsByDestination', $routed['sections']);
+        $this->set('counters', $counters);
+        $this->set('healthVerdicts', ServerHealthProbes::cached(array_keys(ServerHealthProbes::probes())));
+        $this->set('configWriteable', Configure::read('MISP.system_setting_db') || is_writable(APP . 'Config/config.php'));
+        $this->set('title_for_layout', __('Server Settings'));
+
+        if ($isAjax) {
             $this->layout = false;
             return $this->render('/Servers/ajax/server_settings_tab');
         }
+    }
+
+    /**
+     * @param array $sectionsByDestination
+     * @param array $destinations
+     * @return array View variables of the Overview: problems, essentials, counts
+     */
+    private function __settingsOverview(array $sectionsByDestination, array $destinations)
+    {
+        $essentialNames = ServerSettingGroups::essentials();
+        $problems = array();
+        $essentials = array();
+        $issueCounts = array(0 => 0, 1 => 0, 2 => 0);
+        foreach ($sectionsByDestination as $destination => $sections) {
+            foreach ($sections as $section) {
+                foreach ($section['settings'] as $setting) {
+                    if (isset($essentialNames[$setting['setting']])) {
+                        $essentials[$setting['setting']] = $setting;
+                    }
+                    if (!ServerSettingGroups::inError($setting)) {
+                        continue;
+                    }
+                    $issueCounts[$setting['level']]++;
+                    if ($setting['level'] < 2) {
+                        $problems[] = array('setting' => $setting, 'destination' => $destination);
+                    }
+                }
+            }
+        }
+        usort($problems, function ($a, $b) {
+            return $a['setting']['level'] <=> $b['setting']['level'];
+        });
+        $ordered = array();
+        foreach ($essentialNames as $name => $label) {
+            if (isset($essentials[$name])) {
+                $ordered[] = $essentials[$name];
+            }
+        }
+        return array('problems' => $problems, 'essentials' => $ordered, 'issueCounts' => $issueCounts);
+    }
+
+    /**
+     * What the global settings search looks through: every listed setting with
+     * the page it lives on.
+     *
+     * @param array $sectionsByDestination
+     * @param array $destinations
+     * @return array
+     */
+    private function __settingsSearchIndex(array $sectionsByDestination, array $destinations)
+    {
+        $index = array();
+        foreach ($sectionsByDestination as $destination => $sections) {
+            foreach ($sections as $section) {
+                foreach ($section['settings'] as $setting) {
+                    $description = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)$setting['description']), ENT_QUOTES)));
+                    $index[] = array(
+                        'name' => $setting['setting'],
+                        'description' => mb_substr($description, 0, 200),
+                        'destination' => $destination,
+                        'destinationTitle' => $destinations[$destination]['title'],
+                        'tier' => ServerSettingGroups::tier($setting),
+                        'level' => (int)$setting['level'],
+                        'error' => ServerSettingGroups::inError($setting),
+                        'module' => isset($setting['module']) ? $setting['module'] : null,
+                    );
+                }
+            }
+        }
+        return $index;
+    }
+
+    /**
+     * One health check of the server settings page, run on its own so a slow
+     * probe never holds the others back. Answers the probe's card, or with
+     * `?summary=1` only its verdict (Overview tiles, navigation dots).
+     *
+     * @param string|null $probe See ServerHealthProbes::probes()
+     */
+    public function serverDiagnostic($probe = null)
+    {
+        if (!$this->request->is('get')) {
+            throw new MethodNotAllowedException(__('Just GET method is allowed.'));
+        }
+        App::uses('ServerHealthProbes', 'Tools');
+        if ($this->theme !== 'Overmind' || !ServerHealthProbes::isKnown($probe)) {
+            throw new NotFoundException(__('Unknown diagnostic.'));
+        }
+        // The probes of a page run in parallel; a locked session would queue them.
+        session_write_close();
+
+        $data = $this->__diagnosticData($probe);
+        $verdict = ServerHealthProbes::store($probe, ServerHealthProbes::verdict($probe, $data));
+        if ($this->request->query('summary')) {
+            return $this->RestResponse->viewData($verdict, 'json');
+        }
+        $this->set($data);
+        $this->set('probe', $probe);
+        $this->set('verdict', $verdict);
+        $this->layout = false;
+        return $this->render('/Servers/ajax/server_diagnostic');
+    }
+
+    /**
+     * @param string $probe
+     * @return array The data the probe's verdict and card are built from
+     */
+    private function __diagnosticData($probe)
+    {
+        App::uses('File', 'Utility');
+        App::uses('Folder', 'Utility');
+        $errors = 0;
+        $labels = $this->__diagnosticLabels();
+        switch ($probe) {
+            case 'version':
+                $gitStatus = $this->Server->getCurrentGitStatus(true);
+                return array(
+                    'branch' => $gitStatus['branch'],
+                    'commit' => $gitStatus['commit'],
+                    'latestCommit' => $gitStatus['latestCommit'],
+                    'version' => $gitStatus['version'],
+                );
+            case 'php':
+                return array(
+                    'phpSettings' => $this->__phpSettings(),
+                    'extensions' => $this->Server->extensionDiagnostics(),
+                    'phpversion' => PHP_VERSION,
+                    'phpmin' => $this->phpmin,
+                    'phprec' => $this->phprec,
+                    'phptoonew' => $this->phptoonew,
+                    'php_ini' => php_ini_loaded_file(),
+                );
+            case 'filesystem':
+                return array(
+                    'writeableDirs' => $this->Server->writeableDirsDiagnostics($errors),
+                    'writeableFiles' => $this->Server->writeableFilesDiagnostics($errors),
+                    'readableFiles' => $this->Server->readableFilesDiagnostics($errors),
+                    'writeableErrors' => $labels['writeableErrors'],
+                    'readableErrors' => $labels['readableErrors'],
+                );
+            case 'dbSchema':
+                return array(
+                    'dbSchemaDiagnostics' => $this->Server->dbSchemaDiagnostic(),
+                    'dbEncodingStatus' => $this->Server->databaseEncodingDiagnostics($errors),
+                );
+            case 'dbSpace':
+                return array('dbDiagnostics' => $this->Server->dbSpaceUsage());
+            case 'dbConfig':
+                return array('dbConfiguration' => $this->Server->dbConfiguration());
+            case 'redis':
+                return array('redisInfo' => $this->Server->redisInfo());
+            case 'workers':
+                $issues = 0;
+                return array('worker_array' => Configure::read('MISP.background_jobs')
+                    ? $this->Server->workerDiagnostics($issues)
+                    : array());
+            case 'services':
+                $attachmentTool = new AttachmentTool();
+                try {
+                    $advancedAttachments = $attachmentTool->checkAdvancedExtractionStatus();
+                } catch (Exception $e) {
+                    $this->log($e->getMessage(), LOG_NOTICE);
+                    $advancedAttachments = false;
+                }
+                $this->loadModel('AttachmentScan');
+                try {
+                    $attachmentScan = array('status' => true, 'software' => $this->AttachmentScan->diagnostic());
+                } catch (Exception $e) {
+                    $attachmentScan = array('status' => false, 'error' => $e->getMessage());
+                }
+                return array_merge($labels, array(
+                    'gpgStatus' => $this->Server->gpgDiagnostics($errors),
+                    'proxyStatus' => $this->Server->proxyDiagnostics($errors),
+                    'zmqStatus' => $this->Server->zmqDiagnostics($errors),
+                    'sessionStatus' => $this->Server->sessionDiagnostics($errors),
+                    'yaraStatus' => $this->Server->yaraDiagnostics($errors),
+                    'attachmentScan' => $attachmentScan,
+                    'advanced_attachments' => $advancedAttachments,
+                ));
+            case 'modules':
+                $moduleTypes = array('Enrichment', 'Import', 'Export', 'Gathering', 'Cortex', 'AI');
+                $moduleStatus = array();
+                foreach ($moduleTypes as $type) {
+                    $moduleStatus[$type] = $this->Server->moduleDiagnostics($errors, $type);
+                }
+                return array(
+                    'moduleTypes' => $moduleTypes,
+                    'moduleStatus' => $moduleStatus,
+                    'moduleErrors' => $labels['moduleErrors'],
+                );
+            case 'stix':
+                return array('stix' => $this->Server->stixDiagnostics($errors));
+            case 'audit':
+                return array('securityAudit' => (new SecurityAudit())->run($this->Server));
+        }
+        throw new NotFoundException(__('Unknown diagnostic.'));
+    }
+
+    /**
+     * @return array Messages for the status codes the Server diagnostics return
+     */
+    private function __diagnosticLabels()
+    {
+        return array(
+            'writeableErrors' => array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable')),
+            'readableErrors' => array(0 => __('OK'), 1 => __('not readable')),
+            'gpgErrors' => array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed')),
+            'proxyErrors' => array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed')),
+            'zmqErrors' => array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.')),
+            'sessionErrors' => array(
+                0 => __('OK'),
+                1 => __('Too many expired sessions in the database, please clear the expired sessions'),
+                2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
+                8 => __('Alternative setting used'),
+                9 => __('Test failed')
+            ),
+            'moduleErrors' => array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found')),
+        );
+    }
+
+    /**
+     * @return array PHP limits with their current value and the recommended one
+     */
+    private function __phpSettings()
+    {
+        $phpSettings = array(
+            'max_execution_time' => array(
+                'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+                'recommended' => 300,
+                'unit' => 'seconds',
+            ),
+            'memory_limit' => array(
+                'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+                'recommended' => 2048,
+                'unit' => 'MB'
+            ),
+            'upload_max_filesize' => array(
+                'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+                'recommended' => 50,
+                'unit' => 'MB'
+            ),
+            'post_max_size' => array(
+                'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+                'recommended' => 50,
+                'unit' => 'MB'
+            )
+        );
+        foreach ($phpSettings as $setting => $settingArray) {
+            $phpSettings[$setting]['value'] = $this->Server->getIniSetting($setting);
+            if ($phpSettings[$setting]['value'] && $settingArray['unit'] && $settingArray['unit'] === 'MB') {
+                // convert basic unit to M
+                $phpSettings[$setting]['value'] = (int) floor($phpSettings[$setting]['value'] / 1024 / 1024);
+            }
+        }
+        return $phpSettings;
     }
 
     /**
@@ -1827,8 +2147,9 @@ class ServersController extends AppController
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
-                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event['id'],
-                            "remote_id" => $remote_event['id']
+                            "url" => $remote_server['Server']['url']."/events/view/".(int)$remote_event['id'],
+                            "remote_id" => (int)$remote_event['id'],
+                            "exception" => null,
                         );
                     }
                 }
@@ -1854,7 +2175,7 @@ class ServersController extends AppController
                     $remoteEvent = null;
                     $exception = $e->getMessage();
                 }
-                $remoteEventId = isset($remoteEvent['id']) ? $remoteEvent['id'] : null;
+                $remoteEventId = isset($remoteEvent['id']) ? (int)$remoteEvent['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
@@ -2212,7 +2533,7 @@ class ServersController extends AppController
                         }
                     }
                 }
-                if (!$mismatch && $version[1] == 4 && $version[2] < 111) {
+                if (!$mismatch && version_compare($result['info']['version'], '2.4.111', '<')) {
                     $mismatch = 'proposal';
                 }
                 if (!$perm_sync && !$perm_sighting) {
@@ -2229,6 +2550,9 @@ class ServersController extends AppController
                     if ($version[1] == 4 && $version[2] < 111) {
                             $mismatch = 'proposal';
                     }
+                }
+                if ($mismatch === 'major' && ServerSyncTool::isCrossMajorCompatible(implode('.', $local_version), $result['info']['version'])) {
+                    $mismatch = 'major_compatible';
                 }
                 return $this->RestResponse->viewData([
                     'status' => 1,
@@ -2689,7 +3013,7 @@ public function updateJSON()
                 $this->Flash->error($result);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $result, $this->response->type());
             }
         } else {
             $message = __('API key updated.');
@@ -2697,7 +3021,7 @@ public function updateJSON()
                 $this->Flash->success($message);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $id, $this->response->type(), $message);
             }
         }
     }
@@ -2714,7 +3038,7 @@ public function updateJSON()
         $success = $this->Server->reprioritise($id, $direction);
         if ($success) {
             $message = __('Priority changed.');
-            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $message, $this->response->type());
+            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $id, $this->response->type(), $message);
         } else {
             $message = __('Priority could not be changed.');
             return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
@@ -2985,7 +3309,8 @@ public function updateJSON()
 
     public function ipUser($input = false)
     {
-        $params = $this->IndexFilter->harvestParameters(['ip']);
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
         if (!empty($params['ip'])) {
             $input = $params['ip'];
         }

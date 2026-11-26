@@ -1,7 +1,7 @@
 <?php $menuEndClass = !empty($alignEnd) ? ' dropdown-menu-end' : ''; ?>
 <?php
     // Stable hook for the onboarding tour, which spotlights the top-level
-    // menus by name (nav-datapoints, nav-account, …).
+    // menus and the submenu groups by name (nav-datapoints, nav-blocklisting…).
     $tourAttr = empty($item['id'])
         ? ''
         : ' data-tour="nav-' . h($item['id']) . '"';
@@ -19,7 +19,7 @@
                     <?php continue; ?>
                 <?php endif; ?>
                 <?php if (!empty($child['children'])): ?>
-                    <li class="nav-item dropdown-submenu">
+                    <li class="nav-item dropdown-submenu"<?= empty($child['id']) ? '' : ' data-tour="nav-' . h($child['id']) . '"' ?>>
                         <a class="dropdown-item" href="#" data-bs-toggle="dropdown" style="justify-content: space-between;">
                             <?= $this->element('navbar_item', ['item' => $child]) ?>
                             <i class="menu-arrow fas fa-chevron-right"></i>

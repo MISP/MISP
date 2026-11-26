@@ -9,13 +9,12 @@ if ($element['type'] === 'malware-sample' || $element['type'] === 'attachment'):
             'class' => 'form-control form-control-sm Attribute_attachment',
         ]);
     else:
-        echo '<span class="text-muted" style="font-size:.8rem;">' . h($element['value']) . '</span>';
+        echo '<span class="text-muted ov-obj-row-desc">' . h($element['value']) . '</span>';
         echo $this->Form->textarea('Attribute.' . $k . '.value', [
-            'class'      => 'form-control form-control-sm Attribute_value',
+            'class'      => 'form-control form-control-sm Attribute_value d-none',
             'required'   => false,
             'allowEmpty' => true,
             'value'      => $element['value'],
-            'style'      => 'display:none; resize:vertical;',
             'label'      => false,
             'div'        => false,
         ]);
@@ -27,7 +26,6 @@ elseif (empty($element['values_list']) && empty($element['sane_default'])):
         'allowEmpty' => true,
         'value'      => empty($element['value']) ? '' : $element['value'],
         'rows'       => 1,
-        'style'      => 'resize:vertical;',
         'label'      => false,
         'div'        => false,
     ]);
@@ -58,13 +56,12 @@ else:
         ]
     );
     echo $this->Form->textarea('Attribute.' . $k . '.value', [
-        'class'      => 'form-control form-control-sm Attribute_value',
+        'class'      => 'form-control form-control-sm Attribute_value'
+            . (($choice === 'Enter value manually') ? '' : ' d-none'),
         'required'   => false,
         'allowEmpty' => true,
         'value'      => empty($element['value']) ? '' : $element['value'],
         'rows'       => 1,
-        'style'      => 'resize:vertical;'
-            . (($choice === 'Enter value manually') ? '' : ' display:none;'),
         'label'      => false,
         'div'        => false,
     ]);

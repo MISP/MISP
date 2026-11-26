@@ -54,11 +54,15 @@ class EventReportsController extends AppController
         $event = $this->__canModifyReport($eventId);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['EventReport'])) {
-                $this->request->data['EventReport'] = $this->request->data;
+                $this->request->data = array('EventReport' => $this->request->data);
             }
             $report = $this->request->data;
             $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);
-            $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
+            if ($this->theme === "Overmind"){
+                $redirectTarget = array('controller' => 'events', 'action' => 'view2', $eventId);
+            } else {
+                $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
+            }
             if (!empty($errors)) {
                 return $this->__getFailResponseBasedOnContext($errors, null, 'add', $this->EventReport->id, $redirectTarget);
             } else {
@@ -88,6 +92,14 @@ class EventReportsController extends AppController
         $this->set('ajax', $ajax);
         $this->set('id', $reportId);
         $this->set('report', $report);
+        $this->set('parentEvent', $this->EventReport->Event->fetchSimpleEvent(
+            $this->Auth->user(),
+            $report['EventReport']['event_id'],
+            [
+                'fields' => ['Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.threat_level_id'],
+                'contain' => ['SharingGroup' => ['fields' => ['id', 'name', 'uuid']]],
+            ]
+        ));
         $this->set('title_for_layout', __('Event report %s', $report['EventReport']['name']));
         $this->__injectTemplateVariables($this->Auth->user());
         $this->__injectDistributionLevelToViewContext();
@@ -299,6 +311,13 @@ class EventReportsController extends AppController
             }
             if (empty($tag_id_list)) {
                 $tag_id_list = [$tag_id];
+            }
+            $attachable = $this->EventReport->EventReportTag->Tag->attachableTagIdsForUser(
+                $this->Auth->user(), array_map('intval', $tag_id_list));
+            foreach ($tag_id_list as $listedTagId) {
+                if (!isset($attachable[(int)$listedTagId]) || (!$local && $attachable[(int)$listedTagId])) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                }
             }
             $saveResult = $this->EventReport->attachTags($this->Auth->user(), $report, $tag_id_list, $local);
             $fails = $saveResult['fails'];

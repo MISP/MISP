@@ -25,6 +25,9 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Taxonomy.id',
+        'enable_path' => 'Taxonomy.enabled',
+        'require_path' => 'Taxonomy.required',
+        'highlight_path' => 'Taxonomy.highlighted',
         'card_section' => 'selector',
     ],
     [

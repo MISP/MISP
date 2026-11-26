@@ -26,7 +26,7 @@
       <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
     </td>
     <td class="short">
-      <div id="Attribute_<?php echo $object['uuid']; ?>_category_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo h($object['uuid']); ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
@@ -39,12 +39,12 @@
         endif;
       ?>
       <div></div>
-      <div id="Attribute_<?php echo $object['uuid']; ?>_type_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo h($object['uuid']); ?>_type_solid" class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?php echo h($object['uuid']); ?>_container" class="showspaces limitedWidth shortish">
-      <div id="Attribute_<?php echo $object['uuid']; ?>_value_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo h($object['uuid']); ?>_value_solid" class="inline-field-solid">
         <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="attributes" data-object-id="' . h($object['uuid']) . '"'?>>
           <?php
             echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
@@ -70,7 +70,7 @@
       </div>
     </td>
     <td class="showspaces bitwider">
-      <div id="Attribute_<?php echo $object['uuid']; ?>_comment_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo h($object['uuid']); ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>
@@ -90,7 +90,7 @@
         ?>
     </td>
     <td class="short">
-      <div id="Attribute_<?php echo $object['uuid']; ?>_to_ids_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo h($object['uuid']); ?>_to_ids_solid" class="inline-field-solid">
         <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>

@@ -57,7 +57,6 @@ class Tag extends AppModel
             'className' => 'EventTag',
             'dependent' => true
         ),
-        'TemplateTag',
         'FavouriteTag' => array(
             'dependent' => true
         ),
@@ -229,6 +228,33 @@ class Tag extends AppModel
     }
 
     /**
+     * Tags among $tagIds that $user may attach, restricted tags included only for their org/user.
+     *
+     * @param array $user
+     * @param array $tagIds
+     * @return array Tag.id => local_only flag
+     */
+    public function attachableTagIdsForUser(array $user, array $tagIds)
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+        $conditions = $this->createConditions($user);
+        $conditions['Tag.id'] = $tagIds;
+        $tags = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['Tag.id', 'Tag.local_only'],
+            'callbacks' => false,
+        ]);
+        $result = [];
+        foreach ($tags as $tag) {
+            $result[(int)$tag['Tag']['id']] = !empty($tag['Tag']['local_only']);
+        }
+        return $result;
+    }
+
+    /**
      * @param string $tagName
      * @return int|mixed
      */
@@ -264,16 +290,6 @@ class Tag extends AppModel
             $conditions['Tag.is_galaxy'] = $isGalaxy;
         }
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
-    }
-
-    /**
-     * @param array $accept
-     * @param array $reject
-     * @deprecated Use EventTag::fetchEventTagIds instead
-     */
-    public function fetchEventTagIds($accept, $reject)
-    {
-        $this->EventTag->fetchEventTagIds($accept, $reject);
     }
 
     // find all of the tag Ids that belong to the accepted tags and the rejected tags
@@ -1077,6 +1093,67 @@ class Tag extends AppModel
             $tags[] = $this->pickerTagEntry($tag);
         }
         return $tags;
+    }
+
+    /**
+     * The per-taxonomy categories of the tag picker: the enabled
+     * taxonomies, each with those of its tags present in $pickerTags. A
+     * taxonomy tag is enabled once its Tag row exists and is not hidden, which
+     * getAllTagsForPicker() has already filtered for.
+     *
+     * @param array $pickerTags output of getAllTagsForPicker()
+     * @return array [['id', 'namespace', 'description', 'tags' => [...]], ...]
+     */
+    public function getTaxonomiesForPicker(array $pickerTags)
+    {
+        $taxonomies = ClassRegistry::init('Taxonomy')->find('all', [
+            'fields' => ['id', 'namespace', 'description'],
+            'conditions' => ['Taxonomy.enabled' => 1],
+            'recursive' => -1,
+            'contain' => ['TaxonomyPredicate' => [
+                'fields' => ['value'],
+                'TaxonomyEntry' => ['fields' => ['value']],
+            ]],
+            'order' => ['Taxonomy.namespace ASC'],
+        ]);
+
+        $owner = [];
+        foreach ($taxonomies as $index => $taxonomy) {
+            $namespace = $taxonomy['Taxonomy']['namespace'];
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                $prefix = $namespace . ':' . $predicate['value'];
+                if (empty($predicate['TaxonomyEntry'])) {
+                    $owner[mb_strtolower($prefix)] = $index;
+                    continue;
+                }
+                foreach ($predicate['TaxonomyEntry'] as $entry) {
+                    $name = $prefix . '="' . $entry['value'] . '"';
+                    $owner[mb_strtolower($name)] = $index;
+                }
+            }
+        }
+
+        $grouped = [];
+        foreach ($pickerTags as $tag) {
+            $key = mb_strtolower($tag['name']);
+            if (isset($owner[$key])) {
+                $grouped[$owner[$key]][] = $tag;
+            }
+        }
+
+        $result = [];
+        foreach ($taxonomies as $index => $taxonomy) {
+            if (empty($grouped[$index])) {
+                continue;
+            }
+            $result[] = [
+                'id' => (int)$taxonomy['Taxonomy']['id'],
+                'namespace' => $taxonomy['Taxonomy']['namespace'],
+                'description' => $taxonomy['Taxonomy']['description'],
+                'tags' => $grouped[$index],
+            ];
+        }
+        return $result;
     }
 
     /**

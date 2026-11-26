@@ -11,7 +11,7 @@ $scrolls = count($exports) > 6;
         'title' => __('Download event'),
         'description' => __('Every format is a direct download of this event.'),
         'titleIcon' => 'fas fa-download',
-        'icon' => 'fas fa-download',
+        'icon' => 'misp-icon misp-icon-event misp-simple',
     ]) ?>
 
     <div class="px-4 py-4">

@@ -2,6 +2,7 @@
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FileAccessTool', 'Tools');
+App::uses('CachedExportTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -14,7 +15,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
+    public $uses = array('Event', 'MispAttribute', 'Job', 'User', 'Task', 'Server', 'Organisation', 'Correlation', 'Tag');
 
     public function getOptionParser()
     {
@@ -202,7 +203,6 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
         $this->Job->id = $id;
         $export_type = $this->args[2];
-        file_put_contents('/tmp/test', $export_type);
         $exportTypes = $this->Event->exportTypes();
         $typeData = $exportTypes[$export_type];
         if (!in_array($export_type, array_keys($exportTypes))) {
@@ -217,7 +217,7 @@ class EventShell extends AppShell
             $typeCount = count($types);
             foreach ($types as $k => $type) {
                 $typeData['params']['type'] = $type;
-                $this->__runCaching($user, $typeData, false, $export_type, '_' . $type);
+                $this->__runCaching($user, $typeData, false, $export_type, $type);
                 $this->Job->saveField('message', 'Processing all attributes of type '. $type . '.');
                 $this->Job->saveField('progress', intval($k / $typeCount));
             }
@@ -236,12 +236,7 @@ class EventShell extends AppShell
         $modelScope = $typeData['scope'] == 'Attribute' ? 'MispAttribute' : $typeData['scope'];
         $final = $this->{$modelScope}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
         $dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
-        //echo PHP_EOL . $dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension'] . PHP_EOL;
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension']);
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.' . $user['Organisation']['name'] .  $typeData['extension']);
-        }
+        $file = new File($dir->pwd() . DS . CachedExportTool::fileName($export_type, $subType, CachedExportTool::owner($user), $typeData['extension']));
         $file->write($final);
         $file->close();
         return true;
@@ -264,11 +259,7 @@ class EventShell extends AppShell
         $types = array_keys($export->mispTypes);
         $typeCount = count($types);
         $dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
-        }
+        $file = new File($dir->pwd() . DS . CachedExportTool::fileName('bro', '', CachedExportTool::owner($user), '.intel'));
 
         $file->write('');
         $skipHeader = false;
@@ -371,38 +362,6 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
         $result = $this->Event->sendContactEmail($id, $message, $all, $user);
         $this->Job->saveStatus($jobId, $result);
-    }
-
-    public function postsemail()
-    {
-        if (
-            empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
-            empty($this->args[3]) || empty($this->args[4])
-        ) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email']);
-        }
-
-        $userId = intval($this->args[0]);
-        $postId = intval($this->args[1]);
-        $eventId = intval($this->args[2]);
-        $mailContent = $this->getBackgroundJobsTool()->fetchDataFile($this->args[3]);
-        $this->Job->id = intval($this->args[4]);
-
-        $result = $this->Post->sendPostsEmail($userId, $postId, $eventId, $mailContent['title'], $mailContent['message']);
-
-        if ($result) {
-            $this->Job->save([
-                'progress' => 100,
-                'message' => 'Emails sent.',
-                'date_modified' => date('Y-m-d H:i:s'),
-                'status' =>  Job::STATUS_COMPLETED
-            ]);
-        } else {
-            $this->Job->save([
-                'date_modified' => date('Y-m-d H:i:s'),
-                'status' =>  Job::STATUS_FAILED
-            ]);
-        }
     }
 
     public function enqueueCaching()
@@ -592,13 +551,17 @@ class EventShell extends AppShell
             'id' => $id,
             'modules' => $modules
         );
-        $result = $this->MispAttribute->enrichment($options);
+        $tagsRemoved = 0;
+        $result = $this->MispAttribute->enrichment($options, $tagsRemoved);
         $job['Job']['progress'] = 100;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        if ($tagsRemoved) {
+            $job['Job']['message'] .= ' Removed ' . $tagsRemoved . ' tag' . ($tagsRemoved > 1 ? 's.' : '.');
         }
         echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
@@ -643,13 +606,17 @@ class EventShell extends AppShell
             'event_id' => $eventId,
             'modules' => $modules
         );
-        $result = $this->Event->enrichment($options);
+        $tagsRemoved = 0;
+        $result = $this->Event->enrichment($options, $tagsRemoved);
         $job['Job']['progress'] = 100;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        if ($tagsRemoved) {
+            $job['Job']['message'] .= ' Removed ' . $tagsRemoved . ' tag' . ($tagsRemoved > 1 ? 's.' : '.');
         }
         echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
@@ -697,26 +664,6 @@ class EventShell extends AppShell
         return true;
     }
 
-    public function recoverEvent()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event']);
-        }
-
-        $jobId = $this->args[0];
-        $id = $this->args[1];
-        $job = $this->Job->read(null, $jobId);
-        $job['Job']['progress'] = 1;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Recovering event %s', $id);
-        $this->Job->save($job);
-        $result = $this->Event->recoverEvent($id);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
-        $this->Job->save($job);
-    }
-
     public function testEventNotificationEmail()
     {
         list($eventId, $userId) = $this->args;
@@ -754,7 +701,7 @@ class EventShell extends AppShell
 
     public function reportValidationIssuesAttributes()
     {
-        foreach ($this->Event->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
+        foreach ($this->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
             echo $this->json($validationIssue) . "\n";
         }
     }
@@ -764,7 +711,7 @@ class EventShell extends AppShell
         $dryRun = $this->param('dry-run');
 
         $count = 0;
-        foreach ($this->Event->MispAttribute->normalizeIpAddress($dryRun) as $attribute) {
+        foreach ($this->MispAttribute->normalizeIpAddress($dryRun) as $attribute) {
             $count++;
             echo JsonTool::encode($attribute) . "\n";
         }

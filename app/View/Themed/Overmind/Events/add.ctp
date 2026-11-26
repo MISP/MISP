@@ -98,6 +98,8 @@ echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
                     'placeholder'       => __('Describe the threat event in precise terms…'),
                     'id'                => 'EventInfo',
                     'data-required-msg' => __('Please provide a name for the event.'),
+                    'data-max-bytes'    => 65535,
+                    'data-max-bytes-msg' => __('Event info is too long: %s bytes at most (about %s characters of plain text).', 65535, 65535),
                 ]) ?>
             </div>
 
@@ -214,20 +216,14 @@ echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
                 'required' => true,
                 'for' => 'EventDateDisplay',
             ]) ?>
-            <div class="ov-form-box">
-                <input type="text"
-                       id="EventDateDisplay"
-                       class="ov-form-bare"
-                       inputmode="numeric"
-                       autocomplete="off"
-                       placeholder="DD/MM/YYYY"
-                       data-invalid-msg="<?= h(__('Enter the event date as DD/MM/YYYY.')) ?>"
-                       value="<?= h(date('d/m/Y', strtotime($currentDate))) ?>">
-                <?= $this->Form->hidden('date', [
-                    'id'    => 'EventDate',
-                    'value' => $currentDate,
-                ]) ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                'field' => 'date',
+                'id' => 'EventDate',
+                'value' => $currentDate,
+                'required' => true,
+                'requiredMsg' => __('Enter the event date.'),
+                'invalidMsg' => __('Enter the event date as DD/MM/YYYY.'),
+            ]) ?>
         </div>
 
     </div>

@@ -107,6 +107,7 @@ echo $this->Form->create('User', [
     'id' => 'AdminUserAddForm',
     'url' => '/admin/users/add',
     'novalidate' => true,
+    'data-required-guard' => true,
 ]);
 ?>
 
@@ -116,6 +117,11 @@ echo $this->Form->create('User', [
     'description' => __('Create an account, choose what it may do and how its credentials reach the user.'),
     'icon' => 'fas fa-user-plus',
 ]) ?>
+
+<?php if ($this->request->is('ajax')): ?>
+    <!-- Refusals that are not field errors (invalid organisation, e-mail domain) -->
+    <div class="px-4 pt-3"><?= $this->Flash->render() ?></div>
+<?php endif; ?>
 
 <?php if (!empty($validationErrors)): ?>
     <!-- VALIDATION ERRORS -->
@@ -152,6 +158,8 @@ echo $this->Form->create('User', [
                             'class' => 'form-control' . ($errorFor('email') === '' ? '' : ' is-invalid'),
                             'placeholder' => __('user@example.com'),
                             'data-pgp-email' => true,
+                            'required' => true,
+                            'data-required-msg' => __('Please provide an email address.'),
                         ]) ?>
                     </div>
                     <?php if ($errorFor('email') !== ''): ?>
@@ -168,6 +176,8 @@ echo $this->Form->create('User', [
                             // initTomSelect() reads this; without it the control
                             // falls back to TomSelect's own "Select options...".
                             'data-placeholder' => __('Choose an organisation'),
+                            'required' => true,
+                            'data-required-msg' => __('Please choose an organisation.'),
                         ]) ?>
                     </div>
                 <?php endif; ?>
@@ -200,7 +210,10 @@ echo $this->Form->create('User', [
 
                 <div class="col-md-6">
                     <?= $this->Form->label('nids_sid', __('NIDS SID'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->text('nids_sid', ['class' => 'form-control font-monospace']) ?>
+                    <?= $this->Form->text('nids_sid', [
+                        'class' => 'form-control font-monospace',
+                        'required' => false,
+                    ]) ?>
                     <?= $this->element('genericElementsBS5/Forms/field_hint', [
                         'text' => __('Starting rule ID for the NIDS exports this account generates.'),
                     ]) ?>
@@ -275,6 +288,7 @@ echo $this->Form->create('User', [
                         <?= $this->Form->password('password', [
                             'class' => 'form-control',
                             'id' => 'addPassword',
+                            'required' => false,
                             'autocomplete' => 'new-password',
                             'value' => '',
                         ]) ?>
@@ -288,6 +302,7 @@ echo $this->Form->create('User', [
                         <?= $this->Form->password('confirm_password', [
                             'class' => 'form-control',
                             'id' => 'addConfirm',
+                            'required' => false,
                             'autocomplete' => 'new-password',
                             'value' => '',
                         ]) ?>
@@ -321,6 +336,7 @@ echo $this->Form->create('User', [
                 'rows' => 4,
                 'style' => 'font-size:.75rem;',
                 'data-pgp-target' => true,
+                'required' => false,
                 'placeholder' => "-----BEGIN PGP PUBLIC KEY BLOCK-----",
             ]) ?>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
@@ -338,6 +354,7 @@ echo $this->Form->create('User', [
                         'rows' => 4,
                         'style' => 'font-size:.75rem;',
                         'placeholder' => "-----BEGIN CERTIFICATE-----",
+                        'required' => false,
                     ]) ?>
                     <?= $this->element('genericElementsBS5/Forms/field_hint', [
                         'text' => __('PEM format.'),
@@ -479,6 +496,7 @@ echo $this->Form->create('User', [
     // ── AJAX submit: stay in the modal on validation error ────────
     if (!form.closest('#mainModal')) { return; }
     form.addEventListener('submit', function (e) {
+        if (e.defaultPrevented) { return; }
         e.preventDefault();
         fetch(form.getAttribute('action'), {
             method: 'POST',

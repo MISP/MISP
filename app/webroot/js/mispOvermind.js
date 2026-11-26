@@ -58,13 +58,14 @@ function showToast(message, variant = 'success') {
  * the dialog for every later open.
  *
  *   'sm' 300px | 'md' / null 500px | 'lg' 800px | 'xl' 1140px
+ *   'fullscreen' the whole viewport (the galaxy matrix)
  *******************************/
 function setModalSize(size, dialog) {
     dialog = dialog || document.querySelector('#mainModal .modal-dialog');
     if (!dialog) {
         return;
     }
-    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl');
+    dialog.classList.remove('modal-sm', 'modal-md', 'modal-lg', 'modal-xl', 'modal-fullscreen');
     if (size && size !== 'md') {
         dialog.classList.add('modal-' + size);
     }
@@ -154,17 +155,98 @@ function openModal(url, size = 'xl') {
             initTomSelect(container);
             initChoiceFields(container);
             initJsonFields(container);
+            initDateFields(container);
+            keepTabOnFormReturn(container);
             initPgpKeyLookup(container);
             initCollectionForm(container);
-            initTemplateElementForm(container);
             initServerForm(container);
             initSharingGroupForm(container);
+            initObjectForm(container);
+            initDeleteConfirmations(container);
 
             // Reuse the single instance for #mainModal — calling openModal again
             // while a modal is already open must not spawn a second Bootstrap.Modal instance
             let modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('mainModal'));
             modal.show();
         });
+}
+
+/**
+ * Bring a modal form back to the tab it was opened from.
+ *
+ * A modal form posts as a plain navigation and the server answers with a
+ * redirect to the referer, which never carries the fragment - so the event
+ * view came back on its first tab. A redirect whose Location has no fragment
+ * inherits the one of the URL that was requested, so putting the active tab
+ * (view_layout keeps it in location.hash) on the form's action is enough.
+ * The fragment is never sent, and fetch() ignores it.
+ *
+ * @param {ParentNode} container the modal body
+ */
+function keepTabOnFormReturn(container) {
+    const hash = /^#tab-[\w-]+$/.test(window.location.hash) ? window.location.hash : '';
+    if (!hash) return;
+    container.querySelectorAll('form[action]').forEach(function (form) {
+        const action = form.getAttribute('action');
+        if (action === '' || action.indexOf('#') !== -1) return;
+        form.setAttribute('action', action + hash);
+    });
+}
+
+/**
+ * Go back to an event's view after a modal flow that changed its content.
+ *
+ * view_layout keeps location.hash in step with the active tab
+ * (`history.replaceState` on shown.bs.tab), so the tab the enrichment or import
+ * was launched from is already in the URL - it only has to survive the trip.
+ * Assigning a URL that differs from the current one by its hash alone does not
+ * reload anything, so returning to the same event asks for the reload outright.
+ *
+ * @param {number|string} eventId
+ */
+function returnToEventView(eventId) {
+    const hash = /^#tab-[\w-]+$/.test(window.location.hash) ? window.location.hash : '';
+    /* baseurl is absolute on most instances but empty on some, so the two sides
+     * of the comparison are resolved against the current document rather than
+     * compared as written. */
+    const target = new URL(baseurl + '/events/view2/' + eventId + hash, window.location.href);
+    if (target.origin === window.location.origin && target.pathname === window.location.pathname) {
+        if (hash && window.location.hash !== hash) {
+            window.location.hash = hash;
+        }
+        window.location.reload();
+    } else {
+        window.location.href = target.href;
+    }
+}
+
+/**
+ * Write a figure into a view_layout tab's title.
+ *
+ * The count is rendered server-side once and then goes stale the moment anything
+ * is added or removed, so whatever knows the new figure calls this. The tab must
+ * have been rendered with a `count` key, even a zero one, or there is no span to
+ * write into.
+ *
+ * @param {string} tabId  the tab's id, e.g. 'objects'
+ * @param {number} count
+ */
+function setTabCount(tabId, count) {
+    const el = document.querySelector('.ov-tab-count[data-tab-count="' + tabId + '"]');
+    if (el) { el.textContent = '(' + count + ')'; }
+}
+
+/**
+ * Read it back, so a caller that only knows it removed one row can say so.
+ *
+ * @param {string} tabId
+ * @return {number|null} null when the tab carries no count
+ */
+function getTabCount(tabId) {
+    const el = document.querySelector('.ov-tab-count[data-tab-count="' + tabId + '"]');
+    if (!el) { return null; }
+    const n = parseInt(el.textContent.replace(/[^0-9-]/g, ''), 10);
+    return isNaN(n) ? null : n;
 }
 
 /**
@@ -206,6 +288,149 @@ function reloadEventViewIndexTab() {
         }
     }
     return false;
+}
+
+/**
+ * Bind the delete confirmations (Modals/confirmation_form + Forms/delete_mode)
+ * rendered in `container`: the form posts through fetch() instead of
+ * navigating, since the delete endpoints answer JSON, and the index behind the
+ * modal is refreshed rather than patched row by row — a row also lives in the
+ * card view, and the counts and the Deleted toggle move with it.
+ *
+ * @param {Element} container
+ */
+function initDeleteConfirmations(container) {
+    (container || document).querySelectorAll('script[data-delete-mode]').forEach(function (payloadEl) {
+        const form = payloadEl.closest('form');
+        const cfg = readJsonPayload(payloadEl);
+        if (!form || !cfg || form._deleteModeBound) { return; }
+        form._deleteModeBound = true;
+
+        const box = form.querySelector('[data-delete-permanent]');
+        const permanent = function () { return cfg.hard || (box !== null && box.checked); };
+        const syncNotes = function () {
+            const mode = permanent() ? 'hard' : 'soft';
+            form.querySelectorAll('[data-delete-note]').forEach(function (note) {
+                note.classList.toggle('d-none', note.dataset.deleteNote !== mode);
+            });
+        };
+        if (box) { box.addEventListener('change', syncNotes); }
+        syncNotes();
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submit = form.querySelector('[type="submit"]');
+            if (submit) { submit.disabled = true; }
+
+            const ids = (cfg.ids || []).map(String);
+            const parts = [];
+            if (!cfg.inUrl) {
+                parts.push('data[' + cfg.model + '][ids]=' + encodeURIComponent(JSON.stringify(cfg.ids)));
+            }
+            if (permanent()) { parts.push('data[hard]=1'); }
+
+            let ok = false;
+            let data = {};
+            try {
+                const r = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': getCsrfToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: parts.join('&'),
+                });
+                data = await r.json().catch(function () { return {}; });
+                ok = r.ok;
+            } catch (_e) {
+                data = {};
+            }
+
+            // Only what the server says it deleted counts: a refused request
+            // carries no ids and must not read as a success. The single-row
+            // endpoints answer `saved` alone.
+            let deleted = [];
+            if (ok && Array.isArray(data.ids)) {
+                deleted = data.ids.map(String);
+            } else if (ok && data.saved === true && cfg.inUrl) {
+                deleted = ids;
+            }
+            const msg = cfg.messages || {};
+            if (deleted.length === 0) {
+                showToast(data.errors || data.message || msg.fail, 'danger');
+                if (submit) { submit.disabled = false; }
+                return;
+            }
+
+            // Reloading an index does not recount its tab, so the server said
+            // up front which of these rows that count is made of.
+            if (cfg.countTab) {
+                const counted = (cfg.counted || []).map(String);
+                const left = deleted.filter(function (id) { return counted.indexOf(id) !== -1; }).length;
+                const n = getTabCount(cfg.countTab);
+                if (left > 0 && n !== null) { setTabCount(cfg.countTab, Math.max(0, n - left)); }
+            }
+            if (cfg.model === 'Object') {
+                if (window.objIndexSelection) { window.objIndexSelection.clear(deleted); }
+            } else if (typeof selectedItems !== 'undefined') {
+                deleted.forEach(function (id) { selectedItems.delete(id); });
+                updateMultiSelectToolbar();
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
+            if (modal) { modal.hide(); }
+            showToast(data.success || msg.done, 'success');
+            if (data.saved === false && data.errors) { showToast(data.errors, 'warning'); }
+
+            refreshAfterRowChange(cfg, deleted, permanent());
+        });
+    });
+}
+
+/**
+ * Bring the page behind a delete or restore confirmation up to date.
+ *
+ * The record's own page is reloaded, or left for its parent once the record is
+ * gone for good. Otherwise the index the rows came from is reloaded in place:
+ * an event-view tab through its own API, any other lazy tab through its filter
+ * override (which rebuilds the URL from the filters on screen) — only a visible
+ * one, since a hidden tab can hold an unrelated row under the same id.
+ *
+ * @param {Object} cfg        the Forms/delete_mode payload, or { ownPage }
+ * @param {string[]} ids      ids of the rows that changed
+ * @param {boolean} permanent the records are gone for good
+ */
+function refreshAfterRowChange(cfg, ids, permanent) {
+    if (cfg.ownPage) {
+        if (permanent && cfg.parentUrl) {
+            window.location.href = cfg.parentUrl;
+        } else {
+            window.location.reload();
+        }
+        return;
+    }
+    if (reloadEventViewIndexTab()) {
+        return;
+    }
+    const holder = Array.from(document.querySelectorAll('.ajax-tab-content')).find(function (c) {
+        return c.offsetParent !== null && ids.some(function (id) {
+            return c.querySelector('tr[data-primary-id="' + id + '"]') !== null;
+        });
+    });
+    if (holder) {
+        const over = holder.__indexFilterOverride;
+        if (over && typeof over.buildUrl === 'function' && typeof over.reload === 'function') {
+            over.reload(over.buildUrl());
+            return;
+        }
+        if (holder.dataset.url) {
+            window.reloadAjaxTabIndex(holder, holder.dataset.url);
+            return;
+        }
+    }
+    window.location.reload();
 }
 
 /**
@@ -425,9 +650,17 @@ function renderMainModalContent(html) {
     if (typeof initJsonFields === 'function') {
         initJsonFields(container);
     }
+    if (typeof initDateFields === 'function') {
+        initDateFields(container);
+    }
+    keepTabOnFormReturn(container);
+    if (typeof initObjectForm === 'function') {
+        initObjectForm(container);
+    }
     if (typeof initPgpKeyLookup === 'function') {
         initPgpKeyLookup(container);
     }
+    initDeleteConfirmations(container);
 }
 
 // POST `body` to `url` and render the HTML response into #mainModal, chaining
@@ -507,6 +740,9 @@ function animateIndexView(el) {
     el.classList.remove('idx-view-anim');
     void el.offsetWidth;
     el.classList.add('idx-view-anim');
+    el.addEventListener('animationend', function () {
+        el.classList.remove('idx-view-anim');
+    }, { once: true });
 }
 
 /**
@@ -604,7 +840,7 @@ function updateMultiSelectToolbar() {
     localclusterButton?.classList.toggle('d-none', isHidden);
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
-    sightingButton?.classList.toggle('d-none', isHidden);
+    sightingButton?.classList.remove('d-none');
 
     fetchButton?.classList.toggle('d-none', !allEnabled);
 
@@ -751,6 +987,17 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedItems.set(id, { id, canDelete, publish, enable, require, highlight});
         } else {
             selectedItems.delete(id);
+        }
+
+        // The scaffold draws every row twice (table and card view): keep the
+        // twin box in step, or a selection looks lost after a view switch.
+        if (id) {
+            const scope = checkbox.closest('.index-results') || document;
+            scope.querySelectorAll('.item-checkbox').forEach(twin => {
+                if (twin !== checkbox && twin.dataset.itemId === id) {
+                    twin.checked = checkbox.checked;
+                }
+            });
         }
 
         updateMultiSelectToolbar();
@@ -1010,7 +1257,7 @@ function testConnection(id, target) {
                     var colours = {local: 'green', remote: 'green', status: 'green'};
                     var issue_colour = "red";
 
-                    if (result.mismatch == "hotfix") issue_colour = "orange";
+                    if (result.mismatch == "hotfix" || result.mismatch == "major_compatible") issue_colour = "orange";
 
                     if (result.newer == "local") {
                         colours.remote = issue_colour;
@@ -1021,13 +1268,13 @@ function testConnection(id, target) {
                         } else if (result.mismatch == "major") {
                             compatibility = "Incompatible";
                             compatibility_colour = "red";
-                        } else if (result.mismatch == "minor_compatible") {
+                        } else if (result.mismatch == "minor_compatible" || result.mismatch == "major_compatible") {
                             compatibility_colour = "green";
                         }
                     } else if (result.newer == "remote") {
                         colours.local = issue_colour;
 
-                        if (result.mismatch != "hotfix") {
+                        if (result.mismatch != "hotfix" && result.mismatch != "major_compatible") {
                             compatibility = "Incompatible";
                             compatibility_colour = "red";
                         }
@@ -1038,10 +1285,16 @@ function testConnection(id, target) {
 
                     if (result.mismatch !== false && result.mismatch != "proposal") {
                         if (result.newer == "remote") {
-                            status_message = "Local instance outdated, update!";
+                            if (result.mismatch == "major_compatible") {
+                                status_message = "Local instance on 2.5, moving to 3.0 is recommended.";
+                            } else {
+                                status_message = "Local instance outdated, update!";
+                            }
                         } else if (result.newer == "local") {
                             if (result.mismatch == "minor_compatible") {
                                 status_message = "Remote on 2.4, moving to 2.5 is recommended.";
+                            } else if (result.mismatch == "major_compatible") {
+                                status_message = "Remote on 2.5, moving to 3.0 is recommended.";
                             } else {
                                 status_message = "Remote outdated, notify admin!";
                             }
@@ -1310,7 +1563,7 @@ function openEventTemplateLibraryUpdatePopup() {
 }
 
 async function submitEventTemplatesLibraryUpdate() {
-    const loadingIcons = document.querySelectorAll('.loading');
+    const loadingIcons = document.querySelectorAll('.ov-loading-overlay');
     loadingIcons.forEach(el => el.style.display = 'block');
     try {
         const response = await fetch(`${baseurl}/event_templates/update`, {
@@ -1531,127 +1784,6 @@ function initPgpKeyLookup(container) {
             notice('danger', 'fa-circle-exclamation', button.dataset.pgpErrorMessage);
         });
     });
-}
-
-
-/*******************************
- * Template Element Add
- *******************************/
-function initTemplateElementForm(container) {
-    const form = container.querySelector('#templateElementAddForm');
-    if (!form) return;
-
-    const configDataNode = container.querySelector('#templateElementFormConfig');
-    if (!configDataNode) return;
-
-    let configData = {};
-    try {
-        configData = JSON.parse(configDataNode.textContent);
-    } catch (e) {
-        console.error("Erreur de parsing JSON pour le template element form", e);
-        return;
-    }
-
-    const typeSelectorEl = container.querySelector('#ElementTypeSelector');
-    const categoryEl = container.querySelector('#DynamicCategory');
-    const typeEl = container.querySelector('#DynamicType');
-
-    const typeSelectorTs = typeSelectorEl ? typeSelectorEl.tomselect : null;
-    const categoryTs = categoryEl ? categoryEl.tomselect : null;
-    const typeTs = typeEl ? typeEl.tomselect : null;
-
-    const dynamicFormFields = container.querySelector('#dynamicFormFields');
-    const checkComplex = container.querySelector('#checkComplex');
-
-    function toggleGroups(selectedType) {
-        if (!selectedType) {
-            dynamicFormFields.classList.add('d-none');
-            return;
-        }
-
-        dynamicFormFields.classList.remove('d-none');
-        container.querySelectorAll('.element-group-attr, .element-group-file').forEach(el => el.classList.add('d-none'));
-
-        if (selectedType === 'attribute') {
-            container.querySelectorAll('.element-group-attr').forEach(el => el.classList.remove('d-none'));
-            populateCategoryDropdown('attribute');
-        } else if (selectedType === 'file') {
-            container.querySelectorAll('.element-group-file').forEach(el => el.classList.remove('d-none'));
-            populateCategoryDropdown('file');
-        }
-    }
-
-    function populateCategoryDropdown(mode) {
-        if (!categoryTs) return;
-
-        categoryTs.clear(true);
-        categoryTs.clearOptions();
-        categoryTs.addOption({value: '', text: 'Select Category...'});
-
-        const options = (mode === 'attribute') ? configData.categoriesAttr : configData.categoriesFile;
-
-        Object.keys(options).forEach(key => {
-            categoryTs.addOption({value: key, text: options[key]});
-        });
-        categoryTs.refreshOptions(false);
-
-        if (configData.preSelectedCategory) {
-            categoryTs.setValue(configData.preSelectedCategory, true);
-            if (mode === 'attribute') populateTypeDropdown();
-        }
-    }
-
-    function populateTypeDropdown() {
-        if (!typeTs || !categoryTs) return;
-
-        const category = categoryTs.getValue();
-        typeTs.clear(true);
-        typeTs.clearOptions();
-        typeTs.addOption({value: '', text: 'Select Type...'});
-
-        if (!category) return;
-
-        const isComplex = checkComplex && checkComplex.checked;
-        let typesList = [];
-
-        if (isComplex && configData.typeGroupCategoryMapping[category]) {
-            typesList = configData.typeGroupCategoryMapping[category];
-        } else if (!isComplex && configData.categoryTypesAttr[category]) {
-            typesList = configData.categoryTypesAttr[category];
-        }
-
-        typesList.forEach(val => {
-            typeTs.addOption({value: val, text: val});
-        });
-
-        typeTs.refreshOptions(false);
-
-        if (configData.preSelectedType) {
-            typeTs.setValue(configData.preSelectedType, true);
-        }
-    }
-
-    if (typeSelectorTs) {
-        typeSelectorTs.on('change', toggleGroups);
-    }
-
-    if (categoryTs) {
-        categoryTs.on('change', () => {
-            const elType = typeSelectorTs ? typeSelectorTs.getValue() : null;
-            if (elType === 'attribute') {
-                populateTypeDropdown();
-            }
-        });
-    }
-
-    if (checkComplex) {
-        checkComplex.addEventListener('change', populateTypeDropdown);
-    }
-
-    if (typeSelectorTs) {
-        const initialType = typeSelectorTs.getValue();
-        if (initialType) toggleGroups(initialType);
-    }
 }
 
 
@@ -2806,53 +2938,102 @@ function initSharingGroupForm(container) {
 })();
 
 /*******************************
- * Sighting cells — add-sighting buttons
- * i18n strings are injected once per page via window._sightingI18n
- * (set by the sightings.ctp field partial)
+ * Sightings
+ * The cell actions of Fields/sightings.ctp (add on the attribute, add on every
+ * attribute holding the value, details) and the mass "Sightings" button. A
+ * change is announced as `misp:sighting-change` on the document, which the
+ * event view's Sightings card listens for.
  *******************************/
-(function () {
-    document.addEventListener('click', async function (e) {
-        var btn = e.target.closest('.add-sighting-btn');
-        if (!btn) return;
-        e.preventDefault();
+function postSighting(url, body) {
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': getCsrfToken(),
+        },
+        body: body,
+    }).then(function (r) {
+        return r.json().catch(function () {
+            return { saved: false, errors: r.status + ' ' + r.statusText };
+        });
+    });
+}
 
-        var attrId = btn.dataset.attributeId;
-        var type   = btn.dataset.type;
-        var i18n   = window._sightingI18n || {};
+function notifySightingChange(detail) {
+    document.dispatchEvent(new CustomEvent('misp:sighting-change', { detail: detail || {} }));
+}
 
-        btn.disabled = true;
-        try {
-            var response = await fetch(baseurl + '/sightings/add/' + attrId, {
-                method:  'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type':     'application/x-www-form-urlencoded',
-                    'Accept':           'application/json',
-                    'X-CSRF-Token':     getCsrfToken(),
-                },
-                body: 'data[Sighting][type]=' + encodeURIComponent(type)
-                    + '&data[Sighting][id]='  + encodeURIComponent(attrId),
-            });
+function openSightingDetails(ids, context) {
+    openModal(baseurl + '/sightings/advanced/' + ids + '/' + (context || 'attribute'), 'xl');
+}
 
-            var data = await response.json();
+function openSelectedSightings() {
+    if (typeof selectedItems === 'undefined' || selectedItems.size === 0) return;
+    openSightingDetails(Array.from(selectedItems.keys()).join('|'));
+}
 
-            if (response.ok && !data.errors) {
-                var countEl = document.querySelector(
-                    '#sightings_' + attrId + ' .sighting-' + (type === '0' ? 's' : 'f')
-                );
-                if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
-                showToast(type === '0'
-                    ? (i18n.addedSighting || 'Sighting added')
-                    : (i18n.addedFP       || 'Marked as false positive'),
-                    'success');
-            } else {
-                showToast(i18n.failed    || 'Failed to add sighting', 'danger');
-            }
-        } catch (_e) {
-            showToast(i18n.reqFailed || 'Request failed — please try again', 'danger');
-        } finally {
-            btn.disabled = false;
+(function installSightingActions() {
+    document.addEventListener('click', function (e) {
+        var more = e.target.closest('.sighting-more');
+        if (more) {
+            e.preventDefault();
+            bootstrap.Dropdown.getOrCreateInstance(more, {
+                popperConfig: { strategy: 'fixed' }
+            }).toggle();
+            return;
         }
+
+        var details = e.target.closest('[data-sighting-details]');
+        if (details) {
+            e.preventDefault();
+            var pop = bootstrap.Popover.getInstance(details);
+            if (pop) pop.hide();
+            openSightingDetails(details.dataset.sightingDetails);
+            return;
+        }
+
+        var onValue = e.target.closest('[data-sighting-value]');
+        if (onValue) {
+            e.preventDefault();
+            openModal(baseurl + '/sightings/quickAdd/' + onValue.dataset.sightingValue
+                + '/' + onValue.dataset.type + '/1', 'md');
+            return;
+        }
+
+        var btn = e.target.closest('.sighting-add');
+        if (!btn || btn.disabled) return;
+        e.preventDefault();
+        var attrId = btn.dataset.attributeId;
+        var type = btn.dataset.type;
+        btn.disabled = true;
+        postSighting(baseurl + '/sightings/add/' + attrId,
+            'data[Sighting][type]=' + encodeURIComponent(type))
+            .then(function (data) {
+                if (!data.saved) {
+                    showToast(data.errors || data.message || 'Could not add the sighting.', 'danger');
+                    return;
+                }
+                var countEl = document.querySelector('#sightings_' + attrId
+                    + ' .sighting-' + (type === '0' ? 's' : 'f'));
+                if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                showToast(data.success || 'Sighting added.', 'success');
+                notifySightingChange({ attributeId: attrId, type: type });
+            })
+            .catch(function () {
+                showToast('Request failed, please try again.', 'danger');
+            })
+            .finally(function () {
+                btn.disabled = false;
+            });
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var details = e.target.closest && e.target.closest('.sighting-counts[data-sighting-details]');
+        if (!details) return;
+        e.preventDefault();
+        details.click();
     });
 })();
 
@@ -3668,6 +3849,219 @@ function installJsonSubmitGuard() {
     }, true);
 }
 
+/**
+ * The refusal of an empty `required` field, for a form marked
+ * `data-required-guard`. Forms are `novalidate`, so the browser says nothing:
+ * this flags the field with `.is-invalid` and one `.ov-field-error` line
+ * (worded by `data-required-msg`) that clears as the user types. Installed
+ * once on the document in the capture phase, like installJsonSubmitGuard,
+ * whose boxes it leaves alone.
+ */
+var requiredFieldGuardInstalled = false;
+function installRequiredFieldGuard() {
+    if (requiredFieldGuardInstalled) { return; }
+    requiredFieldGuardInstalled = true;
+
+    function anchorOf(field) {
+        return field.closest('.input-group')
+            || (field.tomselect && field.tomselect.wrapper)
+            || field;
+    }
+
+    function errorOf(field) {
+        var next = anchorOf(field).nextElementSibling;
+        return next && next.classList.contains('ov-field-error') ? next : null;
+    }
+
+    function clear(field) {
+        field.classList.remove('is-invalid');
+        anchorOf(field).classList.remove('is-invalid');
+        var msg = errorOf(field);
+        if (msg) { msg.remove(); }
+    }
+
+    function flag(field) {
+        field.classList.add('is-invalid');
+        if (field.tomselect) { field.tomselect.wrapper.classList.add('is-invalid'); }
+        if (errorOf(field)) { return; }
+        var msg = document.createElement('div');
+        msg.className = 'ov-field-error';
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-circle-exclamation';
+        var text = document.createElement('span');
+        text.textContent = field.dataset.requiredMsg || 'This field is required.';
+        msg.appendChild(icon);
+        msg.appendChild(text);
+        var anchor = anchorOf(field);
+        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
+
+        function onEdit() {
+            if (!String(field.value).trim()) { return; }
+            clear(field);
+            field.removeEventListener('input', onEdit);
+            field.removeEventListener('change', onEdit);
+        }
+        field.addEventListener('input', onEdit);
+        field.addEventListener('change', onEdit);
+    }
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.matches || !form.matches('[data-required-guard]')) {
+            return;
+        }
+        var first = null;
+        form.querySelectorAll('[required]').forEach(function (field) {
+            if (field.disabled || field.closest('[data-json-field], [data-date-field]')) { return; }
+            if (field.type === 'checkbox' || field.type === 'radio') { return; }
+            if (String(field.value).trim()) {
+                clear(field);
+                return;
+            }
+            flag(field);
+            if (!first) { first = field; }
+        });
+        if (first) {
+            e.preventDefault();
+            (first.tomselect || first).focus();
+        }
+    }, true);
+}
+installRequiredFieldGuard();
+
+/*******************************
+ * installLengthGuards
+ * A form field carries its column's length as `maxlength` (MispFormHelper), and
+ * the browser cuts a paste at that length without a word — so say it did. A
+ * free-text box outside a POST form is a search or a filter: its text ends up
+ * in the URL, where nginx answers 414 long before any column is reached, so it
+ * gets a cap of its own the first time it is focused.
+ *******************************/
+var SEARCH_MAX_LENGTH = 512;
+var lengthGuardsInstalled = false;
+function installLengthGuards() {
+    if (lengthGuardsInstalled) { return; }
+    lengthGuardsInstalled = true;
+
+    function isTextField(el) {
+        if (el instanceof HTMLTextAreaElement) { return true; }
+        return el instanceof HTMLInputElement
+            && ['text', 'search', 'email', 'url', 'tel', ''].indexOf(el.type) !== -1;
+    }
+
+    document.addEventListener('focusin', function (e) {
+        var el = e.target;
+        if (!(el instanceof HTMLInputElement) || !isTextField(el)) { return; }
+        if (el.hasAttribute('maxlength')) { return; }
+        var form = el.form || el.closest('form');
+        if (form && String(form.getAttribute('method') || '').toLowerCase() === 'post') { return; }
+        el.maxLength = SEARCH_MAX_LENGTH;
+    }, true);
+
+    document.addEventListener('paste', function (e) {
+        var el = e.target;
+        if (!isTextField(el) || !(el.maxLength > 0) || !e.clipboardData) { return; }
+        var pasted = e.clipboardData.getData('text').length;
+        var kept = el.value.length - ((el.selectionEnd || 0) - (el.selectionStart || 0));
+        if (kept + pasted <= el.maxLength) { return; }
+
+        var anchor = el.closest('.input-group') || el;
+        var next = anchor.nextElementSibling;
+        if (next && next.classList.contains('ov-length-notice')) { next.remove(); }
+        var msg = document.createElement('div');
+        msg.className = 'ov-field-error ov-length-notice';
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-scissors';
+        var text = document.createElement('span');
+        text.textContent = 'The pasted text was cut to ' + el.maxLength + ' characters, the most this field can hold.';
+        msg.appendChild(icon);
+        msg.appendChild(text);
+        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
+
+        // The paste fires an input event of its own; only a later edit clears.
+        setTimeout(function () {
+            el.addEventListener('input', function () { msg.remove(); }, { once: true });
+        }, 0);
+    }, true);
+}
+installLengthGuards();
+
+/*******************************
+ * installOnDemandActions
+ * One delegated listener for every IndexTable/Fields/on_demand cell: GET the
+ * cell's url, or POST its text box as `value`, and list the JSON answer's
+ * keys under the button — or the `errors` of a refused one.
+ ******************************/
+var onDemandActionsInstalled = false;
+function installOnDemandActions() {
+    if (onDemandActionsInstalled) { return; }
+    onDemandActionsInstalled = true;
+
+    function line(key, value, className) {
+        var row = document.createElement('div');
+        if (className) { row.className = className; }
+        if (key !== null) {
+            var label = document.createElement('span');
+            label.className = 'fw-semibold';
+            label.textContent = key + ': ';
+            row.appendChild(label);
+        }
+        row.appendChild(document.createTextNode(
+            value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value)
+        ));
+        return row;
+    }
+
+    function run(cell) {
+        var result = cell.querySelector('[data-on-demand-result]');
+        var input = cell.querySelector('[data-on-demand-value]');
+        var options = {
+            credentials: 'same-origin',
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'}
+        };
+        if (input) {
+            options.method = 'POST';
+            options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            options.body = new URLSearchParams({value: input.value.trim()}).toString();
+        }
+        result.replaceChildren(line(null, cell.dataset.running || '…', 'text-muted'));
+        fetch(cell.dataset.url, options)
+            .then(function (r) {
+                return r.json().catch(function () { return null; }).then(function (data) {
+                    return {ok: r.ok, status: r.status, data: data};
+                });
+            })
+            .then(function (answer) {
+                var data = answer.data;
+                if (!answer.ok || !data || typeof data !== 'object') {
+                    var reason = data && (data.errors || data.message || data.name);
+                    result.replaceChildren(
+                        line(null, 'Error ' + answer.status, 'text-danger fw-semibold'),
+                        line(null, reason || '', 'text-danger')
+                    );
+                    return;
+                }
+                result.replaceChildren.apply(result, Object.keys(data).map(function (key) {
+                    return line(key, data[key]);
+                }));
+            })
+            .catch(function (err) {
+                result.replaceChildren(line(null, String(err), 'text-danger'));
+            });
+    }
+
+    document.addEventListener('click', function (e) {
+        var button = e.target.closest('[data-on-demand-run]');
+        if (button) { run(button.closest('[data-on-demand]')); }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !e.target.matches('[data-on-demand-value]')) { return; }
+        e.preventDefault();
+        run(e.target.closest('[data-on-demand]'));
+    });
+}
+installOnDemandActions();
+
 /*******************************
  * initJsonFields
  * Wires every JSON box inside `container` — the markup of
@@ -4021,17 +4415,729 @@ document.addEventListener('DOMContentLoaded', function () {
     initJsonFields(document);
 });
 
-function initDistributionSelect(elId, onChange) {
-    var el = document.getElementById(elId);
-    if (!el || el.tomselect) { return; }
-    new TomSelect(el, {
+/*******************************
+ * initDateFields
+ * Binds every date picker inside `container` — the markup of
+ * Elements/genericElementsBS5/Forms/date_field.ctp. The user types or picks
+ * DD/MM/YYYY [HH:MM:SS]; the hidden text input posts ISO. All in UTC.
+ *
+ * Each field exposes `wrap.ovDateField` (also on the posted input):
+ * get(), set(iso), clear(), open(), close(), validate(show), focus().
+ * The posted input fires `input` + `change` whenever its value moves, which is
+ * what a host script listens to.
+ *
+ * Idempotent, like initJsonFields.
+ * @param {Element|Document} [container]  defaults to the whole document
+ *******************************/
+var dateSubmitGuardInstalled = false;
+
+function initDateFields(container) {
+    var scope = container || document;
+    installDateSubmitGuard();
+
+    scope.querySelectorAll('[data-date-field]').forEach(function (wrap) {
+        if (wrap.dataset.dateBound) { return; }
+        wrap.dataset.dateBound = '1';
+        bindDateField(wrap);
+    });
+}
+window.initDateFields = initDateFields;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initDateFields(document);
+});
+
+/* One capture-phase listener for every form, like the JSON guard: it decides
+ * before a form's own handler, which can read event.defaultPrevented. */
+function installDateSubmitGuard() {
+    if (dateSubmitGuardInstalled) { return; }
+    dateSubmitGuardInstalled = true;
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.querySelectorAll) { return; }
+        var first = null;
+        form.querySelectorAll('[data-date-field]').forEach(function (wrap) {
+            var api = wrap.ovDateField;
+            if (api && api.validate(true) && !first) { first = api; }
+        });
+        if (first) {
+            e.preventDefault();
+            first.focus();
+        }
+    }, true);
+}
+
+var ovDate = (function () {
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function num(s) { return s === undefined || s === '' ? 0 : parseInt(s, 10); }
+
+    function fromTime(t) {
+        var d = new Date(t);
+        return {
+            y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(),
+            h: d.getUTCHours(), i: d.getUTCMinutes(), s: d.getUTCSeconds()
+        };
+    }
+
+    function toTime(p) {
+        return Date.UTC(p.y, p.m - 1, p.d, p.h, p.i, p.s);
+    }
+
+    function dayOf(p) {
+        return Date.UTC(p.y, p.m - 1, p.d);
+    }
+
+    /* Date() rolls 31/02 over into March, so compare the parts back: that is
+     * what rejects a day the month does not have. */
+    function make(y, m, d, h, i, s) {
+        if (y < 1000 || h > 23 || i > 59 || s > 59) { return null; }
+        var p = fromTime(Date.UTC(y, m - 1, d, h, i, s));
+        return (p.y === y && p.m === m && p.d === d) ? p : null;
+    }
+
+    /* DD/MM/YYYY [HH:MM[:SS]], or ISO as MISP stores it — offset and
+     * fractional seconds included, so pasting a value out of MISP works. */
+    function parse(text) {
+        var v = String(text || '').trim();
+        if (!v) { return null; }
+        var r = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})(?:[\sT,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (r) {
+            return make(num(r[3]), num(r[2]), num(r[1]), num(r[4]), num(r[5]), num(r[6]));
+        }
+        r = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[\sT](\d{1,2}):(\d{2})(?::(\d{2}))?(?:[.,]\d+)?\s*(Z|[+-]\d{2}:?\d{2})?)?$/i);
+        if (!r) { return null; }
+        var p = make(num(r[1]), num(r[2]), num(r[3]), num(r[4]), num(r[5]), num(r[6]));
+        if (p && r[7] && r[7].toUpperCase() !== 'Z') {
+            var digits = r[7].slice(1).replace(':', '');
+            var minutes = num(digits.slice(0, 2)) * 60 + num(digits.slice(2));
+            p = fromTime(toTime(p) - (r[7][0] === '-' ? -1 : 1) * minutes * 60000);
+        }
+        return p;
+    }
+
+    function display(p, withTime) {
+        var out = pad(p.d) + '/' + pad(p.m) + '/' + p.y;
+        return withTime ? out + ' ' + pad(p.h) + ':' + pad(p.i) + ':' + pad(p.s) : out;
+    }
+
+    function iso(p, withTime) {
+        var out = p.y + '-' + pad(p.m) + '-' + pad(p.d);
+        return withTime ? out + ' ' + pad(p.h) + ':' + pad(p.i) + ':' + pad(p.s) : out;
+    }
+
+    return {
+        pad: pad, parse: parse, display: display, iso: iso,
+        fromTime: fromTime, toTime: toTime, dayOf: dayOf
+    };
+})();
+
+function bindDateField(wrap) {
+    var input = wrap.querySelector('[data-date-display]');
+    var posted = wrap.querySelector('[data-date-value]');
+    var box = wrap.querySelector('[data-date-box]');
+    if (!input || !posted || !box) { return; }
+
+    var toggleBtn = wrap.querySelector('[data-date-toggle]');
+    var clearBtn = wrap.querySelector('[data-date-clear]');
+    var withTime = wrap.dataset.dateMode === 'datetime';
+    var required = wrap.dataset.dateRequired === '1';
+    var labels = {};
+    try { labels = JSON.parse(wrap.dataset.dateLabels || '{}'); } catch (e) { /* keep defaults */ }
+
+    var locale = document.documentElement.lang || navigator.language || 'en';
+    function fmt(options) {
+        try {
+            return new Intl.DateTimeFormat(locale, Object.assign({ timeZone: 'UTC' }, options));
+        } catch (e) {
+            return new Intl.DateTimeFormat('en', Object.assign({ timeZone: 'UTC' }, options));
+        }
+    }
+    var monthLong = fmt({ month: 'long', year: 'numeric' });
+    var monthShort = fmt({ month: 'short' });
+    var dayLong = fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    var weekdayShort = fmt({ weekday: 'short' });
+
+    /* What came from the server: left exactly as it is unless the user picks
+     * something else, so an untouched edit never rewrites a stored value. */
+    var initialRaw = posted.value;
+    var initial = ovDate.parse(initialRaw);
+    var selected = initial;
+    var today = ovDate.fromTime(Date.now());
+    var view = { y: (selected || today).y, m: (selected || today).m };
+    var focusDay = ovDate.dayOf(selected || today);
+    var level = 'days';
+    var pop = null;
+    var parts = {};
+
+    function precise(p) {
+        return withTime ? ovDate.toTime(p) : ovDate.dayOf(p);
+    }
+
+    function referenced(selector) {
+        if (!selector) { return null; }
+        var node = (wrap.closest('form') || document).querySelector(selector)
+            || document.querySelector(selector);
+        return node ? ovDate.parse(node.value) : null;
+    }
+
+    function bounds() {
+        var min = ovDate.parse(wrap.dataset.dateMin);
+        var max = ovDate.parse(wrap.dataset.dateMax);
+        var after = referenced(wrap.dataset.dateAfter);
+        var before = referenced(wrap.dataset.dateBefore);
+        return {
+            minDay: Math.max(min ? ovDate.dayOf(min) : -Infinity, after ? ovDate.dayOf(after) : -Infinity),
+            maxDay: Math.min(max ? ovDate.dayOf(max) : Infinity, before ? ovDate.dayOf(before) : Infinity),
+            after: after,
+            before: before
+        };
+    }
+
+    function inRange(p) {
+        var b = bounds();
+        var day = ovDate.dayOf(p);
+        if (day < b.minDay || day > b.maxDay) { return false; }
+        if (b.after && precise(p) < precise(b.after)) { return false; }
+        if (b.before && precise(p) > precise(b.before)) { return false; }
+        return true;
+    }
+
+    /* ── Value ───────────────────────────────────────────────── */
+    function write(p) {
+        var value = '';
+        if (p) {
+            value = (initial && precise(initial) === precise(p))
+                ? initialRaw
+                : ovDate.iso(p, withTime);
+        }
+        if (posted.value === value) { return; }
+        posted.value = value;
+        posted.dispatchEvent(new Event('input', { bubbles: true }));
+        posted.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function refreshClear() {
+        if (clearBtn) { clearBtn.classList.toggle('d-none', !input.value.trim()); }
+    }
+
+    function select(p, keepOpen) {
+        selected = p;
+        input.value = p ? ovDate.display(p, withTime) : '';
+        if (p) {
+            view = { y: p.y, m: p.m };
+            focusDay = ovDate.dayOf(p);
+        }
+        write(p);
+        refreshClear();
+        validate(!!p || required === false);
+        if (pop && !pop.classList.contains('d-none')) {
+            if (keepOpen) { render(); } else { close(true); }
+        }
+    }
+
+    /* ── Invalid state ───────────────────────────────────────── */
+    function markInvalid(message) {
+        box.classList.add('is-invalid');
+        var msg = wrap.querySelector(':scope > .ov-field-error');
+        if (!msg) {
+            msg = document.createElement('div');
+            msg.className = 'ov-field-error';
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-circle-exclamation';
+            msg.appendChild(icon);
+            msg.appendChild(document.createElement('span'));
+            wrap.appendChild(msg);
+        }
+        msg.querySelector('span').textContent = message;
+    }
+
+    function markValid() {
+        box.classList.remove('is-invalid');
+        var msg = wrap.querySelector(':scope > .ov-field-error');
+        if (msg) { msg.remove(); }
+    }
+
+    /* Reads the text, writes what it means, and answers with the complaint (or
+     * null). `show` decides whether the complaint is also drawn. */
+    function validate(show) {
+        var text = input.value.trim();
+        var message = null;
+        if (!text) {
+            selected = null;
+            write(null);
+            if (required) { message = labels.required || 'This field is required.'; }
+        } else {
+            var p = ovDate.parse(text);
+            if (!p) {
+                message = labels.invalid || 'Enter a date as DD/MM/YYYY.';
+            } else {
+                selected = p;
+                write(p);
+                if (!inRange(p)) { message = labels.range || 'This date is outside the allowed range.'; }
+            }
+        }
+        if (!message) {
+            markValid();
+        } else if (show) {
+            markInvalid(message);
+        }
+        return message;
+    }
+
+    /* ── Popover ─────────────────────────────────────────────── */
+    function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) { node.className = className; }
+        if (text !== undefined) { node.textContent = text; }
+        return node;
+    }
+
+    function iconButton(className, icon, label) {
+        var b = el('button', className);
+        b.type = 'button';
+        b.title = label;
+        b.setAttribute('aria-label', label);
+        b.appendChild(el('i', icon));
+        return b;
+    }
+
+    function build() {
+        pop = el('div', 'ov-date-pop d-none');
+        pop.setAttribute('role', 'dialog');
+
+        var head = el('div', 'ov-date-head');
+        var prev = iconButton('ov-date-nav', 'fas fa-chevron-left', labels.prev || 'Previous');
+        var title = el('button', 'ov-date-title');
+        title.type = 'button';
+        title.dataset.dateTitle = '1';
+        var next = iconButton('ov-date-nav', 'fas fa-chevron-right', labels.next || 'Next');
+        prev.addEventListener('click', function () { step(-1); });
+        next.addEventListener('click', function () { step(1); });
+        title.addEventListener('click', function () {
+            level = level === 'days' ? 'months' : 'years';
+            render();
+        });
+        head.appendChild(prev);
+        head.appendChild(title);
+        head.appendChild(next);
+        pop.appendChild(head);
+
+        var body = el('div', 'ov-date-body');
+        body.dataset.dateBody = '1';
+        body.addEventListener('keydown', onGridKey);
+        pop.appendChild(body);
+
+        if (withTime) {
+            var time = el('div', 'ov-date-time');
+            time.appendChild(el('span', 'ov-date-time-label', labels.time || 'Time (UTC)'));
+            var fields = el('div', 'ov-date-time-fields');
+            [['h', 23], ['i', 59], ['s', 59]].forEach(function (spec, index) {
+                if (index) { fields.appendChild(el('span', 'ov-date-time-sep', ':')); }
+                var part = el('input', 'ov-date-time-part');
+                part.type = 'text';
+                part.inputMode = 'numeric';
+                part.maxLength = 2;
+                part.autocomplete = 'off';
+                part.dataset.part = spec[0];
+                part.dataset.max = spec[1];
+                part.addEventListener('input', onTimeInput);
+                part.addEventListener('keydown', onTimeKey);
+                part.addEventListener('blur', function () { part.value = ovDate.pad(num(part.value)); });
+                parts[spec[0]] = part;
+                fields.appendChild(part);
+            });
+            time.appendChild(fields);
+            pop.appendChild(time);
+        }
+
+        var foot = el('div', 'ov-date-foot');
+        var todayBtn = el('button', 'ov-date-link', labels.today || 'Today');
+        todayBtn.type = 'button';
+        todayBtn.addEventListener('click', function () {
+            select(ovDate.fromTime(withTime ? Math.floor(Date.now() / 1000) * 1000 : Date.now()), withTime);
+        });
+        foot.appendChild(todayBtn);
+        foot.appendChild(el('span', 'flex-grow-1'));
+        if (clearBtn) {
+            var clear = el('button', 'ov-date-link', labels.clear || 'Clear');
+            clear.type = 'button';
+            clear.addEventListener('click', function () { select(null); input.focus(); });
+            foot.appendChild(clear);
+        }
+        if (withTime) {
+            var done = el('button', 'ov-date-done', labels.done || 'Done');
+            done.type = 'button';
+            done.addEventListener('click', function () { close(true); });
+            foot.appendChild(done);
+        }
+        pop.appendChild(foot);
+
+        /* Keep focus where it is when a button is pressed, so a click inside
+           the popover never reads as leaving the field. */
+        pop.addEventListener('mousedown', function (e) {
+            if (!e.target.closest('input')) { e.preventDefault(); }
+        });
+        wrap.appendChild(pop);
+    }
+
+    function num(v) { var n = parseInt(v, 10); return isNaN(n) ? 0 : n; }
+
+    function currentTime() {
+        return selected || { h: 0, i: 0, s: 0 };
+    }
+
+    function onTimeInput() {
+        var base = selected || ovDate.fromTime(ovDate.dayOf(today));
+        var p = Object.assign({}, base, {
+            h: Math.min(num(parts.h.value), 23),
+            i: Math.min(num(parts.i.value), 59),
+            s: Math.min(num(parts.s.value), 59)
+        });
+        selected = p;
+        input.value = ovDate.display(p, true);
+        write(p);
+        refreshClear();
+        validate(true);
+        if (level === 'days') { renderGrid(); }
+    }
+
+    function onTimeKey(e) {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') { return; }
+        e.preventDefault();
+        var part = e.currentTarget;
+        var max = num(part.dataset.max);
+        var v = num(part.value) + (e.key === 'ArrowUp' ? 1 : -1);
+        part.value = ovDate.pad(v > max ? 0 : (v < 0 ? max : v));
+        onTimeInput();
+    }
+
+    function step(dir) {
+        if (level === 'days') {
+            var m = view.m + dir;
+            view = { y: view.y + Math.floor((m - 1) / 12), m: ((m - 1) % 12 + 12) % 12 + 1 };
+        } else {
+            view = { y: view.y + dir * (level === 'years' ? 12 : 1), m: view.m };
+        }
+        render();
+    }
+
+    function cell(className, text, onPick) {
+        var b = el('button', className, text);
+        b.type = 'button';
+        b.tabIndex = -1;
+        b.addEventListener('click', onPick);
+        return b;
+    }
+
+    function renderGrid() {
+        var body = pop.querySelector('[data-date-body]');
+        var title = pop.querySelector('[data-date-title]');
+        body.textContent = '';
+        body.className = 'ov-date-body is-' + level;
+        var b = bounds();
+        var todayDay = ovDate.dayOf(today);
+        var selectedDay = selected ? ovDate.dayOf(selected) : null;
+
+        if (level === 'days') {
+            title.textContent = monthLong.format(new Date(Date.UTC(view.y, view.m - 1, 1)));
+            /* 1 Jan 2024 was a Monday. */
+            for (var w = 0; w < 7; w++) {
+                body.appendChild(el('span', 'ov-date-weekday',
+                    weekdayShort.format(new Date(Date.UTC(2024, 0, 1 + w)))));
+            }
+            var first = new Date(Date.UTC(view.y, view.m - 1, 1));
+            var start = ovDate.dayOf({ y: view.y, m: view.m, d: 1 })
+                - ((first.getUTCDay() + 6) % 7) * 86400000;
+            for (var k = 0; k < 42; k++) {
+                var day = start + k * 86400000;
+                var p = ovDate.fromTime(day);
+                var c = cell('ov-date-day', String(p.d), pickDay.bind(null, day));
+                c.dataset.day = day;
+                c.setAttribute('aria-label', dayLong.format(new Date(day)));
+                if (p.m !== view.m) { c.classList.add('is-other'); }
+                if (day === todayDay) { c.classList.add('is-today'); c.setAttribute('aria-current', 'date'); }
+                if (day === selectedDay) { c.classList.add('is-selected'); c.setAttribute('aria-pressed', 'true'); }
+                if (day < b.minDay || day > b.maxDay) { c.disabled = true; }
+                if (day === focusDay) { c.tabIndex = 0; }
+                body.appendChild(c);
+            }
+            if (!body.querySelector('[tabindex="0"]')) {
+                var fallback = body.querySelector('.ov-date-day:not(.is-other)');
+                if (fallback) { fallback.tabIndex = 0; }
+            }
+        } else if (level === 'months') {
+            title.textContent = String(view.y);
+            for (var m = 1; m <= 12; m++) {
+                var mc = cell('ov-date-cell', monthShort.format(new Date(Date.UTC(2024, m - 1, 1))),
+                    pickMonth.bind(null, m));
+                if (selected && selected.y === view.y && selected.m === m) { mc.classList.add('is-selected'); }
+                if (today.y === view.y && today.m === m) { mc.classList.add('is-today'); }
+                if (m === view.m) { mc.tabIndex = 0; }
+                body.appendChild(mc);
+            }
+        } else {
+            var from = Math.floor(view.y / 12) * 12;
+            title.textContent = from + ' – ' + (from + 11);
+            for (var y = from; y < from + 12; y++) {
+                var yc = cell('ov-date-cell', String(y), pickYear.bind(null, y));
+                if (selected && selected.y === y) { yc.classList.add('is-selected'); }
+                if (today.y === y) { yc.classList.add('is-today'); }
+                if (y === view.y) { yc.tabIndex = 0; }
+                body.appendChild(yc);
+            }
+        }
+    }
+
+    function render() {
+        if (!pop) { return; }
+        renderGrid();
+        if (withTime) {
+            var t = currentTime();
+            ['h', 'i', 's'].forEach(function (k) {
+                if (document.activeElement !== parts[k]) { parts[k].value = ovDate.pad(t[k]); }
+            });
+        }
+        place();
+    }
+
+    function pickDay(day) {
+        var p = ovDate.fromTime(day);
+        var t = currentTime();
+        select(Object.assign(p, { h: t.h, i: t.i, s: t.s }), withTime);
+        if (!withTime) { input.focus(); }
+    }
+
+    function pickMonth(m) {
+        view = { y: view.y, m: m };
+        level = 'days';
+        render();
+        focusCell();
+    }
+
+    function pickYear(y) {
+        view = { y: y, m: view.m };
+        level = 'months';
+        render();
+        focusCell();
+    }
+
+    function focusCell() {
+        var target = pop.querySelector('[data-date-body] [tabindex="0"]');
+        if (target) { target.focus(); }
+    }
+
+    /* Arrows walk the grid (a day grid crosses into the next month), PageUp/
+     * PageDown turn the page, Home/End go to the ends of the week. */
+    function onGridKey(e) {
+        var key = e.key;
+        if (level !== 'days') {
+            var cells = Array.prototype.slice.call(pop.querySelectorAll('[data-date-body] button'));
+            var at = cells.indexOf(document.activeElement);
+            var move = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[key];
+            if (move === undefined || at < 0) { return; }
+            e.preventDefault();
+            var to = cells[Math.max(0, Math.min(cells.length - 1, at + move))];
+            cells.forEach(function (c) { c.tabIndex = -1; });
+            to.tabIndex = 0;
+            to.focus();
+            return;
+        }
+        var d = ovDate.fromTime(focusDay);
+        var next = null;
+        var DAY = 86400000;
+        if (key === 'ArrowLeft') { next = focusDay - DAY; }
+        else if (key === 'ArrowRight') { next = focusDay + DAY; }
+        else if (key === 'ArrowUp') { next = focusDay - 7 * DAY; }
+        else if (key === 'ArrowDown') { next = focusDay + 7 * DAY; }
+        else if (key === 'Home') { next = focusDay - ((new Date(focusDay).getUTCDay() + 6) % 7) * DAY; }
+        else if (key === 'End') { next = focusDay + (6 - (new Date(focusDay).getUTCDay() + 6) % 7) * DAY; }
+        else if (key === 'PageUp' || key === 'PageDown') {
+            var shift = (key === 'PageUp' ? -1 : 1) * (e.shiftKey ? 12 : 1);
+            var m = d.m - 1 + shift;
+            var y = d.y + Math.floor(m / 12);
+            m = (m % 12 + 12) % 12;
+            var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+            next = Date.UTC(y, m, Math.min(d.d, last));
+        }
+        if (next === null) { return; }
+        e.preventDefault();
+        focusDay = next;
+        var p = ovDate.fromTime(next);
+        view = { y: p.y, m: p.m };
+        render();
+        focusCell();
+    }
+
+    function place() {
+        if (!pop || pop.classList.contains('d-none')) { return; }
+        var r = box.getBoundingClientRect();
+        var w = pop.offsetWidth;
+        var h = pop.offsetHeight;
+        var gap = 6;
+        var top = r.bottom + gap;
+        if (top + h > window.innerHeight - 8 && r.top - gap - h > 8) {
+            top = r.top - gap - h;
+        }
+        var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+        pop.style.top = top + 'px';
+        pop.style.left = left + 'px';
+        /* A transformed ancestor becomes the containing block of a fixed
+           element: measure where it landed and correct by the difference. */
+        var got = pop.getBoundingClientRect();
+        if (Math.abs(got.top - top) > 0.5 || Math.abs(got.left - left) > 0.5) {
+            pop.style.top = (2 * top - got.top) + 'px';
+            pop.style.left = (2 * left - got.left) + 'px';
+        }
+    }
+
+    function onOutside(e) {
+        if (!wrap.contains(e.target)) { close(false); }
+    }
+
+    function open(focusGrid) {
+        if (!pop) { build(); }
+        if (!pop.classList.contains('d-none')) {
+            if (focusGrid) { focusCell(); }
+            return;
+        }
+        today = ovDate.fromTime(Date.now());
+        var anchor = selected || today;
+        view = { y: anchor.y, m: anchor.m };
+        focusDay = ovDate.dayOf(anchor);
+        level = 'days';
+        pop.classList.remove('d-none');
+        wrap.classList.add('is-open');
+        input.setAttribute('aria-expanded', 'true');
+        render();
+        document.addEventListener('mousedown', onOutside, true);
+        window.addEventListener('resize', place);
+        document.addEventListener('scroll', place, true);
+        if (focusGrid) { focusCell(); }
+    }
+
+    function close(refocus) {
+        if (!pop || pop.classList.contains('d-none')) { return; }
+        pop.classList.add('d-none');
+        wrap.classList.remove('is-open');
+        input.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('mousedown', onOutside, true);
+        window.removeEventListener('resize', place);
+        document.removeEventListener('scroll', place, true);
+        if (refocus) { input.focus(); }
+    }
+
+    function isOpen() {
+        return !!pop && !pop.classList.contains('d-none');
+    }
+
+    /* Normalise on the way out: 3/9/2026 leaves as 03/09/2026, and only here
+     * does a half-typed date get called wrong. */
+    function commit() {
+        var message = validate(true);
+        if (!message && selected) { input.value = ovDate.display(selected, withTime); }
+        refreshClear();
+    }
+
+    /* ── Wiring ──────────────────────────────────────────────── */
+    input.addEventListener('input', function () {
+        var p = ovDate.parse(input.value);
+        refreshClear();
+        if (p) {
+            validate(false);
+            view = { y: p.y, m: p.m };
+            focusDay = ovDate.dayOf(p);
+            if (isOpen()) { render(); }
+        } else if (!input.value.trim()) {
+            validate(false);
+        }
+    });
+
+    input.addEventListener('click', function () { open(false); });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' && (e.altKey || !isOpen())) {
+            e.preventDefault();
+            open(true);
+        } else if (e.key === 'ArrowDown' && isOpen()) {
+            e.preventDefault();
+            focusCell();
+        } else if (e.key === 'Enter' && isOpen()) {
+            e.preventDefault();
+            commit();
+            close(false);
+        }
+    });
+
+    /* Escape closes the popover, not the modal around it. */
+    wrap.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isOpen()) {
+            e.preventDefault();
+            e.stopPropagation();
+            close(true);
+        }
+    });
+
+    wrap.addEventListener('focusout', function (e) {
+        if (e.relatedTarget && wrap.contains(e.relatedTarget)) { return; }
+        if (e.target === input) { commit(); }
+        if (e.relatedTarget) { close(false); }
+    });
+
+    [toggleBtn, clearBtn].forEach(function (b) {
+        if (b) { b.addEventListener('mousedown', function (e) { e.preventDefault(); }); }
+    });
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+            if (isOpen()) { close(true); } else { input.focus(); open(true); }
+        });
+    }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            select(null);
+            input.focus();
+        });
+    }
+
+    /* A range bound moved: say at once if this value no longer fits. */
+    [wrap.dataset.dateAfter, wrap.dataset.dateBefore].forEach(function (selector) {
+        if (!selector) { return; }
+        var ref = (wrap.closest('form') || document).querySelector(selector);
+        if (!ref) { return; }
+        ref.addEventListener('change', function () {
+            if (input.value.trim()) { validate(true); }
+            if (isOpen()) { render(); }
+        });
+    });
+
+    if (selected) { input.value = ovDate.display(selected, withTime); }
+    else if (initialRaw) { input.value = initialRaw; }
+    refreshClear();
+
+    var api = {
+        get: function () { return posted.value; },
+        set: function (value) { select(ovDate.parse(value)); },
+        clear: function () { select(null); },
+        open: function () { open(false); },
+        close: function () { close(false); },
+        validate: function (show) { return validate(show !== false); },
+        focus: function () { input.focus(); }
+    };
+    wrap.ovDateField = api;
+    posted.ovDateField = api;
+}
+
+function initDistributionSelect(elOrId, onChange, settings) {
+    var el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+    if (!el || el.tomselect || typeof TomSelect === 'undefined') { return null; }
+    return new TomSelect(el, Object.assign({
         create:   false,
         onChange: onChange || null,
         render: {
             option: renderDistOption,
             item:   renderDistSelected
         }
-    });
+    }, settings || {}));
 }
 
 function formTypeChanged(idPrefix) {
@@ -4289,8 +5395,11 @@ function initAttributeForm(currentDist, isEdit) {
         while (typeEl.options.length) { typeEl.remove(0); }
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
-        typeEl.value    = nextVal;
-        typeEl.disabled = false;
+        typeEl.value = nextVal;
+        /* An attribute inside an object has its type fixed by the template, so
+         * refilling the list must not hand it back. */
+        var locked = typeEl.dataset.locked === '1';
+        typeEl.disabled = locked;
 
         if (typeEl.tomselect) {
             var ts = typeEl.tomselect;
@@ -4300,6 +5409,7 @@ function initAttributeForm(currentDist, isEdit) {
             ts.addOptions(allowed.map(function (t) { return { value: t, text: t }; }));
             ts.setValue(nextVal, true);
             ts.refreshItems();
+            if (locked) { ts.disable(); }
         }
 
         formTypeChanged('Attribute');
@@ -4336,19 +5446,6 @@ function initAttributeForm(currentDist, isEdit) {
                 formTypeChanged('Attribute');
                 checkNoticeList('attribute');
             }
-        });
-    }
-
-    /* datetime-local pickers → hidden YYYY-MM-DD HH:MM:SS fields */
-    function setupTemporalInputs() {
-        [['attr-first-seen-picker', 'AttributeFirstSeen'],
-         ['attr-last-seen-picker',  'AttributeLastSeen']].forEach(function (pair) {
-            var picker = document.getElementById(pair[0]);
-            var hidden = document.getElementById(pair[1]);
-            if (!picker || !hidden) { return; }
-            picker.addEventListener('change', function () {
-                hidden.value = picker.value ? picker.value.replace('T', ' ') : '';
-            });
         });
     }
 
@@ -4451,7 +5548,6 @@ function initAttributeForm(currentDist, isEdit) {
     initTypeSelect();
     initDistributionSelect('AttributeDistribution', function (val) { toggleSg(val); });
     setupCardListeners();
-    setupTemporalInputs();
     setupValueValidation();
     if (typeof initCollectionForm === 'function') { initCollectionForm(document); }
 
@@ -4471,7 +5567,6 @@ function initAttributeForm(currentDist, isEdit) {
  * What it owns:
  *   - the three choice_cards groups (distribution, analysis, threat level)
  *   - the extends-event preview
- *   - the DD/MM/YYYY date field over its ISO hidden twin
  *   - required-field validation, and a submit that cannot fire twice
  *
  * The field look — the underline, the box, the invalid state — lives in
@@ -4528,20 +5623,37 @@ function initEventForm(container) {
         if (!info) { return; }
         var message = info.dataset.requiredMsg
             || 'Please provide a name for the event.';
+        var maxBytes = parseInt(info.dataset.maxBytes, 10) || 0;
+        var tooLongMessage = info.dataset.maxBytesMsg || 'Event info is too long.';
 
-        function validate(quiet) {
-            if (info.value.trim()) {
-                markValid(info);
-                return null;
-            }
-            if (!quiet) { markInvalid(info, message); }
-            return info;
+        /* The column limit is in bytes, so count what UTF-8 will store. */
+        function tooLong() {
+            return maxBytes > 0
+                && new TextEncoder().encode(info.value).length > maxBytes;
         }
 
-        /* Only ever clears while typing: nagging about an empty field the user
-         * has not finished with is what the submit check is for. */
+        function validate(quiet) {
+            if (!info.value.trim()) {
+                if (!quiet) { markInvalid(info, message); }
+                return info;
+            }
+            if (tooLong()) {
+                if (!quiet) { markInvalid(info, tooLongMessage); }
+                return info;
+            }
+            markValid(info);
+            return null;
+        }
+
+        /* An empty field only clears while typing (the submit check nags about
+         * it); an oversized one is said at once, since it usually comes from a
+         * paste the user cannot see the end of. */
         info.addEventListener('input', function () {
-            if (info.value.trim()) { markValid(info); }
+            if (tooLong()) {
+                markInvalid(info, tooLongMessage);
+            } else if (info.value.trim()) {
+                markValid(info);
+            }
         });
         validators.push(validate);
     }
@@ -4616,82 +5728,12 @@ function initEventForm(container) {
         schedule();
     }
 
-    /* ── Event date ──────────────────────────────────────────────
-     * DD/MM/YYYY in front of the user, YYYY-MM-DD in the hidden field MISP
-     * actually reads. */
-    function bindDate() {
-        var display = form.querySelector('#EventDateDisplay');
-        var hidden = form.querySelector('#EventDate');
-        if (!display || !hidden) { return; }
-
-        var message = display.dataset.invalidMsg
-            || 'Enter the event date as DD/MM/YYYY.';
-
-        function pad(n) { return (n < 10 ? '0' : '') + n; }
-
-        function build(y, m, d) {
-            var date = new Date(Date.UTC(y, m - 1, d));
-            /* Date() rolls 31/02 over into March, so compare the parts back:
-             * that is what rejects a day the month does not have. */
-            if (date.getUTCFullYear() !== y
-                    || date.getUTCMonth() !== m - 1
-                    || date.getUTCDate() !== d) {
-                return null;
-            }
-            return date;
-        }
-
-        function parse(text) {
-            var value = text.trim();
-            var human = value.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
-            if (human) {
-                return build(+human[3], +human[2], +human[1]);
-            }
-            /* Also accept what the hidden field speaks, so pasting an ISO date
-             * out of MISP itself works. */
-            var iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-            return iso ? build(+iso[1], +iso[2], +iso[3]) : null;
-        }
-
-        function sync() {
-            var date = parse(display.value);
-            if (date) {
-                hidden.value = date.getUTCFullYear() + '-'
-                    + pad(date.getUTCMonth() + 1) + '-'
-                    + pad(date.getUTCDate());
-                markValid(display);
-            }
-            return date;
-        }
-
-        display.addEventListener('input', sync);
-
-        /* Normalise on the way out: 3/9/2026 leaves as 03/09/2026, and only
-         * here does a half-typed date get called wrong. */
-        display.addEventListener('blur', function () {
-            var date = sync();
-            if (date) {
-                display.value = pad(date.getUTCDate()) + '/'
-                    + pad(date.getUTCMonth() + 1) + '/'
-                    + date.getUTCFullYear();
-            } else if (display.value.trim()) {
-                markInvalid(display, message);
-            }
-        });
-
-        validators.push(function (quiet) {
-            var date = sync();
-            if (date) { return null; }
-            if (!quiet) { markInvalid(display, message); }
-            return display;
-        });
-    }
-
     /* ── Submit ──────────────────────────────────────────────── */
     function bindSubmit() {
         var button = form.querySelector('#EventSubmitButton');
 
         form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) { return; }
             var wrong = validators
                 .map(function (validate) { return validate(false); })
                 .filter(Boolean);
@@ -4717,7 +5759,6 @@ function initEventForm(container) {
     initChoiceFields(form);
     bindInfo();
     bindExtendsPreview();
-    bindDate();
     bindSubmit();
 }
 window.initEventForm = initEventForm;
@@ -4783,25 +5824,409 @@ function initFlashAutoDismiss() {
     }, 5000);
 }
 
-/**
- * Move Cake's debug output into the collapsible debug strip and badge the
- * error count. No-op unless the layout emitted the strip (debug > 0).
+/* ==========================================================================
+ * Debug strip
+ * ==========================================================================
+ *
+ * With debug > 0 the layout draws a strip under the navbar, and everything
+ * Cake prints (`.cake-error` notices, `debug()` dumps, the SQL log) is moved
+ * into it, wherever it lands and whenever it arrives:
+ *
+ *  - in the page, at load;
+ *  - in anything inserted later (modal bodies, lazy tabs, index swaps), via a
+ *    MutationObserver;
+ *  - in a fetch() response the page never inserts (JSON, a 500, a DOMParser'd
+ *    form), via a fetch wrapper that reads a clone before the caller does;
+ *  - inside a <script>, <textarea>, <select> or an attribute, where the parser
+ *    builds no element at all, via an XPath sweep that reports where it leaked.
+ *
+ * A block seen in a response is remembered by signature, so when the caller
+ * then inserts it, the DOM copy is dropped rather than listed twice.
  */
+const DEBUG_BLOCK_SELECTOR = '.cake-error, .cake-debug-output';
+const DEBUG_BLOCK_TAGS = new Set(['A', 'B', 'BR', 'CODE', 'DIV', 'EM', 'I', 'LI', 'OL', 'P', 'PRE', 'SMALL', 'SPAN', 'STRONG', 'UL']);
+const DEBUG_BLOCK_TOGGLE = /(?:getElementById\(|traceToggle\(event,\s*)'([^']+)'/;
+
+const debugStrip = {
+    root: null,
+    entries: null,
+    errors: 0,
+    dumps: 0,
+    swept: false,
+    pending: new Map(),
+
+    init() {
+        if (this.root !== null) return Boolean(this.root);
+        this.root = document.getElementById('debugAccordionWrapper') || false;
+        if (!this.root) return false;
+        this.entries = document.getElementById('debugEntries');
+        const clear = document.getElementById('debugClear');
+        if (clear) clear.addEventListener('click', () => this.clear());
+        this.entries.addEventListener('click', e => this.toggle(e));
+        return true;
+    },
+
+    /**
+     * A copy of a block that came from a response or a string, rebuilt from its
+     * tags and text: a stored value shaped like debug output must not become
+     * live markup. Cake's Trace/Code/Context links work through toggle().
+     */
+    inert(node) {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.data);
+        if (node.nodeType !== Node.ELEMENT_NODE) return document.createTextNode('');
+        if (!DEBUG_BLOCK_TAGS.has(node.tagName)) return document.createTextNode(node.textContent);
+        const el = document.createElement(node.tagName.toLowerCase());
+        node.classList.forEach(name => {
+            if (/^(cake-[\w-]+|code-highlight)$/.test(name)) el.classList.add(name);
+        });
+        ['display', 'color'].forEach(prop => {
+            if (node.style[prop]) el.style[prop] = node.style[prop];
+        });
+        if (node.id) el.dataset.ovDebugId = node.id;
+        const target = DEBUG_BLOCK_TOGGLE.exec(node.getAttribute('onclick') || '');
+        if (node.tagName === 'A' && target) {
+            el.href = '#';
+            el.dataset.ovDebugToggle = target[1];
+        }
+        node.childNodes.forEach(child => el.appendChild(this.inert(child)));
+        return el;
+    },
+
+    toggle(e) {
+        const link = e.target.closest('[data-ov-debug-toggle]');
+        if (!link) return;
+        e.preventDefault();
+        const entry = link.closest('.ov-debug-entry');
+        const target = entry && Array.from(entry.querySelectorAll('[data-ov-debug-id]'))
+            .find(el => el.dataset.ovDebugId === link.dataset.ovDebugToggle);
+        if (target) target.style.display = target.style.display === 'none' ? '' : 'none';
+    },
+
+    clear() {
+        this.entries.querySelectorAll('.ov-debug-entry').forEach(el => el.remove());
+        this.errors = 0;
+        this.dumps = 0;
+        this.refresh(false);
+    },
+
+    /** Top-level debug blocks under root, root included. */
+    blocksIn(root) {
+        const found = [];
+        if (root.matches && root.matches(DEBUG_BLOCK_SELECTOR)) found.push(root);
+        if (root.querySelectorAll) {
+            root.querySelectorAll(DEBUG_BLOCK_SELECTOR).forEach(el => {
+                const parent = el.parentElement;
+                if (!parent || !parent.closest(DEBUG_BLOCK_SELECTOR)) found.push(el);
+            });
+        }
+        return found;
+    },
+
+    signature(block) {
+        const trace = block.querySelector('[id$="-trace"]');
+        if (trace) return trace.id;
+        return block.textContent.replace(/\s+/g, ' ').trim().slice(0, 500);
+    },
+
+    severity(block) {
+        if (!block.classList.contains('cake-error')) return 'info';
+        const label = (block.querySelector('b') || block).textContent;
+        return /notice|deprecated|strict/i.test(label) ? 'warning' : 'danger';
+    },
+
+    /** A block found in the live DOM: move it in, unless a response already listed it. */
+    adoptNode(block) {
+        const sig = this.signature(block);
+        const seen = this.pending.get(sig);
+        if (seen) {
+            if (seen > 1) this.pending.set(sig, seen - 1); else this.pending.delete(sig);
+            block.remove();
+            return;
+        }
+        this.add(block, this.originOf(block));
+    },
+
+    /** A block parsed out of a response body, not (yet) in the page. */
+    adoptParsed(block, origin) {
+        const sig = this.signature(block);
+        this.pending.set(sig, (this.pending.get(sig) || 0) + 1);
+        this.add(this.inert(block), origin);
+    },
+
+    originOf(node) {
+        const tab = node.closest('.ajax-tab-content[data-url]');
+        if (tab) return 'Tab · ' + this.path(tab.dataset.url);
+        if (node.closest('.modal')) return 'Modal';
+        return 'Page';
+    },
+
+    path(url) {
+        try {
+            const u = new URL(url, window.location.href);
+            return u.pathname + u.search;
+        } catch (e) {
+            return String(url);
+        }
+    },
+
+    /**
+     * @param {Node} content  what to show
+     * @param {string} origin where it came from
+     * @param {string} [severity] danger|warning|info, read off content otherwise
+     * @param {string} [note] one line shown above the content
+     */
+    add(content, origin, severity, note) {
+        severity = severity || (content.classList ? this.severity(content) : 'danger');
+        if (severity === 'info') this.dumps++; else this.errors++;
+
+        const entry = document.createElement('div');
+        entry.className = 'ov-debug-entry border-start border-3 ps-2 py-1 mb-2 border-' + severity;
+        const head = document.createElement('div');
+        head.className = 'ov-debug-origin opacity-75';
+        head.textContent = origin + (note ? ' — ' + note : '');
+        entry.append(head, content);
+        this.entries.appendChild(entry);
+        this.refresh(this.swept);
+    },
+
+    refresh(notify) {
+        const empty = document.getElementById('debugEmpty');
+        if (empty) empty.classList.toggle('d-none', this.errors + this.dumps > 0);
+
+        const badge = document.getElementById('debugErrorBadge');
+        if (badge) {
+            badge.textContent = this.errors + ' error' + (this.errors === 1 ? '' : 's');
+            badge.classList.toggle('bg-danger', this.errors > 0);
+            badge.classList.toggle('bg-success', this.errors === 0);
+        }
+        const info = document.getElementById('debugInfoBadge');
+        if (info) {
+            info.textContent = this.dumps + ' debug()';
+            info.classList.toggle('d-none', this.dumps === 0);
+        }
+        if (notify) {
+            const button = this.root.querySelector('.accordion-button');
+            button.classList.remove('ov-debug-pulse');
+            void button.offsetWidth;
+            button.classList.add('ov-debug-pulse');
+        }
+    },
+
+    /**
+     * Debug output the parser could not turn into elements: inside a raw-text
+     * element, an <option>, or an attribute (whose quotes it also broke).
+     */
+    reportLeaks(doc, origin) {
+        // Markup, not the bare word: a script may well mention the selector.
+        const markup = '(contains(., \'class="cake-error\') or contains(., \'class="cake-debug-output\')'
+            + ' or contains(., \'class=\\"cake-error\') or contains(., \'class=\\"cake-debug-output\'))';
+        const hits = doc.evaluate(
+            '//script[' + markup + '] | //textarea[' + markup + '] | //title[' + markup + ']'
+            + ' | //select//text()[contains(., ", line ")]'
+            + ' | //@*[contains(name(), "cake-") or (' + markup + ' and name() != "class")]',
+            doc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+        );
+        // One broken tag yields many hits (each word of the error becomes an attribute).
+        const reported = new Set();
+        for (let i = 0; i < hits.snapshotLength; i++) {
+            const node = hits.snapshotItem(i);
+            const owner = node.nodeType === Node.ATTRIBUTE_NODE ? node.ownerElement
+                : node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+            if (!owner || reported.has(owner)) continue;
+            if (owner.closest('#debugAccordionWrapper, ' + DEBUG_BLOCK_SELECTOR)) continue;
+
+            let where = '<' + owner.tagName.toLowerCase() + (owner.id ? '#' + owner.id : '')
+                + (owner.getAttribute('name') ? ' name="' + owner.getAttribute('name') + '"' : '') + '>';
+            if (node.nodeType === Node.ATTRIBUTE_NODE) where = 'an attribute of ' + where;
+            if (node.nodeType === Node.TEXT_NODE && !/\b\w+ \(\d+\)\s*:/.test(node.data)) continue;
+            reported.add(owner);
+
+            const raw = (node.nodeType === Node.ATTRIBUTE_NODE ? node.value : node.textContent)
+                .replace(/\\(["'\/])/g, '$1');
+            const tpl = document.createElement('template');
+            tpl.innerHTML = raw;
+            const blocks = this.blocksIn(tpl.content);
+            const salvaged = node.nodeType === Node.ATTRIBUTE_NODE ? this.salvageAfter(owner) : null;
+            if (salvaged) {
+                this.add(this.inert(salvaged), origin, null, 'leaked inside ' + where);
+            } else if (blocks.length) {
+                blocks.forEach(b => this.add(this.inert(b), origin, null, 'leaked inside ' + where));
+            } else {
+                const pre = document.createElement('pre');
+                pre.className = 'mb-0';
+                pre.textContent = raw.trim().slice(0, 2000)
+                    || '(the output broke the markup here, see the page source)';
+                this.add(pre, origin, 'danger', 'leaked inside ' + where);
+            }
+        }
+    },
+
+    /**
+     * The quote that ends a broken attribute also ends its tag, so the rest of
+     * the error is parsed as loose siblings: the toggle link through the trace.
+     */
+    salvageAfter(owner) {
+        let node = owner.nextSibling;
+        if (!node || node.nodeType !== Node.ELEMENT_NODE || !node.matches('a[onclick*="cakeErr"]')) {
+            return null;
+        }
+        const pre = document.createElement('pre');
+        pre.className = 'cake-error';
+        for (let i = 0; node && i < 50; i++) {
+            const next = node.nextSibling;
+            pre.appendChild(node);
+            if (node.nodeType === Node.ELEMENT_NODE && node.matches('.cake-stack-trace')) break;
+            node = next;
+        }
+        return pre;
+    },
+
+    /** Everything in a response body that is not the page's to see. */
+    scanResponse(text, response, origin) {
+        const type = response.headers.get('Content-Type') || '';
+        const html = /html/.test(type) || /^\s*</.test(text);
+
+        if (!response.ok && response.status >= 500) {
+            this.reportHttpError(text, response, origin, html);
+        }
+        if (text.indexOf('cake-') === -1) return;
+
+        if (/json/.test(type)) {
+            try {
+                this.scanJsonStrings(JSON.parse(text), origin);
+                return;
+            } catch (e) {
+                // A notice printed before the JSON: parse it as HTML below.
+            }
+        }
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        this.blocksIn(doc.body).forEach(b => this.adoptParsed(b, origin));
+        this.reportLeaks(doc, origin);
+    },
+
+    scanJsonStrings(value, origin) {
+        if (typeof value === 'string') {
+            if (value.indexOf('cake-') === -1) return;
+            const tpl = document.createElement('template');
+            tpl.innerHTML = value;
+            this.blocksIn(tpl.content).forEach(b => this.adoptParsed(b, origin));
+        } else if (value && typeof value === 'object') {
+            Object.values(value).forEach(v => this.scanJsonStrings(v, origin));
+        }
+    },
+
+    reportHttpError(text, response, origin, html) {
+        const box = document.createElement('div');
+        let message = '';
+        if (html) {
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            const heading = Array.from(doc.querySelectorAll('h2'))
+                .find(h => !h.closest('#debugAccordionWrapper'));
+            message = [heading, doc.querySelector('p.error')]
+                .filter(Boolean).map(el => el.textContent.trim()).join(' — ');
+            const trace = doc.querySelector('ul.cake-stack-trace');
+            if (trace) {
+                const details = document.createElement('details');
+                const summary = document.createElement('summary');
+                summary.textContent = 'Stack trace';
+                details.append(summary, this.inert(trace));
+                box.appendChild(details);
+            }
+        } else {
+            try {
+                const json = JSON.parse(text);
+                message = json.message || json.name || JSON.stringify(json.errors || json);
+            } catch (e) {
+                message = text;
+            }
+        }
+        const line = document.createElement('div');
+        line.className = 'fw-semibold';
+        line.textContent = (message || response.statusText || '').trim().slice(0, 500);
+        box.prepend(line);
+        this.add(box, origin, 'danger', 'HTTP ' + response.status);
+    },
+
+    observe() {
+        new MutationObserver(records => {
+            records.forEach(record => {
+                record.addedNodes.forEach(node => {
+                    if (node.nodeType !== Node.ELEMENT_NODE || this.root.contains(node)) return;
+                    this.guard(() => this.blocksIn(node).forEach(b => this.adoptNode(b)));
+                });
+            });
+        }).observe(document.body, { childList: true, subtree: true });
+    },
+
+    /** The strip must never be what breaks the page it is debugging. */
+    guard(fn) {
+        try {
+            fn();
+        } catch (e) {
+            console.warn('[debug strip]', e);
+        }
+    },
+
+    collectSqlLog() {
+        const tables = document.querySelectorAll('table.cake-sql-log');
+        const box = document.getElementById('debugSqlLog');
+        if (!tables.length || !box) return;
+
+        let queries = 0, took = 0;
+        tables.forEach(table => {
+            const m = /(\d+) quer(?:y|ies) took (\d+) ms/.exec(table.caption ? table.caption.textContent : '');
+            if (m) { queries += +m[1]; took += +m[2]; }
+            table.classList.add('table', 'table-sm', 'mb-0');
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.className = 'fw-semibold py-1';
+            summary.textContent = table.caption ? table.caption.textContent : 'SQL log';
+            details.append(summary, table);
+            box.appendChild(details);
+        });
+        box.classList.remove('d-none');
+
+        const badge = document.getElementById('debugSqlBadge');
+        if (badge) {
+            badge.textContent = queries + ' SQL · ' + took + ' ms';
+            badge.classList.remove('d-none');
+        }
+    },
+};
+
+/*
+ * Installed as soon as this file runs rather than on DOMContentLoaded: a view's
+ * inline script may already be fetching by then. Responses are read in full
+ * before the caller gets them, so the strip has seen a block before the caller
+ * can insert it. Binary bodies (downloads) are passed through untouched.
+ */
+(function watchFetchForDebugOutput() {
+    if (!debugStrip.init() || typeof window.fetch !== 'function') return;
+    const nativeFetch = window.fetch;
+    window.fetch = function (input, init) {
+        const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+        const url = typeof input === 'string' || input instanceof URL ? String(input) : input.url;
+        return nativeFetch.apply(this, arguments).then(response => {
+            const type = response.headers.get('Content-Type') || '';
+            const textual = type === '' || /text|json|xml|javascript/.test(type);
+            if (!textual || response.type === 'opaque' || response.status === 204) return response;
+            return response.clone().text().then(text => {
+                debugStrip.guard(() => debugStrip.scanResponse(text, response, method + ' ' + debugStrip.path(url)));
+                return response;
+            }, () => response);
+        });
+    };
+})();
+
 function initDebugStrip() {
-    const container = document.getElementById('debugAccordionContent');
-    if (!container) return;
-
-    const cakeErrors = document.querySelectorAll('.cake-error');
-    const count = cakeErrors.length;
-    const badge = document.getElementById('debugErrorBadge');
-
-    if (badge) {
-        badge.textContent = count + ' error' + (count > 1 ? 's' : '');
-        badge.classList.remove(count > 0 ? 'bg-success' : 'bg-danger');
-        badge.classList.add(count > 0 ? 'bg-danger' : 'bg-success');
-    }
-
-    cakeErrors.forEach(error => container.appendChild(error));
+    if (!debugStrip.init()) return;
+    debugStrip.observe();
+    debugStrip.guard(() => debugStrip.blocksIn(document.body).forEach(b => {
+        if (!debugStrip.root.contains(b)) debugStrip.adoptNode(b);
+    }));
+    debugStrip.guard(() => debugStrip.reportLeaks(document, 'Page'));
+    debugStrip.guard(() => debugStrip.collectSqlLog());
+    debugStrip.swept = true;
 }
 
 /**
@@ -4872,6 +6297,9 @@ function loadAjaxContainer(container) {
             initTopbarFilterSelects(container);
             if (typeof initJsonFields === 'function') {
                 initJsonFields(container);
+            }
+            if (typeof initDateFields === 'function') {
+                initDateFields(container);
             }
         })
         .catch(() => {
@@ -6162,4 +7590,1589 @@ window.initCenterOnClick = initCenterOnClick;
 
 document.addEventListener('DOMContentLoaded', function () {
     initCenterOnClick();
+});
+
+/*******************************
+ * Object add / edit form
+ *
+ * Two screens share this entry point, told apart by which JSON payload the
+ * fragment carries: the template picker (#objectPickerData) and the form
+ * itself (#objectFormData). The picker's list is never sent with the form, so
+ * choosing a template is a navigation between the two rather than a reload of
+ * one big fragment.
+ *******************************/
+
+function initObjectForm(container) {
+    if (!container) { return; }
+    var pickerData = container.querySelector('#objectPickerData');
+    if (pickerData) { initObjectTemplatePicker(container, pickerData); }
+    var formData = container.querySelector('#objectFormData');
+    if (formData) { initObjectAddForm(container, formData); }
+}
+
+function readJsonPayload(el) {
+    try {
+        return JSON.parse(el.textContent);
+    } catch (e) {
+        return null;
+    }
+}
+
+/* -- step 1: the template picker ---------------------------------------- */
+
+function initObjectTemplatePicker(container, payloadEl) {
+    var data = readJsonPayload(payloadEl);
+    if (!data) { return; }
+
+    var select  = container.querySelector('#objectTemplateSelect');
+    var nextBtn = container.querySelector('#objNextBtn');
+    var preview = container.querySelector('#templateDescPreview');
+    if (!select) { return; }
+
+    var byId = {};
+    data.templates.forEach(function (t) { byId[t.id] = t; });
+
+    function describe(value) {
+        var t = value ? byId[value] : null;
+        if (nextBtn) { nextBtn.disabled = !t; }
+        if (!preview) { return; }
+        if (!t) {
+            preview.classList.add('d-none');
+            return;
+        }
+        preview.classList.remove('d-none');
+        preview.innerHTML = '<strong>' + escapeHtml(t.name) + '</strong>'
+            + ' <span class="badge bg-secondary ms-1">v' + escapeHtml(t.version) + '</span>'
+            + ' <span class="badge rounded-pill text-bg-light border text-secondary fw-normal ms-1">'
+            + escapeHtml(t.meta) + '</span>'
+            + '<br><small class="text-muted">' + escapeHtml(t.desc) + '</small>';
+    }
+
+    function go(value) {
+        if (!value) { return; }
+        var url = data.formUrl + '/' + encodeURIComponent(value);
+        if (typeof openModal === 'function') {
+            openModal(url);
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    if (typeof TomSelect === 'undefined') {
+        /* No TomSelect: a plain grouped <select> still gets the job done. */
+        var groups = {};
+        data.templates.forEach(function (t) {
+            (groups[t.meta] = groups[t.meta] || []).push(t);
+        });
+        select.add(new Option('', ''));
+        Object.keys(groups).sort().forEach(function (meta) {
+            var og = document.createElement('optgroup');
+            og.label = meta;
+            groups[meta].forEach(function (t) { og.appendChild(new Option(t.name, t.id)); });
+            select.appendChild(og);
+        });
+        select.addEventListener('change', function () { describe(select.value); });
+        bindMetaButtons(container, function (meta) {
+            select.querySelectorAll('optgroup').forEach(function (og) {
+                og.hidden = meta !== '' && og.label !== meta;
+            });
+        });
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function () { go(select.value); });
+        }
+        describe('');
+        return;
+    }
+
+    /* The meta-category is an optgroup rather than a row of filter buttons:
+     * the buttons used to rebuild all 378 options on every click and drop the
+     * current selection while doing it. Searching covers the description too,
+     * which is the only way to find `x509-fingerprint` by typing "certificate". */
+    var metas = [];
+    data.templates.forEach(function (t) {
+        if (metas.indexOf(t.meta) === -1) { metas.push(t.meta); }
+    });
+    metas.sort();
+
+    var ts = new TomSelect(select, {
+        options: data.templates,
+        optgroups: metas.map(function (m) { return { value: m, label: m }; }),
+        optgroupField: 'meta',
+        optgroupOrder: metas,
+        valueField: 'id',
+        labelField: 'name',
+        searchField: ['name', 'desc'],
+        /* Insertion order stops mattering, so re-adding options on the way back
+         * to "All" cannot scramble the list. */
+        sortField: [{ field: '$score', direction: 'desc' }, { field: 'name', direction: 'asc' }],
+        score: function (query) {
+            var anyField = this.getScoreFunction(query);
+            var nameOnly = this.sifter.getScoreFunction(
+                query, Object.assign(this.getSearchOptions(), { fields: ['name'] })
+            );
+            this.settings.optgroupField = query.trim() ? '' : 'meta';
+            return function (t) {
+                if (anyField(t) <= 0) { return 0; }
+                var byName = nameOnly(t);
+                return byName > 0 ? 10 + byName : 1;
+            };
+        },
+        maxOptions: null,
+        create: false,
+        placeholder: select.dataset.placeholder || '-- Select a template --',
+        render: {
+            option: function (t, escape) {
+                return '<div class="py-1">'
+                    + '<span class="fw-semibold">' + escape(t.name) + '</span>'
+                    + ' <span class="badge bg-secondary fw-normal">v' + escape(t.version) + '</span>'
+                    + '<div class="text-muted small text-truncate">' + escape(t.desc) + '</div>'
+                    + '</div>';
+            },
+            item: function (t, escape) { return '<div>' + escape(t.name) + '</div>'; }
+        },
+        onChange: describe
+    });
+
+    /* A meta-category narrows the option set for real. Scoring the others out
+     * is not enough: sifter skips the score function entirely when the search
+     * box is empty, so the unfiltered list would come back whole. What stays is
+     * the part that used to be wrong - the pick survives, because the selected
+     * template is never one of the options taken away. */
+    bindMetaButtons(container, function (meta) {
+        var selected = ts.getValue();
+        var wanted = {};
+        data.templates.forEach(function (t) {
+            if (!meta || t.meta === meta || t.id === selected) { wanted[t.id] = t; }
+        });
+
+        Object.keys(ts.options).forEach(function (id) {
+            if (!wanted[id]) { ts.removeOption(id, true); }
+        });
+        var missing = Object.keys(wanted)
+            .filter(function (id) { return !ts.options[id]; })
+            .map(function (id) { return wanted[id]; });
+        if (missing.length) { ts.addOptions(missing); }
+
+        ts.refreshOptions(ts.isOpen);
+    });
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function () { go(ts.getValue()); });
+    }
+    describe('');
+}
+
+/* The row of meta-category buttons above the picker. "All" is the one that
+ * starts pressed; the caller decides what narrowing actually means. */
+function bindMetaButtons(container, onChange) {
+    var buttons = container.querySelectorAll('.meta-cat-btn');
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            buttons.forEach(function (other) {
+                var pressed = other === btn;
+                other.classList.toggle('active', pressed);
+                other.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+                /* The count sits on the accent the pressed button is filled
+                 * with, so it has to invert with it or it reads as a blank. */
+                var count = other.querySelector('.ov-obj-step-badge');
+                if (count) { count.classList.toggle('is-on', pressed); }
+            });
+            onChange(btn.dataset.meta || '');
+        });
+    });
+}
+
+/* -- step 2/3: the form -------------------------------------------------- */
+
+function initObjectAddForm(container, payloadEl) {
+    var data = readJsonPayload(payloadEl);
+    if (!data) { return; }
+
+    var form = container.querySelector('#objectAddForm');
+    if (!form) { return; }
+
+    var errorBox = container.querySelector('#objFormError');
+
+    function showError(message) {
+        if (!errorBox) {
+            showToast(message, 'danger');
+            return;
+        }
+        errorBox.textContent = message;
+        errorBox.classList.remove('d-none');
+        errorBox.scrollIntoView({ block: 'nearest' });
+    }
+
+    function clearError() {
+        if (errorBox) { errorBox.classList.add('d-none'); }
+    }
+
+    /* ---- one row ------------------------------------------------------- */
+
+    function rowParts(row) {
+        return {
+            card:   row,
+            save:   row.querySelector('input[type="hidden"][id$="Save"]'),
+            value:  row.querySelector('.Attribute_value'),
+            select: row.querySelector('.Attribute_value_select'),
+            file:   row.querySelector('.Attribute_attachment')
+        };
+    }
+
+    function rowValue(row) {
+        var p = rowParts(row);
+        if (p.select && p.select.value && p.select.value !== 'Enter value manually') {
+            return p.select.value;
+        }
+        if (p.file) { return p.file.value; }
+        return p.value ? p.value.value.trim() : '';
+    }
+
+    function bindRow(row) {
+        var p = rowParts(row);
+
+        /* A card the user left empty is dropped server-side rather than failing
+         * validation; nothing about that shows in the card itself. */
+        function syncSave() {
+            if (!p.save) { return; }
+            p.save.value = rowValue(row) !== '' ? '1' : '0';
+            syncOneOfFrame();
+        }
+
+        /* One value per line: a pasted list becomes one card per entry, the first
+         * staying in the card being typed into. Only a repeatable relation can do
+         * this — a single-occurrence one has nowhere to put the rest, so its text
+         * is left exactly as it was pasted. A card driven by a <select> has no
+         * free-text field to split. */
+        var SPLIT_LIMIT = 100;
+
+        function splitPastedLines() {
+            if (!p.value || row.dataset.multiple !== '1' || p.select) { return; }
+            var raw = p.value.value;
+            if (raw.indexOf('\n') === -1 && raw.indexOf('\r') === -1) { return; }
+
+            var lines = raw.split(/\r?\n/)
+                .map(function (line) { return line.trim(); })
+                .filter(function (line) { return line !== ''; });
+
+            p.value.value = lines.length ? lines[0] : '';
+            if (lines.length < 2) { return; }
+
+            var rest = lines.slice(1);
+            var dropped = 0;
+            if (rest.length > SPLIT_LIMIT) {
+                dropped = rest.length - SPLIT_LIMIT;
+                rest = rest.slice(0, SPLIT_LIMIT);
+            }
+
+            var relation = row.dataset.objectRelation;
+            var group = groupOfCard(row);
+            var anchor = row;
+            var last = null;
+
+            rest.forEach(function (line) {
+                var card = addCard(relation, group, anchor);
+                if (!card) { return; }
+                var field = card.querySelector('.Attribute_value');
+                if (field) {
+                    field.value = line;
+                    field.dispatchEvent(new Event('input'));
+                }
+                anchor = card;
+                last = card;
+            });
+
+            if (dropped) {
+                showError(dropped + ' further line'
+                    + (dropped === 1 ? ' was' : 's were')
+                    + ' not added: ' + SPLIT_LIMIT + ' is the most one paste creates at once.');
+            }
+            if (last) {
+                var lastField = last.querySelector('.Attribute_value');
+                if (lastField) {
+                    lastField.focus();
+                    lastField.setSelectionRange(lastField.value.length, lastField.value.length);
+                }
+            }
+        }
+
+        if (p.value) {
+            p.value.addEventListener('input', function () {
+                clearRowError(row);
+                splitPastedLines();
+                syncSave();
+            });
+        }
+        if (p.file)   { p.file.addEventListener('change', syncSave); }
+        if (p.select) {
+            p.select.addEventListener('change', function () {
+                if (p.value) {
+                    p.value.classList.toggle('d-none', p.select.value !== 'Enter value manually');
+                }
+                syncSave();
+            });
+            if (p.value) {
+                p.value.classList.toggle('d-none', p.select.value !== 'Enter value manually');
+            }
+        }
+        syncSave();
+
+        /* IDS / Correlate tiles: the colours are CSS, this only names the state. */
+        row.querySelectorAll('.ov-obj-toggle').forEach(function (tile) {
+            var box = tile.querySelector('.ov-obj-toggle-input');
+            if (!box) { return; }
+            var lit = tile.classList.contains('ov-obj-toggle-corr')
+                ? function () { return !box.checked; }
+                : function () { return box.checked; };
+            box.addEventListener('change', function () {
+                tile.classList.toggle('is-on', lit());
+            });
+        });
+
+        /* The three selects get the same treatment as the rest of the theme:
+         * the distribution one through the shared renderers, so a level looks the
+         * same here as in the event form, and the other two searchable. */
+        var dist = row.querySelector('.Attribute_distribution_select');
+        var sgWrap = row.querySelector('.ov-obj-sg-wrap');
+
+        function revealSg() {
+            if (sgWrap) {
+                sgWrap.classList.toggle('d-none', parseInt(dist.value, 10) !== 4);
+            }
+        }
+
+        if (dist) {
+            initDistributionSelect(dist, revealSg, { controlInput: null });
+            if (!dist.tomselect) { dist.addEventListener('change', revealSg); }
+            revealSg();
+        }
+
+        if (typeof TomSelect !== 'undefined') {
+            row.querySelectorAll(
+                '.Attribute_category_select, .Attribute_sharing_group_id_select'
+            ).forEach(function (sel) {
+                if (sel.tomselect) { return; }
+                new TomSelect(sel, {
+                    create: false,
+                    allowEmptyOption: true,
+                    maxOptions: null,
+                    placeholder: sel.dataset.placeholder || ''
+                });
+            });
+        }
+    }
+
+    /* TomSelect keeps a reference of its own, so a card being thrown away has to
+     * hand its instances back before it leaves the document. */
+    function destroyRow(row) {
+        row.querySelectorAll('select').forEach(function (sel) {
+            if (sel.tomselect) { sel.tomselect.destroy(); }
+        });
+    }
+
+    form.querySelectorAll('.attribute_row').forEach(bindRow);
+
+    /* ---- "Add another …" ----------------------------------------------- */
+
+    /* The row is a clone of the template's own row with a bumped index, so the
+     * adder costs nothing rather than a round trip to get_row per click. */
+    function reindexValue(value, from, to) {
+        return value
+            .replace('[Attribute][' + from + ']', '[Attribute][' + to + ']')
+            .replace(new RegExp('^Attribute' + from + '(?=[A-Z]|$)'), 'Attribute' + to)
+            .replace(new RegExp('^row_' + from + '$'), 'row_' + to)
+            .replace(new RegExp('^card-(ids|corr)-' + from + '$'), 'card-$1-' + to);
+    }
+
+    function reindexRow(node, from, to) {
+        var attrs = ['id', 'name', 'for', 'aria-controls', 'aria-labelledby'];
+        var visit = function (el) {
+            attrs.forEach(function (a) {
+                if (el.hasAttribute(a)) {
+                    el.setAttribute(a, reindexValue(el.getAttribute(a), from, to));
+                }
+            });
+            Array.prototype.forEach.call(el.children, visit);
+        };
+        visit(node);
+        node.dataset.rowIndex = to;
+    }
+
+    function blankRow(node) {
+        node.querySelectorAll('input[type="hidden"]').forEach(function (h) {
+            h.value = h.defaultValue;
+        });
+        node.querySelectorAll('textarea').forEach(function (t) { t.value = ''; });
+        node.querySelectorAll('input[type="file"]').forEach(function (f) { f.value = ''; });
+        node.querySelectorAll('select').forEach(function (s) {
+            Array.prototype.forEach.call(s.options, function (o) { o.selected = o.defaultSelected; });
+        });
+        node.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+            c.checked = c.defaultChecked;
+        });
+        node.querySelectorAll('.Attribute_value').forEach(function (v) {
+            var sel = node.querySelector('.Attribute_value_select');
+            v.classList.toggle('d-none', !!sel);
+        });
+    }
+
+    /* ---- the attribute palettes -------------------------------------- */
+
+    /* The requiredOneOf frame is dashed while the requirement is open and solid
+     * once it is met. It follows the values, not the cards: a card added and left
+     * empty satisfies nothing, so a solid border there would be a lie. */
+    function syncOneOfFrame() {
+        var frame = form.querySelector('.ov-obj-palette[data-palette="oneof"]');
+        var cards = form.querySelector('.ov-obj-cards[data-group="oneof"]');
+        if (!frame || !cards) { return; }
+        var met = Array.prototype.some.call(
+            cards.querySelectorAll('.attribute_row'),
+            function (row) { return rowValue(row) !== ''; }
+        );
+        frame.classList.toggle('is-satisfied', met);
+    }
+
+    function nextRowIndex() {
+        var lastRow = form.querySelector('#last-row');
+        if (!lastRow) { return null; }
+        var next = parseInt(lastRow.dataset.lastRow, 10) + 1;
+        lastRow.dataset.lastRow = next;
+        return next;
+    }
+
+    /* A relation's palette button, if it has one. */
+    function pickButton(relation) {
+        return form.querySelector('.ov-obj-pick[data-add-relation="' + CSS.escape(relation) + '"]');
+    }
+
+    /* A single-occurrence relation is spent once a card for it exists. */
+    function syncPickButton(relation) {
+        var btn = pickButton(relation);
+        if (!btn || btn.dataset.multiple === '1') { return; }
+        btn.disabled = !!form.querySelector(
+            '.ov-obj-cards .attribute_row[data-object-relation="' + CSS.escape(relation) + '"]'
+        );
+    }
+
+    /* `after` places the new card straight below an existing one instead of at
+     * the end of the group, which is what keeps a pasted list in order. */
+    function addCard(relation, group, after) {
+        var source = form.querySelector(
+            '.ov-obj-row-source[data-relation="' + CSS.escape(relation) + '"]'
+        );
+        var target = form.querySelector('.ov-obj-cards[data-group="' + CSS.escape(group) + '"]');
+        var next = nextRowIndex();
+        if (!source || (!target && !after) || next === null) { return null; }
+
+        var card = source.content.firstElementChild.cloneNode(true);
+        reindexRow(card, card.dataset.rowIndex, next);
+        blankRow(card);
+        if (after) {
+            after.insertAdjacentElement('afterend', card);
+        } else {
+            target.appendChild(card);
+        }
+        bindRow(card);
+        syncPickButton(relation);
+        return card;
+    }
+
+    function groupOfCard(row) {
+        var host = row.closest('.ov-obj-cards');
+        return host ? host.dataset.group : 'other';
+    }
+
+    form.querySelectorAll('.ov-obj-pick').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var card = addCard(btn.dataset.addRelation, btn.dataset.target);
+            if (!card) { return; }
+            card.scrollIntoView({ block: 'nearest' });
+            var first = card.querySelector(
+                '.Attribute_value_select, .Attribute_value, .Attribute_attachment'
+            );
+            if (first) { first.focus(); }
+        });
+    });
+
+    /* Removing a card hands its slot back to the palette. */
+    form.addEventListener('click', function (event) {
+        var remove = event.target.closest('.ov-obj-row-remove');
+        if (!remove || !form.contains(remove)) { return; }
+        var card = remove.closest('.attribute_row');
+        if (!card) { return; }
+        var relation = card.dataset.objectRelation;
+        destroyRow(card);
+        card.remove();
+        syncPickButton(relation);
+        syncOneOfFrame();
+        clearError();
+    });
+
+    form.querySelectorAll('.ov-obj-pick').forEach(function (btn) {
+        syncPickButton(btn.dataset.addRelation);
+    });
+    syncOneOfFrame();
+
+    /* ---- change template ------------------------------------------------ */
+
+    var changeBtn = container.querySelector('#objChangeTemplateBtn');
+    if (changeBtn && typeof openModal === 'function') {
+        changeBtn.addEventListener('click', function () {
+            openModal(changeBtn.dataset.pickerUrl);
+        });
+    }
+
+    /* ---- collected state ------------------------------------------------ */
+
+    function savedRows() {
+        var rows = [];
+        form.querySelectorAll('.attribute_row').forEach(function (row) {
+            var save = row.querySelector('input[type="hidden"][id$="Save"]');
+            if (!save || save.value !== '1') { return; }
+            rows.push(row);
+        });
+        return rows;
+    }
+
+    function describeRow(row) {
+        var category = row.querySelector('select[id$="Category"]');
+        var dist = row.querySelector('.Attribute_distribution_select');
+        var ids = row.querySelector('input[id$="ToIds"]');
+        var corr = row.querySelector('input[id$="DisableCorrelation"]');
+        var comment = row.querySelector('.ov-obj-row-comment');
+        var type = row.querySelector('input[id$="Type"]');
+        return {
+            relation: row.dataset.objectRelation || '',
+            value: rowValue(row),
+            type: type ? type.value : '',
+            category: category ? category.value : '',
+            distribution: dist ? parseInt(dist.value, 10) : 0,
+            to_ids: ids ? ids.checked : false,
+            correlate: corr ? !corr.checked : true,
+            comment: comment ? comment.value.trim() : ''
+        };
+    }
+
+    /* ---- what is wrong with the form ------------------------------------- */
+
+    function clearRowError(row) {
+        row.classList.remove('ov-obj-row-invalid');
+        var line = row.querySelector('.ov-obj-row-error');
+        if (line) { line.remove(); }
+    }
+
+    function clearRowErrors() {
+        form.querySelectorAll('.attribute_row').forEach(clearRowError);
+    }
+
+    function markRowError(row, message) {
+        clearRowError(row);
+        row.classList.add('ov-obj-row-invalid');
+        var body = row.querySelector('.card-body');
+        if (!body) { return; }
+        var line = document.createElement('div');
+        line.className = 'ov-obj-row-error';
+        line.textContent = message;
+        body.appendChild(line);
+    }
+
+    /* The format of a value is the server's to judge — the same endpoint the
+     * attribute form checks against, one call per filled card. */
+    function validateValues() {
+        var rows = savedRows().filter(function (row) { return rowValue(row) !== ''; });
+        if (!rows.length || typeof baseurl === 'undefined') {
+            return Promise.resolve([]);
+        }
+        return Promise.all(rows.map(function (row) {
+            var params = new URLSearchParams();
+            params.set('type', describeRow(row).type);
+            params.set('value', rowValue(row));
+            return fetch(baseurl + '/attributes/validateValue', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: params.toString()
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    return (res && res.valid === false)
+                        ? { row: row, message: res.message || 'Invalid value.' }
+                        : null;
+                })
+                /* A check that cannot run must not block a save the server would
+                 * have accepted; it will have the last word anyway. */
+                .catch(function () { return null; });
+        })).then(function (list) {
+            return list.filter(Boolean);
+        });
+    }
+
+    /* Requirements first — they are instant and tell the user what is missing —
+     * then the value formats. Resolves to whether the form is good to go. */
+    function runChecks() {
+        clearError();
+        clearRowErrors();
+
+        var problem = requirementMessage();
+        if (problem) {
+            showError(problem);
+            return Promise.resolve(false);
+        }
+        return validateValues().then(function (bad) {
+            if (!bad.length) { return true; }
+            bad.forEach(function (item) { markRowError(item.row, item.message); });
+            var names = bad.map(function (item) {
+                return item.row.dataset.objectRelation;
+            });
+            showError(bad.length === 1
+                ? names[0] + ': ' + bad[0].message
+                : bad.length + ' attributes have an invalid value: ' + names.join(', '));
+            bad[0].row.scrollIntoView({ block: 'nearest' });
+            return false;
+        });
+    }
+
+    /* ---- required fields ------------------------------------------------ */
+
+    function missingRequirements() {
+        var present = {};
+        savedRows().forEach(function (row) {
+            if (rowValue(row) !== '') { present[row.dataset.objectRelation] = true; }
+        });
+        var problems = [];
+        (data.template.required || []).forEach(function (relation) {
+            if (!present[relation]) { problems.push(relation); }
+        });
+        var oneOf = data.template.requiredOneOf || [];
+        var satisfied = oneOf.length === 0 || oneOf.some(function (r) { return present[r]; });
+        return { missing: problems, oneOfUnmet: satisfied ? [] : oneOf };
+    }
+
+    /* The precise complaints come first: with the palette layout an empty form is
+     * the normal starting point, so "nothing is filled in" is the least useful
+     * thing to say about it. */
+    function requirementMessage() {
+        var check = missingRequirements();
+        if (check.missing.length) {
+            return 'This template requires a value for: ' + check.missing.join(', ') + '.';
+        }
+        if (check.oneOfUnmet.length) {
+            var shown = check.oneOfUnmet.slice(0, 6).join(', ');
+            if (check.oneOfUnmet.length > 6) {
+                shown += ' … (' + (check.oneOfUnmet.length - 6) + ' more)';
+            }
+            return 'This template requires a value for at least one of: ' + shown + '.';
+        }
+        if (savedRows().length === 0) {
+            return 'Add an attribute and give it a value before saving.';
+        }
+        return '';
+    }
+
+    /* ---- review --------------------------------------------------------- */
+
+    /* Deliberately a compact digest, not a copy of the object index's markup -
+     * the two used to be kept in step by hand and drifted. */
+    function buildReview() {
+        var rows = savedRows().map(describeRow);
+        var distEl = container.querySelector('#ObjectDistribution');
+        var dist = distEl ? parseInt(distEl.value, 10) : 0;
+
+        var warn = container.querySelector('#objWarningMessage');
+        if (warn) { warn.classList.toggle('d-none', dist < 3); }
+
+        var body = container.querySelector('#objReviewBody');
+        if (!body) { return rows; }
+
+        if (!rows.length) {
+            body.innerHTML = '<p class="text-muted fst-italic mb-3">'
+                + '<i class="fas fa-circle-info me-1"></i>'
+                + 'No attributes will be saved.</p>';
+            return rows;
+        }
+
+        /* Same markup as Elements/Objects/object_header.ctp, so the summary reads
+         * like the card the object will become rather than like a second design. */
+        var distCfg = DIST_MAP[dist] || DIST_MAP[0];
+        var html = '<div class="ov-obj-head mb-2">'
+            + '<span class="ov-obj-dist" style="--ov-dist-bg:' + distCfg.bg
+            + ';--ov-dist-ink:' + distCfg.color + ';">'
+            + '<i class="' + distCfg.icon + '"></i></span>'
+            + '<span class="ov-obj-title">'
+            + '<span class="ov-obj-name">'
+            + '<span class="text-truncate">' + escapeHtml(data.template.name) + '</span>'
+            + '<span class="ov-obj-meta">' + escapeHtml(data.template.meta)
+            + '<span class="ov-obj-meta-version">v' + escapeHtml(data.template.version)
+            + '</span></span>'
+            + '</span></span>'
+            + '<span class="ov-obj-aside">'
+            + '<span class="ov-obj-count">'
+            + '<span class="misp-icon misp-icon-attribute misp-simple"></span> '
+            + rows.length + '</span>'
+            + '</span>'
+            + '</div>';
+
+        html += '<div class="table-responsive"><table class="table table-sm align-middle mb-3">'
+            + '<thead class="table-light"><tr>'
+            + '<th>Value</th><th>Type</th><th>Category</th>'
+            + '<th class="text-center">IDS</th><th class="text-center">Correlate</th>'
+            + '</tr></thead><tbody>';
+
+        rows.forEach(function (a) {
+            var value = distBadgeHtml(a.distribution, false)
+                + ' ' + escapeHtml(a.value || '—')
+                + (a.comment
+                    ? '<div class="text-muted fst-italic small"><i class="fa fa-comment me-1"></i>'
+                        + escapeHtml(a.comment) + '</div>'
+                    : '');
+
+            html += '<tr>'
+                + '<td class="text-break">' + value + '</td>'
+                + '<td class="text-nowrap">' + escapeHtml(a.type) + '</td>'
+                + '<td class="text-nowrap">' + escapeHtml(a.category) + '</td>'
+                + '<td class="text-center"><i class="fas fa-shield-halved '
+                + (a.to_ids ? 'text-warning' : 'text-secondary opacity-50') + '"></i></td>'
+                + '<td class="text-center"><i class="fas '
+                + (a.correlate ? 'fa-link text-success' : 'fa-link-slash text-secondary opacity-50')
+                + '"></i></td>'
+                + '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+
+        html += relationshipsSummary();
+
+        var problem = requirementMessage();
+        if (problem) {
+            html += '<div class="alert alert-warning py-2 mb-0">'
+                + '<i class="fas fa-triangle-exclamation me-1"></i>'
+                + escapeHtml(problem) + '</div>';
+        }
+
+        body.innerHTML = html;
+        return rows;
+    }
+
+    /* What the object will point at once saved: the ones it already has, plus
+     * the ones this form is about to create. */
+    function relationshipsSummary() {
+        var all = savedRelationships.map(function (rel) {
+            return { rel: rel, note: '' };
+        }).concat(pendingRelationships.map(function (rel) {
+            return { rel: rel, note: 'to be created' };
+        }));
+        if (!all.length) { return ''; }
+
+        var html = '<div class="ov-obj-group-label mt-3">'
+            + '<i class="fas fa-link me-1"></i>'
+            + (all.length === 1 ? '1 relationship' : all.length + ' relationships')
+            + '</div><ul class="list-group mb-3">';
+        all.forEach(function (entry) {
+            html += '<li class="list-group-item d-flex align-items-center gap-2 py-2">'
+                + '<span class="badge bg-object">' + escapeHtml(entry.rel.type) + '</span>'
+                + '<span class="text-muted small">' + escapeHtml(entry.rel.kind) + '</span>'
+                + '<span class="text-break">' + escapeHtml(entry.rel.label) + '</span>'
+                + (entry.rel.comment
+                    ? '<span class="text-muted fst-italic small">'
+                        + escapeHtml(entry.rel.comment) + '</span>'
+                    : '')
+                + (entry.note
+                    ? '<span class="badge bg-secondary-subtle text-secondary ms-auto">'
+                        + escapeHtml(entry.note) + '</span>'
+                    : '')
+                + '</li>';
+        });
+        return html + '</ul>';
+    }
+
+    /* ---- similar objects ------------------------------------------------ */
+
+    function renderSimilar(result) {
+        var box = container.querySelector('#objSimilarObjects');
+        if (!box) { return; }
+        if (!result || !result.count) {
+            box.innerHTML = '';
+            return;
+        }
+        var html = '<div class="card ov-obj-similar mb-0"><div class="card-body p-3">'
+            + '<div class="fw-semibold mb-2">'
+            + '<i class="fas fa-triangle-exclamation text-warning me-1"></i>'
+            + escapeHtml(String(result.count))
+            + (result.count === 1
+                ? ' object in this event already overlaps this one'
+                : ' objects in this event already overlap this one')
+            + '</div>'
+            + '<div class="text-muted small mb-2">'
+            + 'Saving will create another one. Edit the existing object instead if this is the same observation.'
+            + '</div>';
+
+        result.objects.forEach(function (o) {
+            html += '<div class="d-flex align-items-start gap-2 mb-1">'
+                + '<a class="text-nowrap" target="_blank" rel="noopener"'
+                + ' href="' + escapeHtml(baseurl) + '/objects/view/' + escapeHtml(String(o.id)) + '">'
+                + '#' + escapeHtml(String(o.id)) + '</a>'
+                + '<span class="ov-obj-similar-match text-muted">'
+                + o.attributes.map(function (a) {
+                    return escapeHtml(a.object_relation) + ' = ' + escapeHtml(a.value);
+                }).join(', ')
+                + '</span></div>';
+        });
+
+        box.innerHTML = html + '</div></div>';
+    }
+
+    function fetchSimilar() {
+        var box = container.querySelector('#objSimilarObjects');
+        var rows = savedRows();
+        if (!box || !rows.length || data.isEdit) { return; }
+
+        var payload = new FormData();
+        rows.forEach(function (row, i) {
+            var a = describeRow(row);
+            if (a.value === '') { return; }
+            payload.append('data[Attribute][' + i + '][object_relation]', a.relation);
+            payload.append('data[Attribute][' + i + '][type]', a.type);
+            payload.append('data[Attribute][' + i + '][value]', a.value);
+        });
+
+        box.innerHTML = '<div class="text-muted small">'
+            + '<span class="spinner-border spinner-border-sm me-2"></span>'
+            + 'Looking for objects that already carry these values…</div>';
+
+        fetch(data.similarUrl, {
+            method: 'POST',
+            body: payload,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(renderSimilar)
+            .catch(function () { box.innerHTML = ''; });
+    }
+
+    /* ---- relationships (optional step) ---------------------------------- */
+
+    /* Kept until the object exists: a reference needs something to hang off, and
+     * the object has no id until it is saved. */
+    var pendingRelationships = [];
+    /* Already on the object (edit mode). These have an id, so removing one is a
+     * request rather than a splice. */
+    var savedRelationships = (data.existingRelationships || []).slice();
+    var relationshipsLoaded = false;
+
+    var relBtn = container.querySelector('#objRelationshipBtn');
+    var relTypeEl = container.querySelector('#objRelType');
+    var relCustomEl = container.querySelector('#objRelTypeCustom');
+    var relTargetEl = container.querySelector('#objRelTarget');
+    var relCommentEl = container.querySelector('#objRelComment');
+    var relAddBtn = container.querySelector('#objRelAddBtn');
+    var relListEl = container.querySelector('#objRelList');
+
+    function relTypeValue() {
+        var picked = relTypeEl ? relTypeEl.value : '';
+        if (picked === 'custom') {
+            return relCustomEl ? relCustomEl.value.trim() : '';
+        }
+        return picked;
+    }
+
+    function syncRelAddBtn() {
+        if (!relAddBtn) { return; }
+        relAddBtn.disabled = !(relTypeValue() && relTargetEl && relTargetEl.value);
+    }
+
+    function relationshipRow(rel, attr, note) {
+        return '<li class="list-group-item d-flex align-items-center gap-2 py-2">'
+            + '<span class="badge bg-object">' + escapeHtml(rel.type) + '</span>'
+            + '<span class="text-muted small">' + escapeHtml(rel.kind) + '</span>'
+            + '<span class="text-break">' + escapeHtml(rel.label) + '</span>'
+            + (rel.comment
+                ? '<span class="text-muted fst-italic small">'
+                    + escapeHtml(rel.comment) + '</span>'
+                : '')
+            + (note
+                ? '<span class="badge bg-secondary-subtle text-secondary">'
+                    + escapeHtml(note) + '</span>'
+                : '')
+            + '<button type="button" class="btn btn-sm ov-obj-row-remove ms-auto"'
+            + ' ' + attr + ' title="Remove this relationship">'
+            + '<i class="fas fa-trash"></i></button>'
+            + '</li>';
+    }
+
+    function renderRelationships() {
+        if (!relListEl) { return; }
+        if (!savedRelationships.length && !pendingRelationships.length) {
+            relListEl.innerHTML = '';
+            return;
+        }
+        var html = '<ul class="list-group">';
+        savedRelationships.forEach(function (rel) {
+            html += relationshipRow(rel, 'data-saved-rel="' + escapeHtml(rel.id) + '"', '');
+        });
+        pendingRelationships.forEach(function (rel, i) {
+            html += relationshipRow(rel, 'data-drop-rel="' + i + '"', 'pending');
+        });
+        relListEl.innerHTML = html + '</ul>';
+    }
+
+    if (relListEl) {
+        relListEl.addEventListener('click', function (event) {
+            var drop = event.target.closest('[data-drop-rel]');
+            if (drop) {
+                pendingRelationships.splice(parseInt(drop.dataset.dropRel, 10), 1);
+                renderRelationships();
+                return;
+            }
+            /* One that already exists has to be deleted server-side. */
+            var saved = event.target.closest('[data-saved-rel]');
+            if (!saved || !data.relationshipDeleteUrl) { return; }
+            var id = saved.dataset.savedRel;
+            saved.disabled = true;
+            fetch(data.relationshipDeleteUrl + encodeURIComponent(id), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': typeof getCsrfToken === 'function' ? getCsrfToken() : ''
+                }
+            })
+                .then(function (r) { return r.ok ? r.json() : { saved: false }; })
+                .then(function (res) {
+                    if (!res || !res.saved) {
+                        saved.disabled = false;
+                        showError('The relationship could not be removed.');
+                        return;
+                    }
+                    savedRelationships = savedRelationships.filter(function (rel) {
+                        return String(rel.id) !== String(id);
+                    });
+                    renderRelationships();
+                })
+                .catch(function () {
+                    saved.disabled = false;
+                    showError('The relationship could not be removed.');
+                });
+        });
+    }
+    renderRelationships();
+
+    /* The choices are fetched the first time the step is opened, not with the
+     * form: an event's objects and attributes are none of the add form's
+     * business until somebody asks for a relationship. */
+    function loadRelationshipChoices() {
+        if (relationshipsLoaded || !data.relationshipTargetsUrl) {
+            return Promise.resolve();
+        }
+        relationshipsLoaded = true;
+        return fetch(data.relationshipTargetsUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                (res.relationships || []).forEach(function (name) {
+                    relTypeEl.add(new Option(name, name));
+                });
+                if (typeof TomSelect !== 'undefined') {
+                    var relTypeSelect = new TomSelect(relTypeEl, { create: false, placeholder: 'Relationship type' });
+                    relTypeSelect.clear(true);
+                    initRelationshipTargetSelect(res.targets || []);
+                } else {
+                    (res.targets || []).forEach(function (target) {
+                        relTargetEl.add(new Option(target.label, target.uuid));
+                    });
+                }
+                syncRelAddBtn();
+            })
+            .catch(function () {
+                relationshipsLoaded = false;
+                showError('Could not load the relationship choices.');
+            });
+    }
+
+    /* Typing searches the event server-side — the list is capped, so a big event
+     * is found by searching rather than by scrolling. */
+    function initRelationshipTargetSelect(initial) {
+        var ts = new TomSelect(relTargetEl, {
+            valueField: 'uuid',
+            labelField: 'label',
+            searchField: ['label', 'context', 'uuid'],
+            options: initial,
+            create: false,
+            placeholder: 'Search the event by name, value or uuid',
+            load: function (query, callback) {
+                fetch(data.relationshipTargetsUrl + '?searchTerm=' + encodeURIComponent(query), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) { callback(res.targets || []); })
+                    .catch(function () { callback(); });
+            },
+            render: {
+                /* Objects often share a name: the uuid is what tells them apart. */
+                option: function (item, escape) {
+                    return '<div class="py-1">'
+                        + '<span class="badge bg-secondary me-1">' + escape(item.kind) + '</span>'
+                        + escape(item.label)
+                        + '<div class="text-muted small">' + escape(item.context) + '</div>'
+                        + '<div class="text-muted small font-monospace text-truncate">' + escape(item.uuid) + '</div>'
+                        + '</div>';
+                },
+                item: function (item, escape) {
+                    return '<div class="d-flex align-items-center gap-2 text-truncate">'
+                        + '<span>' + escape(item.label) + '</span>'
+                        + '<span class="text-muted small font-monospace">' + escape(item.uuid) + '</span>'
+                        + '</div>';
+                }
+            },
+            onChange: syncRelAddBtn
+        });
+        relTargetEl.tomselect = ts;
+    }
+
+    if (relBtn) {
+        relBtn.addEventListener('click', function () {
+            loadRelationshipChoices();
+            var el = container.querySelector('#objCollapseRel');
+            if (el) { bootstrap.Collapse.getOrCreateInstance(el).show(); }
+        });
+    }
+
+    if (relTypeEl) {
+        relTypeEl.addEventListener('change', function () {
+            if (relCustomEl) {
+                relCustomEl.classList.toggle('d-none', relTypeEl.value !== 'custom');
+            }
+            syncRelAddBtn();
+        });
+    }
+    if (relCustomEl) { relCustomEl.addEventListener('input', syncRelAddBtn); }
+
+    if (relAddBtn) {
+        relAddBtn.addEventListener('click', function () {
+            var type = relTypeValue();
+            var uuid = relTargetEl ? relTargetEl.value : '';
+            if (!type || !uuid) { return; }
+            var option = relTargetEl.tomselect
+                ? relTargetEl.tomselect.options[uuid]
+                : null;
+            pendingRelationships.push({
+                type: type,
+                uuid: uuid,
+                kind: option ? option.kind : '',
+                label: option ? option.label : uuid,
+                comment: relCommentEl ? relCommentEl.value.trim() : ''
+            });
+            renderRelationships();
+            if (relCommentEl) { relCommentEl.value = ''; }
+            if (relTargetEl.tomselect) { relTargetEl.tomselect.clear(); }
+            syncRelAddBtn();
+        });
+    }
+
+    /* Posted one by one once the object has an id. A reference that fails is
+     * reported rather than swallowed — the object itself is already saved, so
+     * silently dropping it would leave the user believing otherwise. */
+    function createRelationships(objectId, csrfToken) {
+        if (!pendingRelationships.length || !data.relationshipAddUrl) {
+            return Promise.resolve([]);
+        }
+        if (!objectId) {
+            return Promise.resolve(pendingRelationships.map(function (rel) {
+                return { rel: rel, reason: 'the object id did not come back' };
+            }));
+        }
+        /* The token the save answered with, not the page's: csrfUseOnce means the
+         * one the layout rendered may long since have been spent or evicted. */
+        var token = csrfToken
+            || (typeof getCsrfToken === 'function' ? getCsrfToken() : '');
+        return Promise.all(pendingRelationships.map(function (rel) {
+            var body = new URLSearchParams();
+            body.set('data[ObjectReference][referenced_uuid]', rel.uuid);
+            body.set('data[ObjectReference][relationship_type]', rel.type);
+            body.set('data[ObjectReference][comment]', rel.comment);
+            return fetch(data.relationshipAddUrl + encodeURIComponent(objectId), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': token
+                },
+                body: body.toString()
+            })
+                .then(function (r) {
+                    /* A blackholed post answers with an error page, not JSON, so
+                     * the status is what says what happened. */
+                    if (!r.ok) {
+                        return { saved: false, errors: 'HTTP ' + r.status };
+                    }
+                    return r.json().catch(function () {
+                        return { saved: false, errors: 'unreadable answer' };
+                    });
+                })
+                .then(function (res) {
+                    return (res && res.saved)
+                        ? null
+                        : { rel: rel, reason: (res && res.errors) || 'refused' };
+                })
+                .catch(function () {
+                    return { rel: rel, reason: 'request failed' };
+                });
+        })).then(function (list) {
+            return list.filter(Boolean);
+        });
+    }
+
+    /* ---- navigation between the two steps ------------------------------- */
+
+    /* There is one of these at the end of each step the user can stop on, so the
+     * handler works off the class and holds them all while the checks run. */
+    var reviewBtns = container.querySelectorAll('.ov-obj-review-btn');
+    reviewBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            /* Reviewing is where problems surface: if the form is not sound the
+             * user stays on it, next to the fields to fix, rather than being sent
+             * to a summary of something that cannot be saved. */
+            reviewBtns.forEach(function (b) { b.disabled = true; });
+            runChecks()
+                .then(function (sound) {
+                    if (!sound) { return; }
+                    buildReview();
+                    fetchSimilar();
+                    var el = container.querySelector('#objCollapse3');
+                    if (el) { bootstrap.Collapse.getOrCreateInstance(el).show(); }
+                })
+                .then(function () {
+                    reviewBtns.forEach(function (b) { b.disabled = false; });
+                });
+        });
+    });
+
+    var backBtn = container.querySelector('#objPrevBtn3');
+    if (backBtn) {
+        backBtn.addEventListener('click', function () {
+            var el = container.querySelector('#objCollapse3');
+            if (el) { bootstrap.Collapse.getOrCreateInstance(el).hide(); }
+        });
+    }
+
+    var objDist = container.querySelector('#ObjectDistribution');
+    if (objDist) {
+        objDist.addEventListener('change', function () {
+            var warn = container.querySelector('#objWarningMessage');
+            if (warn) { warn.classList.toggle('d-none', parseInt(objDist.value, 10) < 3); }
+        });
+    }
+
+    /* ---- submit ---------------------------------------------------------- */
+
+    /* Land on the objects tab, the way the controller's redirect used to. Which
+     * tab was open decides how: the objects one only needs its contents
+     * refreshed, any other has to be switched to — its own shown.bs.tab is what
+     * fetches the fragment. Reloading the page instead would drop the user back
+     * on whichever tab they started from, with the new object out of sight.
+     * @return {boolean} whether the event view took care of it
+     */
+    function showObjectsTab() {
+        var btn = document.querySelector(
+            '.nav-link[data-bs-toggle="tab"][href="#tab-objects"]'
+        );
+        if (!btn) { return false; }
+        var pane = document.querySelector('#tab-objects .ajax-tab-content');
+
+        if (!btn.classList.contains('active')) {
+            /* loadAjaxContainer() serves a fragment once and then caches it on
+             * data-loaded, so a tab that had already been opened would come back
+             * exactly as it was, without the object just added. */
+            if (pane) { delete pane.dataset.loaded; }
+            bootstrap.Tab.getOrCreateInstance(btn).show();
+            return true;
+        }
+        if (reloadEventViewIndexTab()) { return true; }
+
+        if (pane && typeof loadAjaxContainer === 'function') {
+            delete pane.dataset.loaded;
+            loadAjaxContainer(pane);
+            return true;
+        }
+        return false;
+    }
+
+    /* Posting through fetch() keeps the event view standing: a rejected save
+     * leaves this form exactly as the user left it, and an accepted one reloads
+     * the objects tab rather than the whole page. */
+    var submitBtn = container.querySelector('#submitButton');
+
+    form.addEventListener('submit', function (event) {
+        if (event.defaultPrevented) { return; }
+        event.preventDefault();
+
+        if (submitBtn) { submitBtn.disabled = true; }
+        /* The same checks Review runs, because a save can be asked for without
+         * ever opening it. */
+        runChecks().then(function (sound) {
+            if (!sound) {
+                if (submitBtn) { submitBtn.disabled = false; }
+                return;
+            }
+            sendForm();
+        });
+    });
+
+    function sendForm() {
+
+        /* No `Accept: application/json` here: _isRest() reads that header, and the
+         * REST branch of add()/edit() answers in a different shape and with a
+         * 403 on a rejected save. This is the session-backed ajax branch. */
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (result) {
+                if (!result || !result.saved) {
+                    if (submitBtn) { submitBtn.disabled = false; }
+                    /* csrfUseOnce spends the token this post carried, and the form
+                     * stays up, so the next attempt needs the replacement. */
+                    if (result && result.csrfToken) {
+                        var field = form.querySelector('input[name="data[_Token][key]"]');
+                        if (field) { field.value = result.csrfToken; }
+                    }
+                    showError((result && result.errors) || 'Object could not be saved.');
+                    return;
+                }
+                /* The object exists now, so its relationships can be hung off it. */
+                createRelationships(result.id, result.csrfToken).then(function (failed) {
+                    var modalEl = document.getElementById('mainModal');
+                    var modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+                    if (modal) { modal.hide(); }
+
+                    showToast(result.success || 'Object saved.', 'success');
+                    /* Composed from loose attributes: those moved out of the
+                     * attributes tab, whose cached fragment would still list them. */
+                    if (form.querySelector('[name="data[Object][group_attribute_ids]"]')) {
+                        var attrsPane = document.querySelector('.ajax-tab-content[data-url*="viewAttributes"]');
+                        if (attrsPane) { delete attrsPane.dataset.loaded; }
+                    }
+                    if (failed.length) {
+                        showToast(failed.length + ' relationship'
+                            + (failed.length === 1 ? '' : 's')
+                            + ' could not be created — '
+                            + failed.map(function (f) {
+                                return f.rel.type + ': ' + f.reason;
+                            }).join('; '),
+                            'danger');
+                    }
+                    if (!showObjectsTab()) {
+                        window.location.href = baseurl + '/events/view2/'
+                            + encodeURIComponent(data.eventId) + '#tab-objects';
+                    }
+                });
+            })
+            .catch(function () {
+                if (submitBtn) { submitBtn.disabled = false; }
+                showError('Request failed — please try again.');
+            });
+    }
+}
+
+/* A full-page render of objects/add or objects/edit - a rejected save on a
+ * plain navigation, or a bookmarked URL - gets the same wiring as the modal. */
+document.addEventListener('DOMContentLoaded', function () {
+    initObjectForm(document);
+});
+
+/**
+ * A card header whose action buttons no longer fit on its first line folds
+ * them into a "⋯" dropdown instead of letting them wrap under the title.
+ *
+ * Markup contract, inside the header's flex row:
+ *   <div data-card-actions> the buttons </div>
+ *   <div class="dropdown d-none" data-card-actions-menu>
+ *       <button data-bs-toggle="dropdown">…</button>
+ *       <ul class="dropdown-menu"></ul>
+ *   </div>
+ * Elements/genericElementsBS5/Cards/actions_overflow_menu draws the second part.
+ * The menu entries are built from the buttons each time it opens, so a button
+ * enabled later (Download All) or replaced is mirrored, and a click on an entry
+ * clicks the real button.
+ */
+function initCardActionOverflow(container) {
+    (container || document).querySelectorAll('[data-card-actions]:not([data-overflow-bound])').forEach(function (actions) {
+        actions.setAttribute('data-overflow-bound', '');
+        var row = actions.parentElement;
+        var menu = row.querySelector('[data-card-actions-menu]');
+        var list = menu ? menu.querySelector('.dropdown-menu') : null;
+        var anchor = row.firstElementChild;
+        if (!menu || !list || !anchor || !actions.children.length) {
+            return;
+        }
+
+        function wrapped() {
+            var line = anchor.getBoundingClientRect().bottom - 2;
+            return Array.prototype.some.call(row.children, function (child) {
+                if (child === anchor || child.classList.contains('d-none')) {
+                    return false;
+                }
+                return child.getBoundingClientRect().top >= line;
+            });
+        }
+
+        // Laid out inline first; folded only if that pushes something down.
+        function update() {
+            actions.classList.remove('d-none');
+            menu.classList.add('d-none');
+            if (wrapped()) {
+                actions.classList.add('d-none');
+                menu.classList.remove('d-none');
+            }
+        }
+
+        menu.addEventListener('show.bs.dropdown', function () {
+            list.replaceChildren();
+            Array.prototype.forEach.call(actions.querySelectorAll('button, a'), function (source) {
+                var li = document.createElement('li');
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'dropdown-item d-flex align-items-center gap-2';
+                item.innerHTML = source.innerHTML;
+                item.disabled = source.disabled || source.classList.contains('disabled');
+                if (source.title) {
+                    item.title = source.title;
+                }
+                item.addEventListener('click', function () {
+                    source.click();
+                });
+                li.appendChild(item);
+                list.appendChild(li);
+            });
+        });
+
+        var lastWidth = null;
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(function (entries) {
+                var width = Math.round(entries[0].contentRect.width);
+                if (width !== lastWidth) {
+                    lastWidth = width;
+                    update();
+                }
+            }).observe(row);
+        } else {
+            window.addEventListener('resize', update);
+        }
+        update();
+    });
+}
+window.initCardActionOverflow = initCardActionOverflow;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCardActionOverflow(document);
+});
+
+/**
+ * "Show on map" for geolocation / gpx / uav / geojson objects — the vanilla
+ * twin of the default theme's openMapPopover() in misp.js, which a BS5 page
+ * cannot load. A [data-geo-map] button (Elements/Objects/object_map_button)
+ * opens the shared modal; Leaflet (webroot/js/leaflet.js) is fetched on the
+ * first map only.
+ */
+var leafletLoading = null;
+function loadLeaflet() {
+    if (window.L && window.L.map) {
+        return Promise.resolve(window.L);
+    }
+    if (leafletLoading) {
+        return leafletLoading;
+    }
+    var root = (typeof baseurl !== 'undefined' ? baseurl : '');
+    /* Both, before the first map: Leaflet sizes its panes and finds its marker
+       images (css/images/) from the stylesheet. */
+    function inject(tag, attrs) {
+        return new Promise(function (resolve, reject) {
+            var el = document.createElement(tag);
+            Object.keys(attrs).forEach(function (key) { el[key] = attrs[key]; });
+            el.onload = resolve;
+            el.onerror = reject;
+            document.head.appendChild(el);
+        });
+    }
+    leafletLoading = Promise.all([
+        inject('link', { rel: 'stylesheet', href: root + '/css/leaflet.css' }),
+        inject('script', { src: root + '/js/leaflet.js' })
+    ]).then(function () {
+        return window.L;
+    }, function (error) {
+        leafletLoading = null;
+        throw error;
+    });
+    return leafletLoading;
+}
+
+function drawGpx(L, map, xmlString) {
+    var gpx = new DOMParser().parseFromString(xmlString, 'application/xml');
+    var bounds = L.latLngBounds();
+    var counts = { waypoints: 0, tracks: 0, routes: 0 };
+    function point(el) {
+        var lat = parseFloat(el.getAttribute('lat'));
+        var lon = parseFloat(el.getAttribute('lon'));
+        return (isNaN(lat) || isNaN(lon)) ? null : L.latLng(lat, lon);
+    }
+    gpx.querySelectorAll('wpt').forEach(function (wpt) {
+        var ll = point(wpt);
+        if (!ll) { return; }
+        var marker = L.marker(ll).addTo(map);
+        var name = wpt.querySelector('name');
+        if (name && name.textContent) { marker.bindPopup(escapeHtml(name.textContent)); }
+        bounds.extend(ll);
+        counts.waypoints++;
+    });
+    function line(points, colour) {
+        var latlngs = [];
+        points.forEach(function (pt) {
+            var ll = point(pt);
+            if (ll) { latlngs.push(ll); bounds.extend(ll); }
+        });
+        if (latlngs.length) { L.polyline(latlngs, { color: colour, weight: 3 }).addTo(map); }
+        return latlngs.length > 0;
+    }
+    gpx.querySelectorAll('trk').forEach(function (trk) {
+        var drawn = false;
+        trk.querySelectorAll('trkseg').forEach(function (seg) {
+            drawn = line(seg.querySelectorAll('trkpt'), '#3388ff') || drawn;
+        });
+        if (drawn) { counts.tracks++; }
+    });
+    gpx.querySelectorAll('rte').forEach(function (rte) {
+        if (line(rte.querySelectorAll('rtept'), '#ff3333')) { counts.routes++; }
+    });
+    if (bounds.isValid()) { map.fitBounds(bounds, { padding: [20, 20] }); }
+    return counts;
+}
+
+function openGeoMap(button) {
+    var modalEl = document.getElementById('mainModal');
+    var modalBody = document.getElementById('mainModalBody');
+    if (!modalEl || !modalBody) { return; }
+    var kind = button.dataset.geoMap;
+    var title = button.dataset.title || 'map';
+
+    modalBody.innerHTML =
+        '<div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">'
+        + '<i class="fas fa-map-location-dot text-primary"></i>'
+        + '<span class="fw-semibold me-auto">' + escapeHtml(title) + '</span>'
+        + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+        + '</div>'
+        + '<div data-geo-canvas style="height:60vh;min-height:320px;"></div>'
+        + '<div class="small text-body-secondary px-3 py-2 border-top" data-geo-info>…</div>';
+    var canvas = modalBody.querySelector('[data-geo-canvas]');
+    var info = modalBody.querySelector('[data-geo-info]');
+    setModalSize('lg', modalEl.querySelector('.modal-dialog'));
+
+    var map = null;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (map) { map.remove(); map = null; }
+    }, { once: true });
+    modalEl.addEventListener('shown.bs.modal', function () {
+        loadLeaflet().then(function (L) {
+            map = L.map(canvas);
+            L.tileLayer(button.dataset.tileUrl + '/hot/{z}/{x}/{y}.png', {
+                maxZoom: 21,
+                maxNativeZoom: 20,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            map.setView([0, 0], 2);
+
+            if (kind === 'point') {
+                var lat = parseFloat(button.dataset.lat);
+                var lon = parseFloat(button.dataset.lon);
+                var radiusKm = parseFloat(button.dataset.radius);
+                if (isNaN(lat) || isNaN(lon)) { info.textContent = 'Invalid coordinates'; return; }
+                map.setView([lat, lon], 14);
+                L.marker([lat, lon]).addTo(map);
+                var text = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                if (!isNaN(radiusKm) && radiusKm > 0) {
+                    var circle = L.circle([lat, lon], {
+                        radius: radiusKm * 1000, color: '#3388ff', fillColor: '#3388ff', fillOpacity: 0.15, weight: 2
+                    }).addTo(map);
+                    map.fitBounds(L.latLng(lat, lon).toBounds(radiusKm * 2000), { padding: [20, 20] });
+                    text += ' · radius ' + radiusKm + ' km';
+                    var RadiusToggle = L.Control.extend({
+                        options: { position: 'topleft' },
+                        onAdd: function () {
+                            var box = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                            var link = L.DomUtil.create('a', '', box);
+                            link.href = '#';
+                            link.title = 'Toggle radius';
+                            link.innerHTML = '<i class="fas fa-circle-dot"></i>';
+                            L.DomEvent.disableClickPropagation(box);
+                            L.DomEvent.on(link, 'click', function (e) {
+                                L.DomEvent.preventDefault(e);
+                                if (map.hasLayer(circle)) { map.removeLayer(circle); link.style.opacity = '.5'; }
+                                else { map.addLayer(circle); link.style.opacity = '1'; }
+                            });
+                            return box;
+                        }
+                    });
+                    map.addControl(new RadiusToggle());
+                }
+                info.textContent = text;
+                return;
+            }
+
+            var root = (typeof baseurl !== 'undefined' ? baseurl : '');
+            info.textContent = 'Loading…';
+            fetch(root + '/attributes/download/' + encodeURIComponent(button.dataset.attachmentId), { credentials: 'same-origin' })
+                .then(function (response) {
+                    if (!response.ok) { throw new Error(response.status); }
+                    return response.text();
+                })
+                .then(function (body) {
+                    if (!map) { return; }
+                    if (kind === 'gpx') {
+                        var counts = drawGpx(L, map, body);
+                        var parts = [];
+                        if (counts.tracks) { parts.push(counts.tracks + ' track(s)'); }
+                        if (counts.routes) { parts.push(counts.routes + ' route(s)'); }
+                        if (counts.waypoints) { parts.push(counts.waypoints + ' waypoint(s)'); }
+                        info.textContent = parts.length ? parts.join(', ') : 'No geographic data found';
+                        return;
+                    }
+                    var geojson = JSON.parse(body);
+                    var features = 0;
+                    var layer = L.geoJSON(geojson, {
+                        onEachFeature: function (feature, featureLayer) {
+                            features++;
+                            var props = feature.properties || {};
+                            var lines = Object.keys(props).filter(function (key) { return props[key] !== null; })
+                                .map(function (key) { return '<strong>' + escapeHtml(key) + '</strong>: ' + escapeHtml(String(props[key])); });
+                            if (lines.length) { featureLayer.bindPopup(lines.join('<br>')); }
+                        }
+                    }).addTo(map);
+                    if (layer.getBounds().isValid()) { map.fitBounds(layer.getBounds(), { padding: [20, 20] }); }
+                    info.textContent = features + ' feature(s)';
+                })
+                .catch(function () {
+                    info.textContent = 'Could not load the attachment.';
+                });
+        }).catch(function () {
+            info.textContent = 'Could not load the map library.';
+        });
+    }, { once: true });
+
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+window.openGeoMap = openGeoMap;
+
+document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-geo-map]');
+    if (button) {
+        event.preventDefault();
+        event.stopPropagation();
+        openGeoMap(button);
+    }
 });

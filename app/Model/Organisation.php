@@ -95,7 +95,6 @@ class Organisation extends AppModel
         'SharingGroupBlueprint' => array('table' => 'sharing_group_blueprints', 'fields' => array('org_id')),
         'Sighting' => array('table' => 'sightings', 'fields' => array('org_id')),
         'SightingdbOrg' => array('table' => 'sightingdb_orgs', 'fields' => array('org_id')),
-        'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
         'Tag' => array('table' => 'tags', 'fields' => array('org_id')),
         'TagCollection' => array('table' => 'tag_collections', 'fields' => array('org_id')),
         'User' => array('table' => 'users', 'fields' => array('org_id'))
