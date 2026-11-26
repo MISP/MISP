@@ -59,10 +59,7 @@ class ServersController extends AppController
 
     public function index()
     {
-        // Do not fetch server authkey from DB
-        $fields = $this->Server->schema();
-        unset($fields['authkey']);
-        $fields = array_keys($fields);
+        $fields = array_keys($this->Server->schema());
 
         $filters = $this->IndexFilter->harvestParameters(['search', 'internal', 'push', 'pull']);
         $conditions = [];
@@ -97,6 +94,14 @@ class ServersController extends AppController
             );
             $servers = $this->Server->find('all', $params);
             $servers = $this->Server->attachServerCacheTimestamps($servers);
+            $isSiteAdmin = $this->_isSiteAdmin();
+            foreach ($servers as $k => $server) {
+                if ($isSiteAdmin) {
+                    $servers[$k]['Server']['authkey'] = $this->Server->anonymizeAuthkey($server['Server']['authkey']);
+                } else {
+                    unset($servers[$k]['Server']['authkey']);
+                }
+            }
             return $this->RestResponse->viewData($servers, $this->response->type());
         } else {
             $this->paginate['fields'] = $fields;
@@ -111,6 +116,14 @@ class ServersController extends AppController
             $collection['tags'] = $this->Tag->find('list', array(
                   'fields' => array('id', 'name'),
             ));
+            $isSiteAdmin = $this->_isSiteAdmin();
+            foreach ($servers as $k => $server) {
+                if ($isSiteAdmin) {
+                    $servers[$k]['Server']['authkey'] = $this->Server->anonymizeAuthkey($server['Server']['authkey']);
+                } else {
+                    unset($servers[$k]['Server']['authkey']);
+                }
+            }
             $servers = $this->Server->attachRuleDescriptions($servers, $collection);
             $this->set('servers', $servers);
             $this->set('collection', $collection);
@@ -2497,7 +2510,7 @@ class ServersController extends AppController
 
     public function getRemoteUser($id)
     {
-        $user = $this->Server->getRemoteUser($id);
+        $user = $this->Server->getRemoteUser($id, $this->_isSiteAdmin());
         if ($user === null) {
             throw new NotFoundException(__('Invalid server'));
         }
