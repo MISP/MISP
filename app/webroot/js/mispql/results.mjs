@@ -734,6 +734,19 @@ function cellMenu(host) {
     return { toggle: toggle, close: close };
 }
 
+/**
+ * The page in the shape its FORMAT gave it: table and flat are rows written
+ * as CSV, no FORMAT is JSON (the records as MISP returns them for SELECT *).
+ */
+function asRan(output, model) {
+    var n = model.columns.length;
+    var cols = n + (n === 1 ? ' column' : ' columns');
+    if (output === 'table' || output === 'flat') {
+        return { file: 'csv', format: output, detail: 'CSV, ' + cols };
+    }
+    return { file: 'json', format: null, detail: model.raw ? 'JSON, the records as MISP returns them' : 'JSON, ' + cols };
+}
+
 function csvOf(columns, rows) {
     function c(v) {
         if (Array.isArray(v)) {
@@ -783,9 +796,14 @@ function renderRows(r, opts) {
     var info = el('div', 'cq-bar-info');
     bar.appendChild(info);
     var dl = el('div', 'dropdown cq-dl');
+    var ran = asRan(reply.output, model);
     dl.innerHTML = '<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">' +
         '<i class="fa-solid fa-download"></i><span>Download</span></button>' +
         '<ul class="dropdown-menu dropdown-menu-end">' +
+        '<li><button class="dropdown-item cq-dl-ran" type="button" data-dl="ran"><i class="fa-solid ' + (ran.file === 'csv' ? 'fa-file-csv' : 'fa-file-code') + ' fa-fw"></i>' +
+        '<span><span class="d-block">This page as it ran</span><span class="cq-dl-detail">' +
+        (ran.format ? '<code>FORMAT ' + ran.format + '</code>' : 'No FORMAT') + ' · ' + esc(ran.detail) + '</span></span></button></li>' +
+        '<li><hr class="dropdown-divider"></li>' +
         '<li><button class="dropdown-item" type="button" data-dl="csv"><i class="fa-solid fa-file-csv fa-fw"></i>This page as CSV</button></li>' +
         '<li><button class="dropdown-item" type="button" data-dl="json"><i class="fa-solid fa-file-code fa-fw"></i>This page as JSON</button></li>' +
         '<li><hr class="dropdown-divider"></li>' +
@@ -798,7 +816,7 @@ function renderRows(r, opts) {
             return;
         }
         var base = (r.table || 'rows') + '-' + new Date().toISOString().slice(0, 10);
-        if (b.dataset.dl === 'csv') {
+        if ((b.dataset.dl === 'ran' ? ran.file : b.dataset.dl) === 'csv') {
             download(base + '.csv', csvOf(model.columns, model.rows), 'text/csv');
         } else {
             download(base + '.json', JSON.stringify(model.raw || model.rows, null, 2), 'application/json');
@@ -1565,4 +1583,5 @@ export {
     levelNames,
     tagLane,
     tagParts,
+    asRan,
 };

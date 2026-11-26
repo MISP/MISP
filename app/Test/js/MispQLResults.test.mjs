@@ -2,7 +2,7 @@ import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient, failureMessage } from '../../webroot/js/mispql/client.mjs';
 import { snippets } from '../../webroot/js/mispql/snippets.mjs';
-import { cellLink, openSpec, columnField, filterEntries, tagEntries, sortNameOf, nextOrder, levelNames, tagLane, tagParts } from '../../webroot/js/mispql/results.mjs';
+import { cellLink, openSpec, columnField, filterEntries, tagEntries, sortNameOf, nextOrder, levelNames, tagLane, tagParts, asRan } from '../../webroot/js/mispql/results.mjs';
 
 const f = (type, level, operators) => ({ type: type, level: [level], operators: operators });
 const EQ = ['=', '!=', 'IN', 'NOT IN', 'LIKE', 'NOT LIKE'];
@@ -380,5 +380,17 @@ describe('Opened in place', () => {
         assert.equal(openSpec({ Object: true }, link('Event', '1')), null);
         assert.equal(openSpec({ Object: true }, null), null);
         assert.equal(openSpec(null, link('Object', '1')), null);
+    });
+});
+
+describe('Download as it ran', () => {
+    const model = (columns, raw) => ({ columns: columns, rows: [], raw: raw });
+    test('table and flat are CSV, named by their FORMAT', () => {
+        assert.deepEqual(asRan('table', model(['id', 'value'], null)), { file: 'csv', format: 'table', detail: 'CSV, 2 columns' });
+        assert.deepEqual(asRan('flat', model(['id'], null)), { file: 'csv', format: 'flat', detail: 'CSV, 1 column' });
+    });
+    test('no FORMAT is JSON: the records for SELECT *, the columns for a column list', () => {
+        assert.deepEqual(asRan('default', model(['id', 'value'], [{}])), { file: 'json', format: null, detail: 'JSON, the records as MISP returns them' });
+        assert.deepEqual(asRan('default', model(['id', 'value', 'type'], null)), { file: 'json', format: null, detail: 'JSON, 3 columns' });
     });
 });

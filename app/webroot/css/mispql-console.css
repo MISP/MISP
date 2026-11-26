@@ -594,6 +594,12 @@
 
 .cq-dl { margin-left: auto; }
 
+.cq-dl .dropdown-item > i { margin-right: 6px; color: var(--bs-secondary-color); }
+.cq-dl-ran { display: flex; align-items: flex-start; }
+.cq-dl-ran > i { margin-top: 3px; }
+.cq-dl-detail { display: block; color: var(--bs-secondary-color); font-size: 11.5px; }
+.cq-dl-detail code { color: var(--bs-body-color); font-size: inherit; }
+
 .cq-dl .btn,
 .cq-copy {
     display: inline-flex;
