@@ -103,7 +103,7 @@ class Relationship extends AnalystData
         }
         foreach ($results as $i => $v) {
             if (!empty($v[$this->alias]['related_object_type']) && !empty($v[$this->alias]['related_object_uuid']) && empty($results[$i][$this->alias]['related_object'])) {
-                $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $v[$this->alias]['related_object_type'], $v[$this->alias]['related_object_uuid']);
+                $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($user, $v[$this->alias]['related_object_type'], $v[$this->alias]['related_object_uuid']);
             }
         }
         return $results;
@@ -203,17 +203,9 @@ class Relationship extends AnalystData
 
     public function getInboundRelationships(array $user, $object_type, $object_uuid): array
     {
-        $conditions = [
-            'related_object_type' => $object_type,
-            'related_object_uuid' => $object_uuid,
-        ];
-        $acl = $this->analystDataConditions($user);
-        if (!empty($acl)) {
-            $conditions['AND'][] = $acl;
-        }
         $inboundRelations = $this->find('all', [
             'recursive' => -1,
-            'conditions' => $conditions,
+            'conditions' => $this->buildInboundConditions($user, $object_type, $object_uuid),
             'contain' => ['Org', 'Orgc', 'SharingGroup'],
         ]);
 
@@ -223,6 +215,44 @@ class Relationship extends AnalystData
         }
 
         return $inboundRelations;
+    }
+
+    /**
+     * Same as getInboundRelationships(), but for a list of uuids at once - one IN-list query
+     * instead of one query per uuid. Returns the relationships grouped by related_object_uuid.
+     */
+    public function getInboundRelationshipsBulk(array $user, $object_type, array $object_uuids): array
+    {
+        if (empty($object_uuids)) {
+            return [];
+        }
+        $inboundRelations = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => $this->buildInboundConditions($user, $object_type, $object_uuids),
+            'contain' => ['Org', 'Orgc', 'SharingGroup'],
+        ]);
+
+        $results = [];
+        foreach ($inboundRelations as $i => $relationship) {
+            $relationship = $relationship['Relationship'];
+            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($user, $relationship['object_type'], $relationship['object_uuid']);
+            $results[$relationship['related_object_uuid']][] = $inboundRelations[$i];
+        }
+
+        return $results;
+    }
+
+    private function buildInboundConditions(array $user, $object_type, $object_uuid): array
+    {
+        $conditions = [
+            'related_object_type' => $object_type,
+            'related_object_uuid' => $object_uuid,
+        ];
+        $acl = $this->analystDataConditions($user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
+        }
+        return $conditions;
     }
 
     public function countRelationships(): array
