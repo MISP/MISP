@@ -719,6 +719,29 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame(1, $this->resolvedPatterns());
     }
 
+    public function testComplexSearchKeepsItsPageAndCountsAllBatches()
+    {
+        $ids = $this->ids(...array_keys($this->ids));
+        $memoryLimit = ini_get('memory_limit');
+        $coefficient = Configure::read('MISP.default_attribute_memory_coefficient');
+        try {
+            ini_set('memory_limit', '1024M');
+            Configure::write('MISP.default_attribute_memory_coefficient', 2 / 1024);
+            $paging = ['limit' => 4, 'page' => 2];
+            $query = ['id' => ['IN' => $ids]];
+            $tmp = $this->attribute->restSearch($this->user, 'json', $paging,
+                false, false, $count, $renderView, $skipped, $query);
+            $total = $this->attribute->restSearch($this->user, 'count', $paging,
+                false, false, $count, $renderView, $skipped, $query);
+        } finally {
+            ini_set('memory_limit', $memoryLimit);
+            Configure::write('MISP.default_attribute_memory_coefficient', $coefficient);
+        }
+        $rows = json_decode($tmp->intoString(), true)['response']['Attribute'];
+        $this->assertSame(array_slice($ids, 4, 4), array_map('intval', array_column($rows, 'id')));
+        $this->assertSame(count($ids), (int)$total->intoString());
+    }
+
     public function testAFetchReadsTheValuesOfItsCorrelationsAtOnce()
     {
         $sides = [$this->ids['domain'], $this->ids['other'], $this->ids['composite']];

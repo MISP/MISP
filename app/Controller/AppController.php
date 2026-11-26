@@ -2061,6 +2061,15 @@ class AppController extends Controller
         $elementCounter = 0;
         $renderView = false;
         $responseType = empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0];
+        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
+        $pageHeaders = [];
+        if ($returnFormat !== 'count' && $roleLimit > 0 && ($filters['limit'] ?? 0) > $roleLimit) {
+            $pageHeaders['X-Result-Page-Limit'] = $roleLimit;
+        }
+        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
+            $filters['limit'] = $roleLimit;
+        }
+
         // halt execution if we were to query for items above the ID. Blocks the endless caching bug
         if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
             if ($this->__cachingOverflow($filters, $modelName, $scope)) {
@@ -2069,13 +2078,8 @@ class AppController extends Controller
                     'X-Result-Count' => 0,
                     'X-Export-Module-Used' => $returnFormat,
                     'X-Response-Format' => $responseType
-                ]);
+                ] + $pageHeaders);
             }
-        }
-
-        $roleLimit = $this->User->getUserRestLimit($this->Auth->user(), $this);
-        if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
-            $filters['limit'] = $roleLimit;
         }
 
         /** @var TmpFileTool $final */
@@ -2107,6 +2111,9 @@ class AppController extends Controller
             if (isset($responseTypeMapping[$responseType])) {
                 $this->response->type($responseTypeMapping[$responseType]);
             }
+            if ($pageHeaders) {
+                $this->response->header($pageHeaders);
+            }
             return $this->response;
         } else {
             if (!empty($filters['sign'])) {
@@ -2120,7 +2127,7 @@ class AppController extends Controller
                 'X-Skipped-Elements-Count' => $skippedElementsCounter,
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"'
             ];
-            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers);
+            return $this->RestResponse->viewData($final, $responseType, false, true, $filename, $headers + $pageHeaders);
         }
     }
 
@@ -2134,13 +2141,9 @@ class AppController extends Controller
      */
     private function __cachingOverflow(array $filters, $modelName, $scope)
     {
-        $offset = ($filters['page'] * (empty($filters['limit']) ? 60 : $filters['limit'])) + 1;
+        $offset = (max(1, (int)$filters['page']) - 1) * (empty($filters['limit']) ? 60 : $filters['limit']);
         $max_id = $this->$modelName->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
-        $max_id = intval($max_id[0][0]['max_id']);
-        if ($max_id < $offset) {
-            return true;
-        }
-        return false;
+        return (int)$max_id[0][0]['max_id'] <= $offset;
     }
 
     /**
