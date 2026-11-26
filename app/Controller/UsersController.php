@@ -1571,9 +1571,13 @@ class UsersController extends AppController
             // The stored homepage is the same kind of value as the session URL
             // above and gets the same check - a leading '/' alone let
             // '//attacker.example' through to the Location header verbatim.
-            $url = $this->User->UserSetting->getHomepagePath($this->Auth->user('id'));
+            $user = $this->Auth->user();
+            $url = $this->User->UserSetting->getHomepagePath($user['id']);
             if ($url === '') {
-                $url = array('controller' => 'events', 'action' => 'index');
+                $controller = $this->User->hasNotifications($user)
+                    ? 'dashboards'
+                    : 'events';
+                $url = array('controller' => $controller, 'action' => 'index');
             }
         }
         $this->redirect($url);
