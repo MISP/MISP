@@ -1,8 +1,11 @@
 <?php
 App::uses('HttpSocketExtended', 'Tools');
+App::uses('DecompressTool', 'Tools');
 
 class CurlClient extends HttpSocketExtended
 {
+    /** @var resource|null Streamed download destination; ordinary requests are unchanged. */
+    private $downloadStream;
     /** @var resource */
     private $ch;
 
@@ -26,13 +29,38 @@ class CurlClient extends HttpSocketExtended
     private $allowSelfSigned;
 
     /** @var bool */
-    private $verifyPeer;
+    private $verifyPeer = true;
 
     /** @var bool */
     private $compress = true;
 
     /** @var array */
     private $proxy = [];
+
+    /**
+     * CURLOPT_RESOLVE entries, as "host:port:ip". Lets a caller that has
+     * already validated where a name points force the connection to that
+     * exact address, closing the window in which the name could resolve
+     * somewhere else between the check and the request.
+     * @var array
+     */
+    private $pinnedHosts = [];
+
+    /** @var bool */
+    private $followRedirects = true;
+
+    /** @var int|null Maximum response body size in bytes, null for no limit */
+    private $maxSize;
+
+    /**
+     * Called as ($fromUrl, $toUrl, $client) before each redirect is taken.
+     * Returning false or throwing refuses the hop. When set, curl's own
+     * following is turned off and redirects are driven here instead, because
+     * curl resolves a redirect target fresh and a pin on the original host
+     * does not constrain it.
+     * @var callable|null
+     */
+    private $redirectValidator;
 
     /** @var array */
     private $defaultOptions;
@@ -87,6 +115,20 @@ class CurlClient extends HttpSocketExtended
     public function get($uri = null, $query = [], $request = [])
     {
         return $this->internalRequest('GET', $uri, $query, $request);
+    }
+
+    /** Download without retaining the response body in PHP memory. */
+    public function download($uri, $destination, array $request = [])
+    {
+        $stream = fopen($destination, 'xb');
+        if ($stream === false) { throw new RuntimeException('Could not open download destination.'); }
+        $this->downloadStream = $stream;
+        try {
+            return $this->get($uri, [], $request);
+        } finally {
+            fclose($stream);
+            $this->downloadStream = null;
+        }
     }
 
     /**
@@ -176,13 +218,109 @@ class CurlClient extends HttpSocketExtended
     }
 
     /**
+     * Force connections to $host:$port to use $ip.
+     *
+     * Only meaningful for a name - curl does not resolve an address literal,
+     * so there is no lookup to override. Pass the address that was actually
+     * validated: without this, a validated hostname is resolved again at
+     * request time and may answer differently.
+     *
+     * @param string $host
+     * @param int $port
+     * @param string $ip
+     * @return void
+     */
+    public function pinHost($host, $port, $ip)
+    {
+        if (str_contains($ip, ':')) {
+            $ip = "[$ip]"; // curl wants IPv6 addresses bracketed here
+        }
+        $this->pinnedHosts[] = sprintf('%s:%d:%s', $host, $port, $ip);
+        $this->defaultOptions = $this->generateDefaultOptions();
+    }
+
+    /**
+     * Whether curl follows redirects itself. Turn this off when each hop has
+     * to be validated before it is taken - curl resolves a redirect target
+     * fresh, so a pin on the original host does not constrain it.
+     *
+     * @param bool $follow
+     * @return void
+     */
+    public function setFollowRedirects($follow)
+    {
+        $this->followRedirects = (bool)$follow;
+        $this->defaultOptions = $this->generateDefaultOptions();
+    }
+
+    /**
+     * Abort a response larger than $bytes.
+     *
+     * Enforced twice: CURLOPT_MAXFILESIZE rejects an honestly advertised
+     * Content-Length before any body is transferred, and the progress
+     * callback catches a server that understates or omits it.
+     *
+     * @param int|null $bytes null removes the limit
+     * @return void
+     */
+    public function setMaxSize($bytes)
+    {
+        $this->maxSize = $bytes === null ? null : (int)$bytes;
+        $this->defaultOptions = $this->generateDefaultOptions();
+    }
+
+    /**
+     * Vet every redirect before it is taken, instead of letting curl follow
+     * them unseen.
+     *
+     * The callable receives ($fromUrl, $toUrl, $client) and refuses the hop by
+     * returning false or throwing. It is handed the client so it can pin the
+     * new host to an address it has just validated. Only GET and HEAD are
+     * followed; anything else stops at the redirect and returns it.
+     *
+     * @param callable|null $validator null restores curl's own following
+     * @return void
+     */
+    public function setRedirectValidator($validator = null)
+    {
+        if ($validator !== null && !is_callable($validator)) {
+            throw new InvalidArgumentException('Redirect validator must be callable.');
+        }
+        $this->redirectValidator = $validator;
+        $this->setFollowRedirects($validator === null);
+    }
+
+    /**
+     * Returns a CURLOPT_WRITEFUNCTION that appends to $body and fails the
+     * transfer (CURLE_WRITE_ERROR) once more than $limit bytes have arrived.
+     *
+     * @param string $body filled by the returned callback
+     * @param int|null $limit null or 0 for no limit
+     * @return Closure
+     */
+    public static function bodyCollector(&$body, $limit)
+    {
+        $received = 0;
+        return function ($curl, $data) use (&$body, &$received, $limit) {
+            $length = strlen($data);
+            $received += $length;
+            if ($limit && $received > $limit) {
+                return -1; // any value other than $length aborts the transfer
+            }
+            $body .= $data;
+            return $length;
+        };
+    }
+
+    /**
      * @param string $method
      * @param string $url
      * @param array|string $query
      * @param array $request
+     * @param int $redirectsFollowed
      * @return HttpSocketResponseExtended
      */
-    private function internalRequest($method, $url, $query, $request)
+    private function internalRequest($method, $url, $query, $request, $redirectsFollowed = 0)
     {
         if (empty($url)) {
             throw new InvalidArgumentException("No URL provided.");
@@ -244,15 +382,65 @@ class CurlClient extends HttpSocketExtended
             }
             return $len;
         };
+        $validateRedirects = $this->redirectValidator !== null && ($method === 'GET' || $method === 'HEAD');
+        // The write function sees the body after libcurl has decoded it, so
+        // the limit covers what a small compressed response inflates to.
+        $limit = $this->maxSize ?: DecompressTool::limit();
+        $body = '';
+        $stream = $this->downloadStream;
+        $streaming = is_resource($stream);
+        $streamLimitExceeded = false;
+        if ($streaming) {
+            $options[CURLOPT_RETURNTRANSFER] = false;
+            $received = 0;
+            $options[CURLOPT_WRITEFUNCTION] = static function ($curl, $chunk) use (
+                $stream, $limit, $validateRedirects, $url, &$responseHeaders, &$received, &$streamLimitExceeded
+            ) {
+                $length = strlen($chunk);
+                $received += $length;
+                if ($limit && $received > $limit) {
+                    $streamLimitExceeded = true;
+                    return 0;
+                }
+                // The next request will stream its own body into the same destination.
+                if ($validateRedirects && self::redirectTarget(
+                    curl_getinfo($curl, CURLINFO_HTTP_CODE),
+                    $responseHeaders,
+                    $url
+                ) !== null) {
+                    return $length;
+                }
+                $offset = 0;
+                while ($offset < $length) {
+                    $written = fwrite($stream, substr($chunk, $offset));
+                    if (!$written) {
+                        return 0;
+                    }
+                    $offset += $written;
+                }
+                return $length;
+            };
+        } else {
+            $options[CURLOPT_WRITEFUNCTION] = self::bodyCollector($body, $limit);
+        }
         if (!curl_setopt_array($this->ch, $options)) {
             throw new \RuntimeException('curl error: Could not set options');
         }
 
         // Download the given URL, and return output
-        $output = curl_exec($this->ch);
+        $output = curl_exec($this->ch) === false ? false : $body;
 
         if ($output === false) {
             $errorCode = curl_errno($this->ch);
+            if ($limit && $errorCode === CURLE_WRITE_ERROR && (!$streaming || $streamLimitExceeded)) {
+                throw new SocketException("Response exceeds the maximum allowed size of $limit bytes.");
+            }
+            // Both of these mean the size limit tripped: 63 when the server
+            // advertised too large a Content-Length, 42 when the progress
+            // callback aborted a body that grew past the limit anyway.
+            if ($this->maxSize !== null && ($errorCode === CURLE_FILESIZE_EXCEEDED || $errorCode === CURLE_ABORTED_BY_CALLBACK)) {
+                throw new SocketException("Response exceeds the maximum allowed size of {$this->maxSize} bytes.");
+            }
             $errorMessage = curl_error($this->ch);
             if (!empty($errorMessage)) {
                 $errorMessage = ": $errorMessage";
@@ -266,7 +454,44 @@ class CurlClient extends HttpSocketExtended
         // See https://github.com/php-mod/curl/issues/95
         curl_reset($this->ch);
 
+        if ($validateRedirects) {
+            $target = self::redirectTarget($code, $responseHeaders, $url);
+            if ($target !== null) {
+                if ($redirectsFollowed >= 10) {
+                    throw new SocketException("Too many redirects while fetching $url.");
+                }
+                if (call_user_func($this->redirectValidator, $url, $target, $this) === false) {
+                    throw new SocketException("Refused to follow the redirect from $url to $target.");
+                }
+                // The Location already carries its own query string, so the
+                // original query must not be appended a second time.
+                return $this->internalRequest($method, $target, [], $request, $redirectsFollowed + 1);
+            }
+        }
+
         return $this->constructResponse($output, $responseHeaders, $code);
+    }
+
+    /**
+     * @param int $code
+     * @param array $responseHeaders
+     * @param string $currentUrl
+     * @return string|null absolute redirect target, or null if not a redirect
+     */
+    private static function redirectTarget($code, array $responseHeaders, $currentUrl)
+    {
+        if (!in_array((int)$code, [301, 302, 303, 307, 308], true)) {
+            return null;
+        }
+        $location = isset($responseHeaders['location']) ? $responseHeaders['location'] : null;
+        if (is_array($location)) {
+            $location = end($location);
+        }
+        if (empty($location)) {
+            return null;
+        }
+        App::uses('UrlEgressValidator', 'Tools');
+        return UrlEgressValidator::resolveLocation($location, $currentUrl);
     }
 
     public function disconnect()
@@ -318,7 +543,7 @@ class CurlClient extends HttpSocketExtended
     private function generateDefaultOptions()
     {
         $options = [
-            CURLOPT_FOLLOWLOCATION => true, // Allows to follow redirect
+            CURLOPT_FOLLOWLOCATION => $this->followRedirects, // Allows to follow redirect
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_RETURNTRANSFER => true, // Should cURL return or print out the data? (true = return, false = print)
             CURLOPT_HEADER => false, // Include header in result?
@@ -345,6 +570,21 @@ class CurlClient extends HttpSocketExtended
         if ($this->allowSelfSigned) {
             $options[CURLOPT_SSL_VERIFYPEER] = $this->verifyPeer;
             $options[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
+
+        if (!empty($this->pinnedHosts)) {
+            $options[CURLOPT_RESOLVE] = $this->pinnedHosts;
+        }
+
+        if ($this->maxSize !== null) {
+            $maxSize = $this->maxSize;
+            $options[CURLOPT_MAXFILESIZE] = $maxSize;
+            $options[CURLOPT_NOPROGRESS] = false;
+            $options[CURLOPT_PROGRESSFUNCTION] = function ($curl, $downloadSize, $downloaded, $uploadSize, $uploaded) use ($maxSize) {
+                // Non-zero aborts the transfer. Checking the advertised size
+                // too stops a large body before the first byte arrives.
+                return ($downloaded > $maxSize || $downloadSize > $maxSize) ? 1 : 0;
+            };
         }
 
         if (!empty($this->proxy)) {

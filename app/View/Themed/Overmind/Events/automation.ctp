@@ -25,7 +25,7 @@
             <br />
             <?php echo __('You can use the <a href="' . $baseurl . '/api/rest" class="text-decoration-none">REST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.');?>
             <br />
-            <?php echo __('You can view the <a href="' . $baseurl . '/automation/1" class="text-decoration-none">old MISP automation page</a>.');?>
+            <?php echo __('You can view the <a href="' . $baseurl . '/events/automation/1" class="text-decoration-none">old MISP automation page</a>.');?>
         </p>
     </div>
 

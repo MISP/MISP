@@ -22,24 +22,13 @@ if (!empty($error)) {
     'class' => 'm-0',
 ]); ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('User') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-key text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Create new credentials') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('for') ?> <?= h($user['User']['email']) ?>
-        </p>
-    </div>
-    <i class="fas fa-user-shield text-primary" style="font-size:2rem; opacity:.5;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('User'),
+    'title' => __('Create new credentials'),
+    'description' => __('for') . ' ' . $user['User']['email'],
+    'titleIcon' => 'fas fa-key',
+    'icon' => 'fas fa-user-shield',
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="container-fluid px-4 py-4">
@@ -73,14 +62,15 @@ if (!empty($error)) {
     </div>
 </div>
 
-<!-- ── FOOTER ───────────────────────────────────────────────── -->
-<div class="px-4 py-3 d-flex justify-content-end gap-2 border-top">
-    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-        <?= __('Cancel') ?>
-    </button>
-    <button type="submit" class="btn btn-primary"<?= !empty($error) ? ' disabled' : '' ?>>
-        <i class="fas fa-key me-1"></i><?= __('Create & send credentials') ?>
-    </button>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_footer', [
+    'align' => 'end',
+    'bleed' => true,
+    'cancel' => ['label' => __('Cancel')],
+    'submit' => [
+        'label' => __('Create & send credentials'),
+        'icon' => 'fas fa-key',
+        'disabled' => !empty($error),
+    ],
+]) ?>
 
 <?= $this->Form->end() ?>

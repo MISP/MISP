@@ -23,7 +23,7 @@ echo $this->element('genericElements/Form/genericForm', [
 ?>
 <script>
     function redirectToExportResult() {
-        var idListStr = '<?= json_encode($idList) ?>'
+        var idListStr = '<?= json_encode($idList, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>'
         var returnFormat = $('#EventReturnFormat').val()
         window.location = '<?= $baseurl ?>/events/restSearchExport/' + idListStr + '/' + returnFormat
     }

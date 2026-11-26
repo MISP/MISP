@@ -8,7 +8,7 @@ class Module_blocklist_action extends WorkflowBaseActionModule
     public $version = '0.8';
     public $id = 'blocklist-action-module';
     public $name = 'Update blocklist';
-    public $description = 'Update a blocklist file with event attributes. Supports removal-by-tag, atomic writes with one-generation backup, and optional rolling filesystem snapshots.';
+    public $description = 'Update a blocklist file with event attributes. Supports removal-by-tag, atomic writes with one-generation backup, and optional rolling filesystem snapshots. Files are written to webroot/misp-export and can be downloaded by anyone who can reach this MISP, without logging in.';
     public $icon = 'server';
     public $inputs = 1;
     public $outputs = 1;
@@ -35,7 +35,7 @@ class Module_blocklist_action extends WorkflowBaseActionModule
             ],
             [
                 'id' => 'blocklist',
-                'label' => __('Filename of the blocklist (relative to webroot/misp-export)'),
+                'label' => __('Filename of the blocklist (in webroot/misp-export, downloadable without login)'),
                 'required' => true,
                 'type' => 'input',
             ],
@@ -123,6 +123,11 @@ class Module_blocklist_action extends WorkflowBaseActionModule
 
         // Strip path component, keep the resolved file in export dir.
         $blocklistFilename = basename((string)($params['blocklist']['value'] ?? ''));
+        $allowedExtensions = ['txt', 'list', 'blocklist', 'csv'];
+        $extension = pathinfo($blocklistFilename, PATHINFO_EXTENSION);
+        if (!in_array($extension, $allowedExtensions, true)) {
+            return $this->__fail(__('Blocklist filename has an invalid extension.'), $errors, $roamingData);
+        }
         if ($blocklistFilename === '' || $blocklistFilename === '.' || $blocklistFilename === '..') {
             return $this->__fail(__('Blocklist filename is empty or invalid.'), $errors, $roamingData);
         }

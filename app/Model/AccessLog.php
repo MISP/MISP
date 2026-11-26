@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('DecompressTool', 'Tools');
 
 /**
  * @property Organisation $Organisation
@@ -9,6 +10,7 @@ class AccessLog extends AppModel
 {
     const BROTLI_HEADER = "\xce\xb2\xcf\x81";
     const COMPRESS_MIN_LENGTH = 256;
+    const DISPLAY_DECOMPRESS_LIMIT = 10485760;
 
     const REQUEST_TYPES = [
         0 => 'Unknown',
@@ -102,6 +104,25 @@ class AccessLog extends AppModel
     }
 
     /**
+     * Whether this request has already registered its deferred writer.
+     *
+     * AppController::beforeFilter() runs twice for any request that ends in an
+     * exception: CakeErrorController extends AppController, and
+     * ExceptionRenderer::_getController() calls startupProcess() on it to render
+     * the error page. __accessMonitor() therefore reaches logRequest() twice for
+     * one HTTP request, and the second pass measured the error controller rather
+     * than the request - overwriting the real duration, query count, memory usage
+     * and query log on the row the first pass had already written.
+     *
+     * ClassRegistry hands back the same model instance to both passes, so an
+     * instance flag is enough to keep one row per request carrying the numbers
+     * the request actually produced.
+     *
+     * @var bool
+     */
+    private $deferredWriterRegistered = false;
+
+    /**
      * @param array $user
      * @param string $remoteIp
      * @param CakeRequest $request
@@ -111,6 +132,9 @@ class AccessLog extends AppModel
      */
     public function logRequest(array $user, $remoteIp, CakeRequest $request, $includeRequestBody = true)
     {
+        if ($this->deferredWriterRegistered) {
+            return true;
+        }
         $requestTime = $this->requestTime();
         $logClientIp = Configure::read('MISP.log_client_ip');
         $includeSqlQueries = Configure::read('MISP.log_paranoid_include_sql_queries');
@@ -138,6 +162,7 @@ class AccessLog extends AppModel
         }
 
         // Save data on shutdown
+        $this->deferredWriterRegistered = true;
         register_shutdown_function(function () use ($dataToSave, $requestTime, $includeSqlQueries) {
             session_write_close(); // close session to allow concurrent requests
             $this->saveOnShutdown($dataToSave, $requestTime, $includeSqlQueries);
@@ -158,8 +183,7 @@ class AccessLog extends AppModel
 
         $deleted = $this->getAffectedRows();
         if ($deleted > 100) {
-            $dataSource = $this->getDataSource();
-            $dataSource->query('OPTIMIZE TABLE ' . $dataSource->name($this->table));
+            $this->getDataSource()->query($this->getSqlDialect()->optimizeTable($this->table));
         }
         return $deleted;
     }
@@ -171,7 +195,6 @@ class AccessLog extends AppModel
     private function requestBody(CakeRequest $request)
     {
         $requestContentType = $_SERVER['CONTENT_TYPE'] ?? null;
-        $requestEncoding = $_SERVER['HTTP_CONTENT_ENCODING'] ?? null;
 
         if (str_starts_with($requestContentType, 'multipart/form-data')) {
            $input = http_build_query($request->data, '', '&');
@@ -179,7 +202,8 @@ class AccessLog extends AppModel
             $input = $request->input();
         }
 
-        return "$requestContentType\n$requestEncoding\n$input";
+        // The body is already decoded, so the encoding part stays empty.
+        return "$requestContentType\n\n$input";
     }
 
     /**
@@ -215,6 +239,12 @@ class AccessLog extends AppModel
         }
 
         try {
+            // Each call writes a new row. Without this the model carries the id
+            // of the previous save and Model::save() issues an UPDATE instead,
+            // which is how the double beforeFilter() above went unnoticed - it
+            // produced one row holding the wrong pass's measurements rather than
+            // an obvious duplicate.
+            $this->create();
             return $this->save($data, ['atomic' => false]);
         } catch (Exception $e) {
             $this->logException("Could not insert access log to database", $e, LOG_WARNING);
@@ -263,13 +293,13 @@ class AccessLog extends AppModel
 
         list($contentType, $encoding, $data) = explode("\n", $request, 3);
 
-        if ($encoding === 'gzip') {
-            $data = gzdecode($data);
-        } elseif ($encoding === 'br') {
-            if (function_exists('brotli_uncompress')) {
-                $data = brotli_uncompress($data);
-            } else {
-                $data = false;
+        // Rows written earlier may carry a gzip or br label over a body that
+        // was stored already decoded: only real gzip data is decoded, bounded.
+        if ($encoding === 'gzip' && str_starts_with($data, "\x1f\x8b")) {
+            try {
+                $data = DecompressTool::decode('gzip', $data, self::DISPLAY_DECOMPRESS_LIMIT);
+            } catch (Exception $e) {
+                $data = '[compressed request body not displayed]';
             }
         }
 

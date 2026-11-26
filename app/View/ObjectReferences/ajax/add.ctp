@@ -144,7 +144,7 @@
     </fieldset>
 </div>
 <script>
-    var targetEvent = <?php echo json_encode($event); ?>;
+    var targetEvent = <?php echo JsonTool::encodeForScript($event); ?>;
     $(function() {
         $('#ObjectReferenceReferencedUuid').on('input', function() {
             objectReferenceInput();

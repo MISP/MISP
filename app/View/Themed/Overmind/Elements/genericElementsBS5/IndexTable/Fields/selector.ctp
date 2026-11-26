@@ -82,14 +82,6 @@ if ($field['data_path'] === 'Regexp.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
-if ($field['data_path'] === 'Allowedlist.id') {
-    if (!isset($mayModify)){
-        $mayModify = $isSiteAdmin;
-    }
-    $checkboxAttrs['data-item-id'] = $id;
-    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
-}
-
 if ($field['data_path'] === 'CorrelationExclusion.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
@@ -115,14 +107,6 @@ if ($field['data_path'] === 'TagCollection.id') {
 }
 
 if ($field['data_path'] === 'Taxonomy.id') {
-    if (!isset($mayModify)){
-        $mayModify = $mayModify = $isSiteAdmin;
-    }
-    $checkboxAttrs['data-item-id'] = $id;
-    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
-}
-
-if ($field['data_path'] === 'Template.id') {
     if (!isset($mayModify)){
         $mayModify = $mayModify = $isSiteAdmin;
     }
@@ -315,7 +299,7 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
                             }
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
-                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','sm');">
+                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','md');">
                                 <div>
                                     <i class="fas fa-<?= $iconClass ?> me-2"></i>
                                     <?= h($label) ?>
@@ -332,11 +316,29 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
                             ) ?>
                         <?php endif; ?>
 
+                    <?php elseif ($action['type'] === 'modal'): ?>
+                        <?php
+                        $classes = 'dropdown-item ' . ($action['class'] ?? '');
+                        $onclick = sprintf(
+                            "event.preventDefault(); openModal('%s', '%s');",
+                            $url,
+                            $action['size'] ?? 'xl'
+                        );
+                        ?>
+                        <a class="<?= h(trim($classes)) ?>"
+                        href="<?= h($url) ?>"
+                        onclick="<?= h($onclick) ?>">
+                            <div>
+                                <i class="fas fa-<?= h($action['icon']) ?> me-2"></i>
+                                <?= h($action['label']) ?>
+                            </div>
+                        </a>
+
                     <?php elseif ($action['type'] === 'ajax'): ?>
                         <?php
                         $classes = 'dropdown-item ' . ($action['class'] ?? '');
                         if ($action['label'] ===  __('Delete')){
-                            $onclick="event.preventDefault(); openModal('$url', 'sm');";
+                            $onclick="event.preventDefault(); openModal('$url', 'md');";
                         } else {
                             $onclick="event.preventDefault(); openModal('$url');";
                         }

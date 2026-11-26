@@ -51,7 +51,7 @@ if (!$isDefault) {
 if ($canPublish) {
     $actions[] = [
         'url' => "$baseurl/galaxy_clusters/publish/$id",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/publish/$id', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/publish/$id', 'md');",
         'icon' => 'fas fa-upload',
         'label' => __('Publish Cluster'),
         'success' => true,
@@ -61,7 +61,7 @@ if ($canPublish) {
 if ($canRestore) {
     $actions[] = [
         'url' => "$baseurl/galaxy_clusters/restore/$id",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/restore/$id', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/restore/$id/origin:view', 'md');",
         'icon' => 'fas fa-trash-arrow-up',
         'label' => __('Restore Cluster'),
         'success' => true,
@@ -71,7 +71,7 @@ if ($canRestore) {
 if ($canDelete) {
     $actions[] = [
         'url' => "$baseurl/galaxy_clusters/delete/$id",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/delete/$id', 'lg');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/delete/$id/origin:view', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Cluster'),
         'danger' => true,

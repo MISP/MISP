@@ -93,6 +93,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $list,
+            'cards_per_row' => 5,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => [

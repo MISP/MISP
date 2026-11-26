@@ -169,7 +169,7 @@ $this->set('headerActions', [
                             <div class="alert alert-warning py-2 mb-2" role="alert"
                                  style="font-size:.78rem;">
                                 <i class="fas fa-triangle-exclamation me-1"></i>
-                                <?= __('Do not run a bare %s or add %s. If your compose file bind-mounts %s from a source checkout, it no longer matches the image\'s lock file and composer will happily REMOVE the packages the image added on top (aws-sdk, elasticsearch, openid-connect, phpseclib, DebugKit). Updating the named packages only, as above, leaves the rest alone.',
+                                <?= __('Do not run a bare %s or add %s. If your compose file bind-mounts %s from a source checkout, it no longer matches the image\'s lock file and composer will happily REMOVE the packages the image added on top (aws-sdk, elasticsearch, openid-connect, phpseclib). Updating the named packages only, as above, leaves the rest alone.',
                                     '<code>composer install</code>', '<code>--no-dev</code>',
                                     '<code>app/composer.json</code>') ?>
                             </div>

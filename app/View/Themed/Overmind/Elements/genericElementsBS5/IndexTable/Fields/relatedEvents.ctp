@@ -77,7 +77,7 @@ $overflow   = $total - $maxVisible;
                 !empty($ev['date'])  ? h($ev['date'])  : null,
             ]));
         ?>
-        <a href="<?= $baseurl ?>/events/view/<?= h($ev['id']) ?>"
+        <a href="<?= $baseurl ?>/events/view2/<?= h($ev['id']) ?>"
            class="badge text-decoration-none bg-primary <?= $hidden ? ' d-none related-event-extra' : '' ?>"
            title="<?= $tooltip ?>">
             #<?= h($ev['id']) ?>
@@ -102,7 +102,7 @@ $overflow   = $total - $maxVisible;
     <?php endif; ?>
 
     <?php if ($attribute && !empty($attribute['value'])): ?>
-        <a href="<?= $baseurl ?>/attributes/search/value:<?= urlencode($attribute['value']) ?>"
+        <a href="<?= $baseurl ?>/attributes/index?value=<?= rawurlencode('"' . $attribute['value'] . '"') ?>"
            class="text-secondary ms-1"
            title="<?= __('Search for this value') ?>"
            aria-label="<?= __('Search for this value') ?>">

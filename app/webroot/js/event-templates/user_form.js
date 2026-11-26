@@ -532,7 +532,8 @@
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': (window.csrfToken || '')
             },
             body: JSON.stringify(body)
         }).then(function (r) {
@@ -542,7 +543,8 @@
         }).then(function (res) {
             if (res.status >= 200 && res.status < 300 && res.data && res.data.event_id) {
                 // Redirect to the newly-created event.
-                window.location.href = cfg.baseurl + '/events/view/' + res.data.event_id;
+                window.location.href = (cfg.eventViewUrl || cfg.baseurl + '/events/view/')
+                    + res.data.event_id;
                 return;
             }
             submitting = false;
@@ -1156,7 +1158,8 @@
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': (window.csrfToken || '')
                     },
                     credentials: 'same-origin',
                     cache: 'no-cache'

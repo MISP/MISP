@@ -1,85 +1,101 @@
 <?php
-$edit = $this->request->params['action'] === 'edit' ? true : false;
+$isEdit = $this->request->params['action'] === 'edit';
+$relationship = $this->request->data['ObjectRelationship'] ?? [];
 
 echo $this->Form->create('ObjectRelationship', [
-    'class' => 'needs-validation',
-    'novalidate' => true
+    'id' => 'objectRelationshipForm',
+    'novalidate' => true,
+]);
+
+echo $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'object',
+    'eyebrow' => __('Object Relationships'),
+    'title' => $isEdit ? __('Edit Object Relationship') : __('Add Object Relationship'),
+    'description' => __('A relationship type that objects can be linked with, such as "downloaded-from" or "contains".'),
+    'icon' => 'fas fa-diagram-project',
+    'isEdit' => $isEdit,
 ]);
 ?>
 
-<div class="container me-5">
+<div class="container-fluid px-4 py-4">
 
-    <div class="row justify-content-center">
+    <div class="d-flex flex-column gap-4">
 
-        <div class="card shadow-sm">
+        <!-- ── NAME ────────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'object',
+                'label' => __('Name'),
+                'required' => true,
+            ]) ?>
+            <?php
+            /* Form->text(), not Form->control(): the latter is CakePHP 3 API and
+             * fell through FormHelper::__call(), which silently dropped the
+             * class and the placeholder. */
+            echo $this->Form->text('name', [
+                'id' => 'ObjectRelationshipName',
+                'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
+                'style' => 'border-bottom:1px solid #d8dde3 !important; outline:none;',
+                'placeholder' => __('e.g. downloaded-from'),
+                'autocomplete' => 'off',
+                'required' => true,
+            ]);
+            ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Lowercase and hyphenated, by convention.'),
+            ]) ?>
+        </div>
 
-            <div class="card-body">
+        <!-- ── DESCRIPTION ─────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'object',
+                'label' => __('Description'),
+            ]) ?>
+            <?= $this->Form->textarea('description', [
+                'id' => 'ObjectRelationshipDescription',
+                'class' => 'form-control',
+                'style' => 'border-color:#d8dde3;',
+                'rows' => 5,
+                'placeholder' => __('What this relationship means between two objects'),
+            ]) ?>
+        </div>
 
-                <h3 class="mb-2">
-                    <?=  $edit ? __('Edit ObjectRelationship') : __('Create New ObjectRelationship')  ?>
-                </h3>
-
-                <!-- NAME -->
-                <div class="mb-3">
-                    <?= $this->Form->label('name', __('Name'), ['class' => 'form-label fw-semibold']) ?>
-
-                    <?= $this->Form->control('name', [
-                        'label' => false,
-                        'class' => 'form-control bg-light',
-                        'placeholder' => 'Relationship name',
-                        'required' => true
-                    ]) ?>
-                </div>
-
-                <!-- DESCRIPTION -->
-                <div class="mb-4">
-                    <?= $this->Form->label('description', __('Description') . ' (Optional)', ['class' => 'form-label fw-semibold']) ?>
-
-                    <?= $this->Form->textarea('description', [
-                        'class' => 'form-control bg-light',
-                        'rows' => 5,
-                        'placeholder' => __('A description of the relationship')
-                    ]) ?>
-                </div>
-
-                <!-- HIGHLIGHTED -->
-                <div class="mb-4">
-                    <div class="form-check form-switch">
-                        <?= $this->Form->checkbox('highlighted', [
-                            'class' => 'form-check-input', 
-                            'id' => 'checkHighlighted',
-                            'hiddenField' => true,
-                            'checked' => (isset($highlighted) && $highlighted === true)
-                        ]) ?>
-                        <?= $this->Form->label('checkHighlighted', __('Highlight this relationship'), ['class' => 'form-check-label']) ?>
-                    </div>
-                </div>
-
-
-                <!-- ACTION -->
-                <div class="d-flex justify-content-end gap-3">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">
-                        <?= __('Cancel') ?>
-                    </button>
-                    <?= $this->Form->button(
-                        '<i class="fas fa-check me-1"></i> ' . ($edit ? __('Edit relationship') : __('Add new relationship')), 
-                        [
-                            'class' => 'btn btn-primary',
-                            'escapeTitle' => false,
-                            'title' => $edit ? __('Edit relationship') : __('Add new relationship'),
-                            'aria-label' => $edit ? __('Edit relationship') : __('Add new relationship'),
-                        ]
-                    ) ?>
-                </div>
-
+        <!-- ── OPTIONS ─────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'object',
+                'label' => __('Options'),
+            ]) ?>
+            <div class="form-check form-switch">
+                <?= $this->Form->checkbox('highlighted', [
+                    'class' => 'form-check-input',
+                    'id' => 'ObjectRelationshipHighlighted',
+                    'hiddenField' => true,
+                    'checked' => !empty($highlighted),
+                ]) ?>
+                <?= $this->Form->label(
+                    'ObjectRelationshipHighlighted',
+                    __('Highlight this relationship'),
+                    ['class' => 'form-check-label']
+                ) ?>
             </div>
-
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('A highlighted relationship is offered first in the object reference picker.'),
+            ]) ?>
         </div>
 
     </div>
 
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'object',
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($relationship['id'])
+            ? [['label' => __('Relationship'), 'id' => $relationship['id']]]
+            : [],
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Relationship')],
+    ]) ?>
+
 </div>
 
-<?= $this->Form->end(); ?>
+<?= $this->Form->end() ?>

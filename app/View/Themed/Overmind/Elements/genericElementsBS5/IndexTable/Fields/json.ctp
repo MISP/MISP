@@ -12,14 +12,17 @@ if (is_string($data)) {
 $jsonPretty = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 $needsCollapse = strlen($jsonPretty) > 100;
 $collapseId = 'json_' . uniqid();
+
+$isCard = isset($viewMode) && $viewMode === 'card';
 ?>
+
 <div class="json-viewer">
     <pre id="<?= $collapseId ?>"
          class="bg-white border p-3 rounded small mb-2"
-         style="<?= $needsCollapse ? 'max-height: 4.5em; overflow: hidden;' : '' ?> transition: max-height 0.3s ease;"
+         style="<?= $needsCollapse && !$isCard ? 'max-height: 4.5em; overflow: hidden;' : '' ?> transition: max-height 0.3s ease;"
     ><?= h($jsonPretty) ?></pre>
 
-    <?php if ($needsCollapse): ?>
+    <?php if ($needsCollapse && !$isCard): ?>
     <button
         class="btn btn-sm btn-outline-primary mb-2"
         type="button"

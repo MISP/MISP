@@ -101,6 +101,12 @@ class Collection extends AppModel
                 $this->data['Collection']['locked'] = 0;
             }
         }
+        // A partial update that leaves the distribution alone keeps the group
+        if (isset($this->data['Collection']['distribution']) || empty($this->id)) {
+            if (($this->data['Collection']['distribution'] ?? null) != 4) {
+                $this->data['Collection']['sharing_group_id'] = null;
+            }
+        }
         return true;
     }
 
@@ -661,6 +667,9 @@ class Collection extends AppModel
         $sgStore = [];
         $dataForPush = [];
         foreach ($rows as $row) {
+            if ($row['Collection']['distribution'] != 4) {
+                unset($row['SharingGroup']);
+            }
             // Enrich the dist=4 sharing group with the full org/server structure the remote
             // captureSG needs to create it if missing (mirrors the AnalystData $sgStore cache).
             if (!empty($row['SharingGroup']['id'])) {

@@ -265,14 +265,12 @@ class ServerSyncTool
             throw new RuntimeException("Remote server do not support analyst data");
         }
 
-        $params = [
-            'uuid' => $uuids,
-        ];
-
-        $url = '/analyst_data/index/' . $type;
-        $url .= $this->createParams($params);
-        $url .= '.json';
-        return $this->get($url);
+        // Send the UUID list in the POST body rather than the URL. As a GET
+        // every UUID rode in the request line as a named parameter, so a large
+        // batch overran the web server limit and the pull failed with 414. The
+        // analyst_data/index action already harvests its filters (uuid among
+        // them) from a POST body, the same shape fetchIndexMinimal() uses.
+        return $this->post('/analyst_data/index/' . $type, ['uuid' => $uuids]);
     }
 
     /**
@@ -574,6 +572,23 @@ class ServerSyncTool
     }
 
     /**
+     * 2.5 and 3.x sync with each other across the major version.
+     *
+     * @param string $localVersion
+     * @param string $remoteVersion
+     * @return bool
+     */
+    public static function isCrossMajorCompatible($localVersion, $remoteVersion)
+    {
+        $local = array_map('intval', explode('.', $localVersion));
+        $remote = array_map('intval', explode('.', $remoteVersion));
+        $is25 = function (array $version) {
+            return $version[0] === 2 && isset($version[1]) && $version[1] === 5;
+        };
+        return ($is25($local) && $remote[0] === 3) || ($local[0] === 3 && $is25($remote));
+    }
+
+    /**
      * @param string $flag
      * @return bool
      * @throws HttpSocketJsonException
@@ -591,17 +606,13 @@ class ServerSyncTool
             case self::FEATURE_FILTER_SIGHTINGS:
                 return isset($info['filter_sightings']) && $info['filter_sightings'];
             case self::FEATURE_ORG_RULE:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 123) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.124', '>=');
             case self::FEATURE_PROPOSALS:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] >= 111)  || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.111', '>=');
             case self::FEATURE_POST_TEST:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 68) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.69', '>=');
             case self::FEATURE_PROTECTED_EVENT:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 155) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.156', '>=');
             case self::FEATURE_EDIT_OF_GALAXY_CLUSTER:
                 return isset($info['perm_galaxy_editor']);
             case self::PERM_SYNC:
@@ -611,8 +622,7 @@ class ServerSyncTool
             case self::PERM_ANALYST_DATA:
                 return isset($info['perm_analyst_data']) && $info['perm_analyst_data'];
             case self::FEATURE_SIGHTING_REST_SEARCH:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 164) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.165', '>=');
             case self::FEATURE_FAST_CACHING:
                 $version = explode('.', $info['version']);
                 return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);

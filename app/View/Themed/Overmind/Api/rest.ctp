@@ -1,102 +1,27 @@
 <?php
-// Title of the index displayed in the header section, leaving it empty will fallback to controller name
-$headerTitle = __('REST Client');
-
-// Description displayed under the title in the header section, leave empty if not needed
-$headerDescription = __('');
-
-// Actions displayed as buttons in the header section, leave empty if not needed
-$headerActions = [
+$this->set('headerTitle', __('REST Client'));
+$this->set('headerDescription', '');
+$this->set('headerActions', [
     [
         'url' => $baseurl . '/api/openapi',
         'label' => __('Open API'),
         'type' => 'navigate',
-        'icon' => 'book-open'
-    ]
-];
+        'icon' => 'book-open',
+    ],
+]);
 
-$this->set('headerTitle', $headerTitle);
-$this->set('headerDescription', $headerDescription);
-$this->set('headerActions', $headerActions);
-
-
-echo $this->element('genericElements/assetLoader', array(
-    'js' => array(
-        'restOvermind'
-    )
-));
+echo $this->element('genericElements/assetLoader', [
+    'js' => ['restOvermind'],
+]);
 ?>
-
-
 <div class="container-fluid">
-    <div class="row">
-        <!-- LEFT COLUMN  -->
-        <div class="col-lg-8 d-flex flex-column gap-3" id="rest-client-container">
-
-            <?php
-                echo $this->element('genericElementsBS5/Cards/card_info', [
-                    'title' => __('Request configuration'),
-                    'icon' => 'wrench',
-                    'collapsed' => false,
-                    'content' => $this->element('Api/View/configuration')
-                ]);
-
-                echo $this->element('genericElementsBS5/Cards/card_collapsible', [
-                     'title' => __('API Tools'),
-                     'icon' => 'terminal',
-                     'collapsed' => true,
-                     'content' => $this->element('Api/View/tools')
-                ]);
-
-                echo $this->element('genericElementsBS5/Cards/card_collapsible', [
-                     'title' => __('Response'),
-                     'icon' => 'chart-bar',
-                     'collapsed' => true,
-                     'content' => $this->element('Api/View/response')
-                ]);
-            ?>
+    <div class="row g-3 align-items-start">
+        <div class="col-lg-4 col-xxl-3 order-2 order-lg-1">
+            <?= $this->element('Api/View/library', ['allAccessibleApis' => $allAccessibleApis]) ?>
         </div>
-
-        <!-- RIGHT COLUMN -->
-        <div class="col-lg-4 d-flex flex-column gap-3">
-            <?php
-                echo $this->element('genericElementsBS5/Cards/card_collapsible', [
-                    'title' => __('History'),
-                    'icon' => 'clock-rotate-left',
-                    'collapsed' => true,
-                    'maxHeight' => '500px',
-                    'content' => $this->element('Api/View/history')
-                ]);
-
-                echo $this->element('genericElementsBS5/Cards/card_collapsible', [
-                    'title' => __('Bookmarks'),
-                    'icon' => 'star',
-                    'collapsed' => true,
-                    'maxHeight' => '500px',
-                    'content' => $this->element('Api/View/bookmarks')
-                ]);
-
-                echo $this->element('genericElementsBS5/Cards/card_collapsible', [
-                    'title' => __('Templates'),
-                    'icon' => 'list',
-                    'collapsed' => false,
-                    'maxHeight' => '800px',
-                    'content' => $this->element('Api/View/templates', ['allAccessibleApis' => $allAccessibleApis])
-                ]);
-            ?>
+        <div class="col-lg-8 col-xxl-9 order-1 order-lg-2 d-flex flex-column gap-3" id="rest-client-container">
+            <?= $this->element('Api/View/configuration') ?>
+            <?= $this->element('Api/View/response') ?>
         </div>
-
     </div>
 </div>
-
-
-<script>
-var baseurl = '<?= $baseurl; ?>';
-
-let allValidApis = {};
-fetch(baseurl + '/api/getAllApis')
-    .then(res => res.json())
-    .then(data => {
-        allValidApis = data.allValidApis || {};
-    });
-</script>

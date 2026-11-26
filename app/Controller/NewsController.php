@@ -37,9 +37,12 @@ class NewsController extends AppController
         $this->set('hasUnreadNews', $hasUnreadNews);
 
         if ($hasUnreadNews) {
-            $homepage = $this->User->UserSetting->getValueForUser($user['id'], 'homepage');
-            if (!empty($homepage)) {
-                $this->set('homepage', $homepage);
+            // This one is emitted as a bare href with no baseurl in front of it
+            // (News/index.ctp), so an unchecked '//attacker.example' is an
+            // off-site link regardless of how MISP.baseurl is configured.
+            $homepagePath = $this->User->UserSetting->getHomepagePath($user['id']);
+            if ($homepagePath !== '') {
+                $this->set('homepage', array('path' => $homepagePath));
             } else {
                 $this->set('homepage', "{$this->baseurl}/events/index");
             }

@@ -67,6 +67,7 @@ class EventTemplateImporter
         }
 
         $eventTemplate = ClassRegistry::init('EventTemplate');
+        $definition = $eventTemplate->withoutSharingGroup($definition);
         $existing = null;
         if (!empty($template['uuid'])) {
             $existing = $eventTemplate->find('first', array(
@@ -97,6 +98,11 @@ class EventTemplateImporter
         } elseif (isset($definition['misp_default'])) {
             $libraryManaged = !empty($definition['misp_default']) ? 1 : 0;
         } else {
+            $libraryManaged = 0;
+        }
+        // Only site admins may mint library-managed rows; the library
+        // install/update paths in EventTemplate do not go through here.
+        if (empty($user['Role']['perm_site_admin'])) {
             $libraryManaged = 0;
         }
 

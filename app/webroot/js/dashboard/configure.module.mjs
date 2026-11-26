@@ -47,7 +47,7 @@ const CANONICAL_BUILDERS = {
   [OrgFilter.KEY]:           OrgFilter,
   [AttributeTypeFilter.KEY]: AttributeTypeFilter,
 };
-const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum']);
+const SCALAR_TYPES = new Set(['string', 'int', 'bool', 'enum', 'url']);
 
 const ATTR_PANEL              = 'data-misp-configure-root';
 const ATTR_BACKDROP           = 'data-misp-configure-backdrop';
@@ -199,6 +199,9 @@ function buildScalarField(key, entry, currentValue) {
       });
       break;
     }
+    // `url` is a plain text field in the panel - the constraint it
+    // carries is enforced server-side, at save time and at render.
+    case 'url':
     case 'string':
     default: {
       const v = currentValue !== undefined

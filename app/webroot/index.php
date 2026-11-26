@@ -19,6 +19,20 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 /**
+ * Drop the phar stream wrapper before anything else runs.
+ *
+ * Nothing in MISP, in the vendored CakePHP or in any library loaded at runtime
+ * reads or builds a Phar - the wrapper only ever shows up as an attacker's
+ * primitive. It makes an archive behave like a directory, which is how a
+ * relocated application root reached code inside an uploaded file, and it turns
+ * every filesystem call on a caller-influenced path into an unserialize() sink.
+ * Removing it costs nothing here and closes both without relying on the callers.
+ */
+if (in_array('phar', stream_get_wrappers(), true)) {
+    stream_wrapper_unregister('phar');
+}
+
+/**
  * Use the DS to separate the directories in other defines
  */
 if (!defined('DS')) {

@@ -8,7 +8,7 @@
 <?php
   endif;
 ?>
-<div id="Object_<?php echo $object['uuid']; ?>_references_collapsible" class="collapse">
+<div id="Object_<?php echo h($object['uuid']); ?>_references_collapsible" class="collapse">
 <?php
   if (!empty($object['ObjectReference'])):
     foreach ($object['ObjectReference'] as $reference):
@@ -25,7 +25,7 @@
       $idref = $reference['uuid'];
 ?>
       <div class="bold white useCursorPointer">
-        &nbsp;&nbsp;<?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . $reference['referenced_uuid'] . h($output);?>
+        &nbsp;&nbsp;<?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . h($reference['referenced_uuid']) . h($output);?>
       </div>
 <?php
     endforeach;

@@ -117,7 +117,7 @@ function openConfirmPanel(actionUrl, instanceId) {
   panel.classList.add('is-open');
 
   fetch(actionUrl, {
-    headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+    headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': (window.csrfToken || '') },
     credentials: 'same-origin',
   })
     .then((r) => {
@@ -148,7 +148,7 @@ function wireConfirmForm(body, actionUrl, instanceId) {
     try {
       const resp = await fetch(actionUrl, {
         method: 'POST',
-        headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': (window.csrfToken || '') },
         credentials: 'same-origin',
         body: new FormData(form),
       });
