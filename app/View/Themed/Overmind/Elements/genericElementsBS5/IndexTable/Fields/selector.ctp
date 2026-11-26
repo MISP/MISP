@@ -14,7 +14,8 @@ $tempboxId = 'TempBox-' . $seed;
 
 $checkboxAttrs = [
     'type' => 'checkbox',
-    'class' => 'item-checkbox form-check-input mass-select mt-0'
+    'class' => 'item-checkbox form-check-input mass-select mt-0',
+    'aria-label' => __('Select item %s', $id)
 ];
 
 if (isset($field['publish_path'])) {
@@ -203,8 +204,10 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
         <button 
             class="btn btn-sm dropdown-toggle p-1 row-menu-toggle"
             type="button"
-            data-bs-toggle="dropdown">
-            <i class="fas fa-chevron-down"></i>
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            aria-label="<?= h(__('Actions for item %s', $id)) ?>">
+            <i class="fas fa-chevron-down" aria-hidden="true"></i>
         </button>
 
         <ul class="dropdown-menu">

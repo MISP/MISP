@@ -23,7 +23,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
         <?php if ($Paginator->hasPrev()): ?>
             <li class="page-item">
                 <?= $Paginator->prev(
-                    '<i class="fas fa-chevron-left"></i>',
+                    '<i class="fas fa-chevron-left" aria-hidden="true"></i>',
                     ['class' => 'page-link', 'escape' => false, 'aria-label' => __('Previous page')],
                     null,
                     ['escape' => false]
@@ -31,8 +31,9 @@ if ($end - $start + 1 < $maxPagesToShow) {
             </li>
         <?php else: ?>
             <li class="page-item disabled">
-                <span class="page-link">
-                    <i class="fas fa-chevron-left"></i>
+                <span class="page-link" aria-disabled="true">
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    <span class="visually-hidden"><?= h(__('Previous page')) ?></span>
                 </span>
             </li>
         <?php endif; ?>
@@ -42,7 +43,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
 
             <?php if ($start > 1): ?>
                 <li class="page-item">
-                    <?= $Paginator->link(1, ['page' => 1], ['class' => 'page-link']) ?>
+                    <?= $Paginator->link(1, ['page' => 1], ['class' => 'page-link', 'aria-label' => __('Page %s', 1)]) ?>
                 </li>
                 <?php if ($start > 2): ?>
                     <li class="page-item disabled">
@@ -54,9 +55,12 @@ if ($end - $start + 1 < $maxPagesToShow) {
             <?php for ($i = $start; $i <= $end; $i++): ?>
                 <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
                     <?php if ($i == $page): ?>
-                        <span class="page-link"><?= $i ?></span>
+                        <span class="page-link" aria-current="page">
+                            <span class="visually-hidden"><?= h(__('Page %s', $i)) ?></span>
+                            <span aria-hidden="true"><?= $i ?></span>
+                        </span>
                     <?php else: ?>
-                        <?= $Paginator->link($i, ['page' => $i], ['class' => 'page-link']) ?>
+                        <?= $Paginator->link($i, ['page' => $i], ['class' => 'page-link', 'aria-label' => __('Page %s', $i)]) ?>
                     <?php endif; ?>
                 </li>
             <?php endfor; ?>
@@ -68,7 +72,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
                     </li>
                 <?php endif; ?>
                 <li class="page-item">
-                    <?= $Paginator->link($pageCount, ['page' => $pageCount], ['class' => 'page-link']) ?>
+                    <?= $Paginator->link($pageCount, ['page' => $pageCount], ['class' => 'page-link', 'aria-label' => __('Page %s', $pageCount)]) ?>
                 </li>
             <?php endif; ?>
 
@@ -78,7 +82,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
         <?php if ($Paginator->hasNext()): ?>
             <li class="page-item">
                 <?= $Paginator->next(
-                    '<i class="fas fa-chevron-right"></i>',
+                    '<i class="fas fa-chevron-right" aria-hidden="true"></i>',
                     ['class' => 'page-link', 'escape' => false, 'aria-label' => __('Next page')],
                     null,
                     ['escape' => false]
@@ -86,8 +90,9 @@ if ($end - $start + 1 < $maxPagesToShow) {
             </li>
         <?php else: ?>
             <li class="page-item disabled">
-                <span class="page-link">
-                    <i class="fas fa-chevron-right"></i>
+                <span class="page-link" aria-disabled="true">
+                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    <span class="visually-hidden"><?= h(__('Next page')) ?></span>
                 </span>
             </li>
         <?php endif; ?>
