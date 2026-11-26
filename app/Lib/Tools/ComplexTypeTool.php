@@ -232,6 +232,7 @@ class ComplexTypeTool
         }
 
         $iocArray = $this->parseFreetext($input);
+        unset($input); // no longer needed, drop it before the dedup loop below
 
         $resultArray = [];
         foreach ($iocArray as $ioc) {
@@ -263,6 +264,7 @@ class ComplexTypeTool
     private function parseJson($input, array $settings)
     {
         $parsed = JsonTool::decode($input);
+        unset($input); // no longer needed, same reasoning as the unset($parsed) below
 
         $values = [];
         array_walk_recursive($parsed, function ($value) use (&$values) {
