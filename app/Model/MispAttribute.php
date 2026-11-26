@@ -2483,10 +2483,12 @@ class MispAttribute extends AppModel
      * @param array $options
      * @param int|false $result_count If false, count is not fetched
      * @param bool $real_count
+     * @param int|false $skipped_item_count Rows read but not returned (warninglists, decay, proposals)
+     * @param int $last_read_id Id of the last row read, returned or not
      * @return array
      * @throws Exception
      */
-        public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false)
+        public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false, &$last_read_id = 0)
         {
             if (!empty($options['list'])) {
                 $conditions = $this->buildConditions($user);
@@ -2726,6 +2728,7 @@ class MispAttribute extends AppModel
                 if (empty($batch)) {
                     break;
                 }
+                $last_read_id = $batch[count($batch) - 1]['Attribute']['id'];
                 if ($real_count !== true) {
                     $result_count += count($batch);
                 }
@@ -4267,7 +4270,6 @@ class MispAttribute extends AppModel
     private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
     {
         $separator = $exportTool->separator($exportToolParams);
-        $elementCounter = 0;
         $offset = ($params['limit'] * ($params['page'] - 1));
         if ($params['page'] > 1) {
             $params['offset'] = $offset;
@@ -4304,25 +4306,25 @@ class MispAttribute extends AppModel
                 unset($params['offset']);
             }
             $incrementTotalBy = $loop ? 0 : 1;
-            $results = $this->fetchAttributes($user, $params, $elementCounter, false, $skippedElementsCounter);
-            $resultCount = count($results);
-            $totalCount = $totalCount + $elementCounter;
-            $elementCounter = false; // do not call `count` again
-            if (empty($results)) {
+            // Paging decides on the rows read, filtered or not: a batch the
+            // filters thinned is not the end, and the cursor skips what they dropped
+            $readCount = 0;
+            $results = $this->fetchAttributes($user, $params, $readCount, false, $skippedElementsCounter, $lastId);
+            $totalCount += $readCount;
+            if ($readCount === 0) {
                 break; // nothing found, skip rest
             }
-            if ($params['includeSightingdb']) {
+            if ($params['includeSightingdb'] && !empty($results)) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             foreach ($results as $attribute) {
-                $lastId = $attribute['Attribute']['id'];
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 if ($handlerResult !== '') {
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if ($resultCount < $params['limit']) {
+            if ($readCount < $params['limit']) {
                 $incrementTotalBy = 0;
                 if ($loop) {
                     break; // do not continue if we received fewer results than limit

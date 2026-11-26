@@ -742,6 +742,47 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame(count($ids), (int)$total->intoString());
     }
 
+    public function testBatchingGoesOnPastTheRowsAWarninglistDrops()
+    {
+        $t = $this->token;
+        // In batches of two: [domain, composite] [tick, object] [other, regkey]
+        $ids = $this->ids(...array_keys($this->ids));
+        $warninglist = ClassRegistry::init('Warninglist');
+        $this->attribute->Warninglist = $warninglist;
+        $enabled = new ReflectionProperty('Warninglist', 'enabledCache');
+        $entries = new ReflectionProperty('Warninglist', 'entriesCache');
+        $enabled->setValue($warninglist, [[
+            'Warninglist' => ['id' => 0, 'name' => $t, 'type' => 'string', 'category' => 'false_positive'],
+            'types' => ['ALL'],
+        ]]);
+        // The end of the first batch, and the whole second one
+        $entries->setValue($warninglist, [0 => array_fill_keys(["{$t}a.example", "{$t}`tick", "{$t}obj.example.org"], true)]);
+        $memoryLimit = ini_get('memory_limit');
+        $coefficient = Configure::read('MISP.default_attribute_memory_coefficient');
+        $search = function (array $paging) use ($ids) {
+            $tmp = $this->attribute->restSearch($this->user, 'json', $paging + ['enforceWarninglist' => 1],
+                false, false, $count, $renderView, $skipped, ['id' => ['IN' => $ids]]);
+            $rows = json_decode($tmp->intoString(), true)['response']['Attribute'];
+            return [array_map('intval', array_column($rows, 'id')), $count];
+        };
+        try {
+            ini_set('memory_limit', '1024M');
+            Configure::write('MISP.default_attribute_memory_coefficient', 2 / 1024);
+            $export = $search([]);
+            $first = $search(['limit' => 4, 'page' => 1]);
+            $second = $search(['limit' => 4, 'page' => 2]);
+        } finally {
+            ini_set('memory_limit', $memoryLimit);
+            Configure::write('MISP.default_attribute_memory_coefficient', $coefficient);
+            $enabled->setValue($warninglist, null);
+            $entries->setValue($warninglist, []);
+        }
+        // Every row kept, counted as the rows read
+        $this->assertSame([$this->ids('domain', 'other', 'regkey'), 6], $export);
+        $this->assertSame([$this->ids('domain'), 4], $first);
+        $this->assertSame([$this->ids('other', 'regkey'), 2], $second);
+    }
+
     public function testAFetchReadsTheValuesOfItsCorrelationsAtOnce()
     {
         $sides = [$this->ids['domain'], $this->ids['other'], $this->ids['composite']];
