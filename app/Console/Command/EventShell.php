@@ -2,6 +2,7 @@
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FileAccessTool', 'Tools');
+App::uses('CachedExportTool', 'Tools');
 require_once 'AppShell.php';
 
 /**
@@ -14,7 +15,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'Post', 'MispAttribute', 'Job', 'User', 'Task', 'Allowedlist', 'Server', 'Organisation', 'Correlation', 'Tag');
+    public $uses = array('Event', 'MispAttribute', 'Job', 'User', 'Task', 'Server', 'Organisation', 'Correlation', 'Tag');
 
     public function getOptionParser()
     {
@@ -134,7 +135,7 @@ class EventShell extends AppShell
     public function doPublish()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Do publish']);
         }
 
         $id = $this->args[0];
@@ -193,7 +194,7 @@ class EventShell extends AppShell
     public function cache()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event']);
         }
 
         $timeStart = time();
@@ -202,7 +203,6 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
         $this->Job->id = $id;
         $export_type = $this->args[2];
-        file_put_contents('/tmp/test', $export_type);
         $exportTypes = $this->Event->exportTypes();
         $typeData = $exportTypes[$export_type];
         if (!in_array($export_type, array_keys($exportTypes))) {
@@ -217,7 +217,7 @@ class EventShell extends AppShell
             $typeCount = count($types);
             foreach ($types as $k => $type) {
                 $typeData['params']['type'] = $type;
-                $this->__runCaching($user, $typeData, false, $export_type, '_' . $type);
+                $this->__runCaching($user, $typeData, false, $export_type, $type);
                 $this->Job->saveField('message', 'Processing all attributes of type '. $type . '.');
                 $this->Job->saveField('progress', intval($k / $typeCount));
             }
@@ -236,12 +236,7 @@ class EventShell extends AppShell
         $modelScope = $typeData['scope'] == 'Attribute' ? 'MispAttribute' : $typeData['scope'];
         $final = $this->{$modelScope}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
         $dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
-        //echo PHP_EOL . $dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension'] . PHP_EOL;
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension']);
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.' . $user['Organisation']['name'] .  $typeData['extension']);
-        }
+        $file = new File($dir->pwd() . DS . CachedExportTool::fileName($export_type, $subType, CachedExportTool::owner($user), $typeData['extension']));
         $file->write($final);
         $file->close();
         return true;
@@ -250,7 +245,7 @@ class EventShell extends AppShell
     public function cachebro()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro']);
         }
 
         $timeStart = time();
@@ -264,11 +259,7 @@ class EventShell extends AppShell
         $types = array_keys($export->mispTypes);
         $typeCount = count($types);
         $dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
-        }
+        $file = new File($dir->pwd() . DS . CachedExportTool::fileName('bro', '', CachedExportTool::owner($user), '.intel'));
 
         $file->write('');
         $skipHeader = false;
@@ -290,7 +281,7 @@ class EventShell extends AppShell
     public function alertemail()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Alert email']);
         }
 
         $userId = $this->args[0];
@@ -301,11 +292,65 @@ class EventShell extends AppShell
         $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $jobId);
     }
 
+    /**
+     * Summarise an event (scope `event`) or an event report (scope `report`)
+     * with the AI module, as the requesting user. Queued by
+     * Event::aiSummarizeRouter() / EventReport::aiSummarizeRouter(); the job
+     * row is updated here, and the exit code tells the worker whether the
+     * run succeeded.
+     *
+     * cake Event aiSummarize <user_id> <event|report> <id> [job_id]
+     */
+    public function aiSummarize()
+    {
+        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
+            $this->error('Usage: cake Event aiSummarize <user_id> <event|report|extract|extractReport> <id> [job_id]');
+        }
+        $user = $this->getUser($this->args[0]);
+        // Rows the default audit engine writes from here carry the requesting
+        // user, not SYSTEM: the report is added on that user's behalf.
+        App::uses('SysLogLogableBehavior', 'SysLogLogable.Model/Behavior');
+        SysLogLogableBehavior::setShellUser($user);
+        $scope = $this->args[1];
+        $id = (int)$this->args[2];
+        $jobId = !empty($this->args[3]) ? (int)$this->args[3] : null;
+
+        $this->Job->saveProgress($jobId, __('Querying the AI module.'), 10);
+        try {
+            if ($scope === 'event') {
+                $result = $this->Event->aiSummarize($user, $id);
+                $message = __('AI summary added as report "%s" (#%s).', $result['name'], $result['report_id']);
+            } elseif ($scope === 'report') {
+                $result = $this->Event->EventReport->aiSummarize($user, $id);
+                $message = __('AI summary written into report "%s" (#%s).', $result['name'], $result['report_id']);
+            } elseif ($scope === 'extract') {
+                // A4 direct apply: the module's indicators land on the event
+                // as this user, each tagged ai-computer-assisted.
+                $result = $this->Event->aiExtractAndApply($user, $id);
+                $message = Event::aiExtractionMessage($result);
+            } elseif ($scope === 'extractReport') {
+                // A4 from one report: only that report is sent.
+                $report = $this->Event->EventReport->fetchIfAuthorized($user, $id, 'edit', true, true);
+                $result = $this->Event->aiExtractAndApply($user, (int)$report['EventReport']['event_id'], [$report['EventReport']['uuid']]);
+                $message = Event::aiExtractionMessage($result);
+            } else {
+                throw new InvalidArgumentException("Unknown scope `$scope`, expected `event`, `report`, `extract` or `extractReport`.");
+            }
+        } catch (Exception $e) {
+            $message = __('AI %s failed: %s', in_array($scope, ['extract', 'extractReport'], true) ? 'extraction' : 'summary', $e->getMessage());
+            $this->Job->saveStatus($jobId, false, $message);
+            $this->error($message);
+        }
+        $message .= Event::aiTagsNote($result);
+        $this->Job->saveStatus($jobId, true, $message);
+        $this->out($message);
+    }
+
     public function contactemail()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || !isset($this->args[2]) ||
             empty($this->args[3]) || empty($this->args[4])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Contact email']);
         }
 
         $id = $this->args[0];
@@ -319,42 +364,10 @@ class EventShell extends AppShell
         $this->Job->saveStatus($jobId, $result);
     }
 
-    public function postsemail()
-    {
-        if (
-            empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) ||
-            empty($this->args[3]) || empty($this->args[4])
-        ) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Posts email'] . PHP_EOL);
-        }
-
-        $userId = intval($this->args[0]);
-        $postId = intval($this->args[1]);
-        $eventId = intval($this->args[2]);
-        $mailContent = $this->getBackgroundJobsTool()->fetchDataFile($this->args[3]);
-        $this->Job->id = intval($this->args[4]);
-
-        $result = $this->Post->sendPostsEmail($userId, $postId, $eventId, $mailContent['title'], $mailContent['message']);
-
-        if ($result) {
-            $this->Job->save([
-                'progress' => 100,
-                'message' => 'Emails sent.',
-                'date_modified' => date('Y-m-d H:i:s'),
-                'status' =>  Job::STATUS_COMPLETED
-            ]);
-        } else {
-            $this->Job->save([
-                'date_modified' => date('Y-m-d H:i:s'),
-                'status' =>  Job::STATUS_FAILED
-            ]);
-        }
-    }
-
     public function enqueueCaching()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching']);
         }
 
         $timestamp = $this->args[0];
@@ -410,7 +423,7 @@ class EventShell extends AppShell
     public function publish()
     {
         if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish event']);
         }
 
         $id = $this->args[0];
@@ -447,7 +460,7 @@ class EventShell extends AppShell
     public function publish_sightings()
     {
         if (empty($this->args[0]) || empty($this->args[2]) || empty($this->args[3])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish sightings']);
         }
 
         list($id, $passAlong, $jobId, $userId) = $this->args;
@@ -478,7 +491,7 @@ class EventShell extends AppShell
     public function publish_galaxy_clusters()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2]) || !array_key_exists(3, $this->args)) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Publish Galaxy clusters']);
         }
 
         $clusterId = $this->args[0];
@@ -504,7 +517,7 @@ class EventShell extends AppShell
     public function attribute_enrichment()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run attribute enrichment'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run attribute enrichment']);
         }
 
         $userId = $this->args[0];
@@ -514,7 +527,7 @@ class EventShell extends AppShell
         try {
             $modules = json_decode($modulesRaw, true);
         } catch (Exception $e) {
-            die('Invalid module JSON');
+            $this->error('Invalid module JSON');
         }
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
@@ -538,13 +551,17 @@ class EventShell extends AppShell
             'id' => $id,
             'modules' => $modules
         );
-        $result = $this->MispAttribute->enrichment($options);
+        $tagsRemoved = 0;
+        $result = $this->MispAttribute->enrichment($options, $tagsRemoved);
         $job['Job']['progress'] = 100;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        if ($tagsRemoved) {
+            $job['Job']['message'] .= ' Removed ' . $tagsRemoved . ' tag' . ($tagsRemoved > 1 ? 's.' : '.');
         }
         echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
@@ -555,7 +572,7 @@ class EventShell extends AppShell
     public function enrichment()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Run enrichment']);
         }
 
         $userId = $this->args[0];
@@ -565,7 +582,7 @@ class EventShell extends AppShell
         try {
             $modules = json_decode($modulesRaw, true);
         } catch (Exception $e) {
-            die('Invalid module JSON');
+            $this->error('Invalid module JSON');
         }
         if (!empty($this->args[3])) {
             $jobId = $this->args[3];
@@ -589,13 +606,17 @@ class EventShell extends AppShell
             'event_id' => $eventId,
             'modules' => $modules
         );
-        $result = $this->Event->enrichment($options);
+        $tagsRemoved = 0;
+        $result = $this->Event->enrichment($options, $tagsRemoved);
         $job['Job']['progress'] = 100;
         $job['Job']['date_modified'] = date("Y-m-d H:i:s");
         if ($result) {
             $job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
         } else {
             $job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+        }
+        if ($tagsRemoved) {
+            $job['Job']['message'] .= ' Removed ' . $tagsRemoved . ' tag' . ($tagsRemoved > 1 ? 's.' : '.');
         }
         echo $job['Job']['message'] . PHP_EOL;
         $this->Job->save($job);
@@ -606,7 +627,7 @@ class EventShell extends AppShell
     public function processfreetext()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process free text']);
         }
 
         $inputFile = $this->args[0];
@@ -627,7 +648,7 @@ class EventShell extends AppShell
     public function processmoduleresult()
     {
         if (empty($this->args[0])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result'] . PHP_EOL);
+            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Process module result']);
         }
 
         $inputFile = $this->args[0];
@@ -641,26 +662,6 @@ class EventShell extends AppShell
             $inputData['jobId']
         );
         return true;
-    }
-
-    public function recoverEvent()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            die('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event'] . PHP_EOL);
-        }
-
-        $jobId = $this->args[0];
-        $id = $this->args[1];
-        $job = $this->Job->read(null, $jobId);
-        $job['Job']['progress'] = 1;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Recovering event %s', $id);
-        $this->Job->save($job);
-        $result = $this->Event->recoverEvent($id);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
-        $this->Job->save($job);
     }
 
     public function testEventNotificationEmail()
@@ -700,7 +701,7 @@ class EventShell extends AppShell
 
     public function reportValidationIssuesAttributes()
     {
-        foreach ($this->Event->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
+        foreach ($this->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
             echo $this->json($validationIssue) . "\n";
         }
     }
@@ -710,7 +711,7 @@ class EventShell extends AppShell
         $dryRun = $this->param('dry-run');
 
         $count = 0;
-        foreach ($this->Event->MispAttribute->normalizeIpAddress($dryRun) as $attribute) {
+        foreach ($this->MispAttribute->normalizeIpAddress($dryRun) as $attribute) {
             $count++;
             echo JsonTool::encode($attribute) . "\n";
         }

@@ -1,23 +1,32 @@
 <?php
+$this->set('headerIdentity', $org['Organisation'] ?? []);
 $orgData = $org['Organisation'] ?? [];
 $orgId   = $orgData['id'] ?? $id;
-$local   = !empty($orgData['local']);
 
 // ── PAGE HEADER ──────────────────────────────────────────────────
 
-$logo = $this->OrgImg->getOrgLogoV2($orgData, 40, false);
-$headerTitleHtml = '<span class="d-inline-flex align-items-center gap-2">'
-    . $logo
-    . '<span>' . h($orgData['name'] ?? '') . '</span>'
-    . '<span class="badge align-middle ' . ($local ? 'text-bg-success' : 'text-bg-secondary') . '" '
-        . 'style="font-size:.7rem;">' . ($local ? __('Local') : __('Remote')) . '</span>'
-    . '</span>';
-$this->set('headerTitleHtml', $headerTitleHtml);
+$this->set('headerTitle', $orgData['name'] ?? '');
 
-$description = trim($orgData['description'] ?? '');
-if ($description !== '') {
-    $this->set('headerDescription', nl2br(h($description), false));
+// Creation and modification details are only shown to those who could see
+// them before: site admins and the organisation's own admins.
+$headerParts = [];
+if (!empty($isSiteAdmin) || !empty($fullAccess)) {
+    if (!empty($orgData['date_created'])) {
+        $headerParts[] = '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-plus me-1 opacity-50"></i>'
+            . $this->Time->time($orgData['date_created'])
+            . (!empty($orgData['created_by_email'])
+                ? ' <span class="opacity-75">' . h(__('by %s', $orgData['created_by_email'])) . '</span>'
+                : '')
+            . '</span>';
+    }
+    if (!empty($orgData['date_modified'])) {
+        $headerParts[] = '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
+            . $this->Time->time($orgData['date_modified']) . '</span>';
+    }
 }
+$this->set('headerDescription', empty($headerParts)
+    ? ''
+    : '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $headerParts) . '</span>');
 
 // ── TABS ─────────────────────────────────────────────────────────
 $tabs = [
@@ -27,6 +36,7 @@ $tabs = [
         'icon' => 'fas fa-circle-info',
         'left' => [
             'Organisations/View/organisations_general',
+            'Organisations/View/organisations_related',
         ],
         'right' => [
             'Organisations/View/organisations_actions',

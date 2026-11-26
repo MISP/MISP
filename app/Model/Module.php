@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('JsonTool', 'Tools');
+App::uses('EncryptedValue', 'Tools');
 
 class Module extends AppModel
 {
@@ -12,18 +13,59 @@ class Module extends AppModel
         'Import' => array('import'),
         'Export' => array('export'),
         'Action' => array('action'),
-        'Cortex' => array('cortex')
+        'Gathering' => array('gathering'),
+        'Cortex' => array('cortex'),
+        'AI' => array('ai')
     );
+
+    // Server validators a module-declared setting `test` may name; never executed otherwise.
+    const SETTING_TESTS = [
+        'testBool', 'testBoolTrue', 'testBoolFalse', 'testForEmpty', 'testForNumeric',
+        'testForPositiveInteger', 'testForPortNumber', 'testURL', 'testUuid',
+        'testForPath', 'testForWritableDir', 'testLocalOrg', 'testLocalOrgStrict'
+    ];
 
     // private
     const TYPE_TO_FAMILY = array(
         'Import' => 'Import',
         'Export' => 'Export',
         'Action' => 'Action',
+        'Gathering' => 'Gathering',
         'hover' => 'Enrichment',
         'expansion' => 'Enrichment',
-        'Cortex' => 'Cortex'
+        'Cortex' => 'Cortex',
+        'AI' => 'AI'
     );
+
+    /**
+     * The single hard-wired module of the AI family. It is never discovered
+     * through /modules for gating: Plugin.AI_services_enable is the switch.
+     */
+    const AI_MODULE_NAME = 'ai_connector';
+
+    /** The use-cases the AI module accepts (`use_case` of a request). */
+    const AI_USE_CASES = ['summarization_on_event', 'summarization_on_eventReport', 'tag_suggest', 'infoextraction', 'ping'];
+
+    /** Use-cases that take no `data`: the request envelope omits the key. */
+    const AI_DATALESS_USE_CASES = ['ping'];
+
+    /**
+     * The provenance the module puts on everything it produces: two entries
+     * of the ai-computer-assisted taxonomy, verbatim. MISP guarantees the two
+     * tag rows exist before any AI write (Tag::captureAiProvenanceTags()), so
+     * machine-made content never lands untagged.
+     */
+    const AI_PROVENANCE_TAXONOMY = 'ai-computer-assisted';
+    const AI_PROVENANCE_TAGS = [
+        'ai-computer-assisted:assistance-level="ai-generated"',
+        'ai-computer-assisted:review-level="unreviewed"',
+    ];
+
+    /**
+     * The Plugin.AI_* settings sent to the module as `params`, listed by the
+     * module's own config names (the setting name without the `AI_` prefix).
+     */
+    const AI_PARAM_SETTINGS = ['openai_api_base', 'api_key', 'model_id', 'temperature', 'request_timeout', 'suggest_limit', 'suggest_min_score', 'min_confidence'];
 
     const CONFIG_TYPES = array(
         'IP' => array(
@@ -51,6 +93,80 @@ class Module extends AppModel
     );
 
     private $httpSocket = [];
+
+    private $moduleTimeoutDefaults = [];
+
+    /**
+     * Only account credentials may be overridden; endpoints, module controls
+     * and the instance's proxy account stay instance-wide.
+     */
+    public static function isPersonalCredential($name)
+    {
+        return self::isPersonalIdentifier($name) || self::isPersonalSecret($name);
+    }
+
+    /** Account names: overridable, and readable by the owner and site admins. */
+    public static function isPersonalIdentifier($name)
+    {
+        return self::matchesCredentialName($name, 'username|client_id|api_?id');
+    }
+
+    /** Overridable and never shown once saved. */
+    public static function isPersonalSecret($name)
+    {
+        return self::matchesCredentialName(
+            $name,
+            'api_?key|auth_?key|api_?token|access_token|token|key|client_secret|password|api_?password'
+        );
+    }
+
+    private static function matchesCredentialName($name, $pattern)
+    {
+        return is_string($name)
+            && preg_match('/(?:^|_)proxy(?:_|$)/i', $name) !== 1
+            && preg_match('/(?:^|_)(?:' . $pattern . ')$/iD', $name) === 1;
+    }
+
+    /** Resolve configuration for the explicit execution user, including background jobs. */
+    public function getModuleConfig(array $module, $moduleFamily, array $user)
+    {
+        if (empty($module['meta']['config'])) {
+            return [];
+        }
+        $names = [];
+        foreach ($module['meta']['config'] as $key => $definition) {
+            $names[] = is_string($key) ? $key : (is_array($definition) ? $definition['name'] : $definition);
+        }
+        $overrides = [];
+        if (!empty($user['id']) && $this->moduleConfigSetting('Plugin.Modules_allow_personal_credentials')) {
+            $personal = $this->personalModuleApiKeys($user['id'])[$moduleFamily][$module['name']] ?? [];
+            foreach ($names as $name) {
+                if (self::isPersonalCredential($name) && is_string($personal[$name] ?? null) && $personal[$name] !== '') {
+                    $overrides[$name] = $personal[$name];
+                }
+            }
+        }
+        $config = [];
+        foreach ($names as $name) {
+            $config[$name] = $this->moduleConfigSetting('Plugin.' . $moduleFamily . '_' . $module['name'] . '_' . $name);
+            // A personal account is never completed with the instance's
+            // credentials, e.g. a user's username with the instance password.
+            if (!empty($overrides) && self::isPersonalCredential($name)) {
+                $config[$name] = $overrides[$name] ?? null;
+            }
+        }
+        return $config;
+    }
+
+    protected function moduleConfigSetting($name)
+    {
+        return Configure::read($name);
+    }
+
+    protected function personalModuleApiKeys($userId)
+    {
+        return ClassRegistry::init('UserSetting')->getModuleApiKeys($userId);
+    }
 
     public function validateIPField($value)
     {
@@ -99,8 +215,18 @@ class Module extends AppModel
     {
         try {
             // Wait just one second to not block loading pages when modules are not reachable
-            return $this->sendRequest('/modules', 1, null, $moduleFamily);
+            $modules = $this->sendRequest('/modules', 1, null, $moduleFamily);
+            $this->moduleTimeoutDefaults[$moduleFamily] = [];
+            if (is_array($modules)) {
+                foreach ($modules as $module) {
+                    if (isset($module['name']) && is_string($module['name'])) {
+                        $this->moduleTimeoutDefaults[$moduleFamily][$module['name']] = $module['meta'] ?? [];
+                    }
+                }
+            }
+            return $modules;
         } catch (Exception $e) {
+            $this->moduleTimeoutDefaults[$moduleFamily] = [];
             if ($throwException) {
                 throw $e;
             }
@@ -135,6 +261,10 @@ class Module extends AppModel
                 $output['Export'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('action', $temp['meta']['module-type'])) {
                 $output['Action'] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('gathering', $temp['meta']['module-type'])) {
+                $output['Gathering'][] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('ai', $temp['meta']['module-type'])) {
+                $output['AI'] = $temp['name'];
             } else {
                 foreach ($temp['mispattributes']['input'] as $input) {
                     if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) {
@@ -183,6 +313,72 @@ class Module extends AppModel
             return $modules;
         }
         return 'The modules system reports that it found no suitable modules.';
+    }
+
+    /** Execute any enabled gathering module; source conversion stays in misp-modules. */
+    public function queryGathering($name, array $parameters, array $user)
+    {
+        $module = $this->getEnabledModule($name, 'Gathering', $user);
+        if (!is_array($module) || ($module['mispattributes']['gathering_version'] ?? null) !== 2) {
+            throw new InvalidArgumentException('Gathering module is unavailable, restricted, or uses an unsupported contract.');
+        }
+        $config = [];
+        foreach ($module['meta']['config'] ?? [] as $key => $value) {
+            $field = is_string($key) ? $key : (is_array($value) ? $value['name'] : $value);
+            $setting = Configure::read('Plugin.Gathering_' . $name . '_' . $field);
+            if ($setting instanceof EncryptedValue) {
+                $setting = $setting->decrypt();
+            }
+            if ($setting !== null) {
+                $config[$field] = $setting;
+            }
+        }
+        return $this->queryModuleServer([
+            'module' => $name,
+            'operation' => 'prepare',
+            'parameters' => (object)$parameters,
+            'config' => (object)$config,
+        ], false, 'Gathering', true);
+    }
+
+    private function gatheringJobPath($identifier)
+    {
+        if (!is_string($identifier) || !preg_match('/\A[0-9a-f]{64}\z/D', $identifier)) {
+            throw new InvalidArgumentException('Invalid gathering job identifier.');
+        }
+        return '/gathering/jobs/' . $identifier;
+    }
+
+    public function gatheringJobStatus($identifier)
+    {
+        return $this->sendRequest($this->gatheringJobPath($identifier), 10, null, 'Gathering');
+    }
+
+    public function downloadGatheringArchive($identifier, $destination, $size)
+    {
+        $path = $this->gatheringJobPath($identifier) . '/feed.zip';
+        $server = $this->__getModuleServer('Gathering');
+        if (!$server) { throw new RuntimeException('Gathering service is disabled.'); }
+        $client = $this->initHttpSocket('Gathering', 3600);
+        if (!method_exists($client, 'download')) { throw new RuntimeException('Gathering ZIP downloads require the PHP curl extension.'); }
+        $client->setFollowRedirects(false);
+        $client->setMaxSize($size);
+        try {
+            $response = $client->download($server . $path, $destination);
+            if ((int)$response->code !== 200) { throw new RuntimeException('Gathering archive download failed.'); }
+        } finally {
+            $client->setMaxSize(null);
+            $client->setFollowRedirects(true);
+        }
+    }
+
+    public function releaseGatheringJob($identifier)
+    {
+        $path = $this->gatheringJobPath($identifier);
+        $server = $this->__getModuleServer('Gathering');
+        if (!$server) { return; }
+        $response = $this->initHttpSocket('Gathering', 10)->delete($server . $path);
+        if (!in_array((int)$response->code, [204, 404], true)) { throw new RuntimeException('Could not release gathering job.'); }
     }
 
     private function __getModuleServer($moduleFamily = 'Enrichment')
@@ -283,14 +479,8 @@ class Module extends AppModel
                 return __('Trigger `%s` blocked enrichment', $trigger_id);
             }
         }
-        if ($hover) {
-            $timeout = Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5;
-        } else {
-            $timeout = Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10;
-        }
-        if (!isset($postData['timeout'])) {
-            $postData['timeout'] = (int) $timeout;
-        }
+        $timeout = $this->queryTimeout($postData, $hover, $moduleFamily);
+        $postData['timeout'] = $timeout;
         try {
             return $this->sendRequest('/query', $timeout, $postData, $moduleFamily);
         } catch (Exception $e) {
@@ -300,6 +490,52 @@ class Module extends AppModel
             $this->logException('Failed to query module ' . $moduleFamily, $e);
             return false;
         }
+    }
+
+    /** Read settings separately so timeout resolution can be tested without CakePHP. */
+    protected function moduleTimeoutSetting($name)
+    {
+        return Configure::read($name);
+    }
+
+    private static function positiveTimeout($value)
+    {
+        if (!is_int($value) && !is_string($value)) {
+            return null;
+        }
+        $timeout = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        return $timeout === false ? null : $timeout;
+    }
+
+    /** Use the same execution budget for the HTTP client and the module server. */
+    private function queryTimeout(array $postData, $hover, $moduleFamily)
+    {
+        if (isset($postData['timeout'])) {
+            $timeout = self::positiveTimeout($postData['timeout']);
+            if ($timeout === null) {
+                throw new InvalidArgumentException('Module timeout must be a positive integer in seconds.');
+            }
+            return $timeout;
+        }
+
+        $name = $postData['module'];
+        $setting = $hover ? 'hover_execution_timeout' : 'execution_timeout';
+        $timeout = self::positiveTimeout($this->moduleTimeoutSetting('Plugin.' . $moduleFamily . '_' . $name . '_' . $setting));
+        if ($timeout !== null) {
+            return $timeout;
+        }
+
+        if (!isset($this->moduleTimeoutDefaults[$moduleFamily])) {
+            $this->getModules($moduleFamily);
+        }
+        $metadataKey = $hover ? 'hover_timeout' : 'timeout';
+        $timeout = self::positiveTimeout($this->moduleTimeoutDefaults[$moduleFamily][$name][$metadataKey] ?? null);
+        if ($timeout !== null) {
+            return $timeout;
+        }
+
+        $familySetting = 'Plugin.' . $moduleFamily . ($hover ? '_hover_timeout' : '_timeout');
+        return self::positiveTimeout($this->moduleTimeoutSetting($familySetting)) ?? ($hover ? 5 : 10);
     }
 
     /**
@@ -364,6 +600,21 @@ class Module extends AppModel
                             'description' => empty($module['meta']['description']) ? '' : $module['meta']['description']
                         ]
                     ];
+                    $timeoutSettings = ['execution_timeout' => 'timeout'];
+                    if (in_array('hover', $module['meta']['module-type'], true)) {
+                        $timeoutSettings['hover_execution_timeout'] = 'hover_timeout';
+                    }
+                    foreach ($timeoutSettings as $name => $metadataKey) {
+                        $moduleSettings[] = [
+                            'name' => $name,
+                            'type' => 'numeric',
+                            'value' => self::positiveTimeout($module['meta'][$metadataKey] ?? null) ?? 0,
+                            'test' => 'testForPositiveInteger',
+                            'description' => $metadataKey === 'hover_timeout'
+                                ? __('Hover execution timeout in seconds. Set to 0 to use the module default or the family hover timeout.')
+                                : __('Module execution timeout in seconds. Set to 0 to use the module default or the family timeout.')
+                        ];
+                    }
                     if ($moduleFamily !== 'Action') {
                         $moduleSettings[] = [
                             'name' => 'restrict',
@@ -374,23 +625,32 @@ class Module extends AppModel
                             foreach ($module['meta']['config'] as $key => $value) {
                                 if (is_array($value)) {
                                     $name = is_string($key) ? $key : $value['name'];
+                                    if (isset($timeoutSettings[$name])) {
+                                        continue;
+                                    }
                                     $moduleSettings[] = [
                                         'name' => $name,
                                         'type' => $value['type'] ?? 'string',
                                         'description' => $value['description'] ?? null,
                                         'null' => $value['null'] ?? null,
-                                        'test' => $value['test'] ?? null,
+                                        'test' => in_array($value['test'] ?? null, self::SETTING_TESTS, true) ? $value['test'] : null,
                                         'bigField' => $value['bigField'] ?? false,
                                         'cli_only' => $value['cli_only'] ?? false,
                                         'redacted' => $value['redacted'] ?? false
                                     ];
                                 } else if (is_string($key)) {
+                                    if (isset($timeoutSettings[$key])) {
+                                        continue;
+                                    }
                                     $moduleSettings[] = [
                                         'name' => $key,
                                         'type' => 'string',
                                         'description' => $value
                                     ];
                                 } else {
+                                    if (isset($timeoutSettings[$value])) {
+                                        continue;
+                                    }
                                     $moduleSettings[] = array('name' => $value, 'type' => 'string');
                                 }
                             }
@@ -457,5 +717,155 @@ class Module extends AppModel
         }
 
         return $this->httpSocket[$unique] = $httpSocket;
+    }
+
+    /**
+     * The `params` block of an AI request: the settings of AI_PARAM_SETTINGS,
+     * un-prefixed. A setting without a value (null or the empty string) is
+     * left out so the module's own configuration applies to it.
+     *
+     * @param callable $read function (string $name): mixed — the effective
+     *        value of `Plugin.AI_<name>`, or null; injected to keep the
+     *        builder free of Configure
+     * @return array
+     */
+    public static function buildAiParams(callable $read)
+    {
+        $params = [];
+        foreach (self::AI_PARAM_SETTINGS as $name) {
+            $value = $read($name);
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $params[$name] = $value;
+        }
+        return $params;
+    }
+
+    /**
+     * The request envelope the AI module expects on POST /query. A use-case
+     * of AI_DATALESS_USE_CASES (ping) gets no `data` key at all.
+     *
+     * @param string $useCase one of AI_USE_CASES
+     * @param array $data {"Event": ...} or {"EventReport": ...}; ignored for a data-less use-case
+     * @param array $params see buildAiParams()
+     * @param int $timeout seconds, the module's time budget for the request
+     * @return array
+     * @throws InvalidArgumentException on an unknown use-case
+     */
+    public static function buildAiRequest($useCase, array $data, array $params, $timeout)
+    {
+        if (!in_array($useCase, self::AI_USE_CASES, true)) {
+            throw new InvalidArgumentException("Unknown AI use-case `$useCase`.");
+        }
+        $request = ['module' => self::AI_MODULE_NAME];
+        if (!in_array($useCase, self::AI_DATALESS_USE_CASES, true)) {
+            $request['data'] = $data;
+        }
+        $request['use_case'] = $useCase;
+        $request['params'] = $params;
+        $request['timeout'] = (int)$timeout;
+        return $request;
+    }
+
+    /**
+     * Effective value of a Plugin.AI_* setting: what is configured, else the
+     * default of its definition, so that a request carries exactly what the
+     * settings page shows. A value stored encrypted is decrypted.
+     *
+     * @param string $name setting name without the `AI_` prefix
+     * @return mixed|null
+     */
+    public function aiSetting($name)
+    {
+        $value = Configure::read('Plugin.AI_' . $name);
+        if ($value instanceof EncryptedValue) {
+            $value = $value->decrypt();
+        }
+        if ($value !== null) {
+            return $value;
+        }
+        $this->Server = ClassRegistry::init('Server');
+        return $this->Server->serverSettings['Plugin']['AI_' . $name]['value'] ?? null;
+    }
+
+    /**
+     * Query the AI module: POST /query on the AI family server with the
+     * envelope of buildAiRequest(), and return the `results` block of its
+     * answer. Access control is the caller's job (perm_ai_tools + event ACL).
+     *
+     * @param string $useCase one of AI_USE_CASES
+     * @param array $data {"Event": ...} or {"EventReport": ...}; [] for a data-less use-case
+     * @param int|null $timeout seconds, default Plugin.AI_timeout
+     * @param array|null $metadata receives the module's `metadata` block ([] when absent):
+     *        counts, rejected candidates, model and prompt details
+     * @return array the module's `results`, e.g. ['EventReport' => [...]] or ['Tag' => [...]]
+     * @throws InvalidArgumentException on an unknown use-case
+     * @throws Exception when the AI services are disabled or unreachable, the
+     *         answer is not JSON, or the module answered with `error`
+     */
+    public function queryAI($useCase, array $data, $timeout = null, &$metadata = null)
+    {
+        if ($timeout === null) {
+            $timeout = (int)$this->aiSetting('timeout') ?: 300;
+        }
+        $params = self::buildAiParams([$this, 'aiSetting']);
+        $request = self::buildAiRequest($useCase, $data, $params, $timeout);
+        $response = $this->sendRequest('/query', $timeout, $request, 'AI');
+        if (!is_array($response)) {
+            throw new Exception(__('The AI module returned an unreadable answer.'));
+        }
+        if (!empty($response['error'])) {
+            $error = is_string($response['error']) ? $response['error'] : JsonTool::encode($response['error']);
+            throw new Exception(__('The AI module reported an error: %s', $error));
+        }
+        $metadata = isset($response['metadata']) && is_array($response['metadata']) ? $response['metadata'] : [];
+        return isset($response['results']) && is_array($response['results']) ? $response['results'] : [];
+    }
+
+    /**
+     * Health of the AI family as the settings page shows it: whether the
+     * family is enabled, which server it points at, whether that server
+     * answers /modules, and whether the ai_connector module is listed there.
+     *
+     * @return array {enabled: bool, server: string, reachable: bool,
+     *         error: string|null, listed: bool, module: array|null}
+     */
+    public function aiStatus()
+    {
+        $status = [
+            'enabled' => (bool)$this->aiSetting('services_enable'),
+            'server' => rtrim((string)$this->aiSetting('services_url'), '/') . ':' . $this->aiSetting('services_port'),
+            'reachable' => false,
+            'error' => null,
+            'listed' => false,
+            'module' => null,
+        ];
+        if (!$status['enabled']) {
+            return $status;
+        }
+        try {
+            $modules = $this->getModules('AI', true);
+        } catch (Exception $e) {
+            $status['error'] = $e->getMessage();
+            return $status;
+        }
+        $status['reachable'] = true;
+        if (!is_array($modules)) {
+            $status['error'] = __('The module server did not return a module list.');
+            return $status;
+        }
+        foreach ($modules as $module) {
+            if (isset($module['name']) && $module['name'] === self::AI_MODULE_NAME) {
+                $status['listed'] = true;
+                $status['module'] = [
+                    'version' => $module['meta']['version'] ?? null,
+                    'description' => $module['meta']['description'] ?? null,
+                    'types' => $module['meta']['module-type'] ?? [],
+                ];
+                break;
+            }
+        }
+        return $status;
     }
 }

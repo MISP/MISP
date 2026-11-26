@@ -236,18 +236,8 @@ def test_account_control_disables_an_existing_misp_user(misp_config,
     )
 
 
-def test_ldap_login_reenables_a_disabled_account(misp, misp_admin_api,
-                                                 ldap_fixtures):
-    """A locally disabled account is re-enabled by logging in over LDAP.
-
-    With updateUser enabled the plugin unconditionally writes `disabled = 0`
-    when refreshing a user, so disabling someone in MISP does not keep them
-    out while they still exist in the directory. Revocation has to happen in
-    LDAP, not in MISP.
-
-    This documents current behaviour rather than endorsing it -- if the plugin
-    is ever changed to respect the local flag, this test should be inverted.
-    """
+def _disable_after_first_login(misp, misp_admin_api, ldap_fixtures):
+    """Provision a directory user over LDAP, then disable it in MISP."""
     if misp_admin_api is None:
         pytest.skip("needs AUTH to disable the account")
 
@@ -261,11 +251,31 @@ def test_ldap_login_reenables_a_disabled_account(misp, misp_admin_api,
     assert user_id is not None
     misp_admin_api.set_disabled(user_id, True)
     assert misp_admin_api.view_user(user_id)["disabled"] is True
+    return user, user_id
+
+
+def test_ldap_login_keeps_a_disabled_account_out(misp, misp_admin_api,
+                                                 ldap_fixtures):
+    """A user disabled in MISP stays out while the directory still has them."""
+    user, user_id = _disable_after_first_login(misp, misp_admin_api,
+                                               ldap_fixtures)
 
     misp.login(user["mail"], user["password"])
 
-    assert misp.is_authenticated(), (
-        "Disabled user was refused -- the plugin now respects the local "
-        "disabled flag. That is an improvement; invert this test."
+    assert not misp.is_authenticated(), (
+        "a user disabled in MISP logged in over LDAP"
     )
+    assert misp_admin_api.view_user(user_id)["disabled"] is True
+
+
+def test_unblock_lets_ldap_login_reenable_a_disabled_account(
+        misp, misp_admin_api, ldap_fixtures, ldap_settings):
+    """With `unblock` on, logging in over LDAP re-enables the account."""
+    user, user_id = _disable_after_first_login(misp, misp_admin_api,
+                                               ldap_fixtures)
+    ldap_settings.set(unblock=True)
+
+    misp.login(user["mail"], user["password"])
+
+    misp.assert_logged_in(user["mail"])
     assert misp_admin_api.view_user(user_id)["disabled"] is False

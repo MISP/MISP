@@ -26,8 +26,8 @@
       <?php echo $this->element('/Servers/View/seen_field', array('object' => $object)); ?>
     </td>
     <td class="short">
-      <div id = "Attribute_<?php echo $object['id']; ?>_category_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_category_solid" class="inline-field-solid">
+      <div id = "Attribute_<?php echo h($object['id']); ?>_category_placeholder" class = "inline-field-placeholder"></div>
+      <div id = "Attribute_<?php echo h($object['id']); ?>_category_solid" class="inline-field-solid">
         <?php echo h($object['category']); ?>
       </div>
     </td>
@@ -40,14 +40,14 @@
         endif;
       ?>
       <div></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_type_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_type_solid" class="inline-field-solid">
+      <div id = "Attribute_<?php echo h($object['id']); ?>_type_placeholder" class = "inline-field-placeholder"></div>
+      <div id = "Attribute_<?php echo h($object['id']); ?>_type_solid" class="inline-field-solid">
         <?php echo h($object['type']); ?>
       </div>
     </td>
     <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish">
-      <div id="Attribute_<?php echo $object['id']; ?>_value_placeholder" class="inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
+      <div id="Attribute_<?php echo h($object['id']); ?>_value_placeholder" class="inline-field-placeholder"></div>
+      <div id = "Attribute_<?php echo h($object['id']); ?>_value_solid" class="inline-field-solid">
         <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="attributes" data-object-id="' . h($object['id']) . '"'?>>
           <?= $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)); ?>
         </span>
@@ -62,8 +62,8 @@
       </div>
     </td>
     <td class="showspaces bitwider">
-      <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
+      <div id = "Attribute_<?php echo h($object['id']); ?>_comment_placeholder" class = "inline-field-placeholder"></div>
+      <div id = "Attribute_<?php echo h($object['id']); ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>
@@ -120,8 +120,8 @@
       </ul>
     </td>
     <td class="short">
-      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid">
+      <div id = "Attribute_<?php echo h($object['id']); ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
+      <div id = "Attribute_<?php echo h($object['id']); ?>_to_ids_solid" class="inline-field-solid">
         <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>

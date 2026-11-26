@@ -1,53 +1,17 @@
 <?php
 $tagName = $this->request->data['Taxonomy']['name'];
 
-echo $this->Form->create('Taxonomy', [
-    'class' => 'needs-validation',
-    'novalidate' => true,
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
+    'title' => __('Disable tag'),
+    'model' => 'Taxonomy',
+    'url' => $this->request->here(false),
+    'hiddenField' => ['taxonomy_id', 'name'],
+    'eyebrow' => __('Taxonomy tags'),
+    'accent' => 'warning',
+    'message' => __('It is hidden and can no longer be attached. Where it is already attached, it stays.'),
+    'bodyHtml' => '<div class="d-flex align-items-center gap-2 p-2 rounded-2 border bg-body-tertiary min-w-0">'
+        . '<i class="fas fa-tag text-body-secondary"></i>'
+        . '<span class="font-monospace small text-break">' . h($tagName) . '</span></div>',
+    'submitLabel' => __('Disable tag'),
+    'submitIcon' => 'eye-slash',
 ]);
-?>
-
-<div class="container me-5">
-    <div class="row justify-content-center">
-        <div class="card shadow-sm">
-            <div class="card-body">
-
-                <h3 class="mb-2">
-                    <?= __('Confirm disabling Taxonomy Tag') ?>
-                </h3>
-
-                <!-- DESCRIPTION -->
-                <p class="text-muted mb-4">
-                    <?= __('Tag') ?> <strong><?= h($tagName) ?></strong>
-                    <?= __('will be disabled.') ?>
-                </p>
-
-                <!-- HIDDEN FIELDS -->
-                <?= $this->Form->hidden('taxonomy_id') ?>
-                <?= $this->Form->hidden('name') ?>
-
-                <!-- ACTIONS -->
-                <div class="d-flex justify-content-end gap-3">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">
-                        <?= __('Cancel') ?>
-                    </button>
-
-                    <?= $this->Form->button(
-                        '<i class="fas fa-stop me-1"></i> ' . __('Disable Tag'),
-                        [
-                            'class' => 'btn btn-primary',
-                            'escapeTitle' => false,
-                            'title' => __('Disable Tag'),
-                            'aria-label' => __('Disable Tag'),
-                        ]
-                    ) ?>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
-
-<?= $this->Form->end() ?>

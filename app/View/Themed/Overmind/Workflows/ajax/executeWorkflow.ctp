@@ -19,15 +19,15 @@ echo $this->Form->create('Workflow', [
             </p>
 
             <div class="mb-3">
-                <?= $this->Form->label('data', __('Passed data (JSON)'), ['class' => 'form-label fw-semibold']) ?>
-                <?= $this->Form->textarea('data', [
-                    'class' => 'form-control font-monospace',
-                    'rows' => 5,
+                <?= $this->element('genericElementsBS5/Forms/json_field', [
+                    'field' => 'data',
+                    'label' => __('Passed data (JSON)'),
+                    'shape' => 'array',
                     'value' => '[]',
+                    'rows' => 5,
+                    'minHeight' => '130px',
+                    'hint' => __('Leave as [] when the trigger collects its own data.'),
                 ]) ?>
-                <div class="form-text">
-                    <?= __('Leave as [] when the trigger collects its own data.') ?>
-                </div>
             </div>
 
             <div class="d-flex justify-content-between align-items-center">

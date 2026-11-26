@@ -912,7 +912,7 @@ class DashboardsController extends AppController
                 'type'  => 'LEFT',
                 'conditions' => [
                     'GalaxyCluster.galaxy_id = Galaxy.id',
-                    'GalaxyCluster.deleted = 0',
+                    'GalaxyCluster.deleted' => false,
                 ],
             ]],
             'conditions' => ['Galaxy.enabled' => 1],
@@ -1453,7 +1453,7 @@ class DashboardsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->set('passedArgs', json_encode($this->passedArgs));
+        $this->set('passedArgs', JsonTool::encodeForScript($this->passedArgs));
 
         // ------------------------------------------------------------
         // Phase 4 — template gallery view (PRD §5.4 / DD-08).

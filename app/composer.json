@@ -13,18 +13,19 @@
         "iglocska/cake-resque": ">=4.2.1",
         "pear/crypt_gpg": "1.6.7",
         "monolog/monolog": "^2.5.0 || ^3.0.0",
-        "spomky-labs/otphp": "^10.0",
+        "spomky-labs/otphp": "^11.5",
+        "psr/clock": "^1.0",
         "bacon/bacon-qr-code": "^2.0",
         "geoip2/geoip2": "~2.0",
         "browscap/browscap-php": "^7.0",
         "matthiasmullie/scrapbook": ">=1.5.3",
-        "league/flysystem": ">=1.0",
+        "league/flysystem": "^3.35.3",
         "supervisorphp/supervisor": "^4.0",
-        "guzzlehttp/guzzle": "^7.4.5",
+        "guzzlehttp/guzzle": "^7.15.2",
         "lstrojny/fxmlrpc": "*",
         "php-http/message": "*",
         "php-http/message-factory": "*",
-        "league/commonmark": "^2.8",
+        "league/commonmark": "^2.10.2",
         "justinrainbow/json-schema": "^6.8"
     },
     "_comments": [
@@ -34,8 +35,7 @@
     ],
     "require-dev": {
         "phpunit/phpunit": "^8",
-        "php-parallel-lint/php-parallel-lint": "^1.2",
-        "cakephp/debug_kit": "^2.2.0"
+        "php-parallel-lint/php-parallel-lint": "^1.2"
     },
     "suggest": {
         "ext-posix": "For process info fetching",

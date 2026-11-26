@@ -44,7 +44,7 @@ class GalaxyElementsController extends AppController
         $this->set('elements', $elements);
         $this->set('clusterId', $clusterId);
         $this->set('context', $filters['context']);
-        $this->set('passedArgs', json_encode([
+        $this->set('passedArgs', JsonTool::encodeForScript([
             'context' => $filters['context'],
             'searchall' => isset($filters['searchall']) ? $filters['searchall'] : ''
         ]));

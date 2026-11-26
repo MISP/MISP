@@ -9,7 +9,8 @@ class AnalystDataBehavior extends ModelBehavior
 
     private $__current_type = null;
 
-    protected $__valid_sharing_groups = null;
+    /** @var array [user id => sharing group ids]; one behavior instance serves every model and user */
+    protected $__valid_sharing_groups = [];
 
     public function setup(Model $Model, $settings = array()) {
         // We want to know whether we're a Note, Opinion or Relationship
@@ -22,22 +23,9 @@ class AnalystDataBehavior extends ModelBehavior
         $conditions = [
             'object_uuid' => $uuid
         ];
-        $type = $Model->current_type;
-        if (empty($user['Role']['perm_site_admin'])) {
-            if ($this->__valid_sharing_groups === null) {
-                $this->__valid_sharing_groups = $Model->SharingGroup->authorizedIds($user, true);
-            }
-            $conditions['AND'][] = [
-                'OR' => [
-                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
-                    $type . '.org_uuid' => $user['Organisation']['uuid'],
-                    $type . '.distribution IN' => [1, 2, 3],
-                    'AND' => [
-                        $type . '.distribution' => 4,
-                        $type . '.sharing_group_id IN' => $this->__valid_sharing_groups
-                    ]
-                ]
-            ];
+        $acl = $this->analystDataConditions($Model, $user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
         }
         return $Model->find('all', [
             'recursive' => -1,
@@ -53,21 +41,9 @@ class AnalystDataBehavior extends ModelBehavior
             'object_uuid' => $uuids
         ];
         $type = $Model->current_type;
-        if (empty($user['Role']['perm_site_admin'])) {
-            if ($this->__valid_sharing_groups === null) {
-                $this->__valid_sharing_groups = $Model->SharingGroup->authorizedIds($user, true);
-            }
-            $conditions['AND'][] = [
-                'OR' => [
-                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
-                    $type . '.org_uuid' => $user['Organisation']['uuid'],
-                    $type . '.distribution IN' => [1, 2, 3],
-                    'AND' => [
-                        $type . '.distribution' => 4,
-                        $type . '.sharing_group_id IN' => $this->__valid_sharing_groups
-                    ]
-                ]
-            ];
+        $acl = $this->analystDataConditions($Model, $user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
         }
         $temp = $Model->find('all', [
             'recursive' => -1,
@@ -79,6 +55,36 @@ class AnalystDataBehavior extends ModelBehavior
             $results[$result[$type]['object_uuid']][$type][] = $result[$type];
         }
         return $results;
+    }
+
+    /**
+     * The analyst data of the current type that $user may read.
+     *
+     * @param Model $Model
+     * @param array|null $user
+     * @return array Conditions, empty for a site admin.
+     */
+    public function analystDataConditions(Model $Model, $user)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return [];
+        }
+        $userId = $user['id'] ?? 0;
+        if (!isset($this->__valid_sharing_groups[$userId])) {
+            $this->__valid_sharing_groups[$userId] = $Model->SharingGroup->authorizedIds($user, true);
+        }
+        $type = $Model->current_type;
+        return [
+            'OR' => [
+                $type . '.orgc_uuid' => $user['Organisation']['uuid'],
+                $type . '.org_uuid' => $user['Organisation']['uuid'],
+                $type . '.distribution IN' => [1, 2, 3],
+                'AND' => [
+                    $type . '.distribution' => 4,
+                    $type . '.sharing_group_id IN' => $this->__valid_sharing_groups[$userId]
+                ]
+            ]
+        ];
     }
 
     public function checkACL()

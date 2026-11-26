@@ -409,7 +409,8 @@ function sanitizeObject(obj) {
     var newObj = {}
     for (var key of Object.keys(obj)) {
         var newVal = $('</p>').text(obj[key]).html()
-        newObj[key] = newVal
+        // the templates also put these values in quoted attributes
+        newObj[key] = newVal.replace(/"/g, '&quot;').replace(/'/g, '&#039;')
     }
     return newObj
 }

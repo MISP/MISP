@@ -101,7 +101,7 @@ abstract class StixExport
         $decoded = JsonTool::decode($result);
         if (!isset($decoded['success']) || !$decoded['success']) {
             if (!empty($decoded['filenames'])) {
-                $this->__delete_temporary_files(false, $decoded['filename']);
+                $this->__delete_temporary_files(false, $decoded['filenames']);
             } else {
                 $this->__delete_temporary_files(true);
             }
@@ -348,13 +348,13 @@ abstract class StixExport
         $framingCmd = $this->__initiate_framing_params();
         try {
             $framing = JsonTool::decode(ProcessTool::execute($framingCmd, null, true));
-            if (isset($framing['error'])) {
-                throw new Exception("Framing command error: " . $framing['error']);
-            }
-            return $framing;
         } catch (Exception $e) {
             throw new Exception("Could not get results from framing cmd when exporting STIX file.", 0, $e);
         }
+        if (isset($framing['error'])) {
+            throw new Exception("Framing command error: " . $framing['error']);
+        }
+        return $framing;
     }
 
     private function __merge_galaxy_tag(&$galaxies, $tag_name)
@@ -408,6 +408,9 @@ abstract class StixExport
         $stix_content = FileAccessTool::readAndDelete($filename);
         if ($this->__return_type === 'stix2') {
             $stix_content = substr($stix_content, 1, -1);
+            if ($stix_content === '') {
+                return;
+            }
         }
         $this->stixFile->writeWithSeparator($stix_content, $separator);
     }

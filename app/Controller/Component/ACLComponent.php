@@ -69,13 +69,16 @@ class ACLComponent extends Component
             'downloadSample' => array('*'),
             'edit' => array('perm_add'),
             'editAttributeGalaxies' => array('AND' => ['perm_tagger', 'theming_enabled']),
+            'editAttributeGalaxyRelationships' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'editAttributeTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
+            'editAttributeTagRelationships' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'editField' => array('perm_add'),
             'editSelected' => array('perm_add'),
             'enrich' => ['perm_add'],
             'exportSearch' => array('*'),
             'fetchEditForm' => array('perm_add'),
             'fetchViewValue' => array('*'),
+            'galaxySelection' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'generateCorrelation' => array(),
             'getAttributeByB64Value' => ['*'],
             'getMassEditForm' => array('perm_add'),
@@ -90,6 +93,7 @@ class ACLComponent extends Component
             'returnAttributes' => array('*'),
             'rpz' => array('*'),
             'search' => array('*'),
+            'tagSelection' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'toggleCorrelation' => array('perm_add'),
             'text' => array('*'),
             'toggleToIDS' => array('perm_add'),
@@ -223,11 +227,11 @@ class ACLComponent extends Component
             "add" => array('OR' => array('perm_admin', 'perm_decaying')),
             "edit" => array('OR' => array('perm_admin', 'perm_decaying')),
             "delete" => array('OR' => array('perm_admin', 'perm_decaying')),
-            "deleteSelection" => array('OR' => array('perm_admin', 'perm_decaying', 'theming_enabled')),
+            "deleteSelection" => array('AND' => array('perm_decaying_or_admin', 'theming_enabled')),
             "enable" => array('OR' => array('perm_admin', 'perm_decaying')),
             "disable" => array('OR' => array('perm_admin', 'perm_decaying')),
-            "massEnable" => array('OR' => array('perm_admin', 'perm_decaying', 'theming_enabled')),
-            "massDisable" => array('OR' => array('perm_admin', 'perm_decaying', 'theming_enabled')),
+            "massEnable" => array('AND' => array('perm_decaying_or_admin', 'theming_enabled')),
+            "massDisable" => array('AND' => array('perm_decaying_or_admin', 'theming_enabled')),
             "decayingTool" => array('OR' => array('perm_admin', 'perm_decaying')),
             "getAllDecayingModels" => array('*'),
             "decayingToolBasescore" => array('*'),
@@ -299,13 +303,14 @@ class ACLComponent extends Component
             'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),
             'reportFromEvent' => array('perm_add'),
             'restore' => array('perm_add'),
+            'aiExtractIndicators' => array('perm_ai_tools'),
+            'aiSummarize' => array('perm_ai_tools'),
             'index' => array('*'),
             'getProxyMISPElements' => array('*'),
             'extractAllFromReport' => array('perm_add'),
             'extractFromReport' => array('perm_add'),
-            'replaceSuggestionInReport' => array('*'),
+            'replaceSuggestionInReport' => array('perm_add'),
             'importReportFromUrl' => array('perm_add'),
-            'sendToLLM' => ['perm_add'],
             'configureTemplateVariable' => ['perm_add'],
             'downloadAsPDF' => ['*'],
             'addTag' => ['perm_tagger'],
@@ -350,6 +355,10 @@ class ACLComponent extends Component
             'addIOC' => array('perm_add'),
             'addTag' => array('perm_tagger'),
             'add_misp_export' => array('perm_modify'),
+            'aiActions' => array('perm_ai_tools'),
+            'aiExtractIndicators' => array('perm_ai_tools'),
+            'aiRecommendTags' => array('perm_ai_tools'),
+            'aiSummarize' => array('perm_ai_tools'),
             'alert' => array('perm_publish'),
             'automation' => array('perm_auth'),
             'checkLocks' => array('perm_add'),
@@ -366,7 +375,9 @@ class ACLComponent extends Component
             'downloadOpenIOCEvent' => array('*'),
             'edit' => array('perm_add'),
             'editEventTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
+            'editEventTagRelationships' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'editEventGalaxies' => array('AND' => ['perm_tagger', 'theming_enabled']),
+            'editEventGalaxyRelationships' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'enrichEvent' => array('perm_add'),
             'export' => array('*'),
             'exportChoice' => array('*'),
@@ -404,11 +415,9 @@ class ACLComponent extends Component
             'pushProposals' => array('perm_sync'),
             'queryEnrichment' => array('perm_add'),
             'recorrelateEvent' => [],
-            'recoverEvent' => array(),
             'removePivot' => array('*'),
             'removeTag' => array('perm_tagger'),
             'reportValidationIssuesEvents' => array(),
-            'restoreDeletedEvents' => array(),
             'restSearch' => array('*'),
             'restSearchExport' => array('*'),
             'runTaxonomyExclusivityCheck' => array('*'),
@@ -433,6 +442,7 @@ class ACLComponent extends Component
             'viewEventReports' => array('theming_enabled'),
             'viewEventTags' => array('theming_enabled'),
             'viewEventGalaxies' => array('theming_enabled'),
+            'viewEventGalaxyMatrices' => array('theming_enabled'),
             'viewEventStats' => array('theming_enabled'),
             'viewAttachments' => array('theming_enabled'),
             'viewEventSightings' => array('theming_enabled'),
@@ -470,7 +480,7 @@ class ACLComponent extends Component
             'index' => ['*'],
             'loadDefaultFeeds' => array(),
             'previewEvent' => ['*'],
-            'previewEventAttributes' => ['theming_enabled*'],
+            'previewEventAttributes' => ['theming_enabled'],
             'previewEventObjects' => ['theming_enabled'],
             'previewIndex' => ['*'],
             'searchCaches' => ['*'],
@@ -525,7 +535,7 @@ class ACLComponent extends Component
             'restore' => array('perm_galaxy_editor'),
             'restSearch' => array('*'),
             'search' => array('*'),
-            'unpublish' => array('perm_galaxy_editor'),
+            'unpublish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
             'updateCluster' => array('perm_galaxy_editor'),
             'view' => array('*'),
             'viewCyCatRelations' => array('*'),
@@ -618,11 +628,13 @@ class ACLComponent extends Component
             'proposeObjectsFromAttributes' => array('*'),
             'groupAttributesIntoObject' => array('perm_add'),
             'revise_object' => array('perm_add'),
+            'similar_objects' => array('AND' => ['perm_add', 'theming_enabled']),
             'view' => array('*'),
             'viewAnalystData' => ['*'],
             'createFromFreetext' => ['perm_add'],
         ),
         'objectReferences' => array(
+            'targets' => array('AND' => ['perm_add', 'theming_enabled']),
             'add' => array('perm_add'),
             'bulkAdd' => array('perm_add'),
             'delete' => array('perm_add'),
@@ -679,12 +691,6 @@ class ACLComponent extends Component
         'pages' => array(
             'display' => array('*'),
         ),
-        'posts' => array(
-            'add' => ['AND' => ['not_read_only_authkey', 'discussion_enabled', 'perm_add']],
-            'delete' => ['AND' => ['not_read_only_authkey', 'discussion_enabled', 'perm_add']],
-            'edit' => ['AND' => ['not_read_only_authkey', 'discussion_enabled', 'perm_add']],
-            'pushMessageToZMQ' => array()
-        ),
         'regexp' => array(
             'admin_add' => array('perm_regexp_access'),
             'admin_clean' => array(),
@@ -711,6 +717,7 @@ class ACLComponent extends Component
         ),
         'servers' => array(
             'add' => array(),
+            'aiDryRun' => array(),
             'dbSchemaDiagnostic' => array(),
             'dbConfiguration' => array(),
             'cache' => array(),
@@ -755,6 +762,7 @@ class ACLComponent extends Component
             'removeOrphanedCorrelations' => array(),
             'restartDeadWorkers' => array(),
             'restartWorkers' => array(),
+            'serverDiagnostic' => ['AND' => ['perm_site_admin', 'theming_enabled']],
             'serverSettings' => array(),
             'serverSettingsEdit' => array(),
             'serverSettingsReloadSetting' => array(),
@@ -883,7 +891,6 @@ class ACLComponent extends Component
             'tagStatistics' => array('*'),
             'view' => array('*'),
             'viewGraph' => array('*'),
-            'viewTag' => array('*'),
             'fastIndex' => array('*'),
         ),
         'tasks' => array(
@@ -939,35 +946,6 @@ class ACLComponent extends Component
             'getRoot' => ['perm_site_admin'],
             'getCollections' => ['perm_site_admin']
         ],
-        'templateElements' => array(
-            'add' => array('perm_template'),
-            'addV2' => array('AND' => ['perm_template', 'theming_enabled']),
-            'delete' => array('perm_template'),
-            'deleteSelection' => array('AND' => ['perm_template', 'theming_enabled']),
-            'edit' => array('perm_template'),
-            'editV2' => array('AND' => ['perm_template', 'theming_enabled']),
-            'index' => array('*'),
-            'templateElementAddChoices' => array('perm_template'),
-        ),
-        'templates' => array(
-            'add' => array('perm_template'),
-            'delete' => array('perm_template'),
-            'deleteSelection' => array('AND' => ['perm_template', 'theming_enabled']),
-            'deleteTemporaryFile' => array('perm_add'),
-            'edit' => array('perm_template'),
-            'index' => array('*'),
-            'populateEventFromTemplate' => array('perm_add'),
-            'saveElementSorting' => array('perm_template'),
-            'submitEventPopulation' => array('perm_add'),
-            'templateChoices' => array('*'),
-            'uploadFile' => array('perm_add'),
-            'view' => array('*'),
-        ),
-        'threads' => array(
-            'index' => array('discussion_enabled'),
-            'view' => array('discussion_enabled'),
-            'viewEvent' => array('discussion_enabled'),
-        ),
         'users' => array(
             'acceptRegistrations' => array(),
             'admin_add' => ['AND' => ['perm_admin', 'add_user_enabled']],
@@ -1058,6 +1036,7 @@ class ACLComponent extends Component
             'toggleEnable' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'update' => array(),
             'view' => array('*'),
+            'viewEntries' => ['theming_enabled'],
             'edit' => ['perm_warninglist'],
             'add' => ['perm_warninglist'],
             'export' => ['*'],
@@ -1097,14 +1076,6 @@ class ACLComponent extends Component
             'update' => [],
             'view' => [],
         ],
-        'allowedlists' => array(
-            'admin_add' => array('perm_regexp_access'),
-            'admin_delete' => array('perm_regexp_access'),
-            'admin_deleteSelection' => ['AND'=> ['perm_regexp_access', 'theming_enabled']],
-            'admin_edit' => array('perm_regexp_access'),
-            'admin_index' => array('perm_regexp_access'),
-            'index' => array('*'),
-        ),
         'eventGraph' => array(
             'view' => array('*'),
             'viewPicture' => array('*'),
@@ -1160,15 +1131,16 @@ class ACLComponent extends Component
         $this->dynamicChecks['delegation_enabled'] = function (array $user) {
             return (bool)Configure::read('MISP.delegation');
         };
-        $this->dynamicChecks['discussion_enabled'] = function (array $user) {
-            return !Configure::read('MISP.discussion_disable');
-        };
         // Returns true if current user is not using advanced auth key or if authkey is not read only
         $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
             return !isset($user['authkey_read_only']) || !$user['authkey_read_only'];
         };
         $this->dynamicChecks['theming_enabled'] = function (array $user) {
             return (bool)Configure::read('MISP.enable_themes');
+        };
+        // The ACL evaluator does not nest, so an OR-ed pair used inside an AND has to be a dynamic check
+        $this->dynamicChecks['perm_decaying_or_admin'] = function (array $user) {
+            return (bool)($user['Role']['perm_admin'] || $user['Role']['perm_decaying']);
         };
         // If `Security.hide_organisation_index_from_users` is enabled, only user with sharing group permission can see org index
         $this->dynamicChecks['organisation_index'] = function (array $user) {
@@ -1194,6 +1166,9 @@ class ACLComponent extends Component
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if ($user['Role']['perm_modify_org'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -1201,6 +1176,17 @@ class ACLComponent extends Component
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param array $user
+     * @param array $event
+     * @return bool
+     * @see Event::isProtectedFromSyncUser()
+     */
+    private function isProtectedFromSyncUser(array $user, array $event)
+    {
+        return ClassRegistry::init('Event')->isProtectedFromSyncUser($user, $event);
     }
 
     /**
@@ -1218,6 +1204,9 @@ class ACLComponent extends Component
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
+        if ($this->isProtectedFromSyncUser($user, $event)) {
+            return false;
+        }
         if ($user['Role']['perm_publish'] && $event['Event']['orgc_id'] == $user['org_id']) {
             return true;
         }
@@ -1226,6 +1215,8 @@ class ACLComponent extends Component
 
     /**
      * Returns true if user can add or remove tags for given event.
+     * The host org may set local tags on whatever is passed here: load the
+     * event or attribute with the user's visibility applied first.
      *
      * @param array $user
      * @param array $event
@@ -1248,7 +1239,11 @@ class ACLComponent extends Component
         if ($this->canModifyEvent($user, $event)) {
             return true; // full access
         }
-        if ($isTagLocal && $this->hostOrgId === (int)$user['org_id']) {
+        if (
+            $isTagLocal &&
+            $this->hostOrgId === (int)$user['org_id'] &&
+            !$this->isProtectedFromSyncUser($user, $event)
+        ) {
             return true;
         }
         return false;
