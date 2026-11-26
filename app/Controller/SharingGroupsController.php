@@ -49,7 +49,12 @@ class SharingGroupsController extends AppController
                     $this->request->data = $this->request->data['SharingGroup'];
                 }
                 $sg = $this->request->data;
-                $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
+                $id = $this->SharingGroup->captureSG(
+                    $this->request->data,
+                    $this->Auth->user(),
+                    false,
+                    true
+                );
                 if ($id) {
                     if (empty($sg['roaming']) && empty($sg['SharingGroupServer'])) {
                         $this->SharingGroup->SharingGroupServer->create();
