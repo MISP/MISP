@@ -1401,6 +1401,7 @@ class Server extends AppModel
                 $eventCount = count($eventUUIDsFiltered);
                 // now process the $eventIds to push each of the events sequentially
                 $fails = array();
+                $pushedEventIds = array();
                 foreach ($eventUUIDsFiltered as $k => $eventUuid) {
                     $params = array();
                     if (!empty($server['Server']['push_rules'])) {
@@ -1439,6 +1440,7 @@ class Server extends AppModel
                     }
 
                     $result = $this->Event->uploadEventToServer($event, $server, $serverSync);
+                    $pushedEventIds[] = $event['Event']['id'];
                     if ('Success' === $result) {
                         $successes[] = $event['Event']['id'];
                     } else {
@@ -1448,12 +1450,18 @@ class Server extends AppModel
                         $job->saveProgress($jobId, null, 100 * $k / $eventCount);
                     }
                 }
-                if (count($fails) > 0) {
-                    // there are fails, take the lowest fail
-                    $lastpushedid = min(array_keys($fails));
-                } elseif (!empty($successes)) {
-                    // no fails, take the highest success
-                    $lastpushedid = max($successes);
+                // uploadEventToServer() returns false on a transport or remote error, which is worth
+                // retrying; a string is a rule, distribution or "not newer" verdict that would repeat.
+                $retryableFails = array_keys(array_filter($fails, function ($result) {
+                    return $result === false;
+                }));
+                if (!empty($retryableFails)) {
+                    // Incremental push selects Event.id > lastpushedid, so stop just below the lowest
+                    // retryable failure to have it picked up again on the next run.
+                    $lastpushedid = min($retryableFails) - 1;
+                } elseif (!empty($pushedEventIds)) {
+                    // Only event ids: $successes also holds galaxy cluster ids on a full push.
+                    $lastpushedid = max($pushedEventIds);
                 } else {
                     $lastpushedid = $server['Server']['lastpushedid'];
                 }
