@@ -399,8 +399,11 @@ jobs:
         run: |
           node --version
           node --test app/Test/js/*.test.mjs
+          for f in tests/js/*.test.js; do node "$f"; done
+          php tests/translation_smoke.php
           . ./venv/bin/activate
           python -m pytest -v tests/test_yara_comment_out.py tests/test_yara_permissive_plyara.py
+          python -m pytest -v tests/value_oracle tests/test_translation_validation.py
           deactivate
 
       - name: Clone test files
