@@ -2,7 +2,8 @@
 /**
  * restSearch's offset filter: the check the controller runs once the role's
  * limit is in (RestSearchComponent::offset), the chunked models (event
- * reports, analyst data, collections, tags, organisations) and attributes, which
+ * reports, analyst data, collections, tags, organisations), attributes and
+ * events (on their id query), which
  * start a page at the offset, let page win over it, and page as before without
  * it. Attribute pages also cross fetch batches and lose dropped rows from the
  * offset on, without refilling. Event orders end with id, so their pages
@@ -369,6 +370,38 @@ class RestSearchOffsetDbTest extends TestCase
         return array_map(function ($attribute) {
             return (int)$attribute['id'];
         }, json_decode($result->intoString(), true)['response']['Attribute']);
+    }
+
+    public function testEventsStartAtTheOffset()
+    {
+        $ids = $this->insertEvents();
+        // unordered pages come in MySQL's order: the reference is the same query, whole
+        $all = $this->eventIds($ids, ['limit' => 8]);
+        $this->assertEqualsCanonicalizing($ids, $all);
+        $this->assertSame(array_slice($all, 0, 3), $this->eventIds($ids, ['limit' => 3]));
+        $this->assertSame(array_slice($all, 3, 3), $this->eventIds($ids, ['limit' => 3, 'page' => 2]));
+        $this->assertSame(array_slice($all, 3, 3), $this->eventIds($ids, ['limit' => 3, 'page' => 2, 'offset' => 0]));
+        $this->assertSame(array_slice($all, 4, 3), $this->eventIds($ids, ['limit' => 3, 'offset' => 4]));
+        $this->assertSame([$all[7]], $this->eventIds($ids, ['limit' => 3, 'offset' => 7]));
+        $this->assertSame([], $this->eventIds($ids, ['limit' => 3, 'offset' => 8]));
+        // without a limit nothing pages, as before
+        $this->assertEqualsCanonicalizing($ids, $this->eventIds($ids, ['offset' => 4]));
+    }
+
+    public function testEventRestSearchStartsAtTheOffset()
+    {
+        $ids = $this->insertEvents();
+        $elementCounter = 0;
+        $renderView = false;
+        $skipped = 0;
+        $filters = ['eventid' => $ids, 'limit' => 3, 'offset' => 4, 'order' => 'info asc', 'metadata' => 1];
+        $result = ClassRegistry::init('Event')->restSearch($this->user, 'json', $filters, false, false, $elementCounter, $renderView, $skipped);
+        $rows = json_decode($result->intoString(), true)['response'];
+        $this->assertSame(array_slice(array_reverse($ids), 4, 3), array_map(function ($row) {
+            return (int)$row['Event']['id'];
+        }, $rows));
+        // every match, as with page
+        $this->assertSame(8, $elementCounter);
     }
 
     public function testIdBreaksTheTiesOfAnEventOrder()

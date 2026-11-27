@@ -2411,6 +2411,8 @@ class Event extends AppModel
             $find_params['limit'] = $params['limit'];
             if (isset($params['page'])) {
                 $find_params['page'] = $params['page'];
+            } else if ((int)$params['limit'] > 0 && isset($params['offset'])) {
+                $find_params['offset'] = $this->restSearchOffset($params, (int)$params['limit']);
             }
         }
         if (!empty($params['include_attribute_count'])) {
@@ -13094,6 +13096,7 @@ class Event extends AppModel
         $separator = $exportTool->separator($exportToolParams);
         unset($filters['page']);
         unset($filters['limit']);
+        unset($filters['offset']);
         foreach ($eventids_chunked as $chunk) {
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {
