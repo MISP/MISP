@@ -5,7 +5,8 @@
  * reports, analyst data, collections, tags, organisations) and attributes, which
  * start a page at the offset, let page win over it, and page as before without
  * it. Attribute pages also cross fetch batches and lose dropped rows from the
- * offset on, without refilling.
+ * offset on, without refilling. Event orders end with id, so their pages
+ * neither overlap nor skip.
  *
  * Every test runs in a transaction that is rolled back. Skipped unless
  * RESTSEARCH_OFFSET_DB_TESTS is set, and it boots the real application, so it
@@ -368,6 +369,38 @@ class RestSearchOffsetDbTest extends TestCase
         return array_map(function ($attribute) {
             return (int)$attribute['id'];
         }, json_decode($result->intoString(), true)['response']['Attribute']);
+    }
+
+    public function testIdBreaksTheTiesOfAnEventOrder()
+    {
+        $ids = $this->insertEvents();
+        $paged = [];
+        foreach ([1, 2, 3] as $page) {
+            $paged = array_merge($paged, $this->eventIds($ids, ['limit' => 3, 'page' => $page, 'order' => 'timestamp desc']));
+        }
+        $this->assertSame(array_reverse($ids), $paged);
+    }
+
+    /**
+     * @return int[] eight events with one timestamp, ascending ids whose infos sort the other way
+     */
+    private function insertEvents()
+    {
+        $user = $this->user;
+        return $this->insert(ClassRegistry::init('Event'), 8, function ($n, $uuid) use ($user) {
+            return ['uuid' => $uuid, 'org_id' => $user['org_id'], 'orgc_id' => $user['org_id'], 'user_id' => $user['id'],
+                'date' => '2026-11-27', 'info' => sprintf('%s-%02d', $this->token, 7 - $n), 'analysis' => 0,
+                'distribution' => 0, 'sharing_group_id' => 0, 'threat_level_id' => 4, 'timestamp' => 1700000000];
+        });
+    }
+
+    /**
+     * @return int[] the event ids filterEventIds pages for restSearch, narrowed to the given events
+     */
+    private function eventIds(array $ids, array $params)
+    {
+        $params += ['eventid' => $ids, 'include_attribute_count' => 1];
+        return array_map('intval', array_keys(ClassRegistry::init('Event')->filterEventIds($this->user, $params)));
     }
 
     private function insertCollections($count)

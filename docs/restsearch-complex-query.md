@@ -247,7 +247,9 @@ attributes:
 `order` works as before, with the legacy names: `id`, `info`, `analysis`,
 `threat_level_id`, `distribution`, `timestamp` and `publish_timestamp`. When
 `query` is present, an unknown or malformed `order` is rejected as on
-attributes.
+attributes. As there, an `order` that does not sort by `id` is completed with
+`id` in the direction of its last field, so pages never overlap or skip
+events, and without `order` events come in the database's order.
 
 ## Objects
 

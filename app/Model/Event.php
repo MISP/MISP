@@ -2400,6 +2400,10 @@ class Event extends AppModel
                 'Event',
                 self::REST_SEARCH_ORDER_FIELDS['Event']
             );
+            // id breaks ties, in the last key's direction, so pages neither overlap nor skip
+            if (!empty($find_params['order']) && !preg_grep('/^Event\.id /', $find_params['order'])) {
+                $find_params['order'][] = 'Event.id ' . explode(' ', end($find_params['order']))[1];
+            }
         }
         if (isset($params['limit'])) {
             // Get the count (but not the actual data) of results for paginators
