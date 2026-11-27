@@ -3257,14 +3257,14 @@ class EventsController extends AppController
         // of rows its filter leaves — over the whole extension set, like the
         // list itself.
         $countedEventIds = $extensionSet['ids'];
+        $countedScope = empty($options['flatten']) ? ['Attribute.object_id' => 0] : [];
         $proposedIds = $this->Event->proposedAttributeIds($countedEventIds);
         $proposalCount = empty($proposedIds) ? 0 : $this->Event->Attribute->find('count', [
             'conditions' => [
                 'Attribute.event_id' => $countedEventIds,
                 'Attribute.id' => $proposedIds,
-                'Attribute.object_id' => 0,
                 'Attribute.deleted' => 0,
-            ],
+            ] + $countedScope,
             'recursive' => -1,
         ]);
         // Standalone "new attribute" proposals are rows of their own.
@@ -3278,7 +3278,7 @@ class EventsController extends AppController
         ]);
         $this->set('proposalCount', $proposalCount);
         $this->set('deletedCount', $this->Event->Attribute->find('count', [
-            'conditions' => ['Attribute.event_id' => $countedEventIds, 'Attribute.deleted' => 1, 'Attribute.object_id' => 0],
+            'conditions' => ['Attribute.event_id' => $countedEventIds, 'Attribute.deleted' => 1] + $countedScope,
             'recursive' => -1,
         ]));
 

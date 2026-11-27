@@ -32,6 +32,17 @@ class PaymentCardRenderer extends ValueRendererBase
             . ' yet.');
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject(null, 'credit-card', array(
+                'iin' => '411111',
+                'bank_name' => 'Example Bank',
+                'expiration' => date('Y-m', strtotime('+2 years')),
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

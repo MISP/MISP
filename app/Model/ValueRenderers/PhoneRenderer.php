@@ -3,11 +3,9 @@
 /**
  * Where a number is, whose network it is on, and what kind of line.
  *
- * **Nothing emits this in practice.** One keyed module accepts a phone
- * number as input and answers about something else entirely; nothing
- * resolves a number to a carrier and a line type, which is the
- * question a fraud reader asks — a mobile, a landline and a VoIP
- * number carry different weight in the same case.
+ * `phone_number_info` decomposes a number into its country and calling
+ * code. The carrier and line type, which a fraud reader weighs most,
+ * have no field in either template yet and stay blank.
  *
  * Two templates: one describes a handset and the subscriber identities
  * in it, the other decomposes the number itself. They answer different
@@ -25,14 +23,21 @@ class PhoneRenderer extends ValueRendererBase
 
     public $eventUse = self::EVENT_SET;
 
-    public $producer = self::PRODUCER_NONE;
-
     public function __construct()
     {
         $this->description = __('The country, carrier and line type'
             . ' behind a phone number.');
-        $this->producer_note = __('No module resolves a phone number'
-            . ' to a carrier yet.');
+    }
+
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('phone_number_info', 'phone-number', array(
+                'phone-number' => '+442079460000',
+                'country-code-numeric' => '+44',
+                'country-code' => 'GB',
+            )),
+        ));
     }
 
     public function matches(array $objects, array $attributes)

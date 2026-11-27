@@ -1026,6 +1026,14 @@ function boot() {
     var lookup = null;
     var typing = null;
 
+    // A ranking's picker is a gallery: the samples its cards carry, or null.
+    function galleryOf(add) {
+        var order = add.hasAttribute('data-ap-order-pick') && add.closest
+            ? add.closest('.ap-order') : null;
+        return order
+            ? order.querySelector('template[data-ap-order-samples]') : null;
+    }
+
     function panel(add) {
         var box = add.closest ? add.closest('.ap-pick') : null;
         return box ? box.querySelector('.ap-pick-list') : null;
@@ -1094,7 +1102,10 @@ function boot() {
         if (!list) {
             return;
         }
+        var opening = list.hidden;
         var already = taken(add);
+        var store = galleryOf(add);
+        list.classList.toggle('is-gallery', store !== null);
         list.innerHTML = '';
         var drawn = 0;
         // What picking does, said above the options when the box asks for it.
@@ -1109,7 +1120,13 @@ function boot() {
             if (!row || !row.key || already[row.key]) {
                 return;
             }
-            list.appendChild(option(row.key, row.label, row.sub, row.desc));
+            var node = option(row.key, row.label, row.sub, row.desc);
+            var sample = store ? store.content.querySelector(
+                '[data-ap-sample-for="' + cssEscape(row.key) + '"]') : null;
+            if (sample) {
+                node.appendChild(sample.cloneNode(true));
+            }
+            list.appendChild(node);
             drawn += 1;
         });
         /*
@@ -1142,6 +1159,43 @@ function boot() {
         }
         list.hidden = false;
         add.setAttribute('aria-expanded', 'true');
+        if (store) {
+            fit(add, list, opening);
+        }
+    }
+
+    /*
+     * A gallery running off the screen: on opening, scroll as far as it
+     * needs without taking the box out of view; what still does not fit
+     * waits behind a note until the search narrows it.
+     */
+    function fit(add, list, opening) {
+        var under = function () {
+            return list.getBoundingClientRect().bottom + 8 - window.innerHeight;
+        };
+        if (opening && under() > 0) {
+            var nav = document.querySelector('nav.rc-nav');
+            var room = add.getBoundingClientRect().top - 8
+                - (nav ? nav.getBoundingClientRect().bottom : 0);
+            var by = Math.min(under(), Math.max(0, room));
+            if (by > 0) {
+                window.scrollBy({top: by, behavior: 'instant'});
+            }
+        }
+        var cards = list.querySelectorAll('.ap-pick-opt');
+        if (under() <= 0 || cards.length < 2) {
+            return;
+        }
+        var note = document.createElement('div');
+        note.className = 'ap-pick-more';
+        list.appendChild(note);
+        var hidden = 0;
+        for (var i = cards.length - 1; i > 0 && under() > 0; i--) {
+            cards[i].hidden = true;
+            hidden += 1;
+            note.textContent = (add.getAttribute('data-ap-pick-more')
+                || '%s').replace('%s', hidden);
+        }
     }
 
     function search(add) {
@@ -1256,6 +1310,23 @@ function boot() {
          * server has nothing to show until there is something to ask.
          */
         if (!add.hasAttribute('data-ap-add-url') || add.value.trim() !== '') {
+            // A gallery covers the ranking it adds to, so it waits to be asked.
+            if (galleryOf(add) && add.value.trim() === '') {
+                return;
+            }
+            suggest(add);
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        var add = event.target;
+        if (!add.hasAttribute || !add.hasAttribute('data-ap-pick')
+            || !galleryOf(add)
+        ) {
+            return;
+        }
+        var list = panel(add);
+        if (list && list.hidden) {
             suggest(add);
         }
     });
@@ -1310,10 +1381,17 @@ function boot() {
             event.preventDefault();
         }
         var list = panel(add);
+        if (list && list.hidden && event.key === 'ArrowDown'
+            && galleryOf(add)
+        ) {
+            event.preventDefault();
+            suggest(add);
+            return;
+        }
         if (!list || list.hidden) {
             return;
         }
-        var options = list.querySelectorAll('.ap-pick-opt');
+        var options = list.querySelectorAll('.ap-pick-opt:not([hidden])');
         var active = list.querySelector('.ap-pick-opt.is-on');
         var index = Array.prototype.indexOf.call(options, active);
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -1744,6 +1822,9 @@ function boot() {
         if (!list) {
             return;
         }
+        // The unranked shapes' samples, which the picker shows: a pick
+        // takes its sample from here, a removal puts it back.
+        var store = box.querySelector('template[data-ap-order-samples]');
 
         function renumber() {
             var rows = list.querySelectorAll('[data-ap-order-row]');
@@ -1786,6 +1867,10 @@ function boot() {
                 return;
             }
             event.preventDefault();
+            var sample = row.querySelector('[data-ap-sample-for]');
+            if (sample && store) {
+                store.content.appendChild(sample);
+            }
             // The picker offers it again: it leaves out only the tiles on screen.
             row.parentNode.removeChild(row);
         });
@@ -1828,6 +1913,11 @@ function boot() {
             row.appendChild(rank);
             row.appendChild(body);
             row.appendChild(drop);
+            var held = store ? store.content.querySelector(
+                '[data-ap-sample-for="' + cssEscape(key) + '"]') : null;
+            if (held) {
+                row.appendChild(held);
+            }
             return row;
         }
 

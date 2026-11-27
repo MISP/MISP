@@ -75,6 +75,29 @@ class PortServiceSetRenderer extends ValueRendererBase
         return $host === null ? array() : array($host);
     }
 
+    public function sample()
+    {
+        $ports = array(
+            '22' => 'OpenSSH 8.9p1 Ubuntu',
+            '80' => null,
+            '443' => null,
+        );
+        $objects = array();
+        foreach ($ports as $port => $banner) {
+            $relations = array(
+                'ip' => '203.0.113.10',
+                'dst-port' => $port,
+                'protocol' => 'tcp',
+            );
+            if ($banner !== null) {
+                $relations['text'] = $banner;
+            }
+            $objects[] = $this->sampleObject('shodan', 'ip-port',
+                $relations);
+        }
+        return array('objects' => $objects);
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

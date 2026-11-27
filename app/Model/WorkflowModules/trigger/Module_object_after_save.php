@@ -6,7 +6,7 @@ class Module_object_after_save extends WorkflowBaseTriggerModule
     public $id = 'object-after-save';
     public $scope = 'object';
     public $name = 'Object After Save';
-    public $description = 'This trigger is called after an Object has been saved in the database';
+    public $description = 'This trigger is called after an Object has been saved in the database. When an Object is created, it fires before the Object\'s Attributes are saved: they are passed as submitted, without their database IDs.';
     public $icon = 'cubes';
     public $inputs = 0;
     public $outputs = 1;

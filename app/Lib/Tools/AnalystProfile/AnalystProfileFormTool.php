@@ -3208,6 +3208,11 @@ class AnalystProfileFormTool
                 . ' when something above it is not drawn.'),
             'path' => array('enrichment', 'shapes'),
             'entries' => $entries,
+            'samples' => array(
+                'label' => __('Sample'),
+                'none' => __('No sample to show'),
+                'drawings' => ValueRendererTool::samples(),
+            ),
             'add' => array(
                 'title' => __('Add visualisations'),
                 'label' => __('Rank a visualisation'),

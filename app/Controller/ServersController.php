@@ -42,11 +42,14 @@ class ServersController extends AppController
 
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'cspReport';
-        // updateJSON and aiDryRun are only ever reached by the settings page's
-        // hand-built AJAX, which has no rendered form behind it to produce the
-        // field hash _validatePost() compares against. They send the page's
-        // CSRF token in the X-CSRF-Token header instead.
-        $this->_csrfTokenHeaderOnly(['updateJSON', 'aiDryRun']);
+        // Only reached by hand-built AJAX, which has no rendered form behind it
+        // to produce the field hash _validatePost() compares against. They send
+        // the page's CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly([
+            'updateJSON',
+            'aiDryRun',
+            'queryAvailableSyncFilteringRules',
+        ]);
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -1409,14 +1412,7 @@ class ServersController extends AppController
     public function serverSettingsReloadSetting($setting, $id)
     {
         $pathToSetting = explode('.', $setting);
-        if (
-            strpos($setting, 'Plugin.Enrichment') !== false ||
-            strpos($setting, 'Plugin.Import') !== false ||
-            strpos($setting, 'Plugin.Export') !== false ||
-            strpos($setting, 'Plugin.Cortex') !== false ||
-            strpos($setting, 'Plugin.Action') !== false ||
-            strpos($setting, 'Plugin.Workflow') !== false
-        ) {
+        if ($this->Server->isDynamicSetting($setting)) {
             $settingObject = $this->Server->getCurrentServerSettings();
         } else {
             $settingObject = $this->Server->serverSettings;

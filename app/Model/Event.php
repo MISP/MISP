@@ -2683,7 +2683,9 @@ class Event extends AppModel
 
     /**
      * Fetch paginated standalone attributes (object_id=0)
-     * for a given event, with distribution-based ACL.
+     * for a given event, with distribution-based ACL. With
+     * `flatten`, the attributes of its objects too, each
+     * carrying ['Object' => ['id', 'name']].
      *
      * @param array $user
      * @param int   $eventId
@@ -2693,6 +2695,7 @@ class Event extends AppModel
      *   - sort (string, default 'timestamp')
      *   - direction (string, default 'desc')
      *   - deleted (int, 0=not-deleted, 1=both, 2=only-deleted)
+     *   - flatten (bool) object attributes as rows of their own
      *   - category (string|null)
      *   - type (string|null)
      *   - toIDS (int|null, 1=yes, 2=no)
@@ -2938,6 +2941,8 @@ class Event extends AppModel
             'Attribute.disable_correlation',
             'Attribute.first_seen',
             'Attribute.last_seen',
+            'Attribute.object_id',
+            'Attribute.object_relation',
         ];
 
         // Count total (for pagination metadata)
@@ -2986,6 +2991,28 @@ class Event extends AppModel
         $flat = [];
         foreach ($attributes as $a) {
             $flat[] = $a['Attribute'];
+        }
+
+        // A row from an object names it
+        $objectIds = array_unique(array_filter(array_map(
+            'intval', array_column($flat, 'object_id')
+        )));
+        if (!empty($objectIds)) {
+            $objectNames = $this->Object->find('list', [
+                'conditions' => ['Object.id' => array_values($objectIds)],
+                'fields' => ['Object.id', 'Object.name'],
+                'recursive' => -1,
+            ]);
+            foreach ($flat as &$attribute) {
+                $objectId = (int)$attribute['object_id'];
+                if (isset($objectNames[$objectId])) {
+                    $attribute['Object'] = [
+                        'id' => $objectId,
+                        'name' => $objectNames[$objectId],
+                    ];
+                }
+            }
+            unset($attribute);
         }
 
         // Bulk-load tags for fetched attributes
@@ -8407,10 +8434,11 @@ class Event extends AppModel
      * @param int $created_id
      * @param array $validationErrors
      * @param string|bool $fingerprint Of the key that verified a protected event's signature, or true when the caller trusts the input
+     * @param array|null $feed Feed the event was fetched from
      * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
      * @throws Exception
      */
-    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array(), $fingerprint = false)
+    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array(), $fingerprint = false, $feed = null)
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
             if (!isset($this->EventBlocklist)) {
@@ -8668,7 +8696,7 @@ class Event extends AppModel
             if ($fromXml) {
                 $created_id = $this->id;
             }
-            $workflowResult = $this->afterAddWorkflow($this->id, $fromPull);
+            $workflowResult = $this->afterAddWorkflow($this->id, $fromPull, $server, $feed);
             if (is_array($workflowResult)) {
                 return implode(', ', $workflowResult);
             }
@@ -8791,11 +8819,14 @@ class Event extends AppModel
     /**
      * @param int $eventId
      * @param bool $fromPull
+     * @param array $server Server the event was pulled from, if any
+     * @param array|null $feed Feed the event was fetched from, if any
      * @return true|array
      */
-    private function afterAddWorkflow($eventId, $fromPull)
+    private function afterAddWorkflow($eventId, $fromPull, array $server, $feed)
     {
-        $triggerId = $fromPull ? 'event-after-save-new-from-pull' : 'event-after-save-new';
+        $fromRemote = $fromPull || !empty($feed['Feed']['id']);
+        $triggerId = $fromRemote ? 'event-after-save-new-from-pull' : 'event-after-save-new';
         if (!$this->isTriggerCallable($triggerId)) {
             return true;
         }
@@ -8807,6 +8838,22 @@ class Event extends AppModel
             'eventid' => $eventId,
             'includeAttachments' => 1
         ])[0];
+        if (!empty($server['Server']['id'])) {
+            $fullSavedEvent['_server'] = [
+                'id' => $server['Server']['id'],
+                'name' => $server['Server']['name'],
+                'url' => $server['Server']['url'],
+                'internal' => $server['Server']['internal'],
+                'remote_org_id' => $server['Server']['remote_org_id'],
+            ];
+        }
+        if (!empty($feed['Feed']['id'])) {
+            $fullSavedEvent['_feed'] = [
+                'id' => $feed['Feed']['id'],
+                'name' => $feed['Feed']['name'] ?? null,
+                'provider' => $feed['Feed']['provider'] ?? null,
+            ];
+        }
         $workflowErrors = [];
         $logging = [
             'model' => 'Event',

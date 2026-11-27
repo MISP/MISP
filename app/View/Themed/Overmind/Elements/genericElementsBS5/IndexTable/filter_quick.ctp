@@ -1,7 +1,8 @@
 <?php
 /**
- * A `button` child of a picker bar, drawn in its Filters panel: a switch
- * when the child says whether it is `pressed`, a shortcut link otherwise.
+ * A `button` child of a picker bar, drawn in its Filters panel, or on the bar
+ * itself with `in_bar`: a switch when the child says whether it is `pressed`,
+ * a shortcut link otherwise.
  * The url is where clicking leads, on or off; `count` sits beside the label.
  *
  * @var array $child

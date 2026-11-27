@@ -80,6 +80,9 @@ if ($field['data_path'] === 'Event.id') {
                 }
 
                 $url = $action['url'] ?? '';
+                if ($url instanceof Closure) {
+                    $url = (string)$url($row);
+                }
                 $url = str_replace('%id%', $id, $url);
                 if (!empty($action['url_params_data_paths'])) {
                     foreach ($action['url_params_data_paths'] as $placeholder => $path) {

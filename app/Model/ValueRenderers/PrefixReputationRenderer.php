@@ -38,6 +38,18 @@ class PrefixReputationRenderer extends ValueRendererBase
             . ' service yet.');
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject(null, 'bgp-ranking', array(
+                'position' => '412',
+                'ranking' => '0.00042',
+                'address-family' => 'ipv4',
+                'date' => date('Y-m-d', time() - 86400),
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

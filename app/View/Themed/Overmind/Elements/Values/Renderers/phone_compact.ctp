@@ -2,8 +2,8 @@
 /**
  * Where the number is, and what kind of line.
  *
- * The carrier and line type are the two fields the missing module
- * would fill, and they are drawn as blanks rather than omitted: an
+ * The carrier and line type have no field in the templates yet, and
+ * they are drawn as blanks rather than omitted: an
  * analyst who ranked this shape asked for them, and a widget silently
  * without them looks like an answer rather than like a gap.
  *

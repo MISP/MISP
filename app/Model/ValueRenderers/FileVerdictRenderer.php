@@ -54,6 +54,17 @@ class FileVerdictRenderer extends ValueRendererBase
         ));
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('virustotal', 'virustotal-report', array(
+                'detection-ratio' => '54/72',
+                'first-submission' => date('c', time() - 40 * 86400),
+                'last-submission' => date('c', time() - 2 * 86400),
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

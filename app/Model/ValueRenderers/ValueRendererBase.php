@@ -352,6 +352,45 @@ abstract class ValueRendererBase
     abstract public function prepare(array $objects, array $attributes);
 
     /**
+     * One made-up answer, for the profile editor to show what this shape
+     * looks like with no value in hand. Its values never name a real host.
+     *
+     * @return array `objects` (as sampleObject() builds them) and
+     *         optionally `facts`, as prepare() takes them; empty for none
+     */
+    public function sample()
+    {
+        return array();
+    }
+
+    /**
+     * @param string $module The module that would send it
+     * @param string $template
+     * @param array $relations relation => value, or a list of values
+     * @param int $age Seconds since it was asked
+     * @return array
+     */
+    protected function sampleObject($module, $template, array $relations,
+        $age = 0
+    ) {
+        $attributes = array();
+        foreach ($relations as $relation => $values) {
+            foreach ((array)$values as $value) {
+                $attributes[] = array(
+                    'relation' => $relation,
+                    'value' => (string)$value,
+                );
+            }
+        }
+        return array(
+            'name' => $template,
+            'module' => $module,
+            'ran_at' => time() - $age,
+            'attributes' => $attributes,
+        );
+    }
+
+    /**
      * The first value of a relation on one object, or null.
      *
      * @param array $object
