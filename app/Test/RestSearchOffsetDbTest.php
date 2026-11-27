@@ -6,8 +6,8 @@
  * events (on their id query), which
  * start a page at the offset, let page win over it, and page as before without
  * it. Attribute pages also cross fetch batches and lose dropped rows from the
- * offset on, without refilling. Event orders end with id, so their pages
- * neither overlap nor skip.
+ * offset on, without refilling. Event and galaxy cluster orders end with id,
+ * so their pages neither overlap nor skip.
  *
  * Every test runs in a transaction that is rolled back. Skipped unless
  * RESTSEARCH_OFFSET_DB_TESTS is set, and it boots the real application, so it
@@ -412,6 +412,40 @@ class RestSearchOffsetDbTest extends TestCase
             $paged = array_merge($paged, $this->eventIds($ids, ['limit' => 3, 'page' => $page, 'order' => 'timestamp desc']));
         }
         $this->assertSame(array_reverse($ids), $paged);
+    }
+
+    public function testIdBreaksTheTiesOfAGalaxyClusterOrder()
+    {
+        $model = ClassRegistry::init('GalaxyCluster');
+        $ids = $this->insertClusters();
+        $rows = ['id' => ['IN' => $ids]];
+        $paged = [];
+        foreach ([1, 2, 3] as $page) {
+            $paged = array_merge($paged, $this->ids($model, 'GalaxyCluster', $rows, ['limit' => 3, 'page' => $page, 'order' => 'type desc']));
+        }
+        $this->assertSame(array_reverse($ids), $paged);
+        // an order on id is left as it is
+        $this->assertSame(array_reverse($ids), $this->ids($model, 'GalaxyCluster', $rows, ['limit' => 8, 'order' => 'id desc']));
+    }
+
+    /**
+     * @return int[] eight clusters of one type, ascending ids whose values sort the other way
+     */
+    private function insertClusters()
+    {
+        $user = $this->user;
+        $now = date('Y-m-d H:i:s');
+        $galaxy = $this->insert(ClassRegistry::init('Galaxy'), 1, function ($n, $uuid) use ($user, $now) {
+            return ['uuid' => $uuid, 'name' => $this->token, 'type' => $this->token, 'description' => '', 'version' => '1',
+                'namespace' => 'misp', 'org_id' => $user['org_id'], 'orgc_id' => $user['org_id'], 'created' => $now,
+                'modified' => $now, 'distribution' => 3];
+        })[0];
+        return $this->insert(ClassRegistry::init('GalaxyCluster'), 8, function ($n, $uuid) use ($user, $galaxy) {
+            return ['uuid' => $uuid, 'collection_uuid' => $uuid, 'type' => $this->token, 'galaxy_id' => $galaxy,
+                'value' => sprintf('%s-%02d', $this->token, 7 - $n), 'tag_name' => "misp-galaxy:{$this->token}=\"$n\"",
+                'description' => '', 'source' => '', 'authors' => '[]', 'version' => 1, 'distribution' => 3,
+                'org_id' => $user['org_id'], 'orgc_id' => $user['org_id'], 'default' => 0, 'published' => 1, 'deleted' => 0];
+        });
     }
 
     /**

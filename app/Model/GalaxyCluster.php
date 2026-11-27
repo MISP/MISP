@@ -1256,6 +1256,10 @@ class GalaxyCluster extends AppModel
                 'GalaxyCluster',
                 self::REST_SEARCH_ORDER_FIELDS['GalaxyCluster']
             );
+            // id breaks ties, in the last key's direction, so pages neither overlap nor skip
+            if (!empty($params['order']) && !preg_grep('/^GalaxyCluster\.id /', $params['order'])) {
+                $params['order'][] = 'GalaxyCluster.id ' . explode(' ', end($params['order']))[1];
+            }
         }
         if (isset($options['page'])) {
             $params['page'] = $options['page'];
