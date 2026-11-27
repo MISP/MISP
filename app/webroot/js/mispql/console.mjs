@@ -8,6 +8,7 @@ import * as T from './tokens.mjs';
 import { MispQLWriter } from './writer.mjs';
 import { createClient } from './client.mjs';
 import * as R from './results.mjs';
+import { defaultFormat } from './rewrite.mjs';
 import { apiCallPanel } from './snippets.mjs';
 import { addableRecords, blockedReason, itemsOf } from './selection.mjs';
 import { createInPlace } from './inplace.mjs';
@@ -309,6 +310,7 @@ function boot() {
         if (running || !st || !st.text.trim()) {
             return;
         }
+        st = asTable(st);
         const remember = !opts || opts.remember !== false;
         const source = writer.value;
         const plan = st.plan || null;
@@ -332,11 +334,27 @@ function boot() {
         });
     }
 
+    /**
+     * A search that names no FORMAT runs (and is explained) as FORMAT table,
+     * added in the writer where the statement stands, so it shows what ran.
+     */
+    function asTable(st) {
+        const added = defaultFormat(st.text, 'table');
+        if (!added) {
+            return st;
+        }
+        if (writer.value.slice(st.from, st.to) === st.text) {
+            writer.insertAt(st.from + added.at, added.insert);
+        }
+        return { text: added.text, from: st.from, to: st.from + added.text.length, plan: null };
+    }
+
     /** What the statement compiles to, from explain: nothing runs, nothing is remembered. */
     function explainStatement(st) {
         if (running || !st || !st.text.trim()) {
             return;
         }
+        st = asTable(st);
         const source = writer.value;
         busy(true);
         // Explain answers fast: the waiting card only shows if it does not.

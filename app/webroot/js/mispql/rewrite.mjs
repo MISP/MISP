@@ -217,6 +217,40 @@ function rewritePaging(statement, limit, offset) {
     return apply(statement, edits);
 }
 
+// Keywords a complete statement can end with
+var FINAL_KEYWORDS = { TRUE: true, FALSE: true, NULL: true, ASC: true, DESC: true };
+
+/**
+ * ` FORMAT <word>` added to a SELECT on a table that names no FORMAT:
+ * {text, at, insert}, the statement with it, where and what was inserted.
+ * null for COUNT(*), which takes no FORMAT, for other statements, and for
+ * one that stops mid-clause.
+ */
+function defaultFormat(statement, word) {
+    var c = clauses(statement);
+    var toks = c.toks;
+    if (!toks.length || toks[0].kind !== 'keyword' || toks[0].value !== 'SELECT' || c.from === null || c.format !== null) {
+        return null;
+    }
+    if (toks[1] && toks[1].kind === 'keyword' && toks[1].value === 'COUNT') {
+        return null;
+    }
+    var last = toks[toks.length - 1];
+    var complete = last.kind === 'number' || last.kind === 'name' || last.kind === 'qname'
+        || (last.kind === 'string' && last.closed)
+        || (last.kind === 'symbol' && last.value === ')')
+        || (last.kind === 'keyword' && FINAL_KEYWORDS[last.value] === true);
+    if (!complete) {
+        return null;
+    }
+    var insert = ' FORMAT ' + word;
+    return {
+        text: apply(statement, [{ from: last.end, to: last.end, text: insert }]),
+        at: last.end,
+        insert: insert,
+    };
+}
+
 function pagingOf(statement) {
     var toks = T.significant(T.tokenize(statement));
     var limit = null;
@@ -285,6 +319,7 @@ export {
     orderOf,
     rewritePaging,
     pagingOf,
+    defaultFormat,
     fieldName,
     literal,
 };

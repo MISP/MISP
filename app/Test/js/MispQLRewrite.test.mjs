@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    addCondition, setOrder, orderOf, rewritePaging, pagingOf, fieldName, literal,
+    addCondition, setOrder, orderOf, rewritePaging, pagingOf, defaultFormat, fieldName, literal,
 } from '../../webroot/js/mispql/rewrite.mjs';
 
 describe('Adding a condition', () => {
@@ -105,6 +105,52 @@ describe('Pager', () => {
     test('reads LIMIT and OFFSET', () => {
         assert.deepEqual(pagingOf('SELECT * FROM events LIMIT 20 OFFSET 40'), { limit: 20, offset: 40 });
         assert.deepEqual(pagingOf("SELECT * FROM events WHERE eventinfo = 'LIMIT 3'"), { limit: null, offset: 0 });
+    });
+});
+
+describe('Default format', () => {
+    const withTable = (s) => {
+        const added = defaultFormat(s, 'table');
+        return added === null ? null : added.text;
+    };
+
+    test('ends a search that names no FORMAT', () => {
+        assert.equal(withTable("SELECT * FROM attributes WHERE type = 'domain' LIMIT 20"),
+            "SELECT * FROM attributes WHERE type = 'domain' LIMIT 20 FORMAT table");
+        assert.equal(withTable('SELECT id, info FROM events WHERE id IN (1, 2)'),
+            'SELECT id, info FROM events WHERE id IN (1, 2) FORMAT table');
+        assert.equal(withTable('SELECT * FROM `events` WHERE published = TRUE ORDER BY id DESC'),
+            'SELECT * FROM `events` WHERE published = TRUE ORDER BY id DESC FORMAT table');
+        assert.deepEqual(defaultFormat('SELECT * FROM tags LIMIT 5', 'table'),
+            { text: 'SELECT * FROM tags LIMIT 5 FORMAT table', at: 26, insert: ' FORMAT table' });
+    });
+
+    test('goes before a trailing semicolon or comment', () => {
+        assert.equal(withTable('SELECT * FROM tags LIMIT 5;'), 'SELECT * FROM tags LIMIT 5 FORMAT table;');
+        assert.equal(withTable("SELECT * FROM tags WHERE name = 'x' -- why\n"),
+            "SELECT * FROM tags WHERE name = 'x' FORMAT table -- why\n");
+    });
+
+    test('leaves a FORMAT, a count and other statements alone', () => {
+        assert.equal(withTable('SELECT * FROM attributes LIMIT 5 FORMAT csv'), null);
+        assert.equal(withTable('SELECT * FROM attributes LIMIT 5 format flat'), null);
+        assert.equal(withTable('SELECT COUNT(*) FROM events WHERE id > 1'), null);
+        assert.equal(withTable('DESCRIBE attributes'), null);
+        assert.equal(withTable('SHOW TABLES'), null);
+        assert.equal(withTable('WHOAMI'), null);
+    });
+
+    test('leaves a statement that stops mid-clause alone', () => {
+        assert.equal(withTable('SELECT * FROM'), null);
+        assert.equal(withTable('SELECT * FROM attributes WHERE'), null);
+        assert.equal(withTable("SELECT * FROM attributes WHERE type ="), null);
+        assert.equal(withTable("SELECT * FROM attributes WHERE value = 'unclosed"), null);
+        assert.equal(withTable('SELECT * FROM attributes LIMIT'), null);
+    });
+
+    test('reads FORMAT only at the top level', () => {
+        assert.equal(withTable("SELECT * FROM events WHERE eventinfo = 'FORMAT csv' LIMIT 5"),
+            "SELECT * FROM events WHERE eventinfo = 'FORMAT csv' LIMIT 5 FORMAT table");
     });
 });
 
