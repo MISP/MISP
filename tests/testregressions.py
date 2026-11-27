@@ -3960,6 +3960,9 @@ def stored_rows(query, *params):
             env=dict(os.environ, MYSQL_PWD=creds['password']), check=True,
             capture_output=True, timeout=30).stdout.decode()
     except Exception:
+        # CI provides the client and credentials, so a failure there is a real one (e.g. a renamed column)
+        if os.environ.get('CI'):
+            raise
         raise unittest.SkipTest('stored rows not readable on this instance')
     return [line.split('\t') for line in out.splitlines()]
 

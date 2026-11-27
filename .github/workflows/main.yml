@@ -391,14 +391,14 @@ jobs:
       - name: Run PHP tests
         run: |
           ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ -e php,ctp app/
-          sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
+          sudo -u www-data ./app/Vendor/bin/phpunit --verbose app/Test/
 
       - name: Run offline unit tests
         run: |
           node --version
           node --test app/Test/js/*.test.mjs
           . ./venv/bin/activate
-          python -m pytest -v tests/test_yara_comment_out.py tests/test_yara_permissive_plyara.py
+          python -m pytest -v -rs tests/test_yara_comment_out.py tests/test_yara_permissive_plyara.py
           deactivate
 
       - name: Clone test files
@@ -416,11 +416,11 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/tmp/logs
 
           . ./venv/bin/activate
-          python -m pytest -v tests/test_misp_framing.py tests/test_misp2stix2_wrapper.py tests/test_stix2misp_wrapper.py tests/test_stix1_import_wrapper.py
+          python -m pytest -v -rs tests/test_misp_framing.py tests/test_misp2stix2_wrapper.py tests/test_stix2misp_wrapper.py tests/test_stix1_import_wrapper.py
           pushd PyMISP
           cp tests/keys.py .
-          python -m pytest -v --durations=0 tests/test_mispevent.py
-          python -m pytest -v --durations=0 tests/testlive_comprehensive.py
+          python -m pytest -v -rs --durations=0 tests/test_mispevent.py
+          python -m pytest -v -rs --durations=0 tests/testlive_comprehensive.py
           popd
           python tests/testlive_comprehensive_local.py -v
           python tests/testlive_sync.py -v
@@ -467,7 +467,7 @@ jobs:
           }' > /dev/null
 
           . ./venv/bin/activate
-          python -m pytest tests/ldapauth -v --durations=0
+          python -m pytest tests/ldapauth -v -rs --durations=0
           deactivate
         env:
           MISP_URL: http://localhost
