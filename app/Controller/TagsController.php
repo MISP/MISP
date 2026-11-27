@@ -720,7 +720,7 @@ class TagsController extends AppController
             $object['Event']['orgc_id'] != $this->Auth->user('org_id')
         ) {
             $message = __('Cannot alter the tags of this data, only the organisation that has created the data (orgc) can modify global tags.');
-            if ($this->Auth->user('org_id') === Configure::read('MISP.host_org_id')) {
+            if ((int)$this->Auth->user('org_id') === (int)Configure::read('MISP.host_org_id')) {
                 $message .= ' ' . __('Please consider using local tags if you are in the host organisation of the instance.');
             }
             throw new ForbiddenException($message);

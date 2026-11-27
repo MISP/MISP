@@ -3992,6 +3992,9 @@ def stored_rows(query, *params):
             env=dict(os.environ, MYSQL_PWD=creds['password']), check=True,
             capture_output=True, timeout=30).stdout.decode()
     except Exception:
+        # CI provides the client and credentials, so a failure there is a real one (e.g. a renamed column)
+        if os.environ.get('CI'):
+            raise
         raise unittest.SkipTest('stored rows not readable on this instance')
     return [line.split('\t') for line in out.splitlines()]
 
@@ -5434,6 +5437,97 @@ class LoginChangeExternalAuth(unittest.TestCase):
     def test_site_admin_login_change_allowed_with_external_auth(self):
         target, stored = self._run('site_admin', True)
         self.assertEqual(target, stored)
+
+
+class FeedHeadersRedacted(unittest.TestCase):
+    """A feed's request headers often carry credentials and never leave the API in clear:
+    site admins see a mask, every other user no headers at all, on the index and the view."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.secret = 'Authorization: Bearer regression-%s%s' % (random(), random())
+        cls.feed_id = send(cls.admin, 'POST', 'feeds/add', {'Feed': {
+            'name': 'regression feed headers %s' % random(),
+            'provider': 'regression',
+            'url': 'https://feed.invalid/%s' % random(),
+            'source_format': 'misp',
+            'input_source': 'network',
+            'enabled': False,
+            'lookup_visible': True,
+            'headers': cls.secret,
+        }})['Feed']['id']
+        # feeds/view is open to the host organisation's users only
+        host_org = cls.admin.get_server_setting('MISP.host_org_id')['value']
+        cls.user = make_user(cls.admin, host_org, least_privileged_role(cls.admin))
+        cls.user_api = PyMISP(url, cls.user.authkey)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.admin.delete_user(cls.user)
+        send(cls.admin, 'POST', 'feeds/delete/%s' % cls.feed_id)
+
+    def _get(self, api, path):
+        response = api._prepare_request('GET', path)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertFalse(self.secret in response.text, '%s returned the headers in clear' % path)
+        return response.json()
+
+    def _indexed(self, api):
+        for entry in self._get(api, 'feeds/index'):
+            if int(entry['Feed']['id']) == int(self.feed_id):
+                return entry['Feed']
+        self.fail('the feed is missing from feeds/index')
+
+    def test_site_admin_sees_a_mask(self):
+        self.assertEqual('****', self._indexed(self.admin)['headers'])
+        self.assertEqual('****', self._get(self.admin, 'feeds/view/%s' % self.feed_id)['Feed']['headers'])
+
+    def test_user_sees_no_headers(self):
+        self.assertNotIn('headers', self._indexed(self.user_api))
+        self.assertNotIn('headers', self._get(self.user_api, 'feeds/view/%s' % self.feed_id)['Feed'])
+
+
+class FeedIndexHostOrgUsers(unittest.TestCase):
+    """A feed that is not lookup-visible is listed to the host organisation's users and hidden
+    from everyone else's; the org ids compared arrive as strings in the stock configuration."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.feed_id = send(cls.admin, 'POST', 'feeds/add', {'Feed': {
+            'name': 'regression feed host org %s' % random(),
+            'provider': 'regression',
+            'url': 'https://feed.invalid/%s' % random(),
+            'source_format': 'misp',
+            'input_source': 'network',
+            'enabled': False,
+            'lookup_visible': False,
+        }})['Feed']['id']
+        role = least_privileged_role(cls.admin)
+        host_org = cls.admin.get_server_setting('MISP.host_org_id')['value']
+        cls.outsider_org = make_org(cls.admin, 'feed index outsider')
+        cls.host_user = make_user(cls.admin, host_org, role)
+        cls.outsider = make_user(cls.admin, cls.outsider_org.id, role)
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, [cls.outsider_org], [cls.host_user, cls.outsider])
+        send(cls.admin, 'POST', 'feeds/delete/%s' % cls.feed_id)
+
+    def _listed(self, user):
+        index = send(PyMISP(url, user.authkey), 'GET', 'feeds/index')
+        return int(self.feed_id) in {int(entry['Feed']['id']) for entry in index}
+
+    def test_host_org_user_sees_the_feed(self):
+        self.assertTrue(self._listed(self.host_user), 'a host-org user was treated as an outsider')
+
+    def test_outsider_does_not(self):
+        self.assertFalse(self._listed(self.outsider), 'an outsider saw a feed that is not lookup-visible')
 
 
 if __name__ == '__main__':

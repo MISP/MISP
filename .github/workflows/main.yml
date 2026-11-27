@@ -393,7 +393,18 @@ jobs:
         run: |
           ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ -e php,ctp app/
           python3 tests/value_oracle/lint_value_columns.py --strict
-          sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
+          sudo -u www-data ./app/Vendor/bin/phpunit --verbose app/Test/
+
+      - name: Run offline unit tests
+        run: |
+          node --version
+          node --test app/Test/js/*.test.mjs
+          for f in tests/js/*.test.js; do PHP_BIN=php node "$f"; done
+          php tests/translation_smoke.php
+          . ./venv/bin/activate
+          python -m pytest -v -rs tests/test_yara_comment_out.py tests/test_yara_permissive_plyara.py
+          python -m pytest -v -rs tests/value_oracle tests/test_translation_validation.py
+          deactivate
 
       - name: Clone test files
         uses: actions/checkout@v5
@@ -410,18 +421,21 @@ jobs:
           sudo chmod -R g+ws `pwd`/app/tmp/logs
 
           . ./venv/bin/activate
-          python -m pytest -v tests/test_misp_framing.py tests/test_misp2stix2_wrapper.py tests/test_stix2misp_wrapper.py tests/test_stix1_import_wrapper.py
+          python -m pytest -v -rs tests/test_misp_framing.py tests/test_misp2stix2_wrapper.py tests/test_stix2misp_wrapper.py tests/test_stix1_import_wrapper.py
           pushd PyMISP
           cp tests/keys.py .
-          python -m pytest -v --durations=0 tests/test_mispevent.py
+          python -m pytest -v -rs --durations=0 tests/test_mispevent.py
           # 3.0 has no STIX 1 JSON export
-          python -m pytest -v --durations=0 tests/testlive_comprehensive.py --deselect tests/testlive_comprehensive.py::TestComprehensive::test_search_stix1
+          python -m pytest -v -rs --durations=0 tests/testlive_comprehensive.py --deselect tests/testlive_comprehensive.py::TestComprehensive::test_search_stix1
           popd
           python tests/testlive_comprehensive_local.py -v
           python tests/testlive_sync.py -v
           python tests/testlive_security.py -v
           python tests/testlive_ai_ux.py -v
           python tests/testregressions.py -v
+          python tests/testlive_event_addtag.py -v
+          python tests/testlive_event_mass_actions.py -v
+          DB_HOST=127.0.0.1 DB_PASS=blah python tests/testlive_event_templates.py -v
           cp PyMISP/tests/keys.py PyMISP/examples/events/
           pushd PyMISP/examples/events/
           python ./create_massive_dummy_events.py -l 5 -a 30
@@ -462,7 +476,7 @@ jobs:
           }' > /dev/null
 
           . ./venv/bin/activate
-          python -m pytest tests/ldapauth -v --durations=0
+          python -m pytest tests/ldapauth -v -rs --durations=0
           deactivate
         env:
           MISP_URL: http://localhost
@@ -472,6 +486,7 @@ jobs:
           # defaults" that the local misp-docker setup relies on.
           MISP_CONTAINER: ""
           MISP_PHP_USER: ""
+          MISP_APP_DIR: ${{ github.workspace }}
           MISP_CONFIG_SCRIPT: tests/modify_config.php
           MISP_CONFIG_FILE: app/Config/config.php
           # opcache.revalidate_freq is 0 here, so no settle time is needed.
