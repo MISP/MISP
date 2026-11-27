@@ -1,0 +1,41 @@
+{
+  "statement": "SELECT * FROM events WHERE id = 1 OR tags NOT LIKE 'tlp:%' LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "OR": [
+        {
+          "id": 1
+        },
+        {
+          "tags": {
+            "NOT LIKE": "tlp:%"
+          }
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "1 error",
+    "url": "/events/restSearch",
+    "errors": [
+      {
+        "path": "query.OR[1].tags",
+        "code": "bad_shape",
+        "message": "negated tags are only allowed under AND when searching events"
+      }
+    ]
+  },
+  "located": {
+    "query.OR[1].tags": {
+      "start": 37,
+      "end": 58,
+      "fragment": "tags NOT LIKE 'tlp:%'"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

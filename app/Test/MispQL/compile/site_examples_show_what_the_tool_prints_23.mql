@@ -1,0 +1,3 @@
+SELECT * FROM attributes
+WHERE type IN ('ip-src', 'ip-dst') AND to_ids = TRUE AND timestamp >= '30d'
+LIMIT 1000 FORMAT csv

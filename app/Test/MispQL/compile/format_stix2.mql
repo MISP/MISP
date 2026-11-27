@@ -1,0 +1,1 @@
+SELECT * FROM objects WHERE object_name IN ('domain-ip', 'url') AND event_timestamp >= '7d' FORMAT stix2

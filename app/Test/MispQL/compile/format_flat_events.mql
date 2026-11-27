@@ -1,0 +1,1 @@
+SELECT * FROM events WHERE date >= '7d' ORDER BY event_id DESC LIMIT 5 FORMAT flat

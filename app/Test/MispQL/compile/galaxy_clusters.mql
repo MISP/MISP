@@ -1,0 +1,1 @@
+SELECT id, value, Galaxy.name FROM galaxy_clusters WHERE galaxy_name = 'Threat Actor' AND (org = 'MISP' OR value LIKE 'apt%') ORDER BY value DESC, galaxy_clusters.id LIMIT 10 OFFSET 20 FORMAT table

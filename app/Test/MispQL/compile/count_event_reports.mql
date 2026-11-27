@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM event_reports WHERE event_id IN (1, 2, 3)

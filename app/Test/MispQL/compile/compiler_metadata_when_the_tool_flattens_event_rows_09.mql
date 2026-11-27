@@ -1,0 +1,1 @@
+SELECT * FROM objects LIMIT 5 FORMAT table

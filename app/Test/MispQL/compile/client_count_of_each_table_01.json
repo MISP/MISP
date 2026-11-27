@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 47,
+      "table": "event_reports",
+      "endpoint": "/event_reports/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "id": {
+            ">": 0
+          }
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 41,
+          "end": 47,
+          "fragment": "id > 0"
+        },
+        "query.<unknown>": {
+          "start": 41,
+          "end": 43,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_client.py::test_count_of_each_table"
+}

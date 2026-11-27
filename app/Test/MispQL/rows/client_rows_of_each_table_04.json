@@ -1,0 +1,20 @@
+{
+  "statement": "SELECT * FROM relationships LIMIT 2",
+  "reply": {
+    "response": [
+      {
+        "Relationship": {
+          "id": "7",
+          "related_object": []
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "7",
+      "related_object": []
+    }
+  ],
+  "source": "test_client.py::test_rows_of_each_table"
+}

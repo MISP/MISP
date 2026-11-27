@@ -1,0 +1,64 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 74,
+      "table": "objects",
+      "endpoint": "/objects/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "OR": [
+            {
+              "NOT": {
+                "value": "x"
+              }
+            },
+            {
+              "object_name": "url"
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 28,
+          "end": 66,
+          "fragment": "NOT value = 'x' OR object_name = 'url'"
+        },
+        "query.OR[0]": {
+          "start": 28,
+          "end": 43,
+          "fragment": "NOT value = 'x'"
+        },
+        "query.OR[0].NOT": {
+          "start": 32,
+          "end": 43,
+          "fragment": "value = 'x'"
+        },
+        "query.OR[0].NOT.<unknown>": {
+          "start": 32,
+          "end": 37,
+          "fragment": "value"
+        },
+        "query.OR[1]": {
+          "start": 47,
+          "end": 66,
+          "fragment": "object_name = 'url'"
+        },
+        "query.OR[1].<unknown>": {
+          "start": 47,
+          "end": 58,
+          "fragment": "object_name"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

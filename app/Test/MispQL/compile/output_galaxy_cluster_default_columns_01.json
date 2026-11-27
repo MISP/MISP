@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 71,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "value": "Comment Crew"
+        }
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 36,
+          "end": 58,
+          "fragment": "value = 'Comment Crew'"
+        },
+        "query.<unknown>": {
+          "start": 36,
+          "end": 41,
+          "fragment": "value"
+        }
+      }
+    }
+  ],
+  "source": "test_output.py::test_galaxy_cluster_default_columns"
+}

@@ -1,0 +1,3 @@
+SELECT value, meta.`Ländercode` FROM galaxy_clusters
+WHERE meta.`Ländercode` = 'LU' AND value LIKE 'Ä%' AND NOT (meta.`🦠` = 'x')
+ORDER BY value LIMIT 3

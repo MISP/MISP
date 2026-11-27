@@ -1,0 +1,39 @@
+{
+  "statement": "SELECT id, value FROM attributes LIMIT 2 FORMAT table",
+  "rows": [
+    {
+      "id": "1",
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "id": "2",
+      "value": "tab\there\r\nnext"
+    }
+  ],
+  "flat": [
+    {
+      "id": "1",
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "id": "2",
+      "value": "tab\there\r\nnext"
+    }
+  ],
+  "columns": [
+    "id",
+    "value"
+  ],
+  "cells": [
+    [
+      "1",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    [
+      "2",
+      "tab\there\r\nnext"
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_table_columns_and_long_cells"
+}

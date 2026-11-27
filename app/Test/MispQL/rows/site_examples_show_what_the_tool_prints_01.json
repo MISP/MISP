@@ -1,0 +1,195 @@
+{
+  "statement": "SELECT id, event_id, type, value, Tag FROM attributes\nWHERE type IN ('domain', 'ip-dst') AND timestamp >= '7d' AND tags != 'tlp:red'\nLIMIT 5 FORMAT table",
+  "rows": [
+    {
+      "id": "913204",
+      "event_id": "4711",
+      "category": "Network activity",
+      "type": "domain",
+      "value": "update-check.example.net",
+      "to_ids": true,
+      "timestamp": "1794652210",
+      "Tag": [
+        {
+          "name": "tlp:amber"
+        },
+        {
+          "name": "kill-chain:Command and Control"
+        }
+      ]
+    },
+    {
+      "id": "913205",
+      "event_id": "4711",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "198.51.100.23",
+      "to_ids": true,
+      "timestamp": "1794652210",
+      "Tag": [
+        {
+          "name": "tlp:amber"
+        }
+      ]
+    },
+    {
+      "id": "913388",
+      "event_id": "4718",
+      "category": "Network activity",
+      "type": "domain",
+      "value": "cdn-sync.example.org",
+      "to_ids": false,
+      "timestamp": "1794689931",
+      "Tag": []
+    },
+    {
+      "id": "913390",
+      "event_id": "4718",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "203.0.113.7",
+      "to_ids": true,
+      "timestamp": "1794689931",
+      "Tag": [
+        {
+          "name": "tlp:green"
+        }
+      ]
+    },
+    {
+      "id": "913412",
+      "event_id": "4720",
+      "category": "Network activity",
+      "type": "domain",
+      "value": "login-portal.example.com",
+      "to_ids": true,
+      "timestamp": "1794702045",
+      "Tag": [
+        {
+          "name": "tlp:clear"
+        },
+        {
+          "name": "phishing:techniques=\"spear-phishing\""
+        }
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "id": "913204",
+      "event_id": "4711",
+      "category": "Network activity",
+      "type": "domain",
+      "value": "update-check.example.net",
+      "to_ids": true,
+      "timestamp": "1794652210",
+      "Tag": [
+        "tlp:amber",
+        "kill-chain:Command and Control"
+      ]
+    },
+    {
+      "id": "913205",
+      "event_id": "4711",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "198.51.100.23",
+      "to_ids": true,
+      "timestamp": "1794652210",
+      "Tag": [
+        "tlp:amber"
+      ]
+    },
+    {
+      "id": "913388",
+      "event_id": "4718",
+      "category": "Network activity",
+      "type": "domain",
+      "value": "cdn-sync.example.org",
+      "to_ids": false,
+      "timestamp": "1794689931",
+      "Tag": []
+    },
+    {
+      "id": "913390",
+      "event_id": "4718",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "203.0.113.7",
+      "to_ids": true,
+      "timestamp": "1794689931",
+      "Tag": [
+        "tlp:green"
+      ]
+    },
+    {
+      "id": "913412",
+      "event_id": "4720",
+      "category": "Network activity",
+      "type": "domain",
+      "value": "login-portal.example.com",
+      "to_ids": true,
+      "timestamp": "1794702045",
+      "Tag": [
+        "tlp:clear",
+        "phishing:techniques=\"spear-phishing\""
+      ]
+    }
+  ],
+  "columns": [
+    "id",
+    "event_id",
+    "type",
+    "value",
+    "Tag"
+  ],
+  "cells": [
+    [
+      "913204",
+      "4711",
+      "domain",
+      "update-check.example.net",
+      [
+        "tlp:amber",
+        "kill-chain:Command and Control"
+      ]
+    ],
+    [
+      "913205",
+      "4711",
+      "ip-dst",
+      "198.51.100.23",
+      [
+        "tlp:amber"
+      ]
+    ],
+    [
+      "913388",
+      "4718",
+      "domain",
+      "cdn-sync.example.org",
+      []
+    ],
+    [
+      "913390",
+      "4718",
+      "ip-dst",
+      "203.0.113.7",
+      [
+        "tlp:green"
+      ]
+    ],
+    [
+      "913412",
+      "4720",
+      "domain",
+      "login-portal.example.com",
+      [
+        "tlp:clear",
+        "phishing:techniques=\"spear-phishing\""
+      ]
+    ]
+  ],
+  "warnings": [],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

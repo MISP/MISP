@@ -6,6 +6,8 @@
  *   TagChips.collection(tags, opts) -> HTML string, grouped like the server
  *   TagChips.cluster(c, opts)       -> HTML string, one galaxy cluster
  *   TagChips.clusters(list, opts)   -> HTML string, grouped by galaxy
+ *   TagChips.lists(tags, clusters, opts) -> HTML string, the reference lists
+ *                                   a popover opens onto (opts.ownColour)
  *
  * tag is {name, colour, id?, numerical_value?, local?, relationship_type?}.
  * A cluster is {value|name, galaxy, id?, galaxy_id?, hue?, iconClass?,
@@ -383,11 +385,167 @@
         return renderRows((list || []).map(clusterRow).filter(Boolean), opts || {});
     }
 
+    function isHex(c) {
+        return /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(String(c || ''));
+    }
+
+    function isLocal(v) {
+        return !!(v && v !== '0');
+    }
+
+    function natural(a, b) {
+        return String(a).localeCompare(String(b), undefined, {numeric: true, sensitivity: 'base'});
+    }
+
+    function titleOf(row) {
+        var x = row.x || {};
+        var title = x.title || row.parsed.raw;
+        if (row.tag.relationship_type) title = row.tag.relationship_type + ': ' + title;
+        if (isLocal(row.tag.local)) title += ' (local)';
+        if (x.note) title += '\n\n' + x.note;
+        return title;
+    }
+
+    function renderCard(group, style) {
+        var coded = 0;
+        var items = group.rows.map(function (row, i) {
+            var p = row.parsed;
+            var nv = row.tag.numerical_value;
+            var item = {
+                i: i,
+                row: row,
+                name: p.leaf,
+                code: '',
+                right: nv !== null && nv !== undefined && nv !== '' && !isNaN(Number(nv)) ? String(Number(nv)) : '',
+                path: p.above.join(' › ')
+            };
+            var m = /^(.*\S)\s+-\s+(\S*\d\S*)$/.exec(p.leaf);
+            if (m) {
+                item.name = m[1];
+                item.code = item.right = m[2];
+                coded++;
+            }
+            return item;
+        });
+        var byId = coded > 1;
+        items.sort(function (a, b) {
+            if (byId && (a.code === '') !== (b.code === '')) return a.code === '' ? 1 : -1;
+            return (byId ? natural(a.code, b.code) : 0) || natural(a.path, b.path) ||
+                natural(a.name, b.name) || a.i - b.i;
+        });
+
+        var codes = {};
+        if (byId) items.forEach(function (item) { if (item.code) codes[item.code] = true; });
+        var families = [];
+        items.forEach(function (item) {
+            var last = families[families.length - 1];
+            var dot = item.code.lastIndexOf('.');
+            var parent = dot > 0 ? item.code.slice(0, dot) : '';
+            if (parent && codes[parent] && last) {
+                item.parent = parent;
+                last.items.push(item);
+            } else if (item.path !== '' && last && last.path === item.path) {
+                last.items.push(item);
+            } else {
+                families.push({path: item.path, items: [item]});
+            }
+        });
+
+        var rels = {};
+        items.forEach(function (item) { rels[String(item.row.tag.relationship_type || '')] = true; });
+        var relKeys = Object.keys(rels);
+        var sharedRel = relKeys.length === 1 ? relKeys[0] : '';
+        var nameWidth = 0;
+        var rightWidth = 0;
+        var list = '';
+        families.forEach(function (family) {
+            var headed = family.path !== '' && family.items.length > 1;
+            list += '<li class="hg-fam">';
+            if (headed) list += '<div class="hg-fam-head">' + esc(family.path) + '</div>';
+            family.items.forEach(function (item) {
+                var sub = headed || !!item.parent;
+                var prefix = !headed && item.path !== '' ? item.path : '';
+                nameWidth = Math.max(nameWidth, Array.from(prefix + item.name).length + (prefix ? 1 : 0) + (sub ? 2 : 0));
+                rightWidth = Math.max(rightWidth, Array.from(item.right).length);
+                var tag = item.row.tag;
+                var rel = sharedRel === '' ? String(tag.relationship_type || '') : '';
+                var name = (rel ? '<span class="hg-rel">' + esc(rel) + '</span> ' : '') +
+                    (prefix ? '<span class="hg-row-path">' + esc(prefix) + '</span> ' : '') + esc(item.name);
+                var right = esc(item.right);
+                if (item.parent) {
+                    right = '<span class="hg-code-up">' + esc(item.parent) + '</span>' + esc(item.right.slice(item.parent.length));
+                }
+                var tagId = parseInt(tag.id, 10);
+                list += '<div class="hg-row' + (sub ? ' is-sub' : '') + '" title="' + esc(titleOf(item.row)) + '"' +
+                    (tagId ? ' data-tag-id="' + tagId + '"' : '') +
+                    (group.ownColour && isHex(tag.colour) ? ' style="--tc:' + String(tag.colour).toLowerCase() + '"' : '') +
+                    '><span class="hg-name">' + name + '</span>' +
+                    (isLocal(tag.local) ? '<span class="hg-flag">local</span>' : '') +
+                    (item.right === '' ? '' : '<span class="hg-lead"></span><code class="hg-code">' + right + '</code>') +
+                    '</div>';
+            });
+            list += '</li>';
+        });
+
+        var count = items.length;
+        return '<div class="hinge-tags hg-card' + (group.ownColour ? ' is-own' : '') + '" style="' + style + '">' +
+            '<div class="hg-card-head">' + (sharedRel ? '<span class="hg-rel">' + esc(sharedRel) + '</span>' : '') +
+            iconHtml(group.rows[0].x) + '<b class="hg-hns">' + esc(group.namespace) + '</b>' +
+            '<span class="hg-fold-n">' + count + '</span>' +
+            (byId ? '<span class="hg-card-note">by ID</span>' : '') + '</div>' +
+            '<ol class="hg-list" data-cols="' + (count > 24 ? 3 : (count > 10 ? 2 : 1)) + '" style="--hg-namew:' +
+            Math.min(44, Math.max(12, nameWidth)) + 'ch;--hg-codew:' + rightWidth + 'ch">' + list + '</ol></div>';
+    }
+
+    // TagChipHelper::lists(): the reference lists a folded block or a
+    // popover opens onto, one per namespace or galaxy, in order of appearance
+    function lists(tags, clusterList, opts) {
+        opts = opts || {};
+        var rows = [];
+        (tags || []).forEach(function (raw) {
+            var tag = normalise(raw);
+            if (!tag || !tag.name || !String(tag.name).trim()) return;
+            tag = Object.assign({}, tag, {colour: tag.colour || '#0088cc'});
+            rows.push({tag: tag, parsed: parse(tag.name)});
+        });
+        (clusterList || []).forEach(function (c) {
+            var row = clusterRow(c);
+            if (row) rows.push(row);
+        });
+        var groups = [];
+        var byKey = {};
+        rows.forEach(function (row) {
+            var x = row.x || {};
+            var namespace = row.parsed.namespace;
+            var key = x.groupKey !== undefined
+                ? '\u0002' + x.groupKey
+                : '\u0001' + String(namespace === null ? '' : namespace).toLowerCase();
+            if (!byKey[key]) {
+                byKey[key] = {namespace: namespace === null ? 'Tags' : namespace, galaxy: x.galaxy || null, rows: []};
+                groups.push(byKey[key]);
+            }
+            byKey[key].rows.push(row);
+        });
+        return groups.map(function (group) {
+            var first = group.rows[0].x || {};
+            var style = '--hg-h:' + (first.hue !== undefined ? first.hue : hue(group.namespace)) + ';--hg-s:62%';
+            if (opts.ownColour && first.hue === undefined) {
+                group.ownColour = true;
+                var colours = {};
+                group.rows.forEach(function (row) { colours[String(row.tag.colour).toLowerCase()] = true; });
+                var keys = Object.keys(colours);
+                if (keys.length === 1 && isHex(keys[0])) style += ';--hg-c:' + keys[0];
+            }
+            return renderCard(group, style);
+        }).join('');
+    }
+
     root.TagChips = {
         chip: chip,
         collection: collection,
         cluster: cluster,
         clusters: clusters,
+        lists: lists,
         parse: parse,
         hue: hue,
         galaxyHue: galaxyHue

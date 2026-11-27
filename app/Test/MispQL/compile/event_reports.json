@@ -1,0 +1,105 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 196,
+      "table": "event_reports",
+      "endpoint": "/event_reports/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 5,
+        "page": 2,
+        "order": [
+          "timestamp desc",
+          "id asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "eventinfo": {
+                "LIKE": "%phish%"
+              }
+            },
+            {
+              "OR": [
+                {
+                  "tags": "tlp:white"
+                },
+                {
+                  "NOT": {
+                    "deleted": true
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "name",
+        "event.info"
+      ],
+      "skip": 2,
+      "spans": {
+        "query": {
+          "start": 53,
+          "end": 124,
+          "fragment": "eventinfo LIKE '%phish%' AND (tags = 'tlp:white' OR NOT deleted = TRUE)"
+        },
+        "query.AND[0]": {
+          "start": 53,
+          "end": 77,
+          "fragment": "eventinfo LIKE '%phish%'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 53,
+          "end": 62,
+          "fragment": "eventinfo"
+        },
+        "query.AND[1]": {
+          "start": 83,
+          "end": 123,
+          "fragment": "tags = 'tlp:white' OR NOT deleted = TRUE"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 83,
+          "end": 101,
+          "fragment": "tags = 'tlp:white'"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 83,
+          "end": 87,
+          "fragment": "tags"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 105,
+          "end": 123,
+          "fragment": "NOT deleted = TRUE"
+        },
+        "query.AND[1].OR[1].NOT": {
+          "start": 109,
+          "end": 123,
+          "fragment": "deleted = TRUE"
+        },
+        "query.AND[1].OR[1].NOT.<unknown>": {
+          "start": 109,
+          "end": 116,
+          "fragment": "deleted"
+        },
+        "order[0]": {
+          "start": 134,
+          "end": 148,
+          "fragment": "timestamp DESC"
+        },
+        "order[1]": {
+          "start": 150,
+          "end": 166,
+          "fragment": "event_reports.id"
+        }
+      }
+    }
+  ]
+}

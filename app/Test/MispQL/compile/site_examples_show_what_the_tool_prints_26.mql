@@ -1,0 +1,3 @@
+SELECT id, value, Event.info FROM attributes
+WHERE eventinfo LIKE '%phishing%' AND type IN ('url', 'domain') AND to_ids = TRUE
+LIMIT 50 FORMAT table

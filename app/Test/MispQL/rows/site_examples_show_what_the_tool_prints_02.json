@@ -1,0 +1,90 @@
+{
+  "statement": "SELECT id, eventinfo, org FROM events\nWHERE tags = 'tlp:clear' AND date >= '7d' ORDER BY event_id DESC LIMIT 2",
+  "rows": [
+    {
+      "id": "4720",
+      "date": "2026-11-14",
+      "info": "Credential phishing against webmail users",
+      "Orgc": {
+        "id": "1",
+        "name": "CIRCL"
+      },
+      "threat_level_id": "2",
+      "analysis": "1",
+      "published": true,
+      "attribute_count": "37",
+      "Tag": [
+        {
+          "name": "tlp:clear"
+        }
+      ]
+    },
+    {
+      "id": "4718",
+      "date": "2026-11-13",
+      "info": "Loader infrastructure seen in honeypot logs",
+      "Orgc": {
+        "id": "7",
+        "name": "ORG-B"
+      },
+      "threat_level_id": "3",
+      "analysis": "2",
+      "published": true,
+      "attribute_count": "1204",
+      "Tag": [
+        {
+          "name": "tlp:clear"
+        }
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "id": "4720",
+      "date": "2026-11-14",
+      "info": "Credential phishing against webmail users",
+      "Orgc.id": "1",
+      "Orgc.name": "CIRCL",
+      "threat_level_id": "2",
+      "analysis": "1",
+      "published": true,
+      "attribute_count": "37",
+      "Tag": [
+        "tlp:clear"
+      ]
+    },
+    {
+      "id": "4718",
+      "date": "2026-11-13",
+      "info": "Loader infrastructure seen in honeypot logs",
+      "Orgc.id": "7",
+      "Orgc.name": "ORG-B",
+      "threat_level_id": "3",
+      "analysis": "2",
+      "published": true,
+      "attribute_count": "1204",
+      "Tag": [
+        "tlp:clear"
+      ]
+    }
+  ],
+  "columns": [
+    "id",
+    "info",
+    "Orgc.name"
+  ],
+  "cells": [
+    [
+      "4720",
+      "Credential phishing against webmail users",
+      "CIRCL"
+    ],
+    [
+      "4718",
+      "Loader infrastructure seen in honeypot logs",
+      "ORG-B"
+    ]
+  ],
+  "warnings": [],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

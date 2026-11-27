@@ -1,0 +1,62 @@
+{
+  "statement": "SELECT * FROM relationships LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "5",
+      "uuid": "a1",
+      "object_uuid": "e1",
+      "object_type": "Event",
+      "authors": "analyst@circl.lu",
+      "created": "2026-11-01 10:00:00",
+      "modified": "2026-11-02 10:00:00",
+      "distribution": "1",
+      "locked": false,
+      "relationship_type": "related-to",
+      "related_object_uuid": "e2",
+      "related_object_type": "Event",
+      "related_object": [
+        {
+          "Event": {
+            "id": "2"
+          }
+        }
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "id": "5",
+      "uuid": "a1",
+      "object_uuid": "e1",
+      "object_type": "Event",
+      "authors": "analyst@circl.lu",
+      "created": "2026-11-01 10:00:00",
+      "modified": "2026-11-02 10:00:00",
+      "distribution": "1",
+      "locked": false,
+      "relationship_type": "related-to",
+      "related_object_uuid": "e2",
+      "related_object_type": "Event"
+    }
+  ],
+  "columns": [
+    "id",
+    "object_type",
+    "object_uuid",
+    "relationship_type",
+    "related_object_type",
+    "related_object_uuid"
+  ],
+  "cells": [
+    [
+      "5",
+      "Event",
+      "e1",
+      "related-to",
+      "Event",
+      "e2"
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_default_columns_of_each_table"
+}

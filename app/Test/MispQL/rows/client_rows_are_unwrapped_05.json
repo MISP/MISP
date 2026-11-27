@@ -1,0 +1,24 @@
+{
+  "statement": "SELECT * FROM galaxy_clusters LIMIT 1",
+  "reply": {
+    "response": [
+      {
+        "GalaxyCluster": {
+          "id": "2",
+          "Galaxy": {
+            "name": "Threat Actor"
+          }
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "2",
+      "Galaxy": {
+        "name": "Threat Actor"
+      }
+    }
+  ],
+  "source": "test_client.py::test_rows_are_unwrapped"
+}

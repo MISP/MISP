@@ -1,0 +1,1 @@
+SELECT * FROM opinions WHERE opinion > 'high' AND NOT comment LIKE '%a%b%' LIMIT 1

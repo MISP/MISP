@@ -1,0 +1,21 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 33,
+      "table": "collections",
+      "endpoint": "/collections/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_client.py::test_keys_beside_the_row_follow_its_own_and_never_replace_them"
+}

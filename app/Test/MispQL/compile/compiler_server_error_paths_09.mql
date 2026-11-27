@@ -1,0 +1,1 @@
+SELECT * FROM objects WHERE NOT value = 'x' OR object_name = 'url' LIMIT 1

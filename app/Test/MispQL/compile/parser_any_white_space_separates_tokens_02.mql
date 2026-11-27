@@ -1,0 +1,1 @@
+SELECT id , info FROM events WHERE NOT ( id > - 5 OR info LIKE 'a b' ) ORDER BY id DESC LIMIT 10 FORMAT flat

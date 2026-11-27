@@ -1,0 +1,10 @@
+{
+  "statement": "SELECT * FROM attributes LIMIT 1",
+  "reply": {
+    "response": {
+      "Attribute": []
+    }
+  },
+  "rows": [],
+  "source": "test_client.py::test_rows_are_unwrapped"
+}

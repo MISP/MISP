@@ -1,0 +1,24 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 61,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1
+      },
+      "output": "default",
+      "columns": [
+        "id",
+        "Event.threat_level_id"
+      ],
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_compiler.py::test_query_names_in_column_lists_become_row_keys"
+}

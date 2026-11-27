@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM attributes WHERE type = 'domain' AND timestamp >= '30d'

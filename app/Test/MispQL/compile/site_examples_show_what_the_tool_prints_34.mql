@@ -1,0 +1,3 @@
+SELECT * FROM relationships
+WHERE relationship_type = 'attributed-to' AND related_object_type = 'GalaxyCluster'
+LIMIT 20 FORMAT table

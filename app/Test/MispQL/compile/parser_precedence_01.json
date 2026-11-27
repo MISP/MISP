@@ -1,0 +1,77 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 55,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "OR": [
+            {
+              "a": 1
+            },
+            {
+              "AND": [
+                {
+                  "b": 2
+                },
+                {
+                  "c": 3
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 55,
+          "fragment": "a = 1 OR b = 2 AND c = 3"
+        },
+        "query.OR[0]": {
+          "start": 31,
+          "end": 36,
+          "fragment": "a = 1"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 31,
+          "end": 32,
+          "fragment": "a"
+        },
+        "query.OR[1]": {
+          "start": 40,
+          "end": 55,
+          "fragment": "b = 2 AND c = 3"
+        },
+        "query.OR[1].AND[0]": {
+          "start": 40,
+          "end": 45,
+          "fragment": "b = 2"
+        },
+        "query.OR[1].AND[0].<unknown>": {
+          "start": 40,
+          "end": 41,
+          "fragment": "b"
+        },
+        "query.OR[1].AND[1]": {
+          "start": 50,
+          "end": 55,
+          "fragment": "c = 3"
+        },
+        "query.OR[1].AND[1].<unknown>": {
+          "start": 50,
+          "end": 51,
+          "fragment": "c"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_precedence"
+}

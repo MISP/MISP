@@ -1,0 +1,82 @@
+{
+  "statement": "SELECT * FROM galaxy_clusters WHERE value = 'Comment Crew' FORMAT table",
+  "rows": [
+    {
+      "id": "2",
+      "type": "threat-actor",
+      "value": "Comment Crew",
+      "authors": [
+        "Alexandre Dulaunoy",
+        "Florian Roth"
+      ],
+      "distribution": "3",
+      "default": true,
+      "published": false,
+      "Galaxy": {
+        "id": "2",
+        "name": "Threat Actor",
+        "type": "threat-actor"
+      },
+      "GalaxyElement": [
+        {
+          "key": "synonyms",
+          "value": "APT 1"
+        },
+        {
+          "key": "country",
+          "value": "CN"
+        }
+      ],
+      "GalaxyClusterRelation": [],
+      "Org": {
+        "id": "0",
+        "name": "MISP"
+      },
+      "Orgc": {
+        "id": "0",
+        "name": "MISP"
+      }
+    }
+  ],
+  "flat": [
+    {
+      "id": "2",
+      "type": "threat-actor",
+      "value": "Comment Crew",
+      "authors": [
+        "Alexandre Dulaunoy",
+        "Florian Roth"
+      ],
+      "distribution": "3",
+      "default": true,
+      "published": false,
+      "Galaxy.id": "2",
+      "Galaxy.name": "Threat Actor",
+      "Galaxy.type": "threat-actor",
+      "Org.id": "0",
+      "Org.name": "MISP",
+      "Orgc.id": "0",
+      "Orgc.name": "MISP"
+    }
+  ],
+  "columns": [
+    "id",
+    "value",
+    "Galaxy.name",
+    "Orgc.name",
+    "distribution",
+    "default"
+  ],
+  "cells": [
+    [
+      "2",
+      "Comment Crew",
+      "Threat Actor",
+      "MISP",
+      "3",
+      true
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_galaxy_cluster_default_columns"
+}

@@ -1,0 +1,11 @@
+{
+  "statements": [
+    {
+      "kind": "whoami",
+      "start": 0,
+      "end": 6,
+      "spans": {}
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

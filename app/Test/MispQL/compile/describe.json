@@ -1,0 +1,12 @@
+{
+  "statements": [
+    {
+      "kind": "describe",
+      "start": 0,
+      "end": 16,
+      "table": "objects",
+      "endpoint": "/objects/queryDescribe",
+      "spans": {}
+    }
+  ]
+}

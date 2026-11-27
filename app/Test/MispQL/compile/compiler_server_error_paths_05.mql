@@ -1,0 +1,1 @@
+SELECT * FROM event_reports WHERE nosuch = 1 AND name LIKE 'a%b' AND (eventinfo = 5 OR date > 'soon') LIMIT 1

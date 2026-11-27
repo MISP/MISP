@@ -1,0 +1,144 @@
+{
+  "statement": "SELECT * FROM attributes LIMIT 2 FORMAT flat",
+  "rows": [
+    {
+      "id": "12",
+      "event_id": "3",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "1.2.3.4",
+      "to_ids": true,
+      "timestamp": "1700000000",
+      "object_relation": null,
+      "Event": {
+        "id": "3",
+        "info": "Phishing, round 2",
+        "Orgc": {
+          "id": "1",
+          "name": "CIRCL"
+        }
+      },
+      "Object": {
+        "id": "7"
+      },
+      "Tag": [
+        {
+          "id": "1",
+          "name": "tlp:white"
+        },
+        {
+          "id": "2",
+          "name": "osint:source-type=\"blog-post\""
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "event_id": "3",
+      "category": "Other",
+      "type": "text",
+      "value": "line one\nline \"two\"",
+      "to_ids": false,
+      "timestamp": "1700000001",
+      "object_relation": null,
+      "Event": {
+        "id": "3",
+        "info": "Phishing, round 2",
+        "Orgc": {
+          "id": "1",
+          "name": "CIRCL"
+        }
+      }
+    }
+  ],
+  "flat": [
+    {
+      "id": "12",
+      "event_id": "3",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "1.2.3.4",
+      "to_ids": true,
+      "timestamp": "1700000000",
+      "object_relation": null,
+      "Event.id": "3",
+      "Event.info": "Phishing, round 2",
+      "Event.Orgc.id": "1",
+      "Event.Orgc.name": "CIRCL",
+      "Object.id": "7",
+      "Tag": [
+        "tlp:white",
+        "osint:source-type=\"blog-post\""
+      ]
+    },
+    {
+      "id": "13",
+      "event_id": "3",
+      "category": "Other",
+      "type": "text",
+      "value": "line one\nline \"two\"",
+      "to_ids": false,
+      "timestamp": "1700000001",
+      "object_relation": null,
+      "Event.id": "3",
+      "Event.info": "Phishing, round 2",
+      "Event.Orgc.id": "1",
+      "Event.Orgc.name": "CIRCL"
+    }
+  ],
+  "columns": [
+    "id",
+    "event_id",
+    "category",
+    "type",
+    "value",
+    "to_ids",
+    "timestamp",
+    "object_relation",
+    "Event.id",
+    "Event.info",
+    "Event.Orgc.id",
+    "Event.Orgc.name",
+    "Object.id",
+    "Tag"
+  ],
+  "cells": [
+    [
+      "12",
+      "3",
+      "Network activity",
+      "ip-dst",
+      "1.2.3.4",
+      true,
+      "1700000000",
+      null,
+      "3",
+      "Phishing, round 2",
+      "1",
+      "CIRCL",
+      "7",
+      [
+        "tlp:white",
+        "osint:source-type=\"blog-post\""
+      ]
+    ],
+    [
+      "13",
+      "3",
+      "Other",
+      "text",
+      "line one\nline \"two\"",
+      false,
+      "1700000001",
+      null,
+      "3",
+      "Phishing, round 2",
+      "1",
+      "CIRCL",
+      null,
+      null
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_flat_all_columns"
+}

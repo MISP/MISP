@@ -1,0 +1,90 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 84,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 3,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "id": {
+                ">": 5
+              }
+            },
+            {
+              "NOT": {
+                "OR": [
+                  {
+                    "type": "x"
+                  },
+                  {
+                    "tags": {
+                      "LIKE": "a%"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 76,
+          "fragment": "id > 5 AND NOT (type = 'x' OR tags LIKE 'a%')"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 37,
+          "fragment": "id > 5"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 33,
+          "fragment": "id"
+        },
+        "query.AND[1]": {
+          "start": 42,
+          "end": 76,
+          "fragment": "NOT (type = 'x' OR tags LIKE 'a%')"
+        },
+        "query.AND[1].NOT": {
+          "start": 47,
+          "end": 75,
+          "fragment": "type = 'x' OR tags LIKE 'a%'"
+        },
+        "query.AND[1].NOT.OR[0]": {
+          "start": 47,
+          "end": 57,
+          "fragment": "type = 'x'"
+        },
+        "query.AND[1].NOT.OR[0].<unknown>": {
+          "start": 47,
+          "end": 51,
+          "fragment": "type"
+        },
+        "query.AND[1].NOT.OR[1]": {
+          "start": 61,
+          "end": 75,
+          "fragment": "tags LIKE 'a%'"
+        },
+        "query.AND[1].NOT.OR[1].<unknown>": {
+          "start": 61,
+          "end": 65,
+          "fragment": "tags"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_spans"
+}

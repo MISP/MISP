@@ -1,0 +1,1 @@
+SELECT id, attributes.threat_level_id FROM attributes LIMIT 1

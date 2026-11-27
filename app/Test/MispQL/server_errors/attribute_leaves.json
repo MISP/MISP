@@ -1,0 +1,97 @@
+{
+  "statement": "SELECT * FROM attributes WHERE nosuch = 1 AND id = 'x' AND type IN ('a', 5) AND value NOT LIKE 'a%b' AND id LIKE '1%' LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "AND": [
+        {
+          "nosuch": 1
+        },
+        {
+          "id": "x"
+        },
+        {
+          "type": {
+            "IN": [
+              "a",
+              5
+            ]
+          }
+        },
+        {
+          "value": {
+            "NOT LIKE": "a%b"
+          }
+        },
+        {
+          "id": {
+            "LIKE": "1%"
+          }
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "5 errors",
+    "url": "/attributes/restSearch",
+    "errors": [
+      {
+        "path": "query.AND[0].<unknown>",
+        "code": "unknown_field",
+        "message": "unknown field"
+      },
+      {
+        "path": "query.AND[1].id",
+        "code": "bad_type",
+        "message": "this field expects an integer"
+      },
+      {
+        "path": "query.AND[2].type",
+        "code": "bad_type",
+        "message": "this field expects a non-empty string"
+      },
+      {
+        "path": "query.AND[3].value",
+        "code": "bad_type",
+        "message": "LIKE takes a leading and/or trailing %, nothing else"
+      },
+      {
+        "path": "query.AND[4].id",
+        "code": "unknown_operator",
+        "message": "operator not allowed for this field"
+      }
+    ]
+  },
+  "located": {
+    "query.AND[0].<unknown>": {
+      "start": 31,
+      "end": 37,
+      "fragment": "nosuch"
+    },
+    "query.AND[1].id": {
+      "start": 46,
+      "end": 54,
+      "fragment": "id = 'x'"
+    },
+    "query.AND[2].type": {
+      "start": 59,
+      "end": 75,
+      "fragment": "type IN ('a', 5)"
+    },
+    "query.AND[3].value": {
+      "start": 80,
+      "end": 100,
+      "fragment": "value NOT LIKE 'a%b'"
+    },
+    "query.AND[4].id": {
+      "start": 105,
+      "end": 117,
+      "fragment": "id LIKE '1%'"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

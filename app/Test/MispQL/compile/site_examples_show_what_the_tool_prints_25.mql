@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM events WHERE tags = 'tlp:clear' AND published = TRUE

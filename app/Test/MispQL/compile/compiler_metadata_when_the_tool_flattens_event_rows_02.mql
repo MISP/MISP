@@ -1,0 +1,1 @@
+SELECT id, Attribute.value FROM events LIMIT 5 FORMAT flat

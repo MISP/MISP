@@ -1,0 +1,9 @@
+{
+  "statement": "SELECT * FROM attributes LIMIT 1 FORMAT flat",
+  "rows": [],
+  "flat": [],
+  "columns": [],
+  "cells": [],
+  "warnings": [],
+  "source": "test_output.py::test_flat_without_rows"
+}

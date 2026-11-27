@@ -1,0 +1,3 @@
+SELECT id, name, nationality, sector FROM organisations
+WHERE local = FALSE AND sector IN ('Financial', 'Banking')
+ORDER BY name LIMIT 100 FORMAT flat

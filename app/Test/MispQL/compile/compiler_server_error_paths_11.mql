@@ -1,0 +1,1 @@
+SELECT * FROM organisations WHERE user_count > 1 OR uuid LIKE 'a%' OR date_created > 'soon' LIMIT 1

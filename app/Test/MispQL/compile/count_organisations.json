@@ -1,0 +1,30 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 54,
+      "table": "organisations",
+      "endpoint": "/organisations/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "local": false
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 41,
+          "end": 54,
+          "fragment": "local = FALSE"
+        },
+        "query.<unknown>": {
+          "start": 41,
+          "end": 46,
+          "fragment": "local"
+        }
+      }
+    }
+  ]
+}

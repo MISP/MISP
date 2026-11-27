@@ -1,0 +1,24 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 53,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 2,
+        "page": 1
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "value"
+      ],
+      "skip": 0,
+      "spans": {}
+    }
+  ],
+  "source": "test_output.py::test_table_columns_and_long_cells"
+}

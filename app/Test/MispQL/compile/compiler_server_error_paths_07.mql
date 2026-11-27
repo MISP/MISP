@@ -1,0 +1,1 @@
+SELECT * FROM galaxy_clusters WHERE meta.synonyms > 'x' OR meta.`Additional Content Note` = 1 LIMIT 1

@@ -1,0 +1,2 @@
+SELECT id, name, `count`, attribute_count FROM tags
+WHERE is_galaxy = FALSE ORDER BY name LIMIT 20 FORMAT table

@@ -1,0 +1,1 @@
+SELECT id, name, Orgc.name, element_count FROM collections WHERE element_type = 'Event' OR (name LIKE 'apt%' AND distribution < 3) ORDER BY modified DESC LIMIT 10 FORMAT table

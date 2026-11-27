@@ -1,0 +1,65 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 121,
+      "table": "collections",
+      "endpoint": "/collections/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 1,
+        "order": [
+          "modified desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "type": "campaign"
+            },
+            {
+              "element_type": "Event"
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 32,
+          "end": 76,
+          "fragment": "type = 'campaign' AND element_type = 'Event'"
+        },
+        "query.AND[0]": {
+          "start": 32,
+          "end": 49,
+          "fragment": "type = 'campaign'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 32,
+          "end": 36,
+          "fragment": "type"
+        },
+        "query.AND[1]": {
+          "start": 54,
+          "end": 76,
+          "fragment": "element_type = 'Event'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 54,
+          "end": 66,
+          "fragment": "element_type"
+        },
+        "order[0]": {
+          "start": 86,
+          "end": 99,
+          "fragment": "modified DESC"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

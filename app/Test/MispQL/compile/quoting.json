@@ -1,0 +1,97 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 211,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "value": {
+                "IN": [
+                  "it's",
+                  "say \"hi\"",
+                  "it's",
+                  "C:\\Windows\\temp\\n",
+                  "",
+                  "two\nlines"
+                ]
+              }
+            },
+            {
+              "count": 1
+            },
+            {
+              "select": true
+            },
+            {
+              "type": {
+                "!=": "x"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": [
+        "Event.Orgc",
+        "a`b",
+        "type"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 58,
+          "end": 190,
+          "fragment": "value IN ('it''s', \"say \"\"hi\"\"\", \"it's\", 'C:\\Windows\\temp\\n', '', 'two\nlines')\n  AND `count` = 1 AND `select` = TRUE AND Type <> 'x'"
+        },
+        "query.AND[0]": {
+          "start": 58,
+          "end": 136,
+          "fragment": "value IN ('it''s', \"say \"\"hi\"\"\", \"it's\", 'C:\\Windows\\temp\\n', '', 'two\nlines')"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 58,
+          "end": 63,
+          "fragment": "value"
+        },
+        "query.AND[1]": {
+          "start": 143,
+          "end": 154,
+          "fragment": "`count` = 1"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 143,
+          "end": 150,
+          "fragment": "`count`"
+        },
+        "query.AND[2]": {
+          "start": 159,
+          "end": 174,
+          "fragment": "`select` = TRUE"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 159,
+          "end": 167,
+          "fragment": "`select`"
+        },
+        "query.AND[3]": {
+          "start": 179,
+          "end": 190,
+          "fragment": "Type <> 'x'"
+        },
+        "query.AND[3].<unknown>": {
+          "start": 179,
+          "end": 183,
+          "fragment": "Type"
+        }
+      }
+    }
+  ]
+}

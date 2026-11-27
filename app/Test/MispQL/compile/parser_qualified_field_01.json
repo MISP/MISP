@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 52,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "type": "x"
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 52,
+          "fragment": "attributes.type = 'x'"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 46,
+          "fragment": "attributes.type"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_qualified_field"
+}

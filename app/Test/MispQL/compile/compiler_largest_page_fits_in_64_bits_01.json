@@ -1,0 +1,21 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 53,
+      "table": "tags",
+      "endpoint": "/tags/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 2,
+        "page": 4611686018427387904
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 1,
+      "spans": {}
+    }
+  ],
+  "source": "test_compiler.py::test_largest_page_fits_in_64_bits"
+}

@@ -1,0 +1,2 @@
+SELECT * FROM attributes WHERE event_id = 5
+ORDER BY publish_timestamp DESC, attributes.type, value ASC

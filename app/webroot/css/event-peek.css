@@ -54,12 +54,12 @@
 .ev-ref.is-loading { cursor: progress; }
 
 .ev-peek-popover {
-    --bs-popover-max-width: 400px;
+    --bs-popover-max-width: min(400px, calc(100vw - 16px));
     --bs-popover-border-radius: 12px;
     --bs-popover-inner-border-radius: 11px;
     --bs-popover-body-padding-x: 0;
     --bs-popover-body-padding-y: 0;
-    width: 400px;
+    width: min(400px, calc(100vw - 16px));
     font-size: .8rem;
     box-shadow: 0 12px 32px rgba(0, 0, 0, .16), 0 2px 6px rgba(0, 0, 0, .08);
     animation: ev-pop-in .12s ease-out;

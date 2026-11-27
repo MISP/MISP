@@ -1,0 +1,1 @@
+SELECT id, name, Event.info FROM event_reports WHERE eventinfo LIKE '%phish%' AND (tags = 'tlp:white' OR NOT deleted = TRUE) ORDER BY timestamp DESC, event_reports.id LIMIT 5 OFFSET 7 FORMAT table

@@ -1,0 +1,39 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 68,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "eventinfo": "x"
+        }
+      },
+      "output": "default",
+      "columns": [
+        "info",
+        "meta.org"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 45,
+          "end": 60,
+          "fragment": "eventinfo = 'x'"
+        },
+        "query.<unknown>": {
+          "start": 45,
+          "end": 54,
+          "fragment": "eventinfo"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_query_names_in_column_lists_become_row_keys"
+}

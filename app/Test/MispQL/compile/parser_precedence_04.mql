@@ -1,0 +1,1 @@
+SELECT * FROM attributes WHERE NOT NOT a = 1

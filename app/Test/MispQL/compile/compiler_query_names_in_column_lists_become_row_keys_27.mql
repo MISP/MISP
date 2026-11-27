@@ -1,0 +1,1 @@
+SELECT id, opinions.org FROM opinions LIMIT 1

@@ -1,0 +1,2 @@
+SELECT * FROM opinions WHERE opinion < 50 AND created >= '2026-11-01'
+ORDER BY opinion LIMIT 20 FORMAT table

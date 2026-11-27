@@ -1,0 +1,6 @@
+SELECT * FROM attributes
+WHERE id != 1 AND event_id < 10 AND object_id > 0 AND distribution <= 3 AND timestamp >= '7d'
+  AND to_ids = TRUE AND published <> false AND threat_level_id IN (1, 2)
+  AND type NOT IN ('comment', "other") AND value LIKE '%.example.com'
+  AND comment NOT LIKE 'test%' AND id > -1
+LIMIT 50

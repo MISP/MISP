@@ -1,0 +1,483 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 297,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "NOT": {
+            "NOT": {
+              "NOT": {
+                "NOT": {
+                  "NOT": {
+                    "NOT": {
+                      "NOT": {
+                        "NOT": {
+                          "NOT": {
+                            "NOT": {
+                              "NOT": {
+                                "NOT": {
+                                  "NOT": {
+                                    "NOT": {
+                                      "NOT": {
+                                        "NOT": {
+                                          "NOT": {
+                                            "NOT": {
+                                              "NOT": {
+                                                "NOT": {
+                                                  "NOT": {
+                                                    "NOT": {
+                                                      "NOT": {
+                                                        "NOT": {
+                                                          "NOT": {
+                                                            "NOT": {
+                                                              "NOT": {
+                                                                "NOT": {
+                                                                  "NOT": {
+                                                                    "NOT": {
+                                                                      "NOT": {
+                                                                        "NOT": {
+                                                                          "NOT": {
+                                                                            "NOT": {
+                                                                              "NOT": {
+                                                                                "NOT": {
+                                                                                  "NOT": {
+                                                                                    "NOT": {
+                                                                                      "NOT": {
+                                                                                        "NOT": {
+                                                                                          "NOT": {
+                                                                                            "NOT": {
+                                                                                              "NOT": {
+                                                                                                "NOT": {
+                                                                                                  "NOT": {
+                                                                                                    "NOT": {
+                                                                                                      "NOT": {
+                                                                                                        "NOT": {
+                                                                                                          "NOT": {
+                                                                                                            "NOT": {
+                                                                                                              "NOT": {
+                                                                                                                "NOT": {
+                                                                                                                  "NOT": {
+                                                                                                                    "NOT": {
+                                                                                                                      "NOT": {
+                                                                                                                        "NOT": {
+                                                                                                                          "NOT": {
+                                                                                                                            "NOT": {
+                                                                                                                              "NOT": {
+                                                                                                                                "NOT": {
+                                                                                                                                  "NOT": {
+                                                                                                                                    "NOT": {
+                                                                                                                                      "NOT": {
+                                                                                                                                        "NOT": {
+                                                                                                                                          "id": 1
+                                                                                                                                        }
+                                                                                                                                      }
+                                                                                                                                    }
+                                                                                                                                  }
+                                                                                                                                }
+                                                                                                                              }
+                                                                                                                            }
+                                                                                                                          }
+                                                                                                                        }
+                                                                                                                      }
+                                                                                                                    }
+                                                                                                                  }
+                                                                                                                }
+                                                                                                              }
+                                                                                                            }
+                                                                                                          }
+                                                                                                        }
+                                                                                                      }
+                                                                                                    }
+                                                                                                  }
+                                                                                                }
+                                                                                              }
+                                                                                            }
+                                                                                          }
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT": {
+          "start": 31,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT": {
+          "start": 35,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT": {
+          "start": 39,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT": {
+          "start": 43,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT": {
+          "start": 47,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 51,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 55,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 59,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 63,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 67,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 71,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 75,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 79,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 83,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 87,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 91,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 95,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 99,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 103,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 107,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 111,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 115,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 119,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 123,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 127,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 131,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 135,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 139,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 143,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 147,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 151,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 155,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 159,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 163,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 167,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 171,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 175,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 179,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 183,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 187,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 191,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 195,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 199,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 203,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 207,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 211,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 215,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 219,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 223,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 227,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 231,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 235,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 239,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 243,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 247,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 251,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 255,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 259,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 263,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 267,
+          "end": 289,
+          "fragment": "NOT NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 271,
+          "end": 289,
+          "fragment": "NOT NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 275,
+          "end": 289,
+          "fragment": "NOT NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 279,
+          "end": 289,
+          "fragment": "NOT id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 283,
+          "end": 289,
+          "fragment": "id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.<unknown>": {
+          "start": 283,
+          "end": 285,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_nesting_up_to_the_limit"
+}

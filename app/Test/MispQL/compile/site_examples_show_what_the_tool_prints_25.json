@@ -1,0 +1,56 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 73,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "metadata": 1,
+        "query": {
+          "AND": [
+            {
+              "tags": "tlp:clear"
+            },
+            {
+              "published": true
+            }
+          ]
+        }
+      },
+      "source": "header",
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 73,
+          "fragment": "tags = 'tlp:clear' AND published = TRUE"
+        },
+        "query.AND[0]": {
+          "start": 34,
+          "end": 52,
+          "fragment": "tags = 'tlp:clear'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 34,
+          "end": 38,
+          "fragment": "tags"
+        },
+        "query.AND[1]": {
+          "start": 57,
+          "end": 73,
+          "fragment": "published = TRUE"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 57,
+          "end": 66,
+          "fragment": "published"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

@@ -1,0 +1,2 @@
+SELECT COUNT(*) FROM galaxy_clusters
+WHERE galaxy_namespace = 'mitre-attack' AND description LIKE '%credential%'

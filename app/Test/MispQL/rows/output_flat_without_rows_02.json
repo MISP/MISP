@@ -1,0 +1,12 @@
+{
+  "statement": "SELECT id, value FROM attributes LIMIT 1 FORMAT flat",
+  "rows": [],
+  "flat": [],
+  "columns": [
+    "id",
+    "value"
+  ],
+  "cells": [],
+  "warnings": [],
+  "source": "test_output.py::test_flat_without_rows"
+}

@@ -1,0 +1,1 @@
+SELECT id, attributes.Event.info, Event.Orgc.name, `meta-category` FROM attributes WHERE event_id = 1 FORMAT table

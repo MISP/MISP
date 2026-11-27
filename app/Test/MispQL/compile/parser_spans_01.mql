@@ -1,0 +1,1 @@
+SELECT * FROM attributes WHERE id > 5 AND NOT (type = 'x' OR tags LIKE 'a%') LIMIT 3;

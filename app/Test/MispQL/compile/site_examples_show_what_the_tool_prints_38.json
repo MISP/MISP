@@ -1,0 +1,45 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 88,
+      "table": "organisations",
+      "endpoint": "/organisations/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "order": [
+          "name asc"
+        ],
+        "query": {
+          "name": {
+            "LIKE": "%cert%"
+          }
+        }
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 52,
+          "fragment": "name LIKE '%cert%'"
+        },
+        "query.<unknown>": {
+          "start": 34,
+          "end": 38,
+          "fragment": "name"
+        },
+        "order[0]": {
+          "start": 62,
+          "end": 66,
+          "fragment": "name"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

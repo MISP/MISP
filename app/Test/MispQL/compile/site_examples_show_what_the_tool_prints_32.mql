@@ -1,0 +1,2 @@
+SELECT * FROM notes WHERE object_type = 'Event' AND note LIKE '%ransomware%'
+ORDER BY created DESC LIMIT 20 FORMAT table

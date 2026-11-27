@@ -1,0 +1,31 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 71,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "galaxy_name": "Threat Actor"
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 43,
+          "end": 71,
+          "fragment": "galaxy_name = 'Threat Actor'"
+        },
+        "query.<unknown>": {
+          "start": 43,
+          "end": 54,
+          "fragment": "galaxy_name"
+        }
+      }
+    }
+  ],
+  "source": "test_client.py::test_counts"
+}

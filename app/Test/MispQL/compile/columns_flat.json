@@ -1,0 +1,37 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 99,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "event_id": 1
+        }
+      },
+      "output": "flat",
+      "columns": [
+        "id",
+        "value",
+        "event.info",
+        "object.name"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 75,
+          "end": 87,
+          "fragment": "event_id = 1"
+        },
+        "query.<unknown>": {
+          "start": 75,
+          "end": 83,
+          "fragment": "event_id"
+        }
+      }
+    }
+  ]
+}

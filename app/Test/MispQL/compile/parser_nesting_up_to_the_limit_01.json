@@ -1,0 +1,35 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 169,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "id": 1
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 91,
+          "end": 97,
+          "fragment": "id = 1"
+        },
+        "query.<unknown>": {
+          "start": 91,
+          "end": 93,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_nesting_up_to_the_limit"
+}

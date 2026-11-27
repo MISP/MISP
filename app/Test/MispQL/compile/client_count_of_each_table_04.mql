@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM relationships WHERE id > 0

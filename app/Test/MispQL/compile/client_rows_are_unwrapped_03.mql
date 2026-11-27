@@ -1,0 +1,1 @@
+SELECT * FROM galaxy_clusters LIMIT 1

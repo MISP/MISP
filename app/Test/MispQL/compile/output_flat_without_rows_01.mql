@@ -1,0 +1,1 @@
+SELECT * FROM attributes LIMIT 1 FORMAT flat

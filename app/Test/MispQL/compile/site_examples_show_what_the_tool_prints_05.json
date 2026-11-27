@@ -1,0 +1,75 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 150,
+      "table": "organisations",
+      "endpoint": "/organisations/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 100,
+        "page": 1,
+        "order": [
+          "name asc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "local": false
+            },
+            {
+              "sector": {
+                "IN": [
+                  "Financial",
+                  "Banking"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "output": "flat",
+      "columns": [
+        "id",
+        "name",
+        "nationality",
+        "sector"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 62,
+          "end": 114,
+          "fragment": "local = FALSE AND sector IN ('Financial', 'Banking')"
+        },
+        "query.AND[0]": {
+          "start": 62,
+          "end": 75,
+          "fragment": "local = FALSE"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 62,
+          "end": 67,
+          "fragment": "local"
+        },
+        "query.AND[1]": {
+          "start": 80,
+          "end": 114,
+          "fragment": "sector IN ('Financial', 'Banking')"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 80,
+          "end": 86,
+          "fragment": "sector"
+        },
+        "order[0]": {
+          "start": 124,
+          "end": 128,
+          "fragment": "name"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

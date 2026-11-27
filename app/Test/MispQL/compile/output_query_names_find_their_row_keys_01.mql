@@ -1,0 +1,1 @@
+SELECT value, EventInfo, org, tags, published FROM attributes LIMIT 2 FORMAT flat

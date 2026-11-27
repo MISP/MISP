@@ -1,0 +1,66 @@
+{
+  "statement": "SELECT * FROM tags WHERE colour LIKE '#ff%' AND `count` > 1 AND numerical_value = 'x' LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "AND": [
+        {
+          "colour": {
+            "LIKE": "#ff%"
+          }
+        },
+        {
+          "count": {
+            ">": 1
+          }
+        },
+        {
+          "numerical_value": "x"
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "3 errors",
+    "url": "/tags/restSearch",
+    "errors": [
+      {
+        "path": "query.AND[0].colour",
+        "code": "unknown_operator",
+        "message": "operator not allowed for this field"
+      },
+      {
+        "path": "query.AND[1].<unknown>",
+        "code": "unknown_field",
+        "message": "unknown field"
+      },
+      {
+        "path": "query.AND[2].numerical_value",
+        "code": "bad_type",
+        "message": "this field expects an integer"
+      }
+    ]
+  },
+  "located": {
+    "query.AND[0].colour": {
+      "start": 25,
+      "end": 43,
+      "fragment": "colour LIKE '#ff%'"
+    },
+    "query.AND[1].<unknown>": {
+      "start": 48,
+      "end": 55,
+      "fragment": "`count`"
+    },
+    "query.AND[2].numerical_value": {
+      "start": 64,
+      "end": 85,
+      "fragment": "numerical_value = 'x'"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

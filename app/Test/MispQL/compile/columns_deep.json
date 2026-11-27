@@ -1,0 +1,37 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 114,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "event_id": 1
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "event.info",
+        "event.orgc.name",
+        "meta-category"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 89,
+          "end": 101,
+          "fragment": "event_id = 1"
+        },
+        "query.<unknown>": {
+          "start": 89,
+          "end": 97,
+          "fragment": "event_id"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 153,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 5,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "type": {
+                "IN": [
+                  "domain",
+                  "ip-dst"
+                ]
+              }
+            },
+            {
+              "timestamp": {
+                ">=": "7d"
+              }
+            },
+            {
+              "tags": {
+                "!=": "tlp:red"
+              }
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "event_id",
+        "type",
+        "value",
+        "tag"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 60,
+          "end": 132,
+          "fragment": "type IN ('domain', 'ip-dst') AND timestamp >= '7d' AND tags != 'tlp:red'"
+        },
+        "query.AND[0]": {
+          "start": 60,
+          "end": 88,
+          "fragment": "type IN ('domain', 'ip-dst')"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 60,
+          "end": 64,
+          "fragment": "type"
+        },
+        "query.AND[1]": {
+          "start": 93,
+          "end": 110,
+          "fragment": "timestamp >= '7d'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 93,
+          "end": 102,
+          "fragment": "timestamp"
+        },
+        "query.AND[2]": {
+          "start": 115,
+          "end": 132,
+          "fragment": "tags != 'tlp:red'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 115,
+          "end": 119,
+          "fragment": "tags"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

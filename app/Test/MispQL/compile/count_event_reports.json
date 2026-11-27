@@ -1,0 +1,36 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 62,
+      "table": "event_reports",
+      "endpoint": "/event_reports/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "event_id": {
+            "IN": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 41,
+          "end": 62,
+          "fragment": "event_id IN (1, 2, 3)"
+        },
+        "query.<unknown>": {
+          "start": 41,
+          "end": 49,
+          "fragment": "event_id"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+SELECT id, objects.orgc_id FROM objects LIMIT 1

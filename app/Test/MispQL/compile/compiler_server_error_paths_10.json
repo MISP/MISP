@@ -1,0 +1,68 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 82,
+      "table": "opinions",
+      "endpoint": "/analyst_data/restSearch/Opinion",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "opinion": {
+                ">": "high"
+              }
+            },
+            {
+              "NOT": {
+                "comment": {
+                  "LIKE": "%a%b%"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 29,
+          "end": 74,
+          "fragment": "opinion > 'high' AND NOT comment LIKE '%a%b%'"
+        },
+        "query.AND[0]": {
+          "start": 29,
+          "end": 45,
+          "fragment": "opinion > 'high'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 29,
+          "end": 36,
+          "fragment": "opinion"
+        },
+        "query.AND[1]": {
+          "start": 50,
+          "end": 74,
+          "fragment": "NOT comment LIKE '%a%b%'"
+        },
+        "query.AND[1].NOT": {
+          "start": 54,
+          "end": 74,
+          "fragment": "comment LIKE '%a%b%'"
+        },
+        "query.AND[1].NOT.<unknown>": {
+          "start": 54,
+          "end": 61,
+          "fragment": "comment"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

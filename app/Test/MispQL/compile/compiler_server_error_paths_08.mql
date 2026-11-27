@@ -1,0 +1,1 @@
+SELECT * FROM notes WHERE created > 'tomorrow' OR note IN ('a', 1) OR locked = 'yes' LIMIT 1

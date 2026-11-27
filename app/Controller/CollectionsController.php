@@ -880,20 +880,9 @@ class CollectionsController extends AppController
                 'conditions' => ['SharingGroupOrg.sharing_group_id' => $sharingGroupId],
             ]);
         }
-        $this->set('data', $data);
-        $elements = $data['Collection']['CollectionElement'] ?? [];
-
-        $elements = $this->Collection->CollectionElement->attachTargets($user, $elements);
+        $elements = $this->__elementsCard($user, $data['Collection']['CollectionElement'] ?? []);
         $data['Collection']['CollectionElement'] = $elements;
         $this->set('data', $data);
-        // Who added each member, where the user may see it (rearrangeCollection
-        // drops user_id otherwise)
-        $adderIds = array_values(array_unique(array_filter(array_column($elements, 'user_id'))));
-        $this->set('elementAdders', empty($adderIds) ? [] : ClassRegistry::init('User')->find('list', [
-            'recursive' => -1,
-            'fields' => ['User.id', 'User.email'],
-            'conditions' => ['User.id' => $adderIds],
-        ]));
 
         $totalElements = count($elements);
         $this->request->params['paging']['CollectionElement'] = [
@@ -922,6 +911,58 @@ class CollectionsController extends AppController
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->render('view');
+    }
+
+    /**
+     * A collection's members in place, as its page's elements card lists
+     * them, read-only: the popover the query console opens on a collection.
+     *
+     * @param int|string $id
+     */
+    public function peek($id)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
+        if ($this->theme !== 'Overmind' || !$this->Collection->mayView($user['id'], $id)) {
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
+        }
+        $collection = $this->Collection->find('first', [
+            'conditions' => array_merge(['Collection.id' => $id], Collection::servedConditions()),
+            'contain' => ['CollectionElement' => Collection::servedElementOptions()],
+        ]);
+        if (empty($collection)) {
+            throw new NotFoundException(__('Invalid %s.', $this->Collection->alias));
+        }
+        $collection = $this->Collection->rearrangeCollection($collection, $user);
+        $collection['Collection']['CollectionElement'] = $this->__elementsCard(
+            $user,
+            $collection['Collection']['CollectionElement'] ?? []
+        );
+        $this->layout = false;
+        $this->set('data', $collection);
+        $this->render('peek');
+    }
+
+    /**
+     * The members as the elements card shows them, each with its record,
+     * and who added each where the user may see it (rearrangeCollection
+     * drops user_id otherwise), set as elementAdders.
+     *
+     * @param array $user
+     * @param array $elements
+     * @return array
+     */
+    private function __elementsCard(array $user, array $elements)
+    {
+        $elements = $this->Collection->CollectionElement->attachTargets($user, $elements);
+        $adderIds = array_values(array_unique(array_filter(array_column($elements, 'user_id'))));
+        $this->set('elementAdders', empty($adderIds) ? [] : ClassRegistry::init('User')->find('list', [
+            'recursive' => -1,
+            'fields' => ['User.id', 'User.email'],
+            'conditions' => ['User.id' => $adderIds],
+        ]));
+        return $elements;
     }
 
     public function index($filter = null)

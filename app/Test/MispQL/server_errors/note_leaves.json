@@ -1,0 +1,69 @@
+{
+  "statement": "SELECT * FROM notes WHERE created > 'tomorrow' OR note IN ('a', 1) OR locked = 'yes' LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "OR": [
+        {
+          "created": {
+            ">": "tomorrow"
+          }
+        },
+        {
+          "note": {
+            "IN": [
+              "a",
+              1
+            ]
+          }
+        },
+        {
+          "locked": "yes"
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "3 errors",
+    "url": "/analyst_data/restSearch/Note",
+    "errors": [
+      {
+        "path": "query.OR[0].created",
+        "code": "bad_type",
+        "message": "this field expects an integer, a relative time such as 7d or a YYYY-MM-DD[ HH:MM:SS] date"
+      },
+      {
+        "path": "query.OR[1].note",
+        "code": "bad_type",
+        "message": "this field expects a non-empty string"
+      },
+      {
+        "path": "query.OR[2].locked",
+        "code": "bad_type",
+        "message": "this field expects true or false"
+      }
+    ]
+  },
+  "located": {
+    "query.OR[0].created": {
+      "start": 26,
+      "end": 46,
+      "fragment": "created > 'tomorrow'"
+    },
+    "query.OR[1].note": {
+      "start": 50,
+      "end": 66,
+      "fragment": "note IN ('a', 1)"
+    },
+    "query.OR[2].locked": {
+      "start": 70,
+      "end": 84,
+      "fragment": "locked = 'yes'"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

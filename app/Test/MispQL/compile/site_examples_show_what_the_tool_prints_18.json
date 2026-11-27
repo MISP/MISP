@@ -1,0 +1,48 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 111,
+      "table": "tags",
+      "endpoint": "/tags/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 20,
+        "page": 1,
+        "order": [
+          "name asc"
+        ],
+        "query": {
+          "is_galaxy": false
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "name",
+        "count",
+        "attribute_count"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 58,
+          "end": 75,
+          "fragment": "is_galaxy = FALSE"
+        },
+        "query.<unknown>": {
+          "start": 58,
+          "end": 67,
+          "fragment": "is_galaxy"
+        },
+        "order[0]": {
+          "start": 85,
+          "end": 89,
+          "fragment": "name"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

@@ -1,0 +1,1 @@
+SELECT id, event_reports.org_id FROM event_reports LIMIT 1

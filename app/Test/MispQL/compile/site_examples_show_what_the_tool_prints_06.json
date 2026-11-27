@@ -1,0 +1,59 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 86,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "type": "domain"
+            },
+            {
+              "value": {
+                "LIKE": "%.example.com"
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 77,
+          "fragment": "type = 'domain' AND value LIKE '%.example.com'"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 46,
+          "fragment": "type = 'domain'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 35,
+          "fragment": "type"
+        },
+        "query.AND[1]": {
+          "start": 51,
+          "end": 77,
+          "fragment": "value LIKE '%.example.com'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 51,
+          "end": 56,
+          "fragment": "value"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

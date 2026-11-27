@@ -1,0 +1,119 @@
+{
+  "statement": "SELECT id, event.info, Event.Orgc.name, tag, nosuch FROM attributes LIMIT 2",
+  "rows": [
+    {
+      "id": "12",
+      "event_id": "3",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "1.2.3.4",
+      "to_ids": true,
+      "timestamp": "1700000000",
+      "object_relation": null,
+      "Event": {
+        "id": "3",
+        "info": "Phishing, round 2",
+        "Orgc": {
+          "id": "1",
+          "name": "CIRCL"
+        }
+      },
+      "Object": {
+        "id": "7"
+      },
+      "Tag": [
+        {
+          "id": "1",
+          "name": "tlp:white"
+        },
+        {
+          "id": "2",
+          "name": "osint:source-type=\"blog-post\""
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "event_id": "3",
+      "category": "Other",
+      "type": "text",
+      "value": "line one\nline \"two\"",
+      "to_ids": false,
+      "timestamp": "1700000001",
+      "object_relation": null,
+      "Event": {
+        "id": "3",
+        "info": "Phishing, round 2",
+        "Orgc": {
+          "id": "1",
+          "name": "CIRCL"
+        }
+      }
+    }
+  ],
+  "flat": [
+    {
+      "id": "12",
+      "event_id": "3",
+      "category": "Network activity",
+      "type": "ip-dst",
+      "value": "1.2.3.4",
+      "to_ids": true,
+      "timestamp": "1700000000",
+      "object_relation": null,
+      "Event.id": "3",
+      "Event.info": "Phishing, round 2",
+      "Event.Orgc.id": "1",
+      "Event.Orgc.name": "CIRCL",
+      "Object.id": "7",
+      "Tag": [
+        "tlp:white",
+        "osint:source-type=\"blog-post\""
+      ]
+    },
+    {
+      "id": "13",
+      "event_id": "3",
+      "category": "Other",
+      "type": "text",
+      "value": "line one\nline \"two\"",
+      "to_ids": false,
+      "timestamp": "1700000001",
+      "object_relation": null,
+      "Event.id": "3",
+      "Event.info": "Phishing, round 2",
+      "Event.Orgc.id": "1",
+      "Event.Orgc.name": "CIRCL"
+    }
+  ],
+  "columns": [
+    "id",
+    "Event.info",
+    "Event.Orgc.name",
+    "Tag",
+    "nosuch"
+  ],
+  "cells": [
+    [
+      "12",
+      "Phishing, round 2",
+      "CIRCL",
+      [
+        "tlp:white",
+        "osint:source-type=\"blog-post\""
+      ],
+      null
+    ],
+    [
+      "13",
+      "Phishing, round 2",
+      "CIRCL",
+      null,
+      null
+    ]
+  ],
+  "warnings": [
+    "no row has a column nosuch"
+  ],
+  "source": "test_output.py::test_default_with_columns"
+}

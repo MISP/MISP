@@ -1,0 +1,35 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 52,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "tags": {
+            "NOT LIKE": "tlp:%"
+          }
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 52,
+          "fragment": "tags NOT LIKE 'tlp:%'"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 35,
+          "fragment": "tags"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_comparisons"
+}

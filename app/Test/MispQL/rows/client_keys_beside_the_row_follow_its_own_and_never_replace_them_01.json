@@ -1,0 +1,33 @@
+{
+  "statement": "SELECT * FROM collections LIMIT 1",
+  "reply": {
+    "response": [
+      {
+        "Orgc": {
+          "name": "beside"
+        },
+        "Collection": {
+          "id": "8",
+          "Orgc": {
+            "name": "own"
+          }
+        },
+        "SharingGroup": {
+          "id": null
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "8",
+      "Orgc": {
+        "name": "own"
+      },
+      "SharingGroup": {
+        "id": null
+      }
+    }
+  ],
+  "source": "test_client.py::test_keys_beside_the_row_follow_its_own_and_never_replace_them"
+}

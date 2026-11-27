@@ -1,0 +1,81 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 148,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "eventinfo": {
+                "LIKE": "%phishing%"
+              }
+            },
+            {
+              "type": {
+                "IN": [
+                  "url",
+                  "domain"
+                ]
+              }
+            },
+            {
+              "to_ids": true
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "value",
+        "event.info"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 51,
+          "end": 126,
+          "fragment": "eventinfo LIKE '%phishing%' AND type IN ('url', 'domain') AND to_ids = TRUE"
+        },
+        "query.AND[0]": {
+          "start": 51,
+          "end": 78,
+          "fragment": "eventinfo LIKE '%phishing%'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 51,
+          "end": 60,
+          "fragment": "eventinfo"
+        },
+        "query.AND[1]": {
+          "start": 83,
+          "end": 108,
+          "fragment": "type IN ('url', 'domain')"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 83,
+          "end": 87,
+          "fragment": "type"
+        },
+        "query.AND[2]": {
+          "start": 113,
+          "end": 126,
+          "fragment": "to_ids = TRUE"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 113,
+          "end": 119,
+          "fragment": "to_ids"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

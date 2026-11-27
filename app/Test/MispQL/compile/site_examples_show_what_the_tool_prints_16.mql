@@ -1,0 +1,2 @@
+SELECT id, eventinfo, org, tags FROM events
+WHERE org = 'CIRCL' AND date >= '30d' LIMIT 20 FORMAT table

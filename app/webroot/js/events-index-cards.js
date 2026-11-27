@@ -1,6 +1,8 @@
 /* Overmind events index — the +N on each one-line context lane, the context
    popover it opens (card and table alike), the sharing group badges and
-   their popover, and the selection state of the cards. */
+   their popover, and the selection state of the cards. A lane outside an
+   event (the query console's tag cells) sits in a [data-dk-root] that names
+   it in data-dk-label. */
 (function () {
     'use strict';
 
@@ -270,16 +272,19 @@
         });
         var foot = document.createElement('div');
         foot.className = 'dk-pop-foot';
-        foot.innerHTML = view === 'all'
-            ? '<button type="button" data-dk-view="lane"><i class="fas fa-arrow-left"></i></button>'
-            : '<button type="button" data-dk-view="all"><i class="fas fa-layer-group"></i></button>';
-        foot.firstChild.appendChild(document.createTextNode(view === 'all' ? 'Only ' + label.toLowerCase() : 'All context'));
+        if (tpl.content.querySelectorAll('.dk-pop-sec').length > 1) {
+            foot.innerHTML = view === 'all'
+                ? '<button type="button" data-dk-view="lane"><i class="fas fa-arrow-left"></i></button>'
+                : '<button type="button" data-dk-view="all"><i class="fas fa-layer-group"></i></button>';
+            foot.firstChild.appendChild(document.createTextNode(view === 'all' ? 'Only ' + label.toLowerCase() : 'All context'));
+        }
         body.appendChild(foot);
         el.appendChild(body);
         el.classList.toggle('is-all', view === 'all');
         pop.view = view;
         var id = pop.root.getAttribute('data-event-id');
-        el.setAttribute('aria-label', (view === 'all' ? 'Context' : label) + ' of event #' + id);
+        el.setAttribute('aria-label', id ? (view === 'all' ? 'Context' : label) + ' of event #' + id
+            : pop.root.getAttribute('data-dk-label') || label);
         place();
     }
 
@@ -375,12 +380,13 @@
             hidden += card.querySelectorAll('.hg-row').length;
             hide(card);
         }
-        var note = document.createElement('a');
+        var eventId = pop.root.getAttribute('data-event-id');
+        var note = document.createElement(eventId ? 'a' : 'span');
         note.className = 'dk-pop-more';
-        note.href = (window.baseurl || '') + '/events/view/' + pop.root.getAttribute('data-event-id');
+        if (eventId) note.href = (window.baseurl || '') + '/events/view/' + eventId;
         var foot = el.querySelector('.dk-pop-foot');
         foot.insertBefore(note, foot.firstChild);
-        var say = function (n) { note.textContent = '+' + n + ' not shown · open the event'; };
+        var say = function (n) { note.textContent = '+' + n + ' not shown' + (eventId ? ' · open the event' : ''); };
         say(hidden || 1);
         if (tooTall() && cards.length) {
             var last = cards[cards.length - 1];
@@ -433,7 +439,7 @@
         }
         closePop();
         var lane = laneOf(zone);
-        var root = zone.closest('[data-event-id]');
+        var root = zone.closest('[data-event-id], [data-dk-root]');
         if (!root || !root.querySelector('template.dk-ctx-tpl')) return;
         begin({ kind: 'lane', zone: zone, root: root, lane: lane.getAttribute('data-dk-lane'), trigger: lane.querySelector('.dk-more'), pinned: false });
         fill('lane');

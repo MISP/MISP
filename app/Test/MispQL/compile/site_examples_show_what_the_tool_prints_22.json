@@ -1,0 +1,74 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 134,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 3,
+        "page": 1,
+        "order": [
+          "id desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "tags": "tlp:clear"
+            },
+            {
+              "date": {
+                ">=": "7d"
+              }
+            }
+          ]
+        }
+      },
+      "output": "flat",
+      "columns": [
+        "id",
+        "date",
+        "info",
+        "orgc.name",
+        "tag"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 56,
+          "end": 91,
+          "fragment": "tags = 'tlp:clear' AND date >= '7d'"
+        },
+        "query.AND[0]": {
+          "start": 56,
+          "end": 74,
+          "fragment": "tags = 'tlp:clear'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 56,
+          "end": 60,
+          "fragment": "tags"
+        },
+        "query.AND[1]": {
+          "start": 79,
+          "end": 91,
+          "fragment": "date >= '7d'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 79,
+          "end": 83,
+          "fragment": "date"
+        },
+        "order[0]": {
+          "start": 101,
+          "end": 114,
+          "fragment": "event_id DESC"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

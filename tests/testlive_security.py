@@ -1845,7 +1845,7 @@ class TestComplexQueryAcl(unittest.TestCase):
         role_flagged = cls.admin_api("POST", "admin/roles/add", {"Role": {
             "name": "MQA flagged " + random(), "permission": "0", "perm_auth": 1, "perm_sighting": 1, "perm_complex_query": 1}})["Role"]
         role_plain = cls.admin_api("POST", "admin/roles/add", {"Role": {
-            "name": "MQA plain " + random(), "permission": "0", "perm_auth": 1, "perm_sighting": 1}})["Role"]
+            "name": "MQA plain " + random(), "permission": "0", "perm_auth": 1, "perm_sighting": 1, "perm_complex_query": 0}})["Role"]
         cls.created["roles"] = [role_flagged["id"], role_plain["id"]]
         cls.user_key = cls.__make_user(role_flagged["id"])
         cls.plain_user_key = cls.__make_user(role_plain["id"])
@@ -2140,7 +2140,7 @@ class TestComplexEventQueryAcl(unittest.TestCase):
         cls.admin_org_id, admin_org_uuid = int(me["id"]), me["uuid"]
         roles = {
             "flagged": {"permission": "1", "perm_auth": 1, "perm_complex_query": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}
@@ -2427,7 +2427,7 @@ class TestComplexObjectQueryAcl(unittest.TestCase):
         cls.admin_org_id, admin_org_uuid = int(me["id"]), me["uuid"]
         roles = {
             "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}
@@ -2878,7 +2878,7 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
         cls.admin_org_id, cls.admin_org_uuid, cls.admin_org_name = int(me["id"]), me["uuid"], me["name"]
         roles = {
             "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_galaxy_editor": 1, "perm_complex_query": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}
@@ -3265,7 +3265,7 @@ class TestComplexEventReportQueryAcl(unittest.TestCase):
         cls.admin_org_id, cls.admin_sync = int(me["Organisation"]["id"]), bool(int(me["Role"]["perm_sync"]))
         roles = {
             "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}
@@ -3539,7 +3539,7 @@ class TestComplexAnalystDataQueryAcl(unittest.TestCase):
         cls.admin_org_name = me["Organisation"]["name"]
         roles = {
             "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1, "perm_analyst_data": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}
@@ -3835,7 +3835,7 @@ class TestComplexCollectionQueryAcl(unittest.TestCase):
         cls.admin_org_name = me["Organisation"]["name"]
         roles = {
             "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}
@@ -4166,7 +4166,7 @@ class TestComplexTagQueryAcl(unittest.TestCase):
         cls.admin_org_id, cls.admin_user_id = int(me["Organisation"]["id"]), int(me["User"]["id"])
         roles = {
             "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}
@@ -4564,7 +4564,7 @@ class TestComplexOrganisationQueryAcl(unittest.TestCase):
         roles = {
             "flagged": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1, "perm_sharing_group": 0},
             "flagged_sg": {"permission": "1", "perm_add": 1, "perm_auth": 1, "perm_complex_query": 1, "perm_sharing_group": 1},
-            "plain": {"permission": "0", "perm_auth": 1},
+            "plain": {"permission": "0", "perm_auth": 1, "perm_complex_query": 0},
             "site_admin": {"permission": "3", "perm_auth": 1, "perm_site_admin": 1, "perm_complex_query": 0},
         }
         keys = {}

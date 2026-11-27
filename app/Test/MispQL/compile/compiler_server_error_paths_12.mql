@@ -1,0 +1,1 @@
+SELECT * FROM relationships WHERE related_object = 'x' AND relationship_type != '' LIMIT 1

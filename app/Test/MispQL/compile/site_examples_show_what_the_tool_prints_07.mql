@@ -1,0 +1,3 @@
+-- this week's events: how many, then the newest ten
+SELECT COUNT(*) FROM events WHERE date >= '7d';
+SELECT id, date, info FROM events WHERE date >= '7d' ORDER BY event_id DESC LIMIT 10 FORMAT table;

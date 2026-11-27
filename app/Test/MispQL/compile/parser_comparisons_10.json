@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 45,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "to_ids": false
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 45,
+          "fragment": "to_ids = false"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 37,
+          "fragment": "to_ids"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_comparisons"
+}

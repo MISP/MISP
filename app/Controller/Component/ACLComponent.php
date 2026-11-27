@@ -171,6 +171,7 @@ class ACLComponent extends Component
             'holding' => ['*'],
             'index' => ['*'],
             'indexMinimal' => ['*'],
+            'peek' => ['*'],
             'publish' => ['AND' => ['perm_modify', 'perm_publish']],
             'queryDescribe' => ['perm_complex_query'],
             'quickAdd' => ['perm_modify'],
@@ -667,6 +668,11 @@ class ACLComponent extends Component
             'admin_index' => [],
             'admin_request' => [],
             'admin_queryLog' => [],
+        ],
+        'mispql' => [
+            'explain' => ['perm_complex_query'],
+            'index' => ['perm_complex_query'],
+            'run' => ['perm_complex_query'],
         ],
         'modules' => array(
             'index' => array('perm_auth'),

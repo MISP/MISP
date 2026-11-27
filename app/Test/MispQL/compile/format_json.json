@@ -1,0 +1,32 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 45,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "id": 1
+        }
+      },
+      "output": "verbatim",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 33,
+          "fragment": "id = 1"
+        },
+        "query.<unknown>": {
+          "start": 27,
+          "end": 29,
+          "fragment": "id"
+        }
+      }
+    }
+  ]
+}

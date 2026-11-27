@@ -1,0 +1,1 @@
+SELECT id, info FROM events LIMIT 3

@@ -1,0 +1,96 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 109,
+      "table": "event_reports",
+      "endpoint": "/event_reports/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "nosuch": 1
+            },
+            {
+              "name": {
+                "LIKE": "a%b"
+              }
+            },
+            {
+              "OR": [
+                {
+                  "eventinfo": 5
+                },
+                {
+                  "date": {
+                    ">": "soon"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 101,
+          "fragment": "nosuch = 1 AND name LIKE 'a%b' AND (eventinfo = 5 OR date > 'soon')"
+        },
+        "query.AND[0]": {
+          "start": 34,
+          "end": 44,
+          "fragment": "nosuch = 1"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 34,
+          "end": 40,
+          "fragment": "nosuch"
+        },
+        "query.AND[1]": {
+          "start": 49,
+          "end": 64,
+          "fragment": "name LIKE 'a%b'"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 49,
+          "end": 53,
+          "fragment": "name"
+        },
+        "query.AND[2]": {
+          "start": 70,
+          "end": 100,
+          "fragment": "eventinfo = 5 OR date > 'soon'"
+        },
+        "query.AND[2].OR[0]": {
+          "start": 70,
+          "end": 83,
+          "fragment": "eventinfo = 5"
+        },
+        "query.AND[2].OR[0].<unknown>": {
+          "start": 70,
+          "end": 79,
+          "fragment": "eventinfo"
+        },
+        "query.AND[2].OR[1]": {
+          "start": 87,
+          "end": 100,
+          "fragment": "date > 'soon'"
+        },
+        "query.AND[2].OR[1].<unknown>": {
+          "start": 87,
+          "end": 91,
+          "fragment": "date"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

@@ -1,0 +1,81 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 67,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "OR": [
+            {
+              "a": 1
+            },
+            {
+              "b": 1
+            },
+            {
+              "c": 1
+            },
+            {
+              "d": 1
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 67,
+          "fragment": "(a = 1 OR b = 1) OR (c = 1 OR d = 1)"
+        },
+        "query.OR[0]": {
+          "start": 32,
+          "end": 37,
+          "fragment": "a = 1"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 32,
+          "end": 33,
+          "fragment": "a"
+        },
+        "query.OR[1]": {
+          "start": 41,
+          "end": 46,
+          "fragment": "b = 1"
+        },
+        "query.OR[1].<unknown>": {
+          "start": 41,
+          "end": 42,
+          "fragment": "b"
+        },
+        "query.OR[2]": {
+          "start": 52,
+          "end": 57,
+          "fragment": "c = 1"
+        },
+        "query.OR[2].<unknown>": {
+          "start": 52,
+          "end": 53,
+          "fragment": "c"
+        },
+        "query.OR[3]": {
+          "start": 61,
+          "end": 66,
+          "fragment": "d = 1"
+        },
+        "query.OR[3].<unknown>": {
+          "start": 61,
+          "end": 62,
+          "fragment": "d"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_chains_are_flattened"
+}

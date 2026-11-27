@@ -1,0 +1,35 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 52,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 10,
+        "page": 1,
+        "query": {
+          "type": "md5"
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 43,
+          "fragment": "type = 'md5'"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 35,
+          "fragment": "type"
+        }
+      }
+    }
+  ],
+  "source": "test_client.py::test_search"
+}

@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM events WHERE id > 0

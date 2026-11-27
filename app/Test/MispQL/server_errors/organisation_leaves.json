@@ -1,0 +1,68 @@
+{
+  "statement": "SELECT * FROM organisations WHERE user_count > 1 OR uuid LIKE 'a%' OR date_created > 'soon' LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "OR": [
+        {
+          "user_count": {
+            ">": 1
+          }
+        },
+        {
+          "uuid": {
+            "LIKE": "a%"
+          }
+        },
+        {
+          "date_created": {
+            ">": "soon"
+          }
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "3 errors",
+    "url": "/organisations/restSearch",
+    "errors": [
+      {
+        "path": "query.OR[0].<unknown>",
+        "code": "unknown_field",
+        "message": "unknown field"
+      },
+      {
+        "path": "query.OR[1].uuid",
+        "code": "unknown_operator",
+        "message": "operator not allowed for this field"
+      },
+      {
+        "path": "query.OR[2].date_created",
+        "code": "bad_type",
+        "message": "this field expects an integer, a relative time such as 7d or a YYYY-MM-DD[ HH:MM:SS] date"
+      }
+    ]
+  },
+  "located": {
+    "query.OR[0].<unknown>": {
+      "start": 34,
+      "end": 44,
+      "fragment": "user_count"
+    },
+    "query.OR[1].uuid": {
+      "start": 52,
+      "end": 66,
+      "fragment": "uuid LIKE 'a%'"
+    },
+    "query.OR[2].date_created": {
+      "start": 70,
+      "end": 91,
+      "fragment": "date_created > 'soon'"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

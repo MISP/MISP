@@ -1,0 +1,71 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 151,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 20,
+        "page": 1,
+        "order": [
+          "id desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "value": "198.51.100.23"
+            },
+            {
+              "published": true
+            }
+          ]
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "info",
+        "orgc.name",
+        "attribute_count"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 62,
+          "end": 106,
+          "fragment": "value = '198.51.100.23' AND published = TRUE"
+        },
+        "query.AND[0]": {
+          "start": 62,
+          "end": 85,
+          "fragment": "value = '198.51.100.23'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 62,
+          "end": 67,
+          "fragment": "value"
+        },
+        "query.AND[1]": {
+          "start": 90,
+          "end": 106,
+          "fragment": "published = TRUE"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 90,
+          "end": 99,
+          "fragment": "published"
+        },
+        "order[0]": {
+          "start": 116,
+          "end": 129,
+          "fragment": "event_id DESC"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

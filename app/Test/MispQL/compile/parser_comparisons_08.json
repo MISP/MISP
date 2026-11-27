@@ -1,0 +1,35 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 48,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "timestamp": {
+            "<=": "7d"
+          }
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 48,
+          "fragment": "timestamp <= '7d'"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 40,
+          "fragment": "timestamp"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_comparisons"
+}

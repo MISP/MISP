@@ -1,0 +1,12 @@
+{
+  "statements": [
+    {
+      "kind": "use",
+      "start": 0,
+      "end": 10,
+      "database": "prod-2",
+      "spans": {}
+    }
+  ],
+  "source": "test_parser.py::test_database_names"
+}

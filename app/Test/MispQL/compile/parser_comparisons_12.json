@@ -1,0 +1,37 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 44,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "query": {
+          "id": {
+            "NOT IN": [
+              1
+            ]
+          }
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 44,
+          "fragment": "id NOT IN (1)"
+        },
+        "query.<unknown>": {
+          "start": 31,
+          "end": 33,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_comparisons"
+}

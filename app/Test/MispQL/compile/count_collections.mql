@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM collections WHERE NOT element_type = 'Attribute'

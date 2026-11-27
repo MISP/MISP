@@ -831,6 +831,15 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('api', 'rest'),
                 'icon' => 'fas fa-terminal',
             ],
+            [
+                'type' => 'group',
+                'label' => __('Query console'),
+                'url' => $baseurl . '/mispql',
+                'controller' => 'mispql',
+                'action' => 'index',
+                'requirement' => $this->Acl->canAccess('mispql', 'index'),
+                'icon' => 'fas fa-magnifying-glass-chart',
+            ],
             ['divider' => true, 'requirement' => $this->Acl->canAccess('events', 'automation')],
             [
                 'type' => 'group',

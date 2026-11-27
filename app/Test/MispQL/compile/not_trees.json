@@ -1,0 +1,125 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 133,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 5,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "NOT": {
+                "OR": [
+                  {
+                    "type": "domain"
+                  },
+                  {
+                    "NOT": {
+                      "tags": {
+                        "LIKE": "tlp:%"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "OR": [
+                {
+                  "event_id": 1
+                },
+                {
+                  "NOT": {
+                    "value": {
+                      "NOT LIKE": "%x"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 125,
+          "fragment": "NOT (type = 'domain' OR NOT tags LIKE 'tlp:%')\n  AND (event_id = 1 OR NOT value NOT LIKE '%x')"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 77,
+          "fragment": "NOT (type = 'domain' OR NOT tags LIKE 'tlp:%')"
+        },
+        "query.AND[0].NOT": {
+          "start": 36,
+          "end": 76,
+          "fragment": "type = 'domain' OR NOT tags LIKE 'tlp:%'"
+        },
+        "query.AND[0].NOT.OR[0]": {
+          "start": 36,
+          "end": 51,
+          "fragment": "type = 'domain'"
+        },
+        "query.AND[0].NOT.OR[0].<unknown>": {
+          "start": 36,
+          "end": 40,
+          "fragment": "type"
+        },
+        "query.AND[0].NOT.OR[1]": {
+          "start": 55,
+          "end": 76,
+          "fragment": "NOT tags LIKE 'tlp:%'"
+        },
+        "query.AND[0].NOT.OR[1].NOT": {
+          "start": 59,
+          "end": 76,
+          "fragment": "tags LIKE 'tlp:%'"
+        },
+        "query.AND[0].NOT.OR[1].NOT.<unknown>": {
+          "start": 59,
+          "end": 63,
+          "fragment": "tags"
+        },
+        "query.AND[1]": {
+          "start": 85,
+          "end": 124,
+          "fragment": "event_id = 1 OR NOT value NOT LIKE '%x'"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 85,
+          "end": 97,
+          "fragment": "event_id = 1"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 85,
+          "end": 93,
+          "fragment": "event_id"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 101,
+          "end": 124,
+          "fragment": "NOT value NOT LIKE '%x'"
+        },
+        "query.AND[1].OR[1].NOT": {
+          "start": 105,
+          "end": 124,
+          "fragment": "value NOT LIKE '%x'"
+        },
+        "query.AND[1].OR[1].NOT.<unknown>": {
+          "start": 105,
+          "end": 110,
+          "fragment": "value"
+        }
+      }
+    }
+  ]
+}

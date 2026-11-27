@@ -258,6 +258,7 @@
 .dk-pop-foot button:hover { background: var(--bs-tertiary-bg); }
 .dk-pop-foot button:focus-visible { outline: 2px solid var(--dk-accent); }
 .dk-pop-foot i { font-size: .72rem; }
+.dk-pop-foot:empty { display: none; }
 
 /* the sharing group popover (Elements/SharingGroups/peek.ctp) */
 .dk-pop-float.is-sg { width: 340px; }

@@ -1,0 +1,1 @@
+SELECT id, event_reports.date FROM event_reports LIMIT 1

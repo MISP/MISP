@@ -1,0 +1,3 @@
+SELECT id, info, Orgc.name, attribute_count FROM events
+WHERE value = '198.51.100.23' AND published = TRUE
+ORDER BY event_id DESC LIMIT 20 FORMAT table

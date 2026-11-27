@@ -1,0 +1,214 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 313,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "id": {
+                "!=": 1
+              }
+            },
+            {
+              "event_id": {
+                "<": 10
+              }
+            },
+            {
+              "object_id": {
+                ">": 0
+              }
+            },
+            {
+              "distribution": {
+                "<=": 3
+              }
+            },
+            {
+              "timestamp": {
+                ">=": "7d"
+              }
+            },
+            {
+              "to_ids": true
+            },
+            {
+              "published": {
+                "!=": false
+              }
+            },
+            {
+              "threat_level_id": {
+                "IN": [
+                  1,
+                  2
+                ]
+              }
+            },
+            {
+              "type": {
+                "NOT IN": [
+                  "comment",
+                  "other"
+                ]
+              }
+            },
+            {
+              "value": {
+                "LIKE": "%.example.com"
+              }
+            },
+            {
+              "comment": {
+                "NOT LIKE": "test%"
+              }
+            },
+            {
+              "id": {
+                ">": -1
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 304,
+          "fragment": "id != 1 AND event_id < 10 AND object_id > 0 AND distribution <= 3 AND timestamp >= '7d'\n  AND to_ids = TRUE AND published <> false AND threat_level_id IN (1, 2)\n  AND type NOT IN ('comment', \"other\") AND value LIKE '%.example.com'\n  AND comment NOT LIKE 'test%' AND id > -1"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 38,
+          "fragment": "id != 1"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 33,
+          "fragment": "id"
+        },
+        "query.AND[1]": {
+          "start": 43,
+          "end": 56,
+          "fragment": "event_id < 10"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 43,
+          "end": 51,
+          "fragment": "event_id"
+        },
+        "query.AND[2]": {
+          "start": 61,
+          "end": 74,
+          "fragment": "object_id > 0"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 61,
+          "end": 70,
+          "fragment": "object_id"
+        },
+        "query.AND[3]": {
+          "start": 79,
+          "end": 96,
+          "fragment": "distribution <= 3"
+        },
+        "query.AND[3].<unknown>": {
+          "start": 79,
+          "end": 91,
+          "fragment": "distribution"
+        },
+        "query.AND[4]": {
+          "start": 101,
+          "end": 118,
+          "fragment": "timestamp >= '7d'"
+        },
+        "query.AND[4].<unknown>": {
+          "start": 101,
+          "end": 110,
+          "fragment": "timestamp"
+        },
+        "query.AND[5]": {
+          "start": 125,
+          "end": 138,
+          "fragment": "to_ids = TRUE"
+        },
+        "query.AND[5].<unknown>": {
+          "start": 125,
+          "end": 131,
+          "fragment": "to_ids"
+        },
+        "query.AND[6]": {
+          "start": 143,
+          "end": 161,
+          "fragment": "published <> false"
+        },
+        "query.AND[6].<unknown>": {
+          "start": 143,
+          "end": 152,
+          "fragment": "published"
+        },
+        "query.AND[7]": {
+          "start": 166,
+          "end": 191,
+          "fragment": "threat_level_id IN (1, 2)"
+        },
+        "query.AND[7].<unknown>": {
+          "start": 166,
+          "end": 181,
+          "fragment": "threat_level_id"
+        },
+        "query.AND[8]": {
+          "start": 198,
+          "end": 230,
+          "fragment": "type NOT IN ('comment', \"other\")"
+        },
+        "query.AND[8].<unknown>": {
+          "start": 198,
+          "end": 202,
+          "fragment": "type"
+        },
+        "query.AND[9]": {
+          "start": 235,
+          "end": 261,
+          "fragment": "value LIKE '%.example.com'"
+        },
+        "query.AND[9].<unknown>": {
+          "start": 235,
+          "end": 240,
+          "fragment": "value"
+        },
+        "query.AND[10]": {
+          "start": 268,
+          "end": 292,
+          "fragment": "comment NOT LIKE 'test%'"
+        },
+        "query.AND[10].<unknown>": {
+          "start": 268,
+          "end": 275,
+          "fragment": "comment"
+        },
+        "query.AND[11]": {
+          "start": 297,
+          "end": 304,
+          "fragment": "id > -1"
+        },
+        "query.AND[11].<unknown>": {
+          "start": 297,
+          "end": 299,
+          "fragment": "id"
+        }
+      }
+    }
+  ]
+}

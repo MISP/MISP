@@ -1,0 +1,10 @@
+{
+  "statement": "SELECT * FROM attributes LIMIT 3 OFFSET 4",
+  "reply": {
+    "response": {
+      "Attribute": []
+    }
+  },
+  "rows": [],
+  "source": "test_client.py::test_trace_sees_each_request_sent"
+}

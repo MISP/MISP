@@ -1,0 +1,83 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 86,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "event_id": {
+                ">": 0
+              }
+            },
+            {
+              "OR": [
+                {
+                  "eventinfo": "x"
+                },
+                {
+                  "type": {
+                    "!=": "btc"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 78,
+          "fragment": "event_id > 0 AND (eventinfo = 'x' OR type != 'btc')"
+        },
+        "query.AND[0]": {
+          "start": 27,
+          "end": 39,
+          "fragment": "event_id > 0"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 27,
+          "end": 35,
+          "fragment": "event_id"
+        },
+        "query.AND[1]": {
+          "start": 45,
+          "end": 77,
+          "fragment": "eventinfo = 'x' OR type != 'btc'"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 45,
+          "end": 60,
+          "fragment": "eventinfo = 'x'"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 45,
+          "end": 54,
+          "fragment": "eventinfo"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 64,
+          "end": 77,
+          "fragment": "type != 'btc'"
+        },
+        "query.AND[1].OR[1].<unknown>": {
+          "start": 64,
+          "end": 68,
+          "fragment": "type"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

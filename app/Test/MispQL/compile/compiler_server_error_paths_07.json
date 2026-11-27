@@ -1,0 +1,59 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 101,
+      "table": "galaxy_clusters",
+      "endpoint": "/galaxy_clusters/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "OR": [
+            {
+              "meta.synonyms": {
+                ">": "x"
+              }
+            },
+            {
+              "meta.Additional Content Note": 1
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 36,
+          "end": 93,
+          "fragment": "meta.synonyms > 'x' OR meta.`Additional Content Note` = 1"
+        },
+        "query.OR[0]": {
+          "start": 36,
+          "end": 55,
+          "fragment": "meta.synonyms > 'x'"
+        },
+        "query.OR[0].<unknown>": {
+          "start": 36,
+          "end": 49,
+          "fragment": "meta.synonyms"
+        },
+        "query.OR[1]": {
+          "start": 59,
+          "end": 93,
+          "fragment": "meta.`Additional Content Note` = 1"
+        },
+        "query.OR[1].<unknown>": {
+          "start": 59,
+          "end": 89,
+          "fragment": "meta.`Additional Content Note`"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

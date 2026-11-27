@@ -1,0 +1,1 @@
+SELECT id, attributes.tags FROM attributes LIMIT 1

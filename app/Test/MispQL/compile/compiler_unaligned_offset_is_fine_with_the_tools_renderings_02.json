@@ -1,0 +1,21 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 56,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 10,
+        "page": 2
+      },
+      "output": "table",
+      "columns": null,
+      "skip": 5,
+      "spans": {}
+    }
+  ],
+  "source": "test_compiler.py::test_unaligned_offset_is_fine_with_the_tools_renderings"
+}

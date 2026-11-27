@@ -1,0 +1,46 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 39,
+      "end": 187,
+      "table": "collections",
+      "endpoint": "/collections/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 50,
+        "page": 1,
+        "query": {
+          "element_type": {
+            "NOT IN": [
+              "Event",
+              "GalaxyCluster",
+              "Attribute",
+              "Object",
+              "AttributeValue"
+            ]
+          }
+        }
+      },
+      "output": "table",
+      "columns": [
+        "id",
+        "name"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 78,
+          "end": 165,
+          "fragment": "element_type NOT IN ('Event', 'GalaxyCluster', 'Attribute', 'Object', 'AttributeValue')"
+        },
+        "query.<unknown>": {
+          "start": 78,
+          "end": 90,
+          "fragment": "element_type"
+        }
+      }
+    }
+  ],
+  "source": "test_site.py::test_examples_show_what_the_tool_prints"
+}

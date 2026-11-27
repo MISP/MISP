@@ -1,0 +1,98 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 123,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 5,
+        "page": 1,
+        "order": [
+          "id desc"
+        ],
+        "query": {
+          "AND": [
+            {
+              "info": "café"
+            },
+            {
+              "OR": [
+                {
+                  "info": {
+                    "LIKE": "%🦠%"
+                  }
+                },
+                {
+                  "info": {
+                    "IN": [
+                      "e\u0301",
+                      "日本語",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": [
+        "id",
+        "info"
+      ],
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 34,
+          "end": 98,
+          "fragment": "info = 'café' AND (info LIKE '%🦠%' OR info IN ('e\u0301', '日本語', ''))"
+        },
+        "query.AND[0]": {
+          "start": 34,
+          "end": 47,
+          "fragment": "info = 'café'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 34,
+          "end": 38,
+          "fragment": "info"
+        },
+        "query.AND[1]": {
+          "start": 53,
+          "end": 97,
+          "fragment": "info LIKE '%🦠%' OR info IN ('e\u0301', '日本語', '')"
+        },
+        "query.AND[1].OR[0]": {
+          "start": 53,
+          "end": 68,
+          "fragment": "info LIKE '%🦠%'"
+        },
+        "query.AND[1].OR[0].<unknown>": {
+          "start": 53,
+          "end": 57,
+          "fragment": "info"
+        },
+        "query.AND[1].OR[1]": {
+          "start": 72,
+          "end": 97,
+          "fragment": "info IN ('e\u0301', '日本語', '')"
+        },
+        "query.AND[1].OR[1].<unknown>": {
+          "start": 72,
+          "end": 76,
+          "fragment": "info"
+        },
+        "order[0]": {
+          "start": 108,
+          "end": 115,
+          "fragment": "id DESC"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 93,
+      "table": "tags",
+      "endpoint": "/tags/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "colour": {
+                "LIKE": "#ff%"
+              }
+            },
+            {
+              "count": {
+                ">": 1
+              }
+            },
+            {
+              "numerical_value": "x"
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 25,
+          "end": 85,
+          "fragment": "colour LIKE '#ff%' AND `count` > 1 AND numerical_value = 'x'"
+        },
+        "query.AND[0]": {
+          "start": 25,
+          "end": 43,
+          "fragment": "colour LIKE '#ff%'"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 25,
+          "end": 31,
+          "fragment": "colour"
+        },
+        "query.AND[1]": {
+          "start": 48,
+          "end": 59,
+          "fragment": "`count` > 1"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 48,
+          "end": 55,
+          "fragment": "`count`"
+        },
+        "query.AND[2]": {
+          "start": 64,
+          "end": 85,
+          "fragment": "numerical_value = 'x'"
+        },
+        "query.AND[2].<unknown>": {
+          "start": 64,
+          "end": 79,
+          "fragment": "numerical_value"
+        }
+      }
+    }
+  ],
+  "source": "test_compiler.py::test_server_error_paths"
+}

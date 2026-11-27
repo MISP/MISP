@@ -2458,7 +2458,12 @@ class User extends AppModel
         return ['ip' => $ip, 'User' => $user];
     }
 
-    public function getUserRestLimit($user, $Controller)
+    /**
+     * @param array $user
+     * @param string $controllerName the limit is divided for Objects and Events
+     * @return int
+     */
+    public function getUserRestLimit($user, $controllerName)
     {
         $divisors = [
             'Attributes' => 1,
@@ -2468,7 +2473,6 @@ class User extends AppModel
         if (!empty($user['Role'])){
             $role = $user['Role'];
         } else {
-            $Controller->loadModel('Role');
             $role = $this->Role->find('first', [
                 'conditions' => ['Role.id' => $user['role_id']],
                 'recursive' => -1,
@@ -2480,8 +2484,8 @@ class User extends AppModel
         } else {
             $roleLimit = $role['perm_site_admin'] ? 0 : (int) Configure::read('MISP.default_restsearch_limit');
         }
-        if ($roleLimit > 0 && isset($divisors[$Controller->name])) {
-            $roleLimit = (int)ceil($roleLimit / $divisors[$Controller->name]);
+        if ($roleLimit > 0 && isset($divisors[$controllerName])) {
+            $roleLimit = (int)ceil($roleLimit / $divisors[$controllerName]);
         }
         return $roleLimit;
     }

@@ -1,0 +1,4 @@
+SELECT id, event_id, name, comment FROM objects
+WHERE object_name IN ('domain-ip', 'url') AND event_timestamp >= '7d'
+  AND value LIKE '%.example.com'
+LIMIT 50 FORMAT table

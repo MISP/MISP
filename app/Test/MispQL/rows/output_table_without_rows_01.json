@@ -1,0 +1,11 @@
+{
+  "statement": "SELECT id FROM objects LIMIT 1 FORMAT table",
+  "rows": [],
+  "flat": [],
+  "columns": [
+    "id"
+  ],
+  "cells": [],
+  "warnings": [],
+  "source": "test_output.py::test_table_without_rows"
+}

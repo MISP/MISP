@@ -1,0 +1,20 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 29,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 10,
+        "page": 1
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {}
+    }
+  ]
+}

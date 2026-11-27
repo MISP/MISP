@@ -1,0 +1,72 @@
+{
+  "statement": "SELECT * FROM collections WHERE element_type = 1 OR NOT (element_uuid LIKE 'a%b' AND element_count > 1) LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "OR": [
+        {
+          "element_type": 1
+        },
+        {
+          "NOT": {
+            "AND": [
+              {
+                "element_uuid": {
+                  "LIKE": "a%b"
+                }
+              },
+              {
+                "element_count": {
+                  ">": 1
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "3 errors",
+    "url": "/collections/restSearch",
+    "errors": [
+      {
+        "path": "query.OR[0].element_type",
+        "code": "bad_type",
+        "message": "this field expects a non-empty string"
+      },
+      {
+        "path": "query.OR[1].NOT.AND[0].element_uuid",
+        "code": "unknown_operator",
+        "message": "operator not allowed for this field"
+      },
+      {
+        "path": "query.OR[1].NOT.AND[1].<unknown>",
+        "code": "unknown_field",
+        "message": "unknown field"
+      }
+    ]
+  },
+  "located": {
+    "query.OR[0].element_type": {
+      "start": 32,
+      "end": 48,
+      "fragment": "element_type = 1"
+    },
+    "query.OR[1].NOT.AND[0].element_uuid": {
+      "start": 57,
+      "end": 80,
+      "fragment": "element_uuid LIKE 'a%b'"
+    },
+    "query.OR[1].NOT.AND[1].<unknown>": {
+      "start": 85,
+      "end": 98,
+      "fragment": "element_count"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

@@ -1,0 +1,1 @@
+SELECT * FROM events WHERE ((((id = 1 AND id = 2) OR id = 3) AND id = 4) OR id = 5) AND id = 6 LIMIT 1

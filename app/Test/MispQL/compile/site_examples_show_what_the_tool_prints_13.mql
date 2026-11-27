@@ -1,0 +1,1 @@
+SELECT * FROM events WHERE date >= '2026-01-01' AND publish_timestamp >= '12h' LIMIT 50

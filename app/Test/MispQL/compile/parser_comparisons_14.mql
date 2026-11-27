@@ -1,0 +1,1 @@
+SELECT * FROM attributes WHERE tags NOT LIKE 'tlp:%'

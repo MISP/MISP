@@ -1,0 +1,51 @@
+{
+  "statement": "SELECT * FROM relationships WHERE related_object = 'x' AND relationship_type != '' LIMIT 1",
+  "body": {
+    "returnFormat": "json",
+    "limit": 1,
+    "page": 1,
+    "query": {
+      "AND": [
+        {
+          "related_object": "x"
+        },
+        {
+          "relationship_type": {
+            "!=": ""
+          }
+        }
+      ]
+    }
+  },
+  "status": 400,
+  "reply": {
+    "name": "Invalid query",
+    "message": "2 errors",
+    "url": "/analyst_data/restSearch/Relationship",
+    "errors": [
+      {
+        "path": "query.AND[0].<unknown>",
+        "code": "unknown_field",
+        "message": "unknown field"
+      },
+      {
+        "path": "query.AND[1].relationship_type",
+        "code": "bad_type",
+        "message": "this field expects a non-empty string"
+      }
+    ]
+  },
+  "located": {
+    "query.AND[0].<unknown>": {
+      "start": 34,
+      "end": 48,
+      "fragment": "related_object"
+    },
+    "query.AND[1].relationship_type": {
+      "start": 59,
+      "end": 82,
+      "fragment": "relationship_type != ''"
+    }
+  },
+  "source": "test_compiler.py::test_server_error_paths"
+}

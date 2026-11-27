@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM objects WHERE object_name = 'domain-ip' AND event_timestamp >= '7d' AND value LIKE '%.example.com'

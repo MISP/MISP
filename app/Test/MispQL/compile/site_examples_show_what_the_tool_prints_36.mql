@@ -1,0 +1,4 @@
+-- collections with no elements at all
+SELECT id, name FROM collections
+WHERE element_type NOT IN ('Event', 'GalaxyCluster', 'Attribute', 'Object', 'AttributeValue')
+LIMIT 50 FORMAT table

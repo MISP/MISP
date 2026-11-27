@@ -1,0 +1,80 @@
+{
+  "statement": "SELECT * FROM events LIMIT 1 FORMAT table",
+  "rows": [
+    {
+      "id": "3",
+      "date": "2026-11-01",
+      "info": "Phishing, round 2",
+      "threat_level_id": "1",
+      "analysis": "2",
+      "published": false,
+      "attribute_count": "2",
+      "Orgc": {
+        "id": "1",
+        "name": "CIRCL"
+      },
+      "Attribute": [
+        {
+          "id": "12",
+          "value": "1.2.3.4"
+        },
+        {
+          "id": "13",
+          "value": "x"
+        }
+      ],
+      "Galaxy": [],
+      "RelatedEvent": [],
+      "Tag": [
+        {
+          "id": "1",
+          "name": "tlp:white"
+        }
+      ]
+    }
+  ],
+  "flat": [
+    {
+      "id": "3",
+      "date": "2026-11-01",
+      "info": "Phishing, round 2",
+      "threat_level_id": "1",
+      "analysis": "2",
+      "published": false,
+      "attribute_count": "2",
+      "Orgc.id": "1",
+      "Orgc.name": "CIRCL",
+      "Tag": [
+        "tlp:white"
+      ]
+    }
+  ],
+  "columns": [
+    "id",
+    "date",
+    "info",
+    "Orgc.name",
+    "threat_level_id",
+    "analysis",
+    "published",
+    "attribute_count",
+    "Tag"
+  ],
+  "cells": [
+    [
+      "3",
+      "2026-11-01",
+      "Phishing, round 2",
+      "CIRCL",
+      "1",
+      "2",
+      false,
+      "2",
+      [
+        "tlp:white"
+      ]
+    ]
+  ],
+  "warnings": [],
+  "source": "test_output.py::test_table_default_columns"
+}

@@ -1,0 +1,24 @@
+{
+  "statement": "SELECT * FROM attributes WHERE type = 'md5' LIMIT 10",
+  "reply": {
+    "response": {
+      "Attribute": [
+        {
+          "id": "1"
+        },
+        {
+          "id": "2"
+        }
+      ]
+    }
+  },
+  "rows": [
+    {
+      "id": "1"
+    },
+    {
+      "id": "2"
+    }
+  ],
+  "source": "test_client.py::test_search"
+}

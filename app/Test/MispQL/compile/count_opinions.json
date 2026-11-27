@@ -1,0 +1,32 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 48,
+      "table": "opinions",
+      "endpoint": "/analyst_data/restSearch/Opinion",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "opinion": {
+            "<": 50
+          }
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 36,
+          "end": 48,
+          "fragment": "opinion < 50"
+        },
+        "query.<unknown>": {
+          "start": 36,
+          "end": 43,
+          "fragment": "opinion"
+        }
+      }
+    }
+  ]
+}

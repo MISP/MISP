@@ -1,0 +1,1 @@
+SELECT * FROM tags WHERE name LIKE 'tlp:%' AND NOT hide_tag = TRUE ORDER BY numerical_value DESC, name LIMIT 50 FORMAT table

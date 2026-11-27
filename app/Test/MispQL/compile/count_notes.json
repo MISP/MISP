@@ -1,0 +1,30 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 48,
+      "table": "notes",
+      "endpoint": "/analyst_data/restSearch/Note",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "language": "en"
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 33,
+          "end": 48,
+          "fragment": "language = 'en'"
+        },
+        "query.<unknown>": {
+          "start": 33,
+          "end": 41,
+          "fragment": "language"
+        }
+      }
+    }
+  ]
+}

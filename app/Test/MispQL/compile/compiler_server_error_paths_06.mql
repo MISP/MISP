@@ -1,0 +1,1 @@
+SELECT * FROM galaxy_clusters WHERE org LIKE 'MISP%' AND nosuch = 1 AND default = 'yes' ORDER BY value LIMIT 1

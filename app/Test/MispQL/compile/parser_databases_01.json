@@ -1,0 +1,24 @@
+{
+  "statements": [
+    {
+      "kind": "show_databases",
+      "start": 0,
+      "end": 14,
+      "spans": {}
+    },
+    {
+      "kind": "use",
+      "start": 16,
+      "end": 24,
+      "database": "prod",
+      "spans": {}
+    },
+    {
+      "kind": "whoami",
+      "start": 26,
+      "end": 32,
+      "spans": {}
+    }
+  ],
+  "source": "test_parser.py::test_databases"
+}

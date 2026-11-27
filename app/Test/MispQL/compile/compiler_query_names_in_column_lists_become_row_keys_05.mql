@@ -1,0 +1,1 @@
+SELECT id, attributes.publish_timestamp FROM attributes LIMIT 1

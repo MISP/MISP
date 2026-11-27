@@ -1,0 +1,259 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 233,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 1,
+        "page": 1,
+        "query": {
+          "NOT": {
+            "NOT": {
+              "NOT": {
+                "NOT": {
+                  "NOT": {
+                    "NOT": {
+                      "NOT": {
+                        "NOT": {
+                          "NOT": {
+                            "NOT": {
+                              "NOT": {
+                                "NOT": {
+                                  "NOT": {
+                                    "NOT": {
+                                      "NOT": {
+                                        "NOT": {
+                                          "NOT": {
+                                            "NOT": {
+                                              "NOT": {
+                                                "NOT": {
+                                                  "NOT": {
+                                                    "NOT": {
+                                                      "NOT": {
+                                                        "NOT": {
+                                                          "NOT": {
+                                                            "NOT": {
+                                                              "NOT": {
+                                                                "NOT": {
+                                                                  "NOT": {
+                                                                    "NOT": {
+                                                                      "NOT": {
+                                                                        "NOT": {
+                                                                          "id": 1
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 225,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))))))))))))))))"
+        },
+        "query.NOT": {
+          "start": 32,
+          "end": 224,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT": {
+          "start": 37,
+          "end": 223,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT": {
+          "start": 42,
+          "end": 222,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT": {
+          "start": 47,
+          "end": 221,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT": {
+          "start": 52,
+          "end": 220,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 57,
+          "end": 219,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 62,
+          "end": 218,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 67,
+          "end": 217,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 72,
+          "end": 216,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 77,
+          "end": 215,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 82,
+          "end": 214,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 87,
+          "end": 213,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 92,
+          "end": 212,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 97,
+          "end": 211,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 102,
+          "end": 210,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 107,
+          "end": 209,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 112,
+          "end": 208,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 117,
+          "end": 207,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 122,
+          "end": 206,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 127,
+          "end": 205,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 132,
+          "end": 204,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 137,
+          "end": 203,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 142,
+          "end": 202,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 147,
+          "end": 201,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 152,
+          "end": 200,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (NOT (id = 1)))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 157,
+          "end": 199,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (NOT (id = 1))))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 162,
+          "end": 198,
+          "fragment": "NOT (NOT (NOT (NOT (NOT (id = 1)))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 167,
+          "end": 197,
+          "fragment": "NOT (NOT (NOT (NOT (id = 1))))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 172,
+          "end": 196,
+          "fragment": "NOT (NOT (NOT (id = 1)))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 177,
+          "end": 195,
+          "fragment": "NOT (NOT (id = 1))"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 182,
+          "end": 194,
+          "fragment": "NOT (id = 1)"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT": {
+          "start": 187,
+          "end": 193,
+          "fragment": "id = 1"
+        },
+        "query.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.NOT.<unknown>": {
+          "start": 187,
+          "end": 189,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_parser.py::test_nesting_up_to_the_limit"
+}

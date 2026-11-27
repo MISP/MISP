@@ -1,0 +1,33 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 38,
+      "table": "tags",
+      "endpoint": "/tags/restSearch",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "id": {
+            ">": 0
+          }
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 32,
+          "end": 38,
+          "fragment": "id > 0"
+        },
+        "query.<unknown>": {
+          "start": 32,
+          "end": 34,
+          "fragment": "id"
+        }
+      }
+    }
+  ],
+  "source": "test_client.py::test_count_of_each_table"
+}

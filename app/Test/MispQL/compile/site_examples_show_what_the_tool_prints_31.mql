@@ -1,0 +1,3 @@
+SELECT * FROM event_reports
+WHERE tags = 'tlp:clear' AND published = TRUE AND date >= '30d'
+ORDER BY timestamp DESC LIMIT 20 FORMAT table

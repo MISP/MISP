@@ -1,0 +1,18 @@
+{
+  "statement": "SELECT * FROM events LIMIT 1",
+  "reply": {
+    "response": [
+      {
+        "Event": {
+          "id": "7"
+        }
+      }
+    ]
+  },
+  "rows": [
+    {
+      "id": "7"
+    }
+  ],
+  "source": "test_client.py::test_rows_are_unwrapped"
+}

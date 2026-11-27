@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM attributes WHERE type = 'md5'

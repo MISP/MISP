@@ -1,0 +1,45 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 82,
+      "table": "events",
+      "endpoint": "/events/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "metadata": 1,
+        "limit": 5,
+        "page": 1,
+        "order": [
+          "id desc"
+        ],
+        "query": {
+          "date": {
+            ">=": "7d"
+          }
+        }
+      },
+      "output": "flat",
+      "columns": null,
+      "skip": 0,
+      "spans": {
+        "query": {
+          "start": 27,
+          "end": 39,
+          "fragment": "date >= '7d'"
+        },
+        "query.<unknown>": {
+          "start": 27,
+          "end": 31,
+          "fragment": "date"
+        },
+        "order[0]": {
+          "start": 49,
+          "end": 62,
+          "fragment": "event_id DESC"
+        }
+      }
+    }
+  ]
+}

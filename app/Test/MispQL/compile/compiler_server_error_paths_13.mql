@@ -1,0 +1,1 @@
+SELECT * FROM tags WHERE colour LIKE '#ff%' AND `count` > 1 AND numerical_value = 'x' LIMIT 1

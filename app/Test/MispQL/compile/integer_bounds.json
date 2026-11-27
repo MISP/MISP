@@ -1,0 +1,65 @@
+{
+  "statements": [
+    {
+      "kind": "search",
+      "start": 0,
+      "end": 208,
+      "table": "attributes",
+      "endpoint": "/attributes/restSearch",
+      "body": {
+        "returnFormat": "json",
+        "limit": 9223372036854775807,
+        "page": 1,
+        "query": {
+          "AND": [
+            {
+              "id": {
+                "IN": [
+                  9223372036854775807,
+                  -9223372036854775807,
+                  1,
+                  0
+                ]
+              }
+            },
+            {
+              "event_id": {
+                ">": -9223372036854775807
+              }
+            }
+          ]
+        }
+      },
+      "output": "default",
+      "columns": null,
+      "skip": 9223372036854775806,
+      "spans": {
+        "query": {
+          "start": 31,
+          "end": 155,
+          "fragment": "id IN (9223372036854775807, -9223372036854775807, 0000000000000000000000000000001, 0)\n  AND event_id > - 9223372036854775807"
+        },
+        "query.AND[0]": {
+          "start": 31,
+          "end": 116,
+          "fragment": "id IN (9223372036854775807, -9223372036854775807, 0000000000000000000000000000001, 0)"
+        },
+        "query.AND[0].<unknown>": {
+          "start": 31,
+          "end": 33,
+          "fragment": "id"
+        },
+        "query.AND[1]": {
+          "start": 123,
+          "end": 155,
+          "fragment": "event_id > - 9223372036854775807"
+        },
+        "query.AND[1].<unknown>": {
+          "start": 123,
+          "end": 131,
+          "fragment": "event_id"
+        }
+      }
+    }
+  ]
+}

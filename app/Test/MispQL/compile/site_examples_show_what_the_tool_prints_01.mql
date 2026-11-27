@@ -1,0 +1,3 @@
+SELECT id, event_id, type, value, Tag FROM attributes
+WHERE type IN ('domain', 'ip-dst') AND timestamp >= '7d' AND tags != 'tlp:red'
+LIMIT 5 FORMAT table

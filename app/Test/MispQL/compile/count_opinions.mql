@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM opinions WHERE opinion < 50

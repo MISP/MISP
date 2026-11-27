@@ -1,0 +1,30 @@
+{
+  "statements": [
+    {
+      "kind": "count",
+      "start": 0,
+      "end": 70,
+      "table": "relationships",
+      "endpoint": "/analyst_data/restSearch/Relationship",
+      "body": {
+        "returnFormat": "count",
+        "query": {
+          "related_object_type": "Event"
+        }
+      },
+      "source": "body",
+      "spans": {
+        "query": {
+          "start": 41,
+          "end": 70,
+          "fragment": "related_object_type = 'Event'"
+        },
+        "query.<unknown>": {
+          "start": 41,
+          "end": 60,
+          "fragment": "related_object_type"
+        }
+      }
+    }
+  ]
+}
