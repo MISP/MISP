@@ -5,7 +5,7 @@ App::uses('Component', 'Controller');
 class RestSearchComponent extends Component
 {
     // Scopes whose model applies the offset filter: list one only once it does, the header claims it
-    const OFFSET_SCOPES = ['EventReport', 'Note', 'Opinion', 'Relationship', 'Collection', 'Tag', 'Organisation'];
+    const OFFSET_SCOPES = ['Attribute', 'EventReport', 'Note', 'Opinion', 'Relationship', 'Collection', 'Tag', 'Organisation'];
 
     //This array determines the order for ordered_url_params, as a result it is not advised to remove or change existing values
     public $paramArray = array(

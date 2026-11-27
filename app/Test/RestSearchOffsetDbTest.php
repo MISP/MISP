@@ -1,9 +1,11 @@
 <?php
 /**
  * restSearch's offset filter: the check the controller runs once the role's
- * limit is in (RestSearchComponent::offset), and the chunked models (event
- * reports, analyst data, collections, tags, organisations), which start a page
- * at the offset, let page win over it, and page as before without it.
+ * limit is in (RestSearchComponent::offset), the chunked models (event
+ * reports, analyst data, collections, tags, organisations) and attributes, which
+ * start a page at the offset, let page win over it, and page as before without
+ * it. Attribute pages also cross fetch batches and lose dropped rows from the
+ * offset on, without refilling.
  *
  * Every test runs in a transaction that is rolled back. Skipped unless
  * RESTSEARCH_OFFSET_DB_TESTS is set, and it boots the real application, so it
@@ -28,6 +30,15 @@ class RestSearchOffsetDbTest extends TestCase
 
     /** @var mixed */
     private $currentUserId;
+
+    /** @var array Configure key => its value before the test (null: unset) */
+    private $configured = [];
+
+    /** @var string|null */
+    private $memoryLimit;
+
+    /** @var array attribute id => value */
+    private $values = [];
 
     protected function setUp(): void
     {
@@ -64,7 +75,34 @@ class RestSearchOffsetDbTest extends TestCase
             return;
         }
         Configure::write('CurrentUserId', $this->currentUserId);
+        foreach ($this->configured as $key => $value) {
+            if ($value === null) {
+                Configure::delete($key);
+            } else {
+                Configure::write($key, $value);
+            }
+        }
+        if ($this->memoryLimit !== null) {
+            ini_set('memory_limit', $this->memoryLimit);
+        }
         $this->db->rollback();
+    }
+
+    private function configure($key, $value)
+    {
+        if (!array_key_exists($key, $this->configured)) {
+            $this->configured[$key] = Configure::read($key);
+        }
+        Configure::write($key, $value);
+    }
+
+    private function firstEvent()
+    {
+        $event = ClassRegistry::init('Event')->find('first', [
+            'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id'], 'order' => ['Event.id' => 'ASC'], 'recursive' => -1,
+        ]);
+        $this->assertNotEmpty($event, 'Needs an event in the database.');
+        return $event['Event'];
     }
 
     /**
@@ -143,10 +181,7 @@ class RestSearchOffsetDbTest extends TestCase
 
     public function testEventReportsStartAtTheOffset()
     {
-        $eventId = (int)ClassRegistry::init('Event')->find('first', [
-            'fields' => ['Event.id'], 'order' => ['Event.id' => 'ASC'], 'recursive' => -1,
-        ])['Event']['id'];
-        $this->assertNotEmpty($eventId, 'Needs an event in the database.');
+        $eventId = (int)$this->firstEvent()['id'];
         $model = ClassRegistry::init('EventReport');
         $ids = $this->insert($model, 8, function ($n, $uuid) use ($eventId) {
             return ['uuid' => $uuid, 'event_id' => $eventId, 'name' => "{$this->token}-$n", 'content' => '',
@@ -202,6 +237,137 @@ class RestSearchOffsetDbTest extends TestCase
             return ['name' => "{$this->token}-$n", 'uuid' => $uuid, 'date_created' => $now, 'date_modified' => $now];
         });
         $this->assertPages($model, 'Organisation', $ids);
+    }
+
+    public function testAttributesStartAtTheOffset()
+    {
+        $ids = $this->insertAttributes();
+        // unordered pages come in MySQL's order: the reference is the same query, whole
+        $all = $this->attributeIds($ids, ['limit' => 10]);
+        $this->assertEqualsCanonicalizing($ids, $all);
+        $this->assertSame(array_slice($all, 0, 3), $this->attributeIds($ids, ['limit' => 3]));
+        $this->assertSame(array_slice($all, 3, 3), $this->attributeIds($ids, ['limit' => 3, 'page' => 2]));
+        $this->assertSame(array_slice($all, 3, 3), $this->attributeIds($ids, ['limit' => 3, 'page' => 2, 'offset' => 0]));
+        $this->assertSame(array_slice($all, 4, 3), $this->attributeIds($ids, ['limit' => 3, 'offset' => 4]));
+        $this->assertSame([$all[9]], $this->attributeIds($ids, ['limit' => 3, 'offset' => 9]));
+        $this->assertSame([], $this->attributeIds($ids, ['limit' => 3, 'offset' => 10]));
+        // the values sort in the reverse of the ids
+        $byValue = array_reverse($ids);
+        $this->assertSame(array_slice($byValue, 4, 3), $this->attributeIds($ids, ['limit' => 3, 'offset' => 4, 'order' => 'value asc']));
+    }
+
+    public function testAnAttributeOffsetPageCrossesABatch()
+    {
+        $ids = $this->insertAttributes();
+        $this->fetchInBatchesOf4();
+        // without an order, the batches after the first follow the id cursor
+        $this->assertSame(array_slice($ids, 2, 7), $this->attributeIds($ids, ['limit' => 7, 'offset' => 2]));
+        $this->assertSame(array_slice(array_reverse($ids), 2, 7), $this->attributeIds($ids, ['limit' => 7, 'offset' => 2, 'order' => 'value asc']));
+    }
+
+    public function testADroppedAttributeOnlyShortensThePage()
+    {
+        $ids = $this->insertAttributes();
+        $this->blockByProposal($ids[5]);
+        $filters = ['allow_proposal_blocking' => 1];
+        $skipped = 0;
+        $this->assertSame([$ids[4], $ids[6]], $this->attributeIds($ids, $filters + ['limit' => 3, 'offset' => 4, 'order' => 'id asc'], $skipped));
+        $this->assertSame(1, $skipped);
+        $this->assertSame(array_slice($ids, 7, 3), $this->attributeIds($ids, $filters + ['limit' => 3, 'offset' => 7, 'order' => 'id asc']));
+        // the dropped row ends the first batch: the cursor still moves past it
+        $this->fetchInBatchesOf4();
+        $this->assertSame([$ids[2], $ids[3], $ids[4], $ids[6], $ids[7], $ids[8]], $this->attributeIds($ids, $filters + ['limit' => 7, 'offset' => 2], $skipped));
+        $this->assertSame(1, $skipped);
+    }
+
+    public function testAttributeParamsCarryAnOffsetOnlyWithALimit()
+    {
+        $attribute = ClassRegistry::init('MispAttribute');
+        $params = $attribute->restSearch($this->user, 'json', ['limit' => 3, 'offset' => '4'], true);
+        $this->assertSame(4, $params['offset']);
+        $this->assertArrayNotHasKey('page', $params);
+        $params = $attribute->restSearch($this->user, 'json', ['offset' => 4], true);
+        $this->assertArrayNotHasKey('offset', $params);
+        $params = $attribute->restSearch($this->user, 'json', ['limit' => 3, 'page' => 2, 'offset' => 4], true);
+        $this->assertSame(2, $params['page']);
+        $this->assertArrayNotHasKey('offset', $params);
+        $params = $attribute->restSearch($this->user, 'json', ['limit' => 3], true);
+        $this->assertSame(1, $params['page']);
+        $this->assertArrayNotHasKey('offset', $params);
+    }
+
+    /**
+     * @return int[] ten attributes of the first event, to_ids on, ascending ids
+     *               whose values sort the other way
+     */
+    private function insertAttributes()
+    {
+        $eventId = (int)$this->firstEvent()['id'];
+        $attribute = ClassRegistry::init('MispAttribute');
+        $ids = [];
+        for ($n = 0; $n < 10; $n++) {
+            $value = sprintf('%s-%02d.example.org', $this->token, 9 - $n);
+            $attribute->create();
+            $saved = $attribute->save(['Attribute' => [
+                'event_id' => $eventId,
+                'category' => $attribute->typeDefinitions['domain']['default_category'],
+                'type' => 'domain',
+                'value' => $value,
+                'distribution' => 5,
+                'to_ids' => 1,
+                'disable_correlation' => 1,
+            ]]);
+            $this->assertNotFalse($saved, json_encode($attribute->validationErrors));
+            $ids[] = (int)$attribute->id;
+            $this->values[(int)$attribute->id] = $value;
+        }
+        return $ids;
+    }
+
+    private function fetchInBatchesOf4()
+    {
+        // the batch size is memory_limit in MB (8192 when unlimited) times this coefficient
+        $this->memoryLimit = $this->memoryLimit ?? ini_get('memory_limit');
+        ini_set('memory_limit', '-1');
+        $this->configure('MISP.default_attribute_memory_coefficient', 4 / 8192);
+    }
+
+    /**
+     * A proposal to turn to_ids off hides the attribute from a fetch that allows proposal blocking.
+     */
+    private function blockByProposal($attributeId)
+    {
+        $this->configure('MISP.proposals_block_attributes', true);
+        $event = $this->firstEvent();
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        $proposal->create();
+        $saved = $proposal->save(['ShadowAttribute' => [
+            'event_id' => $event['id'],
+            'event_uuid' => $event['uuid'],
+            'event_org_id' => $event['orgc_id'],
+            'org_id' => $event['orgc_id'],
+            'old_id' => $attributeId,
+            'type' => 'domain',
+            'category' => ClassRegistry::init('MispAttribute')->typeDefinitions['domain']['default_category'],
+            'value' => $this->values[$attributeId],
+            'to_ids' => 0,
+            'comment' => $this->token,
+        ]]);
+        $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
+    }
+
+    /**
+     * @return int[] the ids attribute restSearch returns, narrowed to the given attributes
+     */
+    private function attributeIds(array $ids, array $filters, &$skipped = 0)
+    {
+        $elementCounter = 0;
+        $renderView = false;
+        $skipped = 0;
+        $result = ClassRegistry::init('MispAttribute')->restSearch($this->user, 'json', $filters, false, false, $elementCounter, $renderView, $skipped, ['id' => ['IN' => $ids]]);
+        return array_map(function ($attribute) {
+            return (int)$attribute['id'];
+        }, json_decode($result->intoString(), true)['response']['Attribute']);
     }
 
     private function insertCollections($count)

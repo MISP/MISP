@@ -4183,7 +4183,12 @@ class MispAttribute extends AppModel
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
             if (!isset($filters['page'])) {
-                $filters['page'] = 1;
+                // only with a limit: without one, fetchAttributes (paramsOnly callers) loops by page
+                if ((int)$filters['limit'] > 0 && isset($filters['offset'])) {
+                    $params['offset'] = $this->restSearchOffset($filters, (int)$filters['limit']);
+                } else {
+                    $filters['page'] = 1;
+                }
             }
         }
         if (isset($filters['page'])) {
@@ -4292,6 +4297,7 @@ class MispAttribute extends AppModel
         $separator = $exportTool->separator($exportToolParams);
         $skippedElementsCounter = 0;
         $offset = ($params['limit'] * ($params['page'] - 1));
+        // on page 1, $params['offset'] is the offset filter restSearch took, if any
         if ($params['page'] > 1) {
             $params['offset'] = $offset;
         }
