@@ -1098,8 +1098,8 @@ class Feed extends AppModel
         if (!is_array($event) || isset($event['code'])) {
             return false;
         }
-        return SharingGroup::captureRemote(null, function () use ($event, $user, $fingerprint) {
-            return $this->__saveEvent($event, $user, $fingerprint);
+        return SharingGroup::captureRemote(null, function () use ($event, $user, $fingerprint, $feed) {
+            return $this->__saveEvent($event, $user, $fingerprint, $feed);
         });
     }
 
@@ -1124,9 +1124,10 @@ class Feed extends AppModel
      * @param array $event
      * @param array $user
      * @param string|false $fingerprint Of the key that verified a protected event's signature
+     * @param array|null $feed
      * @return array
      */
-    private function __saveEvent(array $event, array $user, $fingerprint = false)
+    private function __saveEvent(array $event, array $user, $fingerprint = false, $feed = null)
     {
         $this->Event = ClassRegistry::init('Event');
         $existingEvent = $this->Event->find('first', array(
@@ -1146,7 +1147,7 @@ class Feed extends AppModel
             $result['action'] = 'add';
             $createdId = 0;
             $validationErrors = [];
-            $result['result'] = $this->Event->_add($event, true, $user, 0, null, false, null, $createdId, $validationErrors, $fingerprint);
+            $result['result'] = $this->Event->_add($event, true, $user, 0, null, false, null, $createdId, $validationErrors, $fingerprint, $feed);
         }
         return $result;
     }
@@ -1320,7 +1321,7 @@ class Feed extends AppModel
         if (is_array($event)) {
             $createdId = 0;
             $validationErrors = [];
-            return $this->Event->_add($event, true, $user, 0, null, false, null, $createdId, $validationErrors, $fingerprint);
+            return $this->Event->_add($event, true, $user, 0, null, false, null, $createdId, $validationErrors, $fingerprint, $feed);
         } else {
             return $event;
         }
