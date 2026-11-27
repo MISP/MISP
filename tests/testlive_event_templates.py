@@ -1139,8 +1139,13 @@ class EventTemplatesLibraryUpdateTests(unittest.TestCase):
             "submodule directory has no templates — populate "
             "app/files/misp-event-templates/templates/ before running",
         )
+        # The tests expect an uninstalled library, whatever ran before
+        self._uninstall_library()
 
     def tearDown(self) -> None:
+        self._uninstall_library()
+
+    def _uninstall_library(self) -> None:
         # Look up the local row id for each library uuid and delete it.
         for tpl_uuid in self._library_uuids:
             r = requests.get(

@@ -5456,6 +5456,7 @@ class FeedHeadersRedacted(unittest.TestCase):
             'source_format': 'misp',
             'input_source': 'network',
             'enabled': False,
+            'lookup_visible': True,
             'headers': cls.secret,
         }})['Feed']['id']
         # feeds/view is open to the host organisation's users only
