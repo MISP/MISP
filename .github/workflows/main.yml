@@ -469,6 +469,7 @@ jobs:
           # defaults" that the local misp-docker setup relies on.
           MISP_CONTAINER: ""
           MISP_PHP_USER: ""
+          MISP_APP_DIR: ${{ github.workspace }}
           MISP_CONFIG_SCRIPT: tests/modify_config.php
           MISP_CONFIG_FILE: app/Config/config.php
           # opcache.revalidate_freq is 0 here, so no settle time is needed.
