@@ -8,7 +8,7 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": { "type": "integer", "const": 1 },
-    "uuid":           { "type": "string", "format": "uuid" },
+    "uuid":           { "type": "string", "format": "uuid", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" },
     "name":           { "type": "string", "minLength": 1 },
     "description":    { "type": ["string", "null"] },
     "misp_default":   { "type": "boolean", "description": "Library-managed flag — see docs/dev/event-template-library-prd.md §5.3. When true on import, the row is auto-updated by `Update from library`; when false, library updates skip it (operator-forked or locally authored). The column is named `misp_default` rather than `default` because the latter is a MySQL reserved word." },
@@ -172,7 +172,7 @@
           "required": ["uuid", "name", "minimum_version"],
           "additionalProperties": false,
           "properties": {
-            "uuid":           { "type": "string", "format": "uuid" },
+            "uuid":           { "type": "string", "format": "uuid", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$" },
             "name":           { "type": "string", "minLength": 1 },
             "minimum_version": { "type": "integer", "minimum": 1 }
           }
