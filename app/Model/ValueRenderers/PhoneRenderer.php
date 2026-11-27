@@ -35,6 +35,17 @@ class PhoneRenderer extends ValueRendererBase
             . ' to a carrier yet.');
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('phone_number_info', 'phone-number', array(
+                'phone-number' => '+442079460000',
+                'country-code-numeric' => '+44',
+                'country-code' => 'GB',
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

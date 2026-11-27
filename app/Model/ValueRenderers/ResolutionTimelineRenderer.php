@@ -62,6 +62,30 @@ class ResolutionTimelineRenderer extends ValueRendererBase
             . ' or the set of what it resolves to now.');
     }
 
+    public function sample()
+    {
+        $day = 86400;
+        $rows = array(
+            array('A', '203.0.113.10', 420, 2, '1840'),
+            array('A', '198.51.100.24', 900, 430, '312'),
+            array('AAAA', '2001:db8::10', 200, 2, '97'),
+        );
+        $objects = array();
+        foreach ($rows as $row) {
+            list($type, $data, $first, $last, $count) = $row;
+            $objects[] = $this->sampleObject('circl_passivedns',
+                'passive-dns', array(
+                    'rrname' => 'www.example.com',
+                    'rrtype' => $type,
+                    'rdata' => $data,
+                    'time_first' => date('Y-m-d', time() - $first * $day),
+                    'time_last' => date('Y-m-d', time() - $last * $day),
+                    'count' => $count,
+                ));
+        }
+        return array('objects' => $objects);
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

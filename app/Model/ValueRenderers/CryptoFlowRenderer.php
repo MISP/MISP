@@ -118,6 +118,34 @@ class CryptoFlowRenderer extends ValueRendererBase
         );
     }
 
+    public function sample()
+    {
+        $wallet = '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2';
+        $other = '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy';
+        return array('objects' => array(
+            $this->sampleObject('btc_steroids', 'btc-wallet', array(
+                'wallet-address' => $wallet,
+                'balance_BTC' => '0.00542100',
+                'BTC_received' => '12.44000000',
+                'BTC_sent' => '12.43457900',
+                'time' => date('Y-m-d', time() - 3 * 86400),
+            )),
+            $this->sampleObject('btc_steroids', 'btc-transaction', array(
+                'transaction-number' => 'a1b2c3',
+                'time' => date('Y-m-d H:i:s', time() - 3 * 86400),
+                'btc-address' => array($wallet, $other,
+                    'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'),
+                'value_BTC' => '0.5',
+            )),
+            $this->sampleObject('btc_steroids', 'btc-transaction', array(
+                'transaction-number' => 'd4e5f6',
+                'time' => date('Y-m-d H:i:s', time() - 21 * 86400),
+                'btc-address' => array($wallet, $other),
+                'value_BTC' => '0.125',
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

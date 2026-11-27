@@ -40,6 +40,19 @@ class BankAccountRenderer extends ValueRendererBase
             . ' yet.');
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject(null, 'bank-account', array(
+                'iban' => 'LU28 0019 4006 4475 0000',
+                'institution-name' => 'Example Bank',
+                'swift' => 'EXMPLULL',
+                'account-name' => 'Example Ltd',
+                'currency-code' => 'EUR',
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

@@ -34,6 +34,19 @@ class NetworkOwnershipRenderer extends ValueRendererBase
             . ' announced from, and its prefixes.');
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('ipasn', 'asn', array(
+                'asn' => 'AS64500',
+                'description' => 'EXAMPLE-NET',
+                'country' => 'LU',
+                'subnet-announced' => array('203.0.113.0/24',
+                    '198.51.100.0/24'),
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

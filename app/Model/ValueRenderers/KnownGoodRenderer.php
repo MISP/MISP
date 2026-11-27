@@ -56,6 +56,19 @@ class KnownGoodRenderer extends ValueRendererBase
         return $hash === null ? array() : array($hash);
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('hashlookup', 'hashlookup', array(
+                'FileName' => 'libc6_2.31-13_amd64.deb',
+                'FileSize' => '2845678',
+                'PackageName' => 'libc6',
+                'PackageVersion' => '2.31-13',
+                'source' => 'NSRL',
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

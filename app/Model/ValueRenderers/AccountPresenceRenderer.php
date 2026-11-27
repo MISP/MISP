@@ -68,6 +68,29 @@ class AccountPresenceRenderer extends ValueRendererBase
             . ' account on, and the breaches it appears in.');
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('sherlock', 'user-account', array(
+                'account-type' => 'github',
+                'username' => 'example-user',
+                'link' => 'https://github.com/example-user',
+            )),
+            $this->sampleObject('sherlock', 'user-account', array(
+                'account-type' => 'mastodon',
+                'username' => 'example-user',
+            )),
+            $this->sampleObject('hibp', 'breach', array(
+                'name' => 'Adobe',
+                'domain' => 'adobe.com',
+                'breach-date' => '2013-10-04',
+                'pwn-count' => '152445165',
+                'verified' => 'true',
+                'data-classes' => array('Email addresses', 'Passwords'),
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

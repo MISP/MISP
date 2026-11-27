@@ -35,6 +35,17 @@ class PageCaptureRenderer extends ValueRendererBase
             . ' it looked like.');
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('urlscan', 'image', array(
+                'url' => 'https://login.example.com/signin',
+                'filename' => 'screenshot.png',
+                'image-text' => 'Sign in to continue',
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

@@ -66,6 +66,28 @@ class RegistrationRenderer extends ValueRendererBase
             . ' registrar and its nameservers.');
     }
 
+    public function sample()
+    {
+        $now = time();
+        return array(
+            'objects' => array(
+                $this->sampleObject('rdap', 'whois', array(
+                    'domain' => 'example.com',
+                    'creation-date' => date('Y-m-d', $now - 8 * 86400),
+                    'expiration-date' => date('Y-m-d', $now + 357 * 86400),
+                    'registrar' => 'Example Registrar, Inc.',
+                    'nameserver' => array('ns1.example.net',
+                        'ns2.example.net'),
+                )),
+            ),
+            'facts' => array(
+                'value' => 'example.com',
+                'first_report' => $now - 2 * 86400,
+                'now' => $now,
+            ),
+        );
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {
