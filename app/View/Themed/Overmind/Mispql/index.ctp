@@ -10,7 +10,7 @@
  * @var array $inPlace which of MISP's views a cell opens in place:
  *                     {peeks, valueCard, reportReader}
  */
-$this->set('headerTitle', __('Query console'));
+$this->set('headerTitle', __('MispQL Console'));
 $this->set('headerBreadcrumb', [__('API'), 'MispQL']);
 $this->set('headerActions', [
     [

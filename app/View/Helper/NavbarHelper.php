@@ -833,7 +833,7 @@ class NavbarHelper extends AppHelper {
             ],
             [
                 'type' => 'group',
-                'label' => __('Query console'),
+                'label' => __('MispQL Console'),
                 'url' => $baseurl . '/mispql',
                 'controller' => 'mispql',
                 'action' => 'index',
