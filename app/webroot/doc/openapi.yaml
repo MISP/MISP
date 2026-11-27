@@ -11226,6 +11226,10 @@ components:
           $ref: "#/components/headers/X-Result-Count"
         X-Result-Offset:
           $ref: "#/components/headers/X-Result-Offset"
+        X-Result-Page-Limit:
+          $ref: "#/components/headers/X-Result-Page-Limit"
+        X-Skipped-Elements-Count:
+          $ref: "#/components/headers/X-Skipped-Elements-Count"
         X-Export-Module-Used:
           $ref: "#/components/headers/X-Export-Module-Used"
         X-Response-Format:
@@ -11483,6 +11487,10 @@ components:
           $ref: "#/components/headers/X-Result-Count"
         X-Result-Offset:
           $ref: "#/components/headers/X-Result-Offset"
+        X-Result-Page-Limit:
+          $ref: "#/components/headers/X-Result-Page-Limit"
+        X-Skipped-Elements-Count:
+          $ref: "#/components/headers/X-Skipped-Elements-Count"
         X-Export-Module-Used:
           $ref: "#/components/headers/X-Export-Module-Used"
         X-Response-Format:
@@ -13171,6 +13179,10 @@ components:
           $ref: "#/components/headers/X-Result-Count"
         X-Result-Offset:
           $ref: "#/components/headers/X-Result-Offset"
+        X-Result-Page-Limit:
+          $ref: "#/components/headers/X-Result-Page-Limit"
+        X-Skipped-Elements-Count:
+          $ref: "#/components/headers/X-Skipped-Elements-Count"
         X-Export-Module-Used:
           $ref: "#/components/headers/X-Export-Module-Used"
         X-Response-Format:
@@ -13766,6 +13778,16 @@ components:
 
     X-Result-Offset:
       description: "The offset this page started at: sent only when MISP applied the `offset` filter"
+      schema:
+        type: integer
+
+    X-Result-Page-Limit:
+      description: "The page size the role imposed: sent when it replaced a larger `limit`, or a missing one; never for `returnFormat` count. It is the role's `restsearch_limit_result`, else `MISP.default_restsearch_limit` (not for site admins), divided by 3 for objects and 10 for events, rounded up. `page` counts in this size; a page asked for by `offset` keeps its start."
+      schema:
+        type: integer
+
+    X-Skipped-Elements-Count:
+      description: "Rows MISP read and then left out of the result: attributes dropped by warninglists, decaying models or proposal blocking. They count towards `limit` and `offset`, so such a page is shorter. Always 0 for the other scopes."
       schema:
         type: integer
 
