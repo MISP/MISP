@@ -54,7 +54,7 @@ well. Every reply carries the version as `"language": "1.0"`.
 
 ## Where to use it
 
-- **The query console**, at `/mispql`, listed as **Query console** in the
+- **The query console**, at `/mispql`, listed as **MispQL Console** in the
   **API** menu: a writer that checks statements as you type and suggests what
   fits, with the result underneath. See [The query console](#the-query-console).
 - **The API**: `POST /mispql/explain` checks statements and returns what they

@@ -565,7 +565,7 @@ if (!empty($me)) {
                     'requirement' => $this->Acl->canAccess('api', 'rest')
                 ),
                 array(
-                    'text' => __('Query console'),
+                    'text' => __('MispQL Console'),
                     'url' => $baseurl . '/mispql',
                     'requirement' => $this->Acl->canAccess('mispql', 'index')
                 )

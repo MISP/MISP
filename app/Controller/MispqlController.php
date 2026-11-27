@@ -53,7 +53,7 @@ class MispqlController extends AppController
         );
         $this->set('pack', $pack);
         $this->set('history', $this->__history($user));
-        $this->set('title_for_layout', __('Query console'));
+        $this->set('title_for_layout', __('MispQL Console'));
         // The peeks are drawn by Overmind's own views; the user's theme is
         // still theirs here, before beforeRender() moves the console to Overmind.
         $reports = isset($pack['tables']->event_reports);
