@@ -1400,24 +1400,46 @@ class TestSecurity(unittest.TestCase):
 
     def test_sg_view_user_can_see_can_edit(self):
         org = self.__create_org()
+        self.addCleanup(self.admin_misp_connector.delete_organisation, org)
         sync_user = self.__create_user(org.id, ROLE.SYNC_USER)
-        sg = self.__create_sharing_group()
-        check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org.uuid, True))
+        self.addCleanup(self.admin_misp_connector.delete_user, sync_user)
 
         logged_in = PyMISP(url, sync_user.authkey)
         self.assertTrue(logged_in._current_role.perm_sharing_group, "Sync user should have permission to edit sharing groups")
 
-        send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")
-        after_edit = send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
+        # An SG received through sync (pushed in with an event) stays updatable by sync
+        member = {"uuid": org.uuid, "name": org.name}
+        pushed = send(logged_in, "POST", "/events/add", {"Event": {
+            "info": "Testcases synced SG " + random(),
+            "distribution": 4,
+            "SharingGroup": {
+                "uuid": str(uuid.uuid4()),
+                "name": "Testcases synced SG " + random(),
+                "releasability": "Nic",
+                "Organisation": member,
+                "SharingGroupOrg": [{"extend": True, "Organisation": member}],
+            },
+        }})
+        synced_id = pushed["Event"]["sharing_group_id"]
+        self.addCleanup(self.admin_misp_connector.delete_sharing_group, synced_id)
+        self.addCleanup(self.admin_misp_connector.delete_event, pushed["Event"]["id"])
+        synced = send(self.admin_misp_connector, "GET", f"/sharingGroups/view/{synced_id}")["SharingGroup"]
+        self.assertFalse(int(synced["local"]), "an SG received through sync is not local")
+
+        send(logged_in, "GET", f"/sharingGroups/view/{synced_id}")
+        after_edit = send(logged_in, "POST", f"/sharingGroups/edit/{synced_id}", {"name": "New name1"})
         self.assertEqual("New name1", after_edit["SharingGroup"]["name"])
-        after_edit = send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
+        after_edit = send(logged_in, "POST", f"/sharingGroups/edit/{synced['uuid']}", {"name": "New name2"})
         self.assertEqual("New name2", after_edit["SharingGroup"]["name"])
+        self.assertErrorResponse(logged_in.delete_sharing_group(synced_id))
 
-        self.assertErrorResponse(logged_in.delete_sharing_group(sg))
-
-        self.admin_misp_connector.delete_sharing_group(sg)
-        self.admin_misp_connector.delete_user(sync_user)
-        self.admin_misp_connector.delete_organisation(org)
+        # A local SG (created over the API) is not, even with the extend flag
+        sg = self.__create_sharing_group()
+        self.addCleanup(self.admin_misp_connector.delete_sharing_group, sg)
+        check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org.uuid, True))
+        send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name3"}, check_errors=False)
+        stored = send(self.admin_misp_connector, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]
+        self.assertEqual(sg.name, stored["name"], "sync renamed a local sharing group")
 
     def test_org_user_can_see(self):
         org = self.__create_org()
