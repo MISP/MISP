@@ -13,7 +13,8 @@
 App::uses('ProfileActionsTool', 'Tools/AnalystProfile');
 
 echo $this->element('genericElements/assetLoader', array(
-    'css' => array('value-palette', 'analyst-profile', 'index-filters'),
+    'css' => array('value-palette', 'value-widgets', 'analyst-profile',
+        'index-filters'),
     'js' => array('analyst-profile', 'analyst-profile-help',
         'analyst-profile-settings'),
 ));

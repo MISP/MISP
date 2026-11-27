@@ -765,6 +765,8 @@ class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):
         import subprocess
         pw = os.environ.get("DB_PASS")
         if not pw:
+            if os.environ.get("CI"):
+                self.fail("DB_PASS is not set; CI must verify the cascade.")
             self.skipTest("DB_PASS env var not set; cannot verify cascade.")
         user = os.environ.get("DB_USER", "misp")
         db = os.environ.get("DB_NAME", "misp")
@@ -779,6 +781,8 @@ class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):
             capture_output=True, text=True, timeout=10,
         )
         if proc.returncode != 0:
+            if os.environ.get("CI"):
+                self.fail(f"mysql CLI failed: {proc.stderr[:200]}")
             self.skipTest(f"mysql CLI unavailable or auth failed: {proc.stderr[:200]}")
         return int(proc.stdout.strip())
 
@@ -1135,8 +1139,13 @@ class EventTemplatesLibraryUpdateTests(unittest.TestCase):
             "submodule directory has no templates — populate "
             "app/files/misp-event-templates/templates/ before running",
         )
+        # The tests expect an uninstalled library, whatever ran before
+        self._uninstall_library()
 
     def tearDown(self) -> None:
+        self._uninstall_library()
+
+    def _uninstall_library(self) -> None:
         # Look up the local row id for each library uuid and delete it.
         for tpl_uuid in self._library_uuids:
             r = requests.get(

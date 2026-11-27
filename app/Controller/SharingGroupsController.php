@@ -51,7 +51,12 @@ class SharingGroupsController extends AppController
                     $this->request->data = $this->request->data['SharingGroup'];
                 }
                 $sg = $this->request->data;
-                $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
+                $id = $this->SharingGroup->captureSG(
+                    $this->request->data,
+                    $this->Auth->user(),
+                    false,
+                    true
+                );
                 if ($id) {
                     if (empty($sg['roaming']) && empty($sg['SharingGroupServer'])) {
                         $this->SharingGroup->SharingGroupServer->create();
@@ -209,6 +214,9 @@ class SharingGroupsController extends AppController
             if ($this->_isRest()) {
                 if (isset($this->request->data['SharingGroup'])) {
                     $this->request->data = $this->request->data['SharingGroup'];
+                }
+                if (!$this->SharingGroup->checkIfAuthorisedToUpdate($this->Auth->user(), $sharingGroup)) {
+                    throw new MethodNotAllowedException('Action not allowed.');
                 }
                 $this->request->data['uuid'] = $sharingGroup['SharingGroup']['uuid'];
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());

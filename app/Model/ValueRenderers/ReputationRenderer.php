@@ -84,6 +84,19 @@ class ReputationRenderer extends ValueRendererBase
         return $address === null ? array() : array($address);
     }
 
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('greynoise', 'greynoise-ip', array(
+                'classification' => 'malicious',
+            ), 300),
+            $this->sampleObject('abuseipdb', 'abuseipdb', array(
+                'abuse-confidence-score' => '92',
+                'is-public' => 'true',
+            ), 900),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

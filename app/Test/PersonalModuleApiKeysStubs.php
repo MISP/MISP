@@ -170,7 +170,7 @@ class PersonalKeysTestAttribute extends MispAttribute
 
     public function __construct() {}
 
-    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false)
+    public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false, &$last_read_id = 0)
     {
         return [['Attribute' => [
             'id' => 42, 'event_id' => 7, 'object_id' => 0,

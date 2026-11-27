@@ -1256,12 +1256,19 @@ class GalaxyCluster extends AppModel
                 'GalaxyCluster',
                 self::REST_SEARCH_ORDER_FIELDS['GalaxyCluster']
             );
+            // id breaks ties, in the last key's direction, so pages neither overlap nor skip
+            if (!empty($params['order']) && !preg_grep('/^GalaxyCluster\.id /', $params['order'])) {
+                $params['order'][] = 'GalaxyCluster.id ' . explode(' ', end($params['order']))[1];
+            }
         }
         if (isset($options['page'])) {
             $params['page'] = $options['page'];
         }
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
+            if (isset($options['offset'])) {
+                $params['offset'] = $options['offset'];
+            }
         }
         if (isset($options['list']) && $options['list']) {
             return $this->find('list', $params);
@@ -1441,6 +1448,10 @@ class GalaxyCluster extends AppModel
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
             if (!isset($filters['page'])) {
+                // Cake keeps an offset on page 1; only next to a limit, as without one the fetch loop steps by page
+                if ((int)$filters['limit'] > 0 && isset($filters['offset'])) {
+                    $params['offset'] = $this->restSearchOffset($filters, (int)$filters['limit']);
+                }
                 $filters['page'] = 1;
             }
         }

@@ -180,6 +180,26 @@ echo $this->element('Events/View/list_focus', ['focusId' => $focusId ?? null]);
         });
     }
 
+    // An object attribute's object opens the Objects tab on that row, unfiltered
+    // so the row is there. Without the tab, its link reloads the page onto it.
+    if (container && !container.__attrObjectJumpReady) {
+        container.__attrObjectJumpReady = true;
+        container.addEventListener('click', function (e) {
+            var link = e.target.closest('a[data-attr-object-focus]');
+            if (!link || e.defaultPrevented || e.button !== 0
+                    || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            var tabBtn = document.querySelector('.nav-link[data-bs-toggle="tab"][href="#tab-objects"]');
+            var pane = document.querySelector('.ajax-tab-content[data-url*="viewObjects"]');
+            if (!tabBtn || !pane || typeof bootstrap === 'undefined') return;
+            e.preventDefault();
+            pane.dataset.url = window.mispView.attrs.attrBase.replace('/viewAttributes/', '/viewObjects/')
+                + '/focus:' + encodeURIComponent(link.getAttribute('data-attr-object-focus'));
+            delete pane.dataset.loaded;
+            delete pane.dataset.ifpOrigin;
+            bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+        });
+    }
+
     // Warning-list banner: drop the filter and re-render the full list.
     var wlClear = container
         ? container.querySelector('#attr-wl-filter-clear')

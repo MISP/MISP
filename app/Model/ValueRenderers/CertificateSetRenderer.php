@@ -45,6 +45,30 @@ class CertificateSetRenderer extends ValueRendererBase
             . ' address, and their validity windows.');
     }
 
+    public function sample()
+    {
+        $day = 86400;
+        return array('objects' => array(
+            $this->sampleObject('circl_passivessl', 'x509', array(
+                'subject-common-name' => 'www.example.com',
+                'issuer-common-name' => 'Example Issuing CA',
+                'validity-not-before' => date('Y-m-d', time() - 30 * $day),
+                'validity-not-after' => date('Y-m-d', time() + 60 * $day),
+                'x509-fingerprint-sha1'
+                    => '3f1e5b2a9c4d8e7f6a5b4c3d2e1f0a9b8c7d6e5f',
+                'dns_names' => array('www.example.com', 'example.com'),
+            )),
+            $this->sampleObject('circl_passivessl', 'x509', array(
+                'subject-common-name' => 'www.example.com',
+                'issuer-common-name' => 'Example Issuing CA',
+                'validity-not-before' => date('Y-m-d', time() - 400 * $day),
+                'validity-not-after' => date('Y-m-d', time() - 310 * $day),
+                'x509-fingerprint-sha1'
+                    => '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b',
+            )),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

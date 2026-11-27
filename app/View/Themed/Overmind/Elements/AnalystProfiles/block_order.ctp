@@ -31,6 +31,8 @@ $name = AnalystProfileFormTool::fieldName($block['path']);
 $live = !empty($block['live']);
 $canAdd = $editable && !empty($block['add']['options']);
 $descriptions = $block['add']['descriptions'] ?? array();
+$samples = $block['samples'] ?? null;
+$ranked = array_column($entries, 'key');
 ?>
 <?php if ($live): ?>
     <div class="ap-live-head">
@@ -46,7 +48,8 @@ $descriptions = $block['add']['descriptions'] ?? array();
 <?php else: ?>
     <?= $this->element('AnalystProfiles/block_head', array('block' => $block)) ?>
 <?php endif; ?>
-<div class="ap-order<?= $live ? ' is-sortable' : '' ?>" data-ap-order
+<div class="ap-order<?= $live ? ' is-sortable' : '' ?><?=
+    $samples !== null ? ' has-samples' : '' ?>" data-ap-order
      data-ap-order-name="<?= h($name) ?>"
      data-ap-order-cap="<?= h($cap) ?>"
      data-ap-order-remove-label="<?= h(__('Stop ranking it')) ?>">
@@ -57,6 +60,13 @@ $descriptions = $block['add']['descriptions'] ?? array();
                    $block['path'], array('__present'))) ?>"
                value="1">
     <?php endif; ?>
+
+    <?php
+    // Not inside a sample: one in the <template> is out of a map's reach.
+    if ($samples !== null && !empty($samples['drawings'])) {
+        echo $this->element('Values/Renderers/world_outline');
+    }
+    ?>
 
     <?php if ($canAdd): ?>
         <div class="ap-order-add ap-map-add" data-ap-order-add>
@@ -78,7 +88,8 @@ $descriptions = $block['add']['descriptions'] ?? array();
                         data-ap-pick-placeholder="<?= h($block['add']['placeholder'] ?? '') ?>"
                         data-ap-pick-head="<?= h($block['add']['pick_head'] ?? '') ?>"
                         data-ap-pick-none="<?= h($block['add']['pick_none'] ?? __('no match')) ?>"
-                        data-ap-pick-hint="<?= h(__('every visualisation is already ranked')) ?>">
+                        data-ap-pick-hint="<?= h(__('every visualisation is already ranked')) ?>"
+                        data-ap-pick-more="<?= h(__('%s more — type to narrow them')) ?>">
                     <option value=""><?= h(__('pick one…')) ?></option>
                     <?php foreach ($block['add']['options'] as $key => $label): ?>
                         <option value="<?= h($key) ?>"<?= empty($descriptions[$key]) ? ''
@@ -153,9 +164,30 @@ $descriptions = $block['add']['descriptions'] ?? array();
                         <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                     </button>
                 <?php endif; ?>
+                <?php if ($samples !== null): ?>
+                    <?= $this->element('AnalystProfiles/order_sample', array(
+                        'key' => $entry['key'],
+                        'samples' => $samples,
+                    )) ?>
+                <?php endif; ?>
             </li>
         <?php endforeach; ?>
     </ol>
+
+    <?php if ($canAdd && $samples !== null): ?>
+        <?php // Unranked shapes' samples: the picker shows them, a pick takes one. ?>
+        <template data-ap-order-samples>
+            <?php foreach (array_keys($block['add']['options']) as $key): ?>
+                <?php if (in_array($key, $ranked, true)) {
+                    continue;
+                } ?>
+                <?= $this->element('AnalystProfiles/order_sample', array(
+                    'key' => $key,
+                    'samples' => $samples,
+                )) ?>
+            <?php endforeach; ?>
+        </template>
+    <?php endif; ?>
 
     <?php if (!empty($block['cap_note'])): ?>
         <?php

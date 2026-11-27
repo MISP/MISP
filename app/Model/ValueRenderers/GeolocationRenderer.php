@@ -65,6 +65,26 @@ class GeolocationRenderer extends ValueRendererBase
      * coordinate pair is a row about a lookup rather than about a
      * location, and there is nothing to draw.
      */
+    public function sample()
+    {
+        return array('objects' => array(
+            $this->sampleObject('geoip_city', 'geolocation', array(
+                'country' => 'Luxembourg',
+                'countrycode' => 'LU',
+                'city' => 'Luxembourg',
+                'latitude' => '49.6117',
+                'longitude' => '6.1300',
+            )),
+            $this->sampleObject('ipinfo', 'geolocation', array(
+                'country' => 'Luxembourg',
+                'countrycode' => 'LU',
+                'city' => 'Luxembourg',
+                'latitude' => '49.6116',
+                'longitude' => '6.1319',
+            ), 3600),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

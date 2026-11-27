@@ -377,7 +377,7 @@ class SharingGroup extends AppModel
     // 2. Sharing group permission enabled users that:
     //    a. Belong to the organisation that created the SG
     //    b. Have an organisation entry in the SG with the extend flag set
-    // 3. Sync users that have synced the SG to the local instance
+    // 3. Sync users that can see an SG received through sync (not local)
     public function checkIfAuthorisedExtend(array $user, $id)
     {
         if ($user['Role']['perm_site_admin']) {
@@ -389,11 +389,15 @@ class SharingGroup extends AppModel
         if ($this->checkIfOwner($user, $id)) {
             return true;
         }
-        $this->id = $id;
-        if (!$this->exists()) {
+        $sg = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['SharingGroup.id' => $id],
+            'fields' => ['local'],
+        ]);
+        if (empty($sg)) {
             return false;
         }
-        if ($user['Role']['perm_sync']) {
+        if ($user['Role']['perm_sync'] && empty($sg['SharingGroup']['local'])) {
             if ($this->checkIfAuthorised($user, $id)) {
                 return true;
             }
@@ -645,9 +649,10 @@ class SharingGroup extends AppModel
      * @param array $sg
      * @param array $user
      * @param array $server
+     * @param bool $createLocal Create a new SG as local: not updatable by sync
      * @return int || false
      */
-    public function captureSG($sg, $user, $server = false)
+    public function captureSG($sg, $user, $server = false, $createLocal = false)
     {
         $syncLocal = false;
         if (!empty($server) && !empty($server['Server']['local'])) {
@@ -667,7 +672,7 @@ class SharingGroup extends AppModel
             if (!$user['Role']['perm_sharing_group']) {
                 return false;
             }
-            $sg_id = $this->captureSGNew($user, $sg, $syncLocal);
+            $sg_id = $this->captureSGNew($user, $sg, $syncLocal, $createLocal);
             if ($sg_id === false) {
                 return false;
             }
@@ -783,12 +788,7 @@ class SharingGroup extends AppModel
             if (self::$remoteCapture !== null && !$this->__remoteMayUpdate($existingSG)) {
                 return $existingSG['SharingGroup']['id'];
             }
-            // consider the local field being set to be equivalent to an event's locked == 0 state
-            $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
-            // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
-            // We need a mechanism to check whether we're in sync context.
-            $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['SharingGroup']['org_id'] == $user['org_id'];
-            if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
+            if ($this->checkIfAuthorisedToUpdate($user, $existingSG)) {
                 $editedSG = $existingSG['SharingGroup'];
                 $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active'];
                 foreach ($attributes as $a) {
@@ -807,16 +807,42 @@ class SharingGroup extends AppModel
     }
 
     /**
+     * Who may change an existing sharing group's own fields (name, releasability, ...)
+     *
+     * @param array $user
+     * @param array $sharingGroup with the SharingGroup row
+     * @return bool
+     */
+    public function checkIfAuthorisedToUpdate(array $user, array $sharingGroup)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        // consider the local field being set to be equivalent to an event's locked == 0 state
+        if ($user['Role']['perm_sync']) {
+            return empty($sharingGroup['SharingGroup']['local']);
+        }
+        // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
+        // We need a mechanism to check whether we're in sync context.
+        return $sharingGroup['SharingGroup']['org_id'] == $user['org_id'];
+    }
+
+    /**
      * Capture a new sharing group, rather than update an existing one
      *
      * @param array $user
      * @param array $sg
      * @param boolean $syncLocal
+     * @param bool $createLocal
      * @return int|false
      * @throws Exception
      */
-    private function captureSGNew(array $user, array $sg, $syncLocal)
-    {
+    private function captureSGNew(
+        array $user,
+        array $sg,
+        $syncLocal,
+        $createLocal
+    ) {
         // check if current user is contained in the SG and we are in a local sync setup
         if (!empty($sg['uuid'])) {
             if (isset($this->__sgAuthorisationCache['save'][boolval($syncLocal)][$sg['uuid']])) {
@@ -855,8 +881,8 @@ class SharingGroup extends AppModel
             'modified' => !isset($sg['modified']) ? $date : $sg['modified'],
             'active' => !isset($sg['active']) ? 1 : $sg['active'],
             'roaming' => !isset($sg['roaming']) ? false : $sg['roaming'],
-            'local' => 0,
-            'sync_user_id' => $user['id'],
+            'local' => $createLocal ? 1 : 0,
+            'sync_user_id' => $createLocal ? 0 : $user['id'],
             'org_id' => $user['Role']['perm_sync'] ? $this->__retrieveOrgIdFromCapturedSG($user, $sg) : $user['org_id']
         ];
         if (empty($newSG['org_id'])) {

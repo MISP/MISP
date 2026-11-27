@@ -1978,7 +1978,8 @@ class AppController extends Controller
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->request->params['named'],
-            'paramArray' => $this->RestSearch->paramArray[$scope],
+            // offset after what _harvestParameters adds, so ordered URL params keep their positions
+            'paramArray' => array_values(array_unique(array_merge($this->RestSearch->paramArray[$scope], ['page', 'limit', 'sign', 'offset']))),
             'ordered_url_params' => func_get_args()
         );
         $exception = false;
@@ -2068,9 +2069,11 @@ class AppController extends Controller
      * @param string $limitController the controller name the role's REST
      *   limit is divided for
      * @return array filters (as run), result, count, skipped, renderView,
-     *   returnFormat, responseType, overflow and pageLimit (the role's page
-     *   size when it cut the limit asked for, else null)
+     *   returnFormat, responseType, overflow, pageLimit (the role's page
+     *   size when it replaced a larger or missing limit, else null) and
+     *   offset (the offset applied, else null)
      * @throws ComplexQueryException
+     * @throws BadRequestException on an invalid offset
      */
     protected function _runRestSearch($scope, array $filters, $complexQuery, array $user, $limitController)
     {
@@ -2099,18 +2102,21 @@ class AppController extends Controller
             'responseType' => empty($model->validFormats[$returnFormat][0]) ? 'json' : $model->validFormats[$returnFormat][0],
             'overflow' => false,
             'pageLimit' => null,
+            'offset' => null,
         ];
         $roleLimit = $this->User->getUserRestLimit($user, $limitController);
-        if ($returnFormat !== 'count' && $roleLimit > 0 && ($filters['limit'] ?? 0) > $roleLimit) {
+        // The role's size replaces a larger limit, or a missing one (below)
+        if ($returnFormat !== 'count' && $roleLimit > 0 && (empty($filters['limit']) || $filters['limit'] > $roleLimit)) {
             $run['pageLimit'] = $roleLimit;
         }
         if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
             $filters['limit'] = $roleLimit;
         }
+        $run['offset'] = $this->RestSearch->offset($filters, $scope, $returnFormat);
         $run['filters'] = $filters;
 
         // halt execution if we were to query for items above the ID. Blocks the endless caching bug
-        if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
+        if ((!empty($filters['page']) || isset($filters['offset'])) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
             if ($this->__cachingOverflow($filters, $modelName, $scope)) {
                 $run['overflow'] = true;
                 return $run;
@@ -2138,6 +2144,9 @@ class AppController extends Controller
         $returnFormat = $run['returnFormat'];
         $responseType = $run['responseType'];
         $pageHeaders = empty($run['pageLimit']) ? [] : ['X-Result-Page-Limit' => $run['pageLimit']];
+        if ($run['offset'] !== null) {
+            $pageHeaders['X-Result-Offset'] = $run['offset'];
+        }
         if ($run['overflow']) {
             $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
             return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
@@ -2206,7 +2215,7 @@ class AppController extends Controller
      */
     private function __cachingOverflow(array $filters, $modelName, $scope)
     {
-        $offset = (max(1, (int)$filters['page']) - 1) * (empty($filters['limit']) ? 60 : $filters['limit']);
+        $offset = $filters['offset'] ?? (max(1, (int)$filters['page']) - 1) * (empty($filters['limit']) ? 60 : $filters['limit']);
         $max_id = $this->$modelName->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
         return (int)$max_id[0][0]['max_id'] <= $offset;
     }

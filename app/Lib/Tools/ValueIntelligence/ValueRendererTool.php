@@ -232,6 +232,38 @@ class ValueRendererTool
     }
 
     /**
+     * Every shape's sample answer, drawn the way drawFor() draws a real
+     * one. A shape whose sample is missing, does not match or throws is
+     * left out, so a custom renderer cannot break the page showing them.
+     *
+     * @return array shape id => compact, data, modules
+     */
+    public static function samples()
+    {
+        $out = array();
+        foreach (self::renderers() as $id => $renderer) {
+            try {
+                $sample = $renderer->sample();
+                $objects = $sample['objects'] ?? array();
+                if (empty($objects)
+                    || !$renderer->matches($objects, array())
+                ) {
+                    continue;
+                }
+                $out[$id] = array(
+                    'compact' => $renderer->compact,
+                    'data' => $renderer->prepare($objects, array(),
+                        $sample['facts'] ?? array()),
+                    'modules' => self::modulesOf($objects),
+                );
+            } catch (Throwable $e) {
+                continue;
+            }
+        }
+        return $out;
+    }
+
+    /**
      * The five shapes that get a slot, in the order they are drawn.
      *
      * **Three passes, and the order between them is the design.**

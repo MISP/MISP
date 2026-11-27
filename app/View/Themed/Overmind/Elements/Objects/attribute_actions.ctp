@@ -19,8 +19,11 @@
  *
  * Read from the view: $baseurl, $me.
  */
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
+
 $attrId = (int)$attr['id'];
 $attrDeleted = !empty($attr['deleted']);
+$attrValue = (string)($attr['value'] ?? '');
 ?>
 <div class="dropdown">
     <button
@@ -32,6 +35,15 @@ $attrDeleted = !empty($attr['deleted']);
         <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
     </button>
     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        <?php if ($attrValue !== ''): ?>
+        <li>
+            <a class="dropdown-item justify-content-start"
+               href="<?= h($baseurl . '/values/view/' . ValueUrlTool::address($attrValue)) ?>">
+                <i class="misp-icon misp-icon-value-intelligence misp-simple me-2"></i>
+                <?= __('Open value intelligence') ?>
+            </a>
+        </li>
+        <?php endif; ?>
         <li>
             <a class="dropdown-item justify-content-start"
                href="#"

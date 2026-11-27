@@ -230,7 +230,7 @@ class JSONConverterTool
                 }
                 unset($attributes[$key]['AttributeTag']);
             }
-            if (isset($tempSightings[$attribute['id']])) {
+            if (isset($attribute['id'], $tempSightings[$attribute['id']])) {
                 $attributes[$key]['Sighting'] = $tempSightings[$attribute['id']];
             }
         }

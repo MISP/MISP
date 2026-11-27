@@ -2496,6 +2496,133 @@ td .ap-cmp-flag {
 .ap-order-cap { margin-top: .45rem; }
 .ap-order-add { margin-top: .6rem; }
 
+/* The shape's sample under its name, framed as an Overview strip cell. Each
+   tile spans two rows of the list, so every name and every sample in a row
+   of tiles shares one height. */
+.ap-order.has-samples .ap-order-row {
+    display: grid;
+    grid-row: span 2;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: subgrid;
+    column-gap: 0;
+}
+/* Margins rather than a column gap, which would stay when Delete is hidden. */
+.ap-order.has-samples .ap-order-rank { margin-right: .5rem; }
+.ap-order.has-samples .ap-order-row .wb-drop { margin-left: .5rem; }
+.wb-block.is-editing .ap-order.is-sortable.has-samples .ap-order-row {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+.wb-block.is-editing .ap-order.is-sortable.has-samples .ap-order-row::before {
+    margin-right: .5rem;
+}
+.ap-order-sample {
+    --vp-eb-cell-pad: 8px;
+    display: flex;
+    grid-column: 1 / -1;
+    align-self: stretch;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 6px var(--vp-eb-cell-pad);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--vp-e-accent, #6f5fb5) 3%,
+        var(--bs-body-bg));
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+}
+.ap-order-sample-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 0;
+}
+.ap-order-sample-name {
+    flex: none;
+    color: var(--bs-secondary-color);
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+.ap-order-sample-src {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--bs-secondary-color);
+    font-size: .58rem;
+    opacity: .8;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-order-sample.is-none {
+    align-items: center;
+    justify-content: center;
+    border-style: dashed;
+    background: transparent;
+}
+.ap-order-sample-none {
+    color: var(--bs-secondary-color);
+    font-size: .6875rem;
+    font-style: italic;
+}
+
+/* The ranking's picker: every unranked visualisation as a card with its
+   sample, as wide as the box, and never a scrollbar. */
+.ap-pick-list.is-gallery:not([hidden]) {
+    right: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: .5rem;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: .5rem;
+}
+.ap-pick-list.is-gallery > .ap-pick-head,
+.ap-pick-list.is-gallery > .ap-pick-none,
+.ap-pick-list.is-gallery > .ap-pick-more { grid-column: 1 / -1; }
+.ap-pick-list.is-gallery .ap-pick-opt[hidden] { display: none; }
+.ap-pick-more {
+    padding: .1rem .15rem;
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-style: italic;
+}
+.ap-pick-list.is-gallery > .ap-pick-head { margin: -.5rem -.5rem 0; }
+.ap-pick-list.is-gallery .ap-pick-opt {
+    gap: .15rem;
+    padding: .55rem .6rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+.ap-pick-list.is-gallery .ap-pick-opt:hover,
+.ap-pick-list.is-gallery .ap-pick-opt.is-on {
+    border-color: var(--bs-primary);
+}
+.ap-pick-list.is-gallery .ap-pick-uuid { display: none; }
+.ap-pick-list.is-gallery .ap-pick-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ap-pick-list.is-gallery .ap-pick-desc {
+    display: -webkit-box;
+    min-height: 3em;
+    line-height: 1.5;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+.ap-pick-list.is-gallery .ap-order-sample {
+    flex: 1 1 auto;
+    width: 100%;
+    margin-top: .35rem;
+}
+
 /* ---- a module's types, read: one chip per type, marked with its state ---- */
 .mod-chips {
     display: flex;

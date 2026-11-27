@@ -12,7 +12,7 @@ App::uses('JSONConverterTool', 'Tools');
  */
 class WorkflowFormatConverterTool
 {
-    private static $fakeSiteAdminUser = ['Role' => ['perm_site_admin' => true]];
+    private static $fakeSiteAdminUser = ['Role' => ['perm_site_admin' => true, 'perm_sync' => false]];
 
     public static function convert(array $data, $scope=''): array
     {
@@ -67,6 +67,16 @@ class WorkflowFormatConverterTool
 
     private static function __convertObject(array $object): array
     {
+        if (!isset($object['Object']['event_id']) && isset($object['Object']['id'])) {
+            // Partial saves, such as a timestamp bump, only carry the id
+            $objectModel = ClassRegistry::init('MispObject');
+            $fetched = $objectModel->fetchObjects(self::$fakeSiteAdminUser, [
+                'conditions' => ['Object.id' => $object['Object']['id']],
+            ]);
+            if (!empty($fetched)) {
+                $object = $fetched[0];
+            }
+        }
         $converted = [];
         $convertedObject = JSONConverterTool::convertObject($object, false, true);
         $convertedObject = ['Object' => $convertedObject['Object']];
@@ -175,6 +185,10 @@ class WorkflowFormatConverterTool
     private static function __guessScopeFromData(array $data)
     {
         if (isset($data['Object']) && !isset($data['Attribute'])) {
+            return 'object';
+        }
+        // An object saved with its attributes carries them as a list beside it
+        if (isset($data['Object']) && !array_is_list($data['Object']) && array_is_list($data['Attribute'])) {
             return 'object';
         }
         if (!isset($data['Attribute'])) {

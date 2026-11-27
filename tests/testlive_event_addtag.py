@@ -116,11 +116,11 @@ class TestEventAddTag(unittest.TestCase):
         data.update(extra or {})
         return send(cls.admin, 'POST', 'tags/add', data)['Tag']
 
-    def _create_event(self, api: PyMISP = None) -> dict:
+    def _create_event(self, api: PyMISP = None, distribution: int = 0) -> dict:
         api = api or self.org_a['api']
         event = send(api, 'POST', 'events/add', {
             'info': 'addTag regression ' + random(),
-            'distribution': 0,
+            'distribution': distribution,
             'analysis': 0,
             'threat_level_id': 4,
         })['Event']
@@ -267,15 +267,22 @@ class TestEventAddTag(unittest.TestCase):
         self.assertTrue(bool(tags[self.tag_local_only['name']]['local']))
 
     def test_no_permission_foreign_event(self):
-        # org-B tagger on an org-A event: refused globally AND locally
-        # (org B is neither owner nor host org)
-        event = self._create_event()
+        # org-B tagger on org-A events: refused globally AND locally
+        # (org B is neither owner nor host org); an event it cannot see is
+        # invalid, one it can see but not modify is a permission error
+        hidden = self._create_event()
+        visible = self._create_event(distribution=1)
         for local in (False, True):
-            response = self._add_tag(self.org_b['api'], event['id'],
+            response = self._add_tag(self.org_b['api'], hidden['id'],
+                                     {'tag': self.tag_a['id']}, local=local)
+            self.assertFalse(response['saved'], response)
+            self.assertEqual('Invalid event.', response['errors'])
+            response = self._add_tag(self.org_b['api'], visible['id'],
                                      {'tag': self.tag_a['id']}, local=local)
             self.assertFalse(response['saved'], response)
             self.assertEqual("You don't have permission to do that.", response['errors'])
-        self.assertEqual({}, self._event_tags(event['id']))
+        self.assertEqual({}, self._event_tags(hidden['id']))
+        self.assertEqual({}, self._event_tags(visible['id']))
 
     def test_event_by_uuid(self):
         event = self._create_event()

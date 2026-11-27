@@ -266,7 +266,7 @@ class MispAdminHealthWidget
         // Cortex is intentionally excluded — it's a different infra
         // surface (third-party engine) and most instances run without
         // it; surfacing it as "not reachable" would be noise.
-        $types = array('Enrichment', 'Import', 'Export');
+        $types = array('Enrichment', 'Import', 'Export', 'Gathering', 'AI');
         foreach ($types as $type) {
             $errs = 0;
             try {

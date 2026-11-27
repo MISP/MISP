@@ -56,6 +56,7 @@ class MispQLRunDbTest extends TestCase
             App::uses('ClassRegistry', 'Utility');
             App::uses('ComponentCollection', 'Controller');
             App::uses('ACLComponent', 'Controller/Component');
+            App::uses('RestSearchComponent', 'Controller/Component');
             App::uses('MispqlController', 'Controller');
             foreach (self::DESCRIBED as $described) {
                 App::uses($described[0], 'Controller');
@@ -93,6 +94,7 @@ class MispQLRunDbTest extends TestCase
     {
         $controller = new MispqlController(new CakeRequest(null, false), new CakeResponse());
         $controller->User = ClassRegistry::init('User');
+        $controller->RestSearch = new RestSearchComponent(new ComponentCollection());
         $runRestSearch = Closure::bind(function (...$arguments) {
             return $this->_runRestSearch(...$arguments);
         }, $controller, MispqlController::class);
