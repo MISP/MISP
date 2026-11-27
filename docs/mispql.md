@@ -95,18 +95,20 @@ it, and a side list with two tabs, **History** and **Tables**.
   after `ORDER BY`, the table's formats after `FORMAT`. Resting the pointer
   on a table, a field or a column shows what it means, its type and the
   operators it takes.
-- **Run** runs the statement under the caret. The writer can hold several
-  statements separated by `;`.
+- **Run** runs the statement under the caret. A search that names no
+  `FORMAT` gets `FORMAT table` added in the writer first, on **Run** and on
+  **Explain**, so the writer shows what ran; `/mispql/run` itself still
+  answers a search without `FORMAT` as described under [Output](#output).
+  The writer can hold several statements separated by `;`.
 - **Explain** shows what the statement under the caret compiles to, without
   running it: the request MISP would send, what comes back, the columns, and
   the API call as `/mispql/explain`, `/mispql/run`, the restSearch request,
   curl and PyMISP.
 - **The result** is rows in a grid with a pager, a count, a table's fields
   for `DESCRIBE`, the tables for `SHOW TABLES`, the user for `WHOAMI`, or
-  MISP's export as a preview and a download. Rows can also be seen as JSON
-  (`SELECT *` without a `FORMAT`) or as CSV (`FORMAT flat`). **Download**
-  saves the page shown: first as it ran (JSON without a `FORMAT`, CSV for
-  `table` and `flat`), or as CSV or JSON. A refused statement shows its
+  MISP's export as a preview and a download. Rows can also be seen as CSV
+  (`FORMAT flat`). **Download** saves the page shown: first as it ran (CSV
+  for `table` and `flat`), or as CSV or JSON. A refused statement shows its
   errors on the text; a click on one selects it in the writer. **API call**
   shows the request behind a result.
 - **In the grid**, an id or a value opens its record or its value page in a

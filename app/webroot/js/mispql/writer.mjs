@@ -298,6 +298,25 @@ MispQLWriter.prototype = {
         this.render();
     },
 
+    /** Inserts at an offset as typing would (undo keeps working); the caret stays on its text. */
+    insertAt: function (at, text) {
+        var s = this.ta.selectionStart;
+        var e = this.ta.selectionEnd;
+        this.ta.focus();
+        this.ta.setSelectionRange(at, at);
+        this.inserting = true;
+        var native = document.execCommand('insertText', false, text);
+        this.inserting = false;
+        if (!native) {
+            this.ta.setRangeText(text, at, at, 'end');
+            this.changed();
+        }
+        var shift = function (i) { return i >= at ? i + text.length : i; };
+        this.ta.setSelectionRange(shift(s), shift(e));
+        this.closeSuggestions();
+        this.render();
+    },
+
     onInput: function (e) {
         this.hideTip();
         this.recallPos = -1;
