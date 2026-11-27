@@ -5407,5 +5407,55 @@ class LoginChangeExternalAuth(unittest.TestCase):
         self.assertEqual(target, stored)
 
 
+class FeedHeadersRedacted(unittest.TestCase):
+    """A feed's request headers often carry credentials and never leave the API in clear:
+    site admins see a mask, every other user no headers at all, on the index and the view."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.secret = 'Authorization: Bearer regression-%s%s' % (random(), random())
+        cls.feed_id = send(cls.admin, 'POST', 'feeds/add', {'Feed': {
+            'name': 'regression feed headers %s' % random(),
+            'provider': 'regression',
+            'url': 'https://feed.invalid/%s' % random(),
+            'source_format': 'misp',
+            'input_source': 'network',
+            'enabled': False,
+            'headers': cls.secret,
+        }})['Feed']['id']
+        # feeds/view is open to the host organisation's users only
+        host_org = cls.admin.get_server_setting('MISP.host_org_id')['value']
+        cls.user = make_user(cls.admin, host_org, least_privileged_role(cls.admin))
+        cls.user_api = PyMISP(url, cls.user.authkey)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.admin.delete_user(cls.user)
+        send(cls.admin, 'POST', 'feeds/delete/%s' % cls.feed_id)
+
+    def _get(self, api, path):
+        response = api._prepare_request('GET', path)
+        self.assertEqual(200, response.status_code, response.text[:300])
+        self.assertFalse(self.secret in response.text, '%s returned the headers in clear' % path)
+        return response.json()
+
+    def _indexed(self, api):
+        for entry in self._get(api, 'feeds/index'):
+            if int(entry['Feed']['id']) == int(self.feed_id):
+                return entry['Feed']
+        self.fail('the feed is missing from feeds/index')
+
+    def test_site_admin_sees_a_mask(self):
+        self.assertEqual('****', self._indexed(self.admin)['headers'])
+        self.assertEqual('****', self._get(self.admin, 'feeds/view/%s' % self.feed_id)['Feed']['headers'])
+
+    def test_user_sees_no_headers(self):
+        self.assertNotIn('headers', self._indexed(self.user_api))
+        self.assertNotIn('headers', self._get(self.user_api, 'feeds/view/%s' % self.feed_id)['Feed'])
+
+
 if __name__ == '__main__':
     unittest.main()
