@@ -42,11 +42,14 @@ class ServersController extends AppController
 
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'cspReport';
-        // updateJSON and aiDryRun are only ever reached by the settings page's
-        // hand-built AJAX, which has no rendered form behind it to produce the
-        // field hash _validatePost() compares against. They send the page's
-        // CSRF token in the X-CSRF-Token header instead.
-        $this->_csrfTokenHeaderOnly(['updateJSON', 'aiDryRun']);
+        // Only reached by hand-built AJAX, which has no rendered form behind it
+        // to produce the field hash _validatePost() compares against. They send
+        // the page's CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly([
+            'updateJSON',
+            'aiDryRun',
+            'queryAvailableSyncFilteringRules',
+        ]);
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
