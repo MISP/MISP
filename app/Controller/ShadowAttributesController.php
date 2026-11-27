@@ -19,6 +19,8 @@ class ShadowAttributesController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
+        // Overmind accepts inline via hand-built AJAX carrying X-CSRF-Token.
+        $this->_csrfTokenHeaderOnly(['accept']);
         $this->set('title_for_layout', 'Proposals');
 
         // convert uuid to id if present in the url, and overwrite id field
