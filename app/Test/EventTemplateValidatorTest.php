@@ -99,20 +99,10 @@ class EventTemplateValidatorTest extends TestCase
 
     public function testMalformedUuidIsRejected(): void
     {
-        // Known gap in the Phase 1.2 schema contract: "format": "uuid" is
-        // not a built-in format keyword in justinrainbow/json-schema's
-        // FormatConstraint (only draft-core formats: date, email, uri,
-        // ipv4/6, hostname, regex, ...). The schema's "format": "uuid"
-        // therefore silently accepts any string. The model-level
-        // validator and the importer both enforce uuid shape at save
-        // time, so the overall surface area is covered — but the schema
-        // layer does not. Tracking the gap here keeps it visible;
-        // tightening the schema (pattern-based uuid, or registering a
-        // uuid format validator) is a separate change.
-        $this->markTestSkipped(
-            'uuid format not enforced by justinrainbow/json-schema 6.x; '
-            . 'model + importer guard instead.'
-        );
+        // json-schema has no "uuid" format; the schema's pattern carries it
+        $def = $this->minimalValid();
+        $def['uuid'] = 'not-a-uuid';
+        $this->assertSchemaErrorContains('uuid', $this->validator->validate($def));
     }
 
     public function testMissingNameIsRejected(): void
@@ -209,19 +199,12 @@ class EventTemplateValidatorTest extends TestCase
 
     public function testSharingGroupIdRequiredWhenDistributionIs4(): void
     {
-        // Known gap: the schema uses draft-07 `if/then` to express
-        // "sharing_group_id is required when distribution=4", but
-        // EventTemplateValidator instantiates `new \JsonSchema\Validator()`
-        // without explicitly selecting the Draft07 factory, so the
-        // IfThenElseConstraint is not wired in and the conditional is
-        // silently ignored. The two-distribution-values-only policy
-        // (PRD §16.4 — org-only / community) means distribution=4 is not
-        // even reachable from the UI, but the schema still documents
-        // intent. Fixing this means configuring the validator for
-        // draft-07 — out of scope for the test phase.
-        $this->markTestSkipped(
-            'draft-07 if/then not active in current validator configuration.'
-        );
+        $def = $this->minimalValid();
+        $def['event_defaults'] = array('distribution' => 4);
+        $this->assertSchemaErrorContains('sharing_group_id', $this->validator->validate($def));
+
+        $def['event_defaults']['sharing_group_id'] = 5;
+        $this->assertEmpty($this->grepErrors($this->validator->validate($def), 'sharing_group_id'));
     }
 
     public function testInfoTemplateMalformedVariableIsRejected(): void

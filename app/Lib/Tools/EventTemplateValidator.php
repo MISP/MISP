@@ -99,6 +99,15 @@ class EventTemplateValidator
     {
         $errors = array();
 
+        // The schema states this with a draft-07 if/then, which the validator as configured ignores
+        $defaults = isset($definition['event_defaults']) && is_array($definition['event_defaults'])
+            ? $definition['event_defaults'] : array();
+        if (isset($defaults['distribution']) && (int)$defaults['distribution'] === 4 &&
+            (empty($defaults['sharing_group_id']) || (int)$defaults['sharing_group_id'] < 1)
+        ) {
+            $errors[] = 'event_defaults.sharing_group_id is required when distribution is 4 (sharing group)';
+        }
+
         if (!isset($definition['structure']) || !is_array($definition['structure'])) {
             // Structure layer already flagged this; no semantic work to do.
             return $errors;
