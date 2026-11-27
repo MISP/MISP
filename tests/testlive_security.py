@@ -1435,7 +1435,7 @@ class TestSecurity(unittest.TestCase):
         sg = self.__create_sharing_group()
         self.addCleanup(self.admin_misp_connector.delete_sharing_group, sg)
         check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org.uuid, True))
-        send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name3"}, check_errors=False)
+        self.assertErrorResponse(send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name3"}, check_errors=False))
         stored = send(self.admin_misp_connector, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]
         self.assertEqual(sg.name, stored["name"], "sync renamed a local sharing group")
 

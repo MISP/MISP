@@ -788,12 +788,7 @@ class SharingGroup extends AppModel
             if (self::$remoteCapture !== null && !$this->__remoteMayUpdate($existingSG)) {
                 return $existingSG['SharingGroup']['id'];
             }
-            // consider the local field being set to be equivalent to an event's locked == 0 state
-            $isUpdatableBySync = $user['Role']['perm_sync'] && empty($existingSG['SharingGroup']['local']);
-            // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
-            // We need a mechanism to check whether we're in sync context.
-            $isSGOwner = !$user['Role']['perm_sync'] && $existingSG['SharingGroup']['org_id'] == $user['org_id'];
-            if ($isUpdatableBySync || $isSGOwner || $user['Role']['perm_site_admin']) {
+            if ($this->checkIfAuthorisedToUpdate($user, $existingSG)) {
                 $editedSG = $existingSG['SharingGroup'];
                 $attributes = ['name', 'releasability', 'description', 'created', 'modified', 'roaming', 'active'];
                 foreach ($attributes as $a) {
@@ -809,6 +804,27 @@ class SharingGroup extends AppModel
         } else {
             return $existingSG['SharingGroup']['id'];
         }
+    }
+
+    /**
+     * Who may change an existing sharing group's own fields (name, releasability, ...)
+     *
+     * @param array $user
+     * @param array $sharingGroup with the SharingGroup row
+     * @return bool
+     */
+    public function checkIfAuthorisedToUpdate(array $user, array $sharingGroup)
+    {
+        if ($user['Role']['perm_site_admin']) {
+            return true;
+        }
+        // consider the local field being set to be equivalent to an event's locked == 0 state
+        if ($user['Role']['perm_sync']) {
+            return empty($sharingGroup['SharingGroup']['local']);
+        }
+        // TODO: reconsider this, org admins will be blocked from legitimate edits if they have sync permissions.
+        // We need a mechanism to check whether we're in sync context.
+        return $sharingGroup['SharingGroup']['org_id'] == $user['org_id'];
     }
 
     /**
