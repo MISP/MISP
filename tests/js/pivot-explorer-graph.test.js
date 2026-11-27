@@ -7,13 +7,11 @@
 //
 // What this covers: `computeConnectivity()` and `buildGraphData()` in
 // app/webroot/js/pivot-explorer.js are pure functions from a MISP event payload
-// to pivotick's {nodes, edges}. They are the substance of the layer work in
-// docs/dev/pivot-explorer-v16-prd.md §9 (tasks 3, 3b, 3c, 5, 5b), and they need
-// no browser — so they are tested here rather than by clicking through
-// /events/view. Anything visual (styling, legend, layout) still needs the
-// manual pass in PRD §8.
+// to pivotick's {nodes, edges}. They need no browser, so they are tested here
+// rather than by clicking through /events/view. Anything visual (styling,
+// legend, layout) still needs a manual pass.
 //
-// Since task 3c draws every live object, "which level put this object on the
+// Since the builder draws every live object, "which level put this object on the
 // canvas" shows only once L2 is over budget: the tests that care rebuild the
 // event with `fillers(1501)` and check what L1 alone seeds.
 //
@@ -565,7 +563,7 @@ test('a read-only viewer still gets the element pivot — putting an element on 
     eq('and offers what the canvas left out', g.tray.map(t => t.id), ['obj:C']);
 });
 
-test('edges are tagged with the kind that created them (D1 dimension 1)', async () => {
+test('edges are tagged with the kind that created them', async () => {
     const g = await buildGraph(ev({ Object: [
         obj({ uuid: 'A', ObjectReference: [
             ref({ referenced_uuid: 'B' }),
@@ -593,7 +591,7 @@ test('the edge-kind dimension is declared for pivotick', async () => {
     eq('it tolerates an edge whose data is null',
        r.edgeTypeAccessor({ getData: () => null }), undefined);
 
-    eq('object-reference is styled in D1 blue',
+    eq('object-reference is styled in blue',
        r.edgeStyleMap['object-reference'], { strokeColor: '#428BCA' });
     eq('the implemented kinds are styled',
        Object.keys(r.edgeStyleMap),
@@ -601,9 +599,9 @@ test('the edge-kind dimension is declared for pivotick', async () => {
         'feed-correlation', 'feed-event', 'server-correlation', 'tag', 'cluster-relation', 'enrichment']);
     eq('in-event is thin grey, with no arrowhead',
        r.edgeStyleMap['in-event'], { strokeColor: '#6C737D', strokeWidth: 1, markerEnd: 'none' });
-    eq('correlations are dashed grey (D1 palette)',
+    eq('correlations are dashed grey',
        r.edgeStyleMap['correlation'], { strokeColor: '#8A8F98', dashed: true });
-    eq('analyst relationships are dashed orange (D1 palette)',
+    eq('analyst relationships are dashed orange',
        r.edgeStyleMap['analyst-relationship'], { strokeColor: '#F39A1F', dashed: true });
 
     const facets = g.opts.UI.filter.edgeFacets;
@@ -642,7 +640,7 @@ test('5c: derived edges assert nothing, so carry no relationship_type', async ()
 test('INVARIANT: every kind the builder emits resolves to a styled kind', async () => {
     // Closes the loop between the tag and the style map: a typo on either side
     // silently drops edges back to the default stroke. Must keep holding as
-    // tasks 3, 5 and 5b add their own kinds.
+    // later layers add their own kinds.
     const g = await buildGraph(ev({
         Attribute: [attr({ uuid: 'e1' })],
         Object: [
@@ -679,8 +677,8 @@ test('an analyst relationship becomes an edge of its own kind', async () => {
        [g.edges[0].data.authors, g.edges[0].data.orgc], ['alice', 'org-1']);
 });
 
-test('D5 prime: an analyst relationship alone is enough to seed an element', async () => {
-    // Before task 3 neither of these was on the canvas: A has no object
+test('an analyst relationship alone is enough to seed an element', async () => {
+    // Previously neither of these was on the canvas: A has no object
     // reference, and e1 is an event-level attribute nothing references.
     const g = await buildGraph(ev({
         Attribute: [attr({ uuid: 'e1', value: 'linked-by-analyst' }),
@@ -740,7 +738,7 @@ test('relationships the canvas cannot draw are skipped, not half-drawn', async (
             arel({ object_uuid: 'A', related_object_uuid: 'r1', related_object_type: 'EventReport' }),
             arel({ object_uuid: 'A', related_object_uuid: 'g1', related_object_type: 'GalaxyCluster' }),
             arel({ object_uuid: 'A', related_object_uuid: 'o1', related_object_type: 'Organisation' }),
-            // Event resolves since task 3b, but only to this event or one of its
+            // Event resolves now, but only to this event or one of its
             // correlated neighbours — 'ev1' is neither
             arel({ object_uuid: 'A', related_object_uuid: 'ev1', related_object_type: 'Event' }),
             // an Object in some *other* event
@@ -804,7 +802,7 @@ test('an object whose only reference dangles is not seeded by it', async () => {
 });
 
 test('...and once L2 does not fit, the dangler is gone entirely', async () => {
-    // The L1 rule in isolation. This is the assertion task 3 shipped, preserved
+    // The L1 rule in isolation. This is the original assertion, preserved
     // at the resolution where it is still visible.
     const g = await buildGraph(ev({ Object: [
         obj({ uuid: 'A', name: 'dangler', ObjectReference: [
@@ -968,7 +966,7 @@ test('INVARIANT still holds with two kinds in play', async () => {
     });
 });
 
-/* ──────────────────── event nodes (task 3b, revised) ───────────────────── */
+/* ──────────────────── event nodes ───────────────────── */
 
 test('correlated events are not drawn: the Correlations tab lists them', async () => {
     const g = await buildGraph(ev({
@@ -995,13 +993,13 @@ test('another event is labelled by what an analyst recognises it by', async () =
     const b = byId(g.nodes, 'event:R2').data;
     eq('an event with no info falls back to its id', b.label, 'Event 23');
     eq('and its description to the date alone — the record has no Orgc', b.description, '2026-01-03');
-    ok('another event is a leaf, not an expandable container (PRD §4)',
+    ok('another event is a leaf, not an expandable container',
        g.nodes.every(n => !n.children));
 });
 
 test('the event node is drawn only when something connects to it', async () => {
-    // A bare hexagon would make the seed permanently non-empty and put D11's
-    // "nothing to draw" message (task 4) out of reach.
+    // A bare hexagon would make the seed permanently non-empty and put the empty-canvas
+    // "nothing to draw" message out of reach.
     const g = await buildGraph(ev({ Object: [obj({ uuid: 'A' })] }));
     ok('no event node', !byId(g.nodes, 'event:EV-SELF'), ids(g.nodes));
 });
@@ -1180,7 +1178,7 @@ test('double-click on another event opens it, and does nothing anywhere else', a
     eq('a node with no data is survivable', g.win.location.href, '');
 });
 
-/* ─────────────────────── task 3c — L2 ─────────────────────────── */
+/* ─────────────────────── L2 ─────────────────────────── */
 
 test('L2: an object only a feed hits is drawn whole, its hit its only edge', async () => {
     const g = await buildGraph(ev({ Object: [
@@ -1205,7 +1203,7 @@ test('L2: an object nothing links is left for the tray', async () => {
        trayLabels(g).sort(), ['file', 'gone-hit']);
 });
 
-test('L2 never adds a bare event-level attribute (D10 governing principle)', async () => {
+test('L2 never adds a bare event-level attribute', async () => {
     // 80% of all attributes are event-level; seeding those means seeding the
     // whole event again, and a bare attribute conveys less than its table row.
     const g = await buildGraph(ev({
@@ -1222,7 +1220,7 @@ test('the budget is all-or-nothing: one node over and L2 is skipped whole', asyn
 
     const over = await buildGraph(ev({ Object: fillers(751) }));
     eq('one object over, and not a single one is drawn', over.nodes, []);
-    eq('the skipped objects fall back to the tray (D4)', over.tray.length, 751);
+    eq('the skipped objects fall back to the tray', over.tray.length, 751);
 });
 
 test('over budget, the seed falls back to the relationship spine', async () => {
@@ -1706,7 +1704,7 @@ test('this event\'s side of a pair comes along when it is not on the canvas', as
     eq('and drawn from the event payload', r.nodes.find(n => n.id === 'attr:e1').data.uuid, 'e1');
 });
 
-/* ──────────────── task 10: what a drawn edge can be ─────────────── */
+/* ──────────────── what a drawn edge can be ─────────────── */
 
 const VOCAB = [
     { name: 'related-to' }, { name: 'drops' }, { name: "<script>alert('name')</script>" },
@@ -1846,13 +1844,13 @@ test('the vocabulary is asked for when the editor attaches, once', async () => {
     eq('the first edge reuses it', asked(), 1);
 });
 
-test('nothing carries a pending flag any more (D2)', async () => {
+test('nothing carries a pending flag any more', async () => {
     const g = await withEditor();
     ok('no styleCb', g.opts.render.defaultNodeStyle.styleCb === undefined);
     ok('no node data carries pending', JSON.stringify(g.nodes).indexOf('pending') === -1);
 });
 
-/* ─────────────── task 11: physics adapts after the first frame ─────────────── */
+/* ─────────────── physics adapts after the first frame ─────────────── */
 
 test('physics is auto, seeded by the hand-tuned link distance', async () => {
     const g = await buildGraph(ev({ Attribute: [attr({ uuid: 'e1' })] }));
@@ -1860,7 +1858,7 @@ test('physics is auto, seeded by the hand-tuned link distance', async () => {
        g.opts.simulation, { physics: 'auto', d3LinkDistance: 200 });
 });
 
-/* ──────────── task 10c: deleting an edge deletes the reference ──────────── */
+/* ──────────── deleting an edge deletes the reference ──────────── */
 
 function deleteFixture() {
     return ev({
@@ -1998,7 +1996,7 @@ test('a read-only viewer has no delete hook', async () => {
     ok('none', !r.opts.callbacks.onBeforeDelete);
 });
 
-/* ──────── task 10b: analyst relationships, drawn and deleted ──────── */
+/* ──────── analyst relationships, drawn and deleted ──────── */
 
 // Boot with the given rights, recording every analyst-data POST.
 function withAnalyst(options, answers) {
@@ -2212,7 +2210,7 @@ test('a mixed selection deletes each kind at its own endpoint', async () => {
     ok('relationship at analystData', g.fetchLog.some(f => /analystData\/delete\/Relationship\/AR1\.json$/.test(f.url)));
 });
 
-/* ─────────── task 9: the event's elements, as an origin-less pivot ─────────── */
+/* ─────────── the event's elements, as an origin-less pivot ─────────── */
 
 const elementsOf = g => g.opts.pivots.find(p => p.id === 'event-elements');
 const offered = (g, narrowing) => elementsOf(g).fetch([], narrowing || {}, {}).nodes.map(n => n.id).sort();
@@ -2362,7 +2360,7 @@ test('its summaries are dropped whenever a node comes or goes', async () => {
        g.graph.pivots.invalidated, once.concat(once));
 });
 
-/* ─────────────── task 6: analyst-data badges and panel ─────────────── */
+/* ─────────────── analyst-data badges and panel ─────────────── */
 
 const note = o => Object.assign({ note_type_name: 'Note', note: 'n', authors: 'a@x', created: '2025-03-11 14:06:56', Orgc: { name: 'CIRCL' } }, o);
 const opinion = o => Object.assign({ note_type_name: 'Opinion', opinion: '50', comment: '', authors: 'a@x', created: '2025-03-12 09:00:00', Orgc: { name: 'CIRCL' } }, o);
@@ -2540,7 +2538,7 @@ test('17: an edge reads by the kind of link and what it asserts', async () => {
        ['Link: Correlation', 'Link: Seen in a feed', 'Link: Seen on a server']);
 });
 
-/* ─────────────────── task 18: the node context menu ─────────────────── */
+/* ─────────────────── the node context menu ─────────────────── */
 
 const WS_ICON = 'misp-icon misp-icon-analyst-graph misp-simple';
 const menuItem = (g, text) => g.opts.UI.contextMenu.menuNode.menu.find(i => i.text === text);
@@ -2617,7 +2615,7 @@ test('18: a refused or missing clipboard says so', async () => {
     eq('absent', none.graph.notices.map(n => [n.level, n.title]), [['error', 'Copy failed']]);
 });
 
-/* ─────────── task 12: taking fetched correlations back off ─────────── */
+/* ─────────── taking fetched correlations back off ─────────── */
 
 const canvasItem = g => g.opts.UI.contextMenu.menuCanvas.menu[0];
 
@@ -2661,7 +2659,7 @@ test('12: it removes what the correlation pivot brought, and only that', async (
     eq('and then there is nothing left to offer', canvasItem(g).visible(null), false);
 });
 
-/* ─────────────────── task 4: the empty canvas (D11) ─────────────────── */
+/* ─────────────────── the empty canvas ─────────────────── */
 // Pivotick shows and hides the card (UI.emptyState); MISP owns what it says.
 
 const emptyCard = (g, initial) => g.opts.UI.emptyState.render({ initial: initial !== false, graph: g.graph });
@@ -2854,7 +2852,7 @@ test('the canvas takes the window height below its top, down to its card\'s edge
     eq('never shorter than 480px', g.graphEl.style.height, '480px');
 });
 
-/* ────────────── task 5b: feed and server correlations ────────────── */
+/* ────────────── feed and server correlations ────────────── */
 
 // A feed as Feed::attachFeedCorrelations() attaches it: the full record on the
 // event's source map, and a copy on every attribute it was seen in. The map is

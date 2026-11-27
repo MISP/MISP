@@ -1053,7 +1053,7 @@ class BaselineGeneratorTest extends TestCase
 
     /**
      * As readSchema() reads a MariaDB reference: the target collations as
-     * tokens, D21's ascii_general_ci by name.
+     * tokens, ascii_general_ci by name.
      */
     private function catalogSchema()
     {
