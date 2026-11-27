@@ -1,6 +1,6 @@
 <?php
 /**
- * Collection::push() chain unit tests (T4.5 — PRD §9).
+ * Collection::push() chain unit tests.
  *
  * The push-side companion to CollectionPullTest / CollectionCaptureTest. Covers
  * the push orchestration and its helpers:
@@ -8,14 +8,14 @@
  *     {uuid: modified} candidate -> remote filter -> per-wanted upload loop; the
  *     ['response'] unwrap; the Success count;
  *   - filterCollectionsForPush(): the RECEIVE-side dedup (missing / locked=1+newer
- *     wanted; locked=0 authoritative-local and equal/older dropped — D6);
+ *     wanted; locked=0 authoritative-local and equal/older dropped);
  *   - isPushableForServerSyncRules(): orgc OR/NOT push-rules;
  *   - prepareForPushToServer(): id strip, NO downgrade (RAW passthrough — the
  *     remote sink owns it), dist=4 SG-membership 403, checkDistributionForPush 403;
  *   - collectDataForPush(): post-find filtering (checkDistributionForPush +
  *     push-rules) and the Orgc/SharingGroup/CollectionElement corpus nesting.
  *     (The SQL-level dist eligibility lives in the find() WHERE and is exercised
- *     live at T4.4/T6.1, not here — the find() is stubbed with injected rows.)
+ *     live, not here — the find() is stubbed with injected rows.)
  *
  * Pure PHPUnit, no CakePHP bootstrap, no DB (convention: see CollectionCaptureTest /
  * CollectionPullTest). Framework classes are stubbed at the top (guarded), the real
@@ -419,7 +419,7 @@ class CollectionPushTest extends TestCase
     public function testPushRemoteWantsNothingReturnsZero(): void
     {
         $this->collection->collectDataForPushReturn = array($this->nested('u1', '2026-01-01 00:00:00'));
-        $this->sync->wanted = array();                 // remote already has it (D6 drop)
+        $this->sync->wanted = array();                 // remote already has it (drop)
         $this->collection->uploadResults = array();    // record uploads, default Success
 
         $this->assertSame(0, $this->collection->push($this->user(), $this->sync));
@@ -475,7 +475,7 @@ class CollectionPushTest extends TestCase
         $this->assertNotNull($this->collection->lastException);
     }
 
-    // ============ filterCollectionsForPush() — receive dedup (D6) ============
+    // ============ filterCollectionsForPush() — receive dedup ============
 
     public function testFilterMissingLocallyIsWanted(): void
     {
@@ -545,7 +545,7 @@ class CollectionPushTest extends TestCase
         $this->assertSame(array('l1new', 'missing'), $keys);
     }
 
-    // ============ isCandidateValidForPush() (D6 gate, via reflection) ============
+    // ============ isCandidateValidForPush() (gate, via reflection) ============
 
     private function candidateValid($candidateModified, array $existing)
     {

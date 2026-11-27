@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Collection sync end-to-end test (T6.1 — PRD §9.2).
+Collection sync end-to-end test.
 
 Exercises the bidirectional collection sync feature over real HTTP: feature
 negotiation, push (local -> peer), pull (local <- peer), the pull/push job
 messages (their new collection-count clauses), and — in two-instance mode — the
 capture write branch (locked=1, distribution downgrade 2->1, element
-replication, D6 idempotency).
+replication, idempotency).
 
 Two modes:
 
@@ -15,7 +15,7 @@ Two modes:
     drives the full sync machinery end-to-end and asserts the round-trips run
     without error and surface the collection-count clauses. A self-loopback
     CANNOT show a collection actually crossing: the remote index/filter always
-    sees an equal local copy of every offered UUID, so D6 skip-on-equal keeps
+    sees an equal local copy of every offered UUID, so skip-on-equal keeps
     the transfer at zero. The write-branch assertions are therefore skipped in
     this mode — exactly as testlive_sync.py asserts all-zero transfers on a
     self-loopback.
@@ -24,7 +24,7 @@ Two modes:
     for a *distinct* peer that also runs the feature code. The script then
     asserts a pushed collection actually lands on the peer with locked=1, a
     downgraded distribution and its element replicated, that a colliding
-    locally-created (locked=0) collection is NOT overwritten (D6), and that a
+    locally-created (locked=0) collection is NOT overwritten, and that a
     re-push is a no-op (idempotency). A pull write-branch check runs too when
     the peer is reachable with its own key.
 
@@ -200,7 +200,7 @@ def main():
 
         # --- PUSH (local -> peer) -------------------------------------------
         # NB the push *caller* message surfaces only events (parity with the
-        # sibling sync types — T5.2); the collections push count lives in the
+        # sibling sync types); the collections push count lives in the
         # Server::push $change DB-log, not in this message. So we assert the push
         # completed cleanly; the real collection-crossing proof is the peer-side
         # write-branch check below (two-instance mode).
@@ -220,21 +220,21 @@ def main():
                 "element not replicated on the peer"
             print("OK: peer captured the collection locked=1, dist 2->1, element replicated")
 
-            # idempotency: a second push must not duplicate or re-import it (D6)
+            # idempotency: a second push must not duplicate or re-import it
             run_push(misp, server_id)
             again = get_collection(remote_misp, col_uuid)
             assert again is not None and again.get('modified') == remote_col.get('modified'), \
                 "re-push changed the peer copy (idempotency broken)"
-            print("OK: re-push is a no-op (D6 skip-on-equal idempotency)")
+            print("OK: re-push is a no-op (skip-on-equal idempotency)")
 
-            # D6 origin protection: the peer's now-locked=1 copy offered back on a
+            # Origin protection: the peer's now-locked=1 copy offered back on a
             # pull must NOT overwrite our locked=0 authoritative original.
             pull_resp = run_pull(misp, server_id)
             pull_msg = pull_resp.get("message", "") if isinstance(pull_resp, dict) else str(pull_resp)
             local_after = get_collection(misp, col_uuid)
             assert local_after is not None and not truthy(local_after.get('locked')), \
-                "local authoritative (locked=0) original was overwritten by a pull-back (D6 violated)"
-            print("OK: pulled back without clobbering the local locked=0 original (D6 origin protection)")
+                "local authoritative (locked=0) original was overwritten by a pull-back"
+            print("OK: pulled back without clobbering the local locked=0 original (origin protection)")
         else:
             # loopback: assert the pull machinery runs and surfaces its clause
             pull_resp = run_pull(misp, server_id)

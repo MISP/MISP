@@ -1,8 +1,8 @@
 <?php
 /**
- * Module::queryAI() and its request builders (AI UX P1.4): the envelope of
- * PRD §3.1, the un-prefixed `params` block built from the Plugin.AI_* settings,
- * and the handling of the module's answer.
+ * Module::queryAI() and its request builders: the envelope, the
+ * un-prefixed `params` block built from the Plugin.AI_* settings, and the
+ * handling of the module's answer.
  *
  * Pure PHPUnit, no CakePHP bootstrap, no DB, no socket (the app/Test
  * convention). Module.php only needs App::uses() and AppModel at load time.

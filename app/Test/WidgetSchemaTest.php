@@ -1,6 +1,6 @@
 <?php
 /**
- * WidgetSchema contract unit tests (PRD §5.7).
+ * WidgetSchema contract unit tests.
  *
  * Pure PHPUnit — follows the convention used by every other test
  * under app/Test/: no CakePHP bootstrap, no DB. WidgetSchema has no
@@ -240,7 +240,7 @@ class WidgetSchemaTest extends TestCase
 
     public function testIsToolbarEligibleFalseForWidgetOnlyCanonicalTypes(): void
     {
-        // From PRD §5.5 — these are canonical but widget-only (no
+        // These are canonical but widget-only (no
         // sensible board-level bulk-edit semantics).
         $this->assertFalse(WidgetSchema::isToolbarEligible('attribute_type_filter'));
         $this->assertFalse(WidgetSchema::isToolbarEligible('event_id_filter'));

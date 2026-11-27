@@ -112,7 +112,7 @@ class EventTemplateInfoRendererTest extends TestCase
     public function testFieldVariableUsesFirstArrayEntry(): void
     {
         // Repeatable / multi-valued fields arrive as arrays; the renderer
-        // takes the first value only (PRD §7.1).
+        // takes the first value only.
         $out = $this->renderer->render(
             'First: {{field:recipients}}',
             array('recipients' => array('first@x', 'second@x', 'third@x'))

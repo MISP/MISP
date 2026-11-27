@@ -748,7 +748,7 @@ class CollectionCaptureTest extends TestCase
     {
         // The remote modified must reach save() verbatim (dedup depends on it;
         // CakePHP then preserves a whitelisted, present date field — verified
-        // against Model.php:1847 in the T2.1 findings).
+        // against Model.php:1847).
         $this->collection->captureCollection(
             $this->syncUser(),
             $this->incoming(array('modified' => '2026-05-05 12:34:56')),

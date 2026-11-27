@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Integration tests for the /event_templates REST surface (PRD §9).
+Integration tests for the /event_templates REST surface.
 
 Hits a running MISP instance over HTTP — configure via either the env
 vars HOST + AUTH (matches the other testlive_*.py scripts) or a local
@@ -12,7 +12,7 @@ Every test creates templates it owns and cleans them up in tearDown;
 the suite is safe to run against an instance that already has other
 templates installed.
 
-Commit 4 of the Phase 1.6 plan covers the REST CRUD + use endpoints:
+This file covers the REST CRUD + use endpoints:
 index, add, view, edit, delete, duplicate, validate_definition,
 instantiate. Commits 5 and 6 extend the same file with import/export
 round-trip and object-template-dependency tracking coverage.
@@ -497,7 +497,7 @@ class EventTemplatesRestTests(unittest.TestCase):
 
 class EventTemplatesExposedFlagTests(unittest.TestCase):
     """The `exposed` flag + the exposed-only listing that backs the
-    Draugnet MISP-pull template source (PRD §7 M3 / M5).
+    Draugnet MISP-pull template source.
 
     `exposed` marks a template as offered to anonymous community
     reporters through Draugnet. It defaults to 0 (an explicit opt-in),
@@ -669,7 +669,7 @@ class EventTemplatesExposedFlagTests(unittest.TestCase):
 class EventTemplatesObjectDependencyTrackingTests(unittest.TestCase):
     """Verifies the `event_template_object_dependencies` sidecar stays in
     sync with the parent template's object_field references across save,
-    edit, and delete (PRD §6.2).
+    edit, and delete.
 
     Save and edit coverage reads the sidecar back through the /view REST
     response — our controller contains EventTemplateObjectDependency
@@ -1114,7 +1114,7 @@ class EventTemplatesImportExportTests(unittest.TestCase):
         self.assertIsNone(defaults["sharing_group_id"])
 
     def test_roundtrip_export_delete_import_matches_definition(self) -> None:
-        # Headline round-trip: export → wipe → import → compare (PRD §13).
+        # Headline round-trip: export → wipe → import → compare.
         created = self._add("roundtrip")
         tid = int(created["EventTemplate"]["id"])
         src_definition = created["EventTemplate"]["definition"]
@@ -1171,15 +1171,15 @@ class EventTemplatesImportExportTests(unittest.TestCase):
 class EventTemplatesLibraryUpdateTests(unittest.TestCase):
     """
     Integration tests for the misp-event-templates submodule loader
-    (PRD §5.3 / docs/dev/event-template-library-prd.md). Exercises the
+    Exercises the
     /event_templates/update + /event_templates/library_status endpoints
     end-to-end against a running MISP instance with the submodule
     checked out. Requires:
 
       - MISP core has the bundled misp-event-templates submodule
-        populated at app/files/misp-event-templates/ (Phase 2.2).
+        populated at app/files/misp-event-templates/.
       - The auth key belongs to a site_admin (only site admins can
-        trigger update — PRD §8).
+        trigger update).
 
     Cleans up its own rows in tearDown so the suite is safe to re-run.
     """

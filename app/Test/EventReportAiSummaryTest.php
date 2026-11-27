@@ -1,7 +1,7 @@
 <?php
 /**
- * EventReport::stripAiSummary() / mergeAiSummary() (AI UX P4.2): the AI
- * summary block of PRD §3.3 — a `# AI summary` heading on top, the summary,
+ * EventReport::stripAiSummary() / mergeAiSummary(): the AI
+ * summary block — a `# AI summary` heading on top, the summary,
  * a blank line and a visible delineator line of equals signs — is stripped
  * before the report is sent to the AI module, and the module's answer is
  * laid out again so that a re-run replaces the previous summary instead of

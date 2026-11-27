@@ -2,7 +2,7 @@
 """
 Fake `ai_connector` misp-module server for the MISP AI UX tests.
 
-Speaks the contract MISP assumes of the real module (PRD `misp_ai_ux` §3) so
+Speaks the contract MISP assumes of the real module so
 every MISP code path — settings page status card, dry run, the three AI
 actions, the workflow node — can be exercised without the real module or an
 LLM. Standard library only.
@@ -71,7 +71,7 @@ AI_TAGS = (
     'ai-computer-assisted:assistance-level="ai-generated"',
     'ai-computer-assisted:review-level="unreviewed"',
 )
-# The AI summary block (PRD §3.3): heading on top, summary, blank line, a
+# The AI summary block: heading on top, summary, blank line, a
 # visible delineator line of equals signs, then the report. MISP keys its
 # strip on the heading-at-top + delineator pair.
 SUMMARY_HEADING = "# AI summary"
