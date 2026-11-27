@@ -924,13 +924,64 @@ class EventTemplatesImportExportTests(unittest.TestCase):
         self,
         payload: Dict[str, Any],
         mode: str = "fail",
+        key: Optional[str] = None,
     ) -> requests.Response:
+        headers = _headers()
+        if key:
+            headers["Authorization"] = key
         return requests.post(
             f"{URL}/event_templates/import?mode={mode}",
-            headers=_headers(),
+            headers=headers,
             data=json.dumps(payload),
             timeout=10,
         )
+
+    def _role_with(self, perm: str) -> int:
+        """The least privileged non-admin, non-sync role holding `perm`."""
+        r = requests.get(f"{URL}/roles", headers=_headers(), timeout=10)
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        candidates = []
+        for entry in r.json():
+            role = entry.get("Role", entry)
+            if int(role.get("perm_site_admin") or 0) or int(role.get("perm_sync") or 0):
+                continue
+            if not int(role.get(perm) or 0):
+                continue
+            weight = sum(1 for k, v in role.items() if k.startswith("perm_") and int(v or 0))
+            candidates.append((weight, int(role["id"])))
+        self.assertTrue(candidates, f"no non-admin role with {perm}")
+        return sorted(candidates)[0][1]
+
+    def _make_org(self) -> int:
+        r = requests.post(
+            f"{URL}/admin/organisations/add",
+            headers=_headers(),
+            data=json.dumps({"Organisation": {"name": "tpl-test " + uuid.uuid4().hex[:8]}}),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        org_id = int(r.json()["Organisation"]["id"])
+        self.addCleanup(requests.post, f"{URL}/admin/organisations/delete/{org_id}",
+                        headers=_headers(), timeout=10)
+        return org_id
+
+    def _make_user(self, org_id: int, role_id: int) -> str:
+        """A throwaway user's API key; removed before the organisations it belongs to."""
+        r = requests.post(
+            f"{URL}/admin/users/add",
+            headers=_headers(),
+            data=json.dumps({"User": {
+                "email": "tpl-%s@test.local" % uuid.uuid4().hex[:8],
+                "org_id": org_id,
+                "role_id": role_id,
+            }}),
+            timeout=10,
+        )
+        self.assertEqual(r.status_code, 200, r.text[:200])
+        user = r.json()["User"]
+        self.addCleanup(requests.post, f"{URL}/admin/users/delete/{user['id']}",
+                        headers=_headers(), timeout=10)
+        return user["authkey"]
 
     # ---- tests -----------------------------------------------------
 
@@ -1008,6 +1059,21 @@ class EventTemplatesImportExportTests(unittest.TestCase):
             view["EventTemplate"]["description"],
             "overwritten description",
         )
+
+    def test_import_overwrite_by_an_org_member_not_an_outsider(self) -> None:
+        # Org ids arrive as strings in the stock configuration; the
+        # ownership check has to compare them as ids, not as types.
+        created = self._add("to-overwrite-by-member")
+        doc = self._export(int(created["EventTemplate"]["id"]))
+        doc["template"]["description"] = "overwritten by an org member"
+        role = self._role_with("perm_template")
+        outsider = self._make_user(self._make_org(), role)
+        member = self._make_user(int(created["EventTemplate"]["org_id"]), role)
+
+        r = self._import(doc, mode="overwrite", key=member)
+        self.assertEqual(r.status_code, 200, r.text[:300])
+        r = self._import(doc, mode="overwrite", key=outsider)
+        self.assertIn(r.status_code, (403, 405), r.text[:300])
 
     def test_import_duplicate_as_new_generates_fresh_uuid(self) -> None:
         created = self._add("to-duplicate-via-import")
