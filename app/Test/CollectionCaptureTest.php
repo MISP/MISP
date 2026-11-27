@@ -1,6 +1,6 @@
 <?php
 /**
- * Collection::captureCollection() unit tests (T2.2 — PRD §9.1).
+ * Collection::captureCollection() unit tests.
  *
  * Pure PHPUnit, no CakePHP bootstrap, no DB — the convention used by every
  * other test under app/Test/ (see DashboardURLValidatorTest). captureCollection
@@ -316,7 +316,7 @@ class CollectionCaptureTest extends TestCase
 
         $saved = $this->collection->savedData['Collection'];
         $this->assertSame(1, $saved['locked'], 'synced-in ⇒ locked=1');
-        $this->assertSame(5, $saved['user_id'], 'user_id neutralised to sync user (D7)');
+        $this->assertSame(5, $saved['user_id'], 'user_id neutralised to sync user');
         $this->assertSame(9, $saved['org_id'], 'org_id = sync user org');
         $this->assertSame(42, $saved['orgc_id'], 'orgc_id resolved via captureOrg');
         $this->assertSame(0, $saved['distribution'], 'community(1) downgraded to org-only(0)');
@@ -389,7 +389,7 @@ class CollectionCaptureTest extends TestCase
         $this->assertSame(0, $this->collection->saveCallCount);
     }
 
-    // ---------------- 3. locked block (D6) ----------------
+    // ---------------- 3. locked block ----------------
 
     public function testLockedBlockOnLocalOriginalFromExternal(): void
     {
@@ -519,7 +519,7 @@ class CollectionCaptureTest extends TestCase
         $this->assertNull($this->collection->savedData['Collection']['sharing_group_id']);
     }
 
-    // ---------------- 6. element corpus (D5) ----------------
+    // ---------------- 6. element corpus ----------------
 
     public function testElementsCapturedWithLocalId(): void
     {
@@ -612,7 +612,7 @@ class CollectionCaptureTest extends TestCase
     {
         // The remote modified must reach save() verbatim (dedup depends on it;
         // CakePHP then preserves a whitelisted, present date field — verified
-        // against Model.php:1847 in the T2.1 findings).
+        // against Model.php:1847).
         $this->collection->captureCollection(
             $this->syncUser(),
             $this->incoming(array('modified' => '2026-05-05 12:34:56')),

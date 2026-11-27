@@ -8,10 +8,6 @@
 // access required because the helpers are pulled from
 // `kvshape.module.mjs` rather than the DOM-coupled
 // `configure.module.mjs`.
-//
-// Phase 2 tracker entry: "Bottom-tier dot-notation flattening on
-// read; re-nesting on save; round-trip lossless for nested objects,
-// arrays, scalars, booleans (unit-tested)".
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
@@ -171,7 +167,7 @@ describe('reNest', () => {
 // ---- round trip ----
 
 describe('round-trip: reNest(flatten(x)) === x', () => {
-  // The lossless contract called out in the Phase 2 tracker entry.
+  // The lossless contract.
 
   function roundTrip(label, input) {
     test(label, () => {

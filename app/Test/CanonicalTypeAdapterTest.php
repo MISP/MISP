@@ -1,6 +1,6 @@
 <?php
 /**
- * CanonicalTypeAdapter unit tests (PRD §5.5 keystone).
+ * CanonicalTypeAdapter unit tests.
  *
  * Pure PHPUnit — follows the convention used by WidgetSchemaTest and
  * the rest of app/Test/: no CakePHP bootstrap, no DB. The adapter is
@@ -217,8 +217,8 @@ class CanonicalTypeAdapterTest extends TestCase
     public function testTranslatePassesThroughLegacyValues(): void
     {
         // The whole point of decoupling the schema from the canonical wire
-        // format in Phase 2: existing saved configs with legacy "Nd"
-        // strings keep working without any user-side migration.
+        // format: existing saved configs with legacy "Nd" strings
+        // keep working without any user-side migration.
         $widget = new stdClass();
         $widget->schema = [
             'time_window' => ['type' => 'time_window'],
@@ -299,7 +299,7 @@ class CanonicalTypeAdapterTest extends TestCase
 
     public function testDateRangeToNullEmitsOnlyStartDate(): void
     {
-        // PRD §5.5: `to: null` is the "open-ended" sentinel. Widgets
+        // `to: null` is the "open-ended" sentinel. Widgets
         // like EventEvolutionLineWidget that have only start_date in
         // legacy params engage their own "now" fallback when end_date
         // is absent.
@@ -1268,7 +1268,7 @@ class CanonicalTypeAdapterTest extends TestCase
     // convention because it has TWO semantic axes — `tag_names`
     // (the filter) and `galaxy_types` (a picker scope hint). The
     // structured form is `{tag_names: string[], galaxy_types?:
-    // string[]}` per PRD §5.5 (modulo the bare-array discrepancy
+    // string[]}` (modulo the bare-array discrepancy
     // for single-axis types filed as Discovered work 2026-05-20).
 
     public function testGalaxyClusterFilterStructuredObjectPassesThrough(): void
@@ -1384,7 +1384,7 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertSame(['tool'], $out['cluster']['galaxy_types']);
     }
 
-    // -------- validators (PRD §5.5 — Phase 3 closer) --------
+    // -------- validators --------
 
     public function testValidateTimeWindowAcceptsNullIntString(): void
     {
@@ -1570,7 +1570,7 @@ class CanonicalTypeAdapterTest extends TestCase
         $this->assertNull(CanonicalTypeAdapter::validate($widget, $config));
     }
 
-    // -------- translateOrgFilter (PRD §5.5 — refined naming) --------
+    // -------- translateOrgFilter --------
 
     public function testOrgFilterLegacyCommaStringWrapsToCanonical(): void
     {

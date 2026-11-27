@@ -1,11 +1,11 @@
 <?php
 /**
- * ServerSyncTool feature-negotiation unit tests for collection sync (T5.3 — PRD §6.8).
+ * ServerSyncTool feature-negotiation unit tests for collection sync.
  *
  * The NEGATIVE control for the collection-sync negotiation triad (const +
- * getVersion advertise + isSupported case, landed in T3.1). The positive path
+ * getVersion advertise + isSupported case). The positive path
  * — two feature-code instances both advertising `collection_sync` ⇒ the pull/push
- * collection blocks fire — is already proven by the live 5007⇄5008 E2E (T6.1).
+ * collection blocks fire — is already proven by the live 5007⇄5008 E2E.
  * These tests pin the OTHER side: a peer that does NOT advertise `collection_sync`
  * (an older instance) makes isSupported(FEATURE_COLLECTION_SYNC) return false, so
  * `Server::pull`/`Server::push` skip the collection blocks silently and no

@@ -1,6 +1,6 @@
 <?php
 /**
- * Grammar rendering tests (PRD section 9.1) - the flavour-agnostic half of the
+ * Grammar rendering tests - the flavour-agnostic half of the
  * migration DSL, asserted at the SQL-string level.
  *
  * There is no PostgreSQL instance to run against yet, so this is where the
@@ -176,7 +176,7 @@ class MigrationGrammarTest extends TestCase
     // ------------------------------------------------------------ addColumn
 
     /**
-     * The PRD's worked example: legacy case 157, as the new system writes it.
+     * A worked example: legacy case 157, as the new system writes it.
      * boolean -> tinyint(1) vs boolean, and AFTER honoured vs dropped.
      */
     public function testAddBooleanColumnWithPosition()
@@ -575,7 +575,7 @@ class MigrationGrammarTest extends TestCase
     // ---------------------------------------------------------------- tables
 
     /**
-     * The PRD's second worked example. Note what differs: PostgreSQL takes the
+     * A second worked example. Note what differs: PostgreSQL takes the
      * indexes out of the table body into statements of their own, and drops the
      * ENGINE / CHARSET / COLLATE suffix - the latter not by anything here, but
      * because Cake's Postgres driver declares no $tableParameters at all.

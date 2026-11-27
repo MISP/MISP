@@ -2,9 +2,9 @@
 """
 Regression guard for the single-event `/events/addTag/{id}` contract.
 
-T1 of docs/dev/event-index-mass-actions-prd.md (§9.1): locks the current
+Locks the current
 behavior of EventsController::addTag BEFORE the 'selected' bulk-tagging
-refactor (T2). Run against the unmodified instance first, then re-run
+refactor. Run against the unmodified instance first, then re-run
 after the refactor — message wording may change consciously, semantics
 must not.
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * SchemaBuilder tests (PRD section 9.1) - the accumulate-then-emit half of the
+ * SchemaBuilder tests - the accumulate-then-emit half of the
  * migration DSL.
  *
  * MigrationGrammarTest covers what a single operation renders to. This file

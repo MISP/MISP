@@ -1,6 +1,6 @@
 <?php
 /**
- * Event::classifyAiTagSuggestions() and aiTagResultMessage() (AI UX P5.1):
+ * Event::classifyAiTagSuggestions() and aiTagResultMessage():
  * the AI module's tag suggestions are classified against what the instance
  * holds — tag rows, galaxy clusters, the tags already on the event, the
  * user's tag editor permission, the local flag and taxonomy exclusivity —

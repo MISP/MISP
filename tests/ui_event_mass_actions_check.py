@@ -2,8 +2,7 @@
 """Browser-level verification of the event index mass tag/cluster actions.
 
 Companion to tests/testlive_event_mass_actions.py (API level): this one
-drives headless chromium over CDP through the real UI path. See
-docs/dev/event-index-mass-actions-prd.md §9.4-9.5.
+drives headless chromium over CDP through the real UI path.
 
 Usage:
     HOST=localhost:5007 AUTH=<site-admin-key> \
@@ -213,7 +212,7 @@ try:
     cdp.cmd('Page.navigate', url=index_url)
     assert cdp.poll("document.readyState === 'complete' && typeof $ === 'function'", timeout=30)
 
-    # §9.4 buttons exist, hidden with zero selection
+    # buttons exist, hidden with zero selection
     state = json.loads(cdp.eval(
         "JSON.stringify({mt: $('.mass-tag').length, mg: $('.mass-galaxy').length,"
         " vt: $('.mass-tag:visible').length, vg: $('.mass-galaxy:visible').length,"
@@ -225,7 +224,7 @@ try:
         print('ABORT: refusing to run round-trips against an unfiltered index')
         sys.exit(1)
 
-    # §9.4 checking rows reveals the buttons (computed visibility)
+    # checking rows reveals the buttons (computed visibility)
     after = json.loads(cdp.eval(
         "var ids=[]; $('.select[data-id]').each(function(){ this.click();"
         " ids.push($(this).data('id')); });"
@@ -237,14 +236,14 @@ try:
           sorted(json.loads(after['collected'])) == fixture_ids, str(after))
     cdp.shot('01_index_buttons_visible.png')
 
-    # §9.4 picker opens from the toolbar button (bootstrap popover)
+    # picker opens from the toolbar button (bootstrap popover)
     cdp.eval("document.getElementById('multi-tag-button').click()")
     opened = cdp.poll("$('.popover:visible').text().indexOf('All Tags') !== -1")
     check('tag picker popover opens from toolbar', opened)
     cdp.shot('02_tag_picker_open.png')
     cdp.eval("$('#multi-tag-button').popover('hide'); undefined")
 
-    # §9.4 full tag round-trip through the real JS path (admin -> global)
+    # full tag round-trip through the real JS path (admin -> global)
     cdp.mark()
     cdp.eval(f"quickSubmitTagForm(['{tag1['id']}'], {{id: 'selected', local: false}})")
     check('index reloaded after mass tag submit', cdp.wait_reload())
@@ -263,7 +262,7 @@ try:
           str([event_tags(e['id']) for e in events]))
     cdp.shot('03_index_after_roundtrips.png')
 
-    # §9.5 attribute flow non-regression on the event view
+    # attribute flow non-regression on the event view
     cdp.cmd('Page.navigate', url=f"{URL}/events/view/{ev_attr['id']}")
     have_rows = cdp.poll("$('.select_attribute').length === 2", timeout=30)
     check('event view shows 2 attribute checkboxes', have_rows)
@@ -291,7 +290,7 @@ try:
 finally:
     proc.terminate()
 
-# ---- §9.4 non-tagger gating (server-side requirement) ----------------------
+# ---- non-tagger gating (server-side requirement) ----------------------
 ro_pw = str(uuid.uuid4())
 org = MISPOrganisation()
 org.name = f't6ui org {RND}'

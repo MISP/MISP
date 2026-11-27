@@ -16,9 +16,9 @@
  *    Log's date histograms, Sighting's date grouping, the dashboard evolution
  *    widgets, AccessLog's table maintenance, Correlation's on-demand counters -
  *    so the assertions double as a record of the statement each future call site
- *    has to keep producing. Phase 8 changes live MySQL paths for a benefit that
- *    only materialises on an engine nobody runs yet; this is where "unchanged on
- *    MySQL" stops being a claim.
+ *    has to keep producing. The migration work changes live MySQL paths for a
+ *    benefit that only materialises on an engine nobody runs yet; this is
+ *    where "unchanged on MySQL" stops being a claim.
  *
  * 2. **The PostgreSQL rendering is valid PostgreSQL**, including the two places
  *    it is deliberately not the obvious transliteration: `(x)::date` rather than

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Integration coverage for the event index mass actions (PRD §9.2–9.3):
+Integration coverage for the event index mass actions:
 bulk tagging via `/events/addTag/selected` and bulk galaxy cluster
 attachment via `/galaxies/attachMultipleClusters/selected/event`.
 
-Focus: the D6 global→local downgrade matrix and its security boundary —
+Focus: the global→local downgrade matrix and its security boundary —
  - owner-org tagger, global preference  -> global rows, unpublish
  - host-org tagger, global preference   -> local rows (downgraded),
                                             events stay published
@@ -18,7 +18,7 @@ Focus: the D6 global→local downgrade matrix and its security boundary —
 Events are created with distribution 1 (community) so they are visible
 to the host-org user: attachMultipleClusters resolves events through an
 ACL-checked fetch (invisible events count as failed), while addTag uses
-a raw find — a pre-existing asymmetry, see the progress tracker.
+a raw find — a pre-existing asymmetry.
 
 Usage:
     HOST=localhost:5007 AUTH=<site-admin-key> python3 testlive_event_mass_actions.py -v
@@ -207,7 +207,7 @@ class TestEventMassActions(unittest.TestCase):
             self.assertEqual(expected_local, bool(tags[tag_name]['local']),
                              f"wrong local flag on event {event['id']}")
 
-    # --- §9.2 bulk tag ------------------------------------------------
+    # --- bulk tag ------------------------------------------------
 
     def test_tag_own_org_global(self):
         events = self._create_events(3, publish=True)
@@ -305,7 +305,7 @@ class TestEventMassActions(unittest.TestCase):
         self.assertFalse(response['saved'])
         self.assertEqual('Nothing to add.', response['errors'])
 
-    # --- §9.3 bulk clusters --------------------------------------------
+    # --- bulk clusters --------------------------------------------
 
     def test_cluster_own_org_global(self):
         events = self._create_events(3, publish=True)

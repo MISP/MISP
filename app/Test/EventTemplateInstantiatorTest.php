@@ -13,7 +13,7 @@
  * definition, invalid user input (file_field rejection, unknown id,
  * missing mandatory) — that don't need a running DB. The DB-backed
  * success path (event creation, transactional rollback, post-hoc drop
- * detection) is covered by the Phase 1.6 integration tests against a
+ * detection) is covered by the integration tests against a
  * live MISP.
  *
  * The galaxy tag-name resolver is covered here too, with the cluster

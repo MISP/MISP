@@ -1,13 +1,13 @@
 <?php
 /**
- * Collection::pull() unit tests (T3.5 — PRD §9).
+ * Collection::pull() unit tests.
  *
  * The pull-side companion to CollectionCaptureTest. captureCollection (the shared
  * sink) is already covered branch-by-branch there; here we cover the pull
  * orchestration that sits on top of it:
  *   - feature-negotiation early-return (skip a peer without the capability);
  *   - the `{uuid: modified}` dedup (missing-locally / strictly-newer-remote /
- *     skip-on-equal — D6) that decides which UUIDs to fetch;
+ *     skip-on-equal) that decides which UUIDs to fetch;
  *   - chunked fetch (array_chunk 100) → RAW passthrough to captureCollection
  *     (no pre-downgrade — the sink owns the downgrade + locked=1);
  *   - buildPullFilterRules OR/NOT → orgc_name shaping.
@@ -343,7 +343,7 @@ class CollectionPullTest extends TestCase
         $this->assertNotNull($this->collection->lastException, 'index failure is logged, not thrown');
     }
 
-    // ---------------- dedup (D6) ----------------
+    // ---------------- dedup ----------------
 
     public function testMissingLocallyIsFetched(): void
     {
@@ -373,7 +373,7 @@ class CollectionPullTest extends TestCase
         $this->sync->indexData = array('u1' => '2026-01-01 00:00:00');
         $this->collection->localRows = array($this->localRow('u1', '2026-01-01 00:00:00'));
 
-        $this->assertSame(0, $this->collection->pull($this->user(), $this->sync), 'skip-on-equal (D6)');
+        $this->assertSame(0, $this->collection->pull($this->user(), $this->sync), 'skip-on-equal');
         $this->assertSame(0, $this->sync->fetchCallCount, 'nothing to fetch when equal');
     }
 

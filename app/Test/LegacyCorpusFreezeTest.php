@@ -62,9 +62,9 @@ class LegacyCorpusFreezeTest extends TestCase
     }
 
     /**
-     * The property §6.7's single loop rests on: findUpgrades() unions the legacy
-     * map with the pending migrations, and the union is only safe because no
-     * legacy key can ever look like a migration id.
+     * The property the single upgrade loop rests on: findUpgrades() unions the
+     * legacy map with the pending migrations, and the union is only safe
+     * because no legacy key can ever look like a migration id.
      */
     public function testNoLegacyKeyCanBeMistakenForAMigrationId()
     {
