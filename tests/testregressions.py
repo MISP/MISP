@@ -5458,5 +5458,45 @@ class FeedHeadersRedacted(unittest.TestCase):
         self.assertNotIn('headers', self._get(self.user_api, 'feeds/view/%s' % self.feed_id)['Feed'])
 
 
+class FeedIndexHostOrgUsers(unittest.TestCase):
+    """A feed that is not lookup-visible is listed to the host organisation's users and hidden
+    from everyone else's; the org ids compared arrive as strings in the stock configuration."""
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.feed_id = send(cls.admin, 'POST', 'feeds/add', {'Feed': {
+            'name': 'regression feed host org %s' % random(),
+            'provider': 'regression',
+            'url': 'https://feed.invalid/%s' % random(),
+            'source_format': 'misp',
+            'input_source': 'network',
+            'enabled': False,
+            'lookup_visible': False,
+        }})['Feed']['id']
+        role = least_privileged_role(cls.admin)
+        host_org = cls.admin.get_server_setting('MISP.host_org_id')['value']
+        cls.outsider_org = make_org(cls.admin, 'feed index outsider')
+        cls.host_user = make_user(cls.admin, host_org, role)
+        cls.outsider = make_user(cls.admin, cls.outsider_org.id, role)
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, [cls.outsider_org], [cls.host_user, cls.outsider])
+        send(cls.admin, 'POST', 'feeds/delete/%s' % cls.feed_id)
+
+    def _listed(self, user):
+        index = send(PyMISP(url, user.authkey), 'GET', 'feeds/index')
+        return int(self.feed_id) in {int(entry['Feed']['id']) for entry in index}
+
+    def test_host_org_user_sees_the_feed(self):
+        self.assertTrue(self._listed(self.host_user), 'a host-org user was treated as an outsider')
+
+    def test_outsider_does_not(self):
+        self.assertFalse(self._listed(self.outsider), 'an outsider saw a feed that is not lookup-visible')
+
+
 if __name__ == '__main__':
     unittest.main()

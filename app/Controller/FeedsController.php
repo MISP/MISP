@@ -74,8 +74,7 @@ class FeedsController extends AppController
                 );
             }
         }
-        $host_org_id = (int)Configure::read('MISP.host_org_id');
-        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id) {
+        if ($this->__limitedToLookupVisibleFeeds()) {
             $conditions[] =  ['Feed.lookup_visible' => 1];
         }
         $loggedUser = $this->Auth->user();
@@ -1601,8 +1600,7 @@ class FeedsController extends AppController
 
     public function compareFeeds($id = false)
     {
-        $limited = !$this->_isSiteAdmin() && $this->Auth->user('org_id') !== (int)Configure::read('MISP.host_org_id');
-        $feeds = $this->Feed->compareFeeds($limited);
+        $feeds = $this->Feed->compareFeeds($this->__limitedToLookupVisibleFeeds());
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($feeds, $this->response->type());
         } else {
@@ -1679,9 +1677,7 @@ class FeedsController extends AppController
         if (!empty($this->params['named']['value'])) {
             $value = $this->params['named']['value'];
         }
-        $host_org_id = (int)Configure::read('MISP.host_org_id');
-        $limited = !$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $host_org_id;
-        $hits = $this->Feed->searchCaches($value, $limited);
+        $hits = $this->Feed->searchCaches($value, $this->__limitedToLookupVisibleFeeds());
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($hits, $this->response->type());
         } else {
@@ -1696,5 +1692,17 @@ class FeedsController extends AppController
         $this->set('urlparams', $urlparams);
         $this->set('passedArgs', JsonTool::encodeForScript($passedArgs));
         $this->set('passedArgsArray', $passedArgs);
+    }
+
+    /**
+     * Users outside the host organisation, site admins aside, only see lookup-visible feeds.
+     * Both sides are cast: org ids arrive as strings with PDO::ATTR_STRINGIFY_FETCHES.
+     *
+     * @return bool
+     */
+    private function __limitedToLookupVisibleFeeds()
+    {
+        return !$this->_isSiteAdmin() &&
+            (int)$this->Auth->user('org_id') !== (int)Configure::read('MISP.host_org_id');
     }
 }
