@@ -73,6 +73,13 @@ def _env(name, default, allow_empty=False):
     return default
 
 
+def _unavailable(reason):
+    """Skip when the suite's infrastructure is missing; fail in CI, which provides all of it."""
+    if os.environ.get("CI"):
+        pytest.fail(reason, pytrace=False)
+    pytest.skip(reason)
+
+
 class LdapConfig:
     def __init__(self):
         self.uri = _env("LDAP_URI", "ldap://127.0.0.1:1389")
@@ -143,7 +150,8 @@ def ldap_admin(ldap_config):
     """Bound ldap3 connection as the directory admin.
 
     Skips the whole suite when the directory is unreachable, so a missing
-    docker container reads as "not run" instead of a wall of failures.
+    docker container reads as "not run" instead of a wall of failures; in CI
+    that fails instead.
     """
     server = Server(ldap_config.uri, get_info=ALL)
     try:
@@ -155,10 +163,10 @@ def ldap_admin(ldap_config):
             raise_exceptions=False,
         )
     except LDAPException as exc:
-        pytest.skip("LDAP server {} unreachable: {}".format(ldap_config.uri, exc))
+        _unavailable("LDAP server {} unreachable: {}".format(ldap_config.uri, exc))
 
     if not connection.bound:
-        pytest.skip(
+        _unavailable(
             "Could not bind as {} on {}: {}".format(
                 ldap_config.admin_dn, ldap_config.uri, connection.result
             )
@@ -729,7 +737,11 @@ def misp_console():
         php_user=_env("MISP_PHP_USER", "www-data", allow_empty=True),
         app_dir=_env("MISP_APP_DIR", "/var/www/MISP"),
     )
-    return console if console.available() else None
+    if console.available():
+        return console
+    if os.environ.get("CI"):
+        pytest.fail("cannot run app/Console/cake in {}; set MISP_APP_DIR".format(console.app_dir), pytrace=False)
+    return None
 
 
 @pytest.fixture(scope="session")
@@ -746,7 +758,11 @@ def misp_instance_config():
         config_file=_env("MISP_CONFIG_FILE", "/var/www/MISP/app/Config/config.php"),
         settle_seconds=float(settle) if settle else None,
     )
-    return instance if instance.available() else None
+    if instance.available():
+        return instance
+    if os.environ.get("CI"):
+        pytest.fail("cannot reach the instance's config.php; check MISP_CONFIG_SCRIPT and MISP_CONFIG_FILE", pytrace=False)
+    return None
 
 
 # Substrings identifying accounts this suite provisions. Used only by the
@@ -967,6 +983,8 @@ def misp_admin_api(misp_config):
     but auto-provisioned MISP users pile up in the database.
     """
     if not misp_config.admin_key:
+        if os.environ.get("CI"):
+            pytest.fail("AUTH is not set", pytrace=False)
         warnings.warn(
             "AUTH is not set: MISP users auto-provisioned by the login tests "
             "will not be cleaned up.",
@@ -978,7 +996,7 @@ def misp_admin_api(misp_config):
     try:
         api.users()
     except requests.RequestException as exc:
-        pytest.skip("AUTH key rejected by {}: {}".format(misp_config.url, exc))
+        _unavailable("AUTH key rejected by {}: {}".format(misp_config.url, exc))
     return api
 
 
