@@ -392,14 +392,7 @@ class RestSearchOffsetDbTest extends TestCase
     {
         $ids = $this->insertEvents();
         $elementCounter = 0;
-        $renderView = false;
-        $skipped = 0;
-        $filters = ['eventid' => $ids, 'limit' => 3, 'offset' => 4, 'order' => 'info asc', 'metadata' => 1];
-        $result = ClassRegistry::init('Event')->restSearch($this->user, 'json', $filters, false, false, $elementCounter, $renderView, $skipped);
-        $rows = json_decode($result->intoString(), true)['response'];
-        $this->assertSame(array_slice(array_reverse($ids), 4, 3), array_map(function ($row) {
-            return (int)$row['Event']['id'];
-        }, $rows));
+        $this->assertSame(array_slice(array_reverse($ids), 4, 3), $this->restSearchEventIds($ids, ['limit' => 3, 'offset' => 4, 'order' => 'info asc'], $elementCounter));
         // every match, as with page
         $this->assertSame(8, $elementCounter);
     }
@@ -412,6 +405,24 @@ class RestSearchOffsetDbTest extends TestCase
             $paged = array_merge($paged, $this->eventIds($ids, ['limit' => 3, 'page' => $page, 'order' => 'timestamp desc']));
         }
         $this->assertSame(array_reverse($ids), $paged);
+        // and a reply keeps that order: fetchEvent sorts the page again
+        $this->assertSame(array_reverse($ids), $this->restSearchEventIds($ids, ['limit' => 8, 'order' => 'timestamp desc']));
+        $this->assertSame(array_slice(array_reverse($ids), 4, 3), $this->restSearchEventIds($ids, ['limit' => 3, 'offset' => 4, 'order' => 'timestamp desc']));
+        $this->assertSame($ids, $this->restSearchEventIds($ids, ['limit' => 8, 'order' => 'timestamp asc']));
+    }
+
+    /**
+     * @return int[] the event ids of a restSearch reply, in its order
+     */
+    private function restSearchEventIds(array $ids, array $filters, &$elementCounter = 0)
+    {
+        $renderView = false;
+        $skipped = 0;
+        $filters += ['eventid' => $ids, 'metadata' => 1];
+        $result = ClassRegistry::init('Event')->restSearch($this->user, 'json', $filters, false, false, $elementCounter, $renderView, $skipped);
+        return array_map(function ($row) {
+            return (int)$row['Event']['id'];
+        }, json_decode($result->intoString(), true)['response']);
     }
 
     public function testObjectsStartAtTheOffset()

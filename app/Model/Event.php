@@ -6115,6 +6115,10 @@ class Event extends AppModel
                 'Event',
                 ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
             );
+            // id breaks ties as on the id query (filterEventIds), so a restSearch reply keeps the order its page was cut by
+            if (!empty($params['order']) && !preg_grep('/^Event\.id /', $params['order'])) {
+                $params['order'][] = 'Event.id ' . explode(' ', end($params['order']))[1];
+            }
         } else {
             // No order asked for. MySQL answers an id lookup in id order off
             // the primary key; PostgreSQL answers in heap order, which an
