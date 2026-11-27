@@ -116,28 +116,27 @@ class RemoteEventPreviewEscapingTest extends TestCase
 
     public function serverRowProvider()
     {
+        $pivot = 'pivotObjectReferences("\/servers\/previewEvent\/1\/2", ' . json_encode(self::REMOTE) . ')';
+        $add = 'genericPopup(' . json_encode('/objectReferences/add/' . self::REMOTE) . ", '#popover_form');";
         return [
-            'attribute' => ['Elements/Servers/View/row_attribute.ctp', 'remoteAttribute'],
-            'object' => ['Elements/Servers/View/row_object.ctp', 'remoteObject'],
-            'references' => ['Elements/Servers/View/row_object_reference.ctp', 'remoteObject'],
-            'referenced by' => ['Elements/Servers/View/row_object_referenced_by.ctp', 'remoteObject'],
+            'attribute' => ['Elements/Servers/View/row_attribute.ctp', 'remoteAttribute', []],
+            'object' => ['Elements/Servers/View/row_object.ctp', 'remoteObject', []],
+            'references' => ['Elements/Servers/View/row_object_reference.ctp', 'remoteObject', [$add, $pivot]],
+            'referenced by' => ['Elements/Servers/View/row_object_referenced_by.ctp', 'remoteObject', [$pivot]],
         ];
     }
 
     /**
      * @dataProvider serverRowProvider
      */
-    public function testServerPreviewRowsEscapeRemoteIds($template, $builder)
+    public function testServerPreviewRowsEscapeRemoteIds($template, $builder, array $expected)
     {
         $html = $this->render($template, ['object' => $this->$builder('id')]);
         $this->assertEscaped($html);
-        foreach ($this->handlers($html) as $handler) {
-            if (strpos($handler, 'pivotObjectReferences') === 0) {
-                $this->assertSame(
-                    'pivotObjectReferences("\/servers\/previewEvent\/1\/2", ' . json_encode(self::REMOTE) . ')',
-                    $handler
-                );
-            }
+        $handlers = $this->handlers($html);
+        $this->assertSame(count($expected), count($handlers));
+        foreach ($handlers as $handler) {
+            $this->assertContains($handler, $expected);
         }
     }
 
