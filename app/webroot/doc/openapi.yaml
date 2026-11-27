@@ -5664,6 +5664,8 @@ components:
           $ref: "#/components/schemas/PageSearchFilter"
         limit:
           $ref: "#/components/schemas/LimitSearchFilter"
+        offset:
+          $ref: "#/components/schemas/OffsetSearchFilter"
         value:
           $ref: "#/components/schemas/AttributeValue"
         value_cidr:
@@ -6257,6 +6259,8 @@ components:
           $ref: "#/components/schemas/PageSearchFilter"
         limit:
           $ref: "#/components/schemas/LimitSearchFilter"
+        offset:
+          $ref: "#/components/schemas/OffsetSearchFilter"
         timestamp:
           $ref: "#/components/schemas/Timestamp"
         object_name:
@@ -8577,6 +8581,13 @@ components:
       nullable: true
       minimum: 0
 
+    OffsetSearchFilter:
+      description: "Number of results to skip before the page starts, as in SQL: `limit` 3 with `offset` 4 returns the 5th to the 7th result. Needs a `limit` above 0, or the role's page size in its place; ignored next to `page`, whatever its value, and for `returnFormat` count. A non-negative integer or a string of digits: anything else, or an offset without a limit, is answered with HTTP 400. Results MISP leaves out after reading them make the page shorter and never move it. When applied, the response carries `X-Result-Offset`."
+      type: integer
+      format: int32
+      nullable: true
+      minimum: 0
+
     SortSearchField:
       description: Field to be used to sort the result
       type: string
@@ -10338,6 +10349,8 @@ components:
                 $ref: "#/components/schemas/PageSearchFilter"
               limit:
                 $ref: "#/components/schemas/LimitSearchFilter"
+              offset:
+                $ref: "#/components/schemas/OffsetSearchFilter"
               value:
                 $ref: "#/components/schemas/AttributeValue"
               value_cidr:
@@ -11211,6 +11224,8 @@ components:
       headers:
         X-Result-Count:
           $ref: "#/components/headers/X-Result-Count"
+        X-Result-Offset:
+          $ref: "#/components/headers/X-Result-Offset"
         X-Export-Module-Used:
           $ref: "#/components/headers/X-Export-Module-Used"
         X-Response-Format:
@@ -11466,6 +11481,8 @@ components:
       headers:
         X-Result-Count:
           $ref: "#/components/headers/X-Result-Count"
+        X-Result-Offset:
+          $ref: "#/components/headers/X-Result-Offset"
         X-Export-Module-Used:
           $ref: "#/components/headers/X-Export-Module-Used"
         X-Response-Format:
@@ -13152,6 +13169,8 @@ components:
       headers:
         X-Result-Count:
           $ref: "#/components/headers/X-Result-Count"
+        X-Result-Offset:
+          $ref: "#/components/headers/X-Result-Offset"
         X-Export-Module-Used:
           $ref: "#/components/headers/X-Export-Module-Used"
         X-Response-Format:
@@ -13742,6 +13761,11 @@ components:
   headers:
     X-Result-Count:
       description: Result set count
+      schema:
+        type: integer
+
+    X-Result-Offset:
+      description: "The offset this page started at: sent only when MISP applied the `offset` filter"
       schema:
         type: integer
 

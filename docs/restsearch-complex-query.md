@@ -42,6 +42,22 @@ and [Organisations](#organisations).
   applied size; a `count` never does. Page numbers are interpreted using that
   size. This header lets clients detect when a requested page would start at
   a different offset, or that a search without `limit` was cut at that size.
+- `offset` skips that many rows before the page starts, as in SQL:
+  `"limit": 3, "offset": 4` returns the 5th to the 7th row, and the offset
+  need not be a multiple of the limit. It is a non-negative integer or a
+  string of digits, and it needs a limit: a `limit` above 0, or the role's
+  page size in its place. Any other value, or an `offset` without a limit,
+  is answered with HTTP 400 naming `offset`, also where `offset` would then
+  be ignored. `page` wins: with a `page` key in the request, whatever its
+  value, `offset` is ignored and the request pages as before. Every endpoint
+  above applies it; `/sightings/restSearch` and `"returnFormat": "count"`
+  ignore it.
+- A response whose page started at `offset` carries `X-Result-Offset` with
+  that number; without it, the server ignored the filter (an older MISP drops
+  it and serves the first page). Rows are counted as read: attributes left
+  out after reading them (warninglists, decaying models, proposal blocking,
+  counted in `X-Skipped-Elements-Count`) make the page shorter and never move
+  it, and a role's page size shortens the page without moving its start.
 
 ## Grammar
 
