@@ -2400,6 +2400,10 @@ class Event extends AppModel
                 'Event',
                 self::REST_SEARCH_ORDER_FIELDS['Event']
             );
+            // id breaks ties, in the last key's direction, so pages neither overlap nor skip
+            if (!empty($find_params['order']) && !preg_grep('/^Event\.id /', $find_params['order'])) {
+                $find_params['order'][] = 'Event.id ' . explode(' ', end($find_params['order']))[1];
+            }
         }
         if (isset($params['limit'])) {
             // Get the count (but not the actual data) of results for paginators
@@ -2407,6 +2411,8 @@ class Event extends AppModel
             $find_params['limit'] = $params['limit'];
             if (isset($params['page'])) {
                 $find_params['page'] = $params['page'];
+            } else if ((int)$params['limit'] > 0 && isset($params['offset'])) {
+                $find_params['offset'] = $this->restSearchOffset($params, (int)$params['limit']);
             }
         }
         if (!empty($params['include_attribute_count'])) {
@@ -6136,6 +6142,10 @@ class Event extends AppModel
                 'Event',
                 ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
             );
+            // id breaks ties as on the id query (filterEventIds), so a restSearch reply keeps the order its page was cut by
+            if (!empty($params['order']) && !preg_grep('/^Event\.id /', $params['order'])) {
+                $params['order'][] = 'Event.id ' . explode(' ', end($params['order']))[1];
+            }
         } else {
             // No order asked for. MySQL answers an id lookup in id order off
             // the primary key; PostgreSQL answers in heap order, which an
@@ -13137,6 +13147,7 @@ class Event extends AppModel
         $separator = $exportTool->separator($exportToolParams);
         unset($filters['page']);
         unset($filters['limit']);
+        unset($filters['offset']);
         foreach ($eventids_chunked as $chunk) {
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {

@@ -2478,15 +2478,19 @@ class MispAttribute extends AppModel
      *  - conditions
      *  - order
      *  - group
+     *  - count: return the number of matching attributes instead, counted before any
+     *    filter that drops rows after the fetch (warninglists, decay, proposals)
      *
      * @param array $user
      * @param array $options
      * @param int|false $result_count If false, count is not fetched
      * @param bool $real_count
-     * @return array
+     * @param int|false $skipped_item_count Rows read but not returned (warninglists, decay, proposals)
+     * @param int $last_read_id Id of the last row read, returned or not
+     * @return array|int
      * @throws Exception
      */
-        public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false)
+        public function fetchAttributes(array $user, array $options = [], &$result_count = false, $real_count = false, &$skipped_item_count = false, &$last_read_id = 0)
         {
             if (!empty($options['list'])) {
                 $conditions = $this->buildConditions($user);
@@ -2691,6 +2695,10 @@ class MispAttribute extends AppModel
             // Resolved once for the count and every page
             $params['conditions'] = $this->loadAttributeValue()->rewriteConditions($params['conditions'], $this->alias);
 
+            if (!empty($options['count'])) {
+                unset($params['limit'], $params['page'], $params['offset']);
+                return $this->find('count', $params);
+            }
             if ($result_count !== false && $real_count) {
                 $cnt = $params;
                 unset($cnt['limit'], $cnt['page']);
@@ -2726,6 +2734,7 @@ class MispAttribute extends AppModel
                 if (empty($batch)) {
                     break;
                 }
+                $last_read_id = $batch[count($batch) - 1]['Attribute']['id'];
                 if ($real_count !== true) {
                     $result_count += count($batch);
                 }
@@ -4174,7 +4183,12 @@ class MispAttribute extends AppModel
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
             if (!isset($filters['page'])) {
-                $filters['page'] = 1;
+                // only with a limit: without one, fetchAttributes (paramsOnly callers) loops by page
+                if ((int)$filters['limit'] > 0 && isset($filters['offset'])) {
+                    $params['offset'] = $this->restSearchOffset($filters, (int)$filters['limit']);
+                } else {
+                    $filters['page'] = 1;
+                }
             }
         }
         if (isset($filters['page'])) {
@@ -4202,9 +4216,27 @@ class MispAttribute extends AppModel
                 'Attribute',
                 self::REST_SEARCH_ORDER_FIELDS
             );
+            // id breaks ties, in the last key's direction so an index ending in id
+            // still serves the order. No default order: sorting every page is too slow
+            if (!empty($params['order']) && !preg_grep('/^Attribute\.id /', $params['order'])) {
+                $params['order'][] = 'Attribute.id ' . explode(' ', end($params['order']))[1];
+            }
         }
         if ($paramsOnly) {
             return $params;
+        }
+        if ($complexQuery !== null && $returnFormat === 'count') {
+            // A complex count covers all matches, independent of page and role limit.
+            unset($params['limit'], $params['page']);
+            // Rows dropped after the fetch can only be counted by walking them
+            $dropsRows = !empty($params['enforceWarninglist']) || !empty($params['excludeDecayed'])
+                || (!empty($params['allow_proposal_blocking']) && Configure::read('MISP.proposals_block_attributes'));
+            if (!$dropsRows) {
+                $elementCounter = $this->fetchAttributes($user, ['count' => true] + $params);
+                $tmpfile = new TmpFileTool();
+                $tmpfile->write((string)$elementCounter);
+                return $tmpfile;
+            }
         }
         if (method_exists($exportTool, 'modify_params')) {
             $params = $exportTool->modify_params($user, $params);
@@ -4263,12 +4295,13 @@ class MispAttribute extends AppModel
     private function __iteratedFetch(array $user, array $params, $loop, TmpFileTool $tmpfile, $exportTool, array $exportToolParams, $maxLimit = null, &$skippedElementsCounter = 0)
     {
         $separator = $exportTool->separator($exportToolParams);
-        $elementCounter = 0;
+        $skippedElementsCounter = 0;
         $offset = ($params['limit'] * ($params['page'] - 1));
+        // on page 1, $params['offset'] is the offset filter restSearch took, if any
         if ($params['page'] > 1) {
             $params['offset'] = $offset;
         }
-        $requestedLimit = $params['limit'];
+        $requestedLimit = $loop ? null : $params['limit'];
         if ($maxLimit < $params['limit']) {
             $params['limit'] = $maxLimit;
             $loop = true;
@@ -4287,42 +4320,47 @@ class MispAttribute extends AppModel
         $useCursor = $loop && empty($params['order']);
         if ($useCursor) {
             $params['order'] = 'Attribute.id ASC';
-            unset($params['offset']);
         }
         $lastId = 0;
         $totalCount = 0;
         do {
-            if (($totalCount + $params['limit']) > $requestedLimit) {
+            if ($requestedLimit !== null && ($totalCount + $params['limit']) > $requestedLimit) {
                 $params['limit'] = $requestedLimit - $totalCount;
                 $loop = false;
             }
             if ($useCursor && $lastId > 0) {
                 $params['conditions']['Attribute.id >'] = $lastId;
+                unset($params['offset']);
             }
             $incrementTotalBy = $loop ? 0 : 1;
-            $results = $this->fetchAttributes($user, $params, $elementCounter, false, $skippedElementsCounter);
-            $resultCount = count($results);
-            $totalCount = $totalCount + $elementCounter;
-            $elementCounter = false; // do not call `count` again
-            if (empty($results)) {
+            // Paging decides on the rows read, filtered or not: a batch the
+            // filters thinned is not the end, and the cursor skips what they dropped
+            $readCount = 0;
+            $skippedCount = 0;
+            $results = $this->fetchAttributes($user, $params, $readCount, false, $skippedCount, $lastId);
+            $totalCount += $readCount;
+            $skippedElementsCounter += $skippedCount;
+            if ($readCount === 0) {
                 break; // nothing found, skip rest
             }
-            if ($params['includeSightingdb']) {
+            if ($params['includeSightingdb'] && !empty($results)) {
                 $this->Sightingdb = ClassRegistry::init('Sightingdb');
                 $results = $this->Sightingdb->attachToAttributes($results, $user);
             }
             foreach ($results as $attribute) {
-                $lastId = $attribute['Attribute']['id'];
                 $handlerResult = $exportTool->handler($attribute, $exportToolParams);
                 if ($handlerResult !== '') {
                     $tmpfile->writeWithSeparator($handlerResult, $separator);
                 }
             }
-            if ($resultCount < $params['limit']) {
+            if ($readCount < $params['limit']) {
                 $incrementTotalBy = 0;
                 if ($loop) {
                     break; // do not continue if we received fewer results than limit
                 }
+            }
+            if ($requestedLimit !== null && $totalCount >= $requestedLimit) {
+                break;
             }
             if (!$useCursor) {
                 $params['offset'] = (empty($params['offset']) ? 0 : $params['offset']) + $params['limit'];

@@ -983,7 +983,7 @@ class Tag extends AppModel
             $namespaces[mb_strtolower($namespace)] = $taxonomy;
         }
         $entries = [];
-        $offset = $limit && !empty($filters['page']) ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        $offset = $this->restSearchOffset($filters, $limit);
         $elementCounter = 0;
         $separator = '';
         $tmpfile->write('{"response": [');

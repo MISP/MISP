@@ -37,6 +37,11 @@ and [Organisations](#organisations).
 - `returnFormat` and the other output parameters work as usual. `query` only
   selects which attributes, events or objects are returned; on events and
   objects, a negated `tags` also strips the attributes carrying the tag.
+- When a role reduces or imposes the page size (a `limit` above the role's,
+  or no `limit`), the search response includes `X-Result-Page-Limit` with the
+  applied size; a `count` never does. Page numbers are interpreted using that
+  size. This header lets clients detect when a requested page would start at
+  a different offset, or that a search without `limit` was cut at that size.
 
 ## Grammar
 
@@ -142,6 +147,13 @@ under the same names.
 
 `POST /attributes/restSearch`. The tree selects attributes.
 
+With a `query` tree, `"returnFormat": "count"` returns the number of matching
+attributes as the body and in `X-Result-Count`, counted in the database,
+without applying `limit`, `page`, or the role's page size. With
+`enforceWarninglist` or `excludeDecayed`, the matching attributes are read and
+the body counts those the filter keeps; `X-Result-Count` is then the number
+read.
+
 | Field | Type | Operators | Notes |
 |---|---|---|---|
 | `id`, `event_id`, `object_id`, `distribution` | integer | `= != > < >= <= IN NOT IN` | |
@@ -164,7 +176,12 @@ sortable fields are the attribute fields `id`, `event_id`, `object_id`,
 `type`, `category`, `value`, `distribution`, `timestamp`, `object_relation`
 and `Event.publish_timestamp`. When `query` is present, an unknown or
 malformed `order` is rejected with an error at path `order[i]`; without
-`query` it is silently dropped, as it always was.
+`query` it is silently dropped, as it always was. Unless it already sorts by
+`id`, an `order` is completed with `id` in the direction of its last field, so
+pages of it never overlap or skip rows. Without `order`, rows come in the
+database's order, which is not guaranteed to be the same from one page to the
+next: page with an `order` when that matters (sorting has a cost on large
+searches).
 
 ## Events
 
@@ -230,7 +247,9 @@ attributes:
 `order` works as before, with the legacy names: `id`, `info`, `analysis`,
 `threat_level_id`, `distribution`, `timestamp` and `publish_timestamp`. When
 `query` is present, an unknown or malformed `order` is rejected as on
-attributes.
+attributes. As there, an `order` that does not sort by `id` is completed with
+`id` in the direction of its last field, so pages never overlap or skip
+events, and without `order` events come in the database's order.
 
 ## Objects
 
