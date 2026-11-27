@@ -2,8 +2,8 @@
 /**
  * restSearch's offset filter: the check the controller runs once the role's
  * limit is in (RestSearchComponent::offset), the chunked models (event
- * reports, analyst data, collections, tags, organisations), attributes and
- * events (on their id query), which
+ * reports, analyst data, collections, tags, organisations), attributes,
+ * events (on their id query), objects and galaxy clusters, which
  * start a page at the offset, let page win over it, and page as before without
  * it. Attribute pages also cross fetch batches and lose dropped rows from the
  * offset on, without refilling. Event and galaxy cluster orders end with id,
@@ -414,6 +414,61 @@ class RestSearchOffsetDbTest extends TestCase
         $this->assertSame(array_reverse($ids), $paged);
     }
 
+    public function testObjectsStartAtTheOffset()
+    {
+        $model = ClassRegistry::init('MispObject');
+        $ids = $this->insertObjects();
+        // objects cannot be ordered: the reference is the same query, whole
+        $all = $this->ids($model, 'Object', ['id' => ['IN' => $ids]], ['limit' => 8]);
+        $this->assertEqualsCanonicalizing($ids, $all);
+        $this->assertPages($model, 'Object', $all);
+    }
+
+    public function testObjectsWithoutALimitStepAsBefore()
+    {
+        $model = ClassRegistry::init('MispObject');
+        $ids = $this->insertObjects();
+        // two fetches of 4, then an empty one
+        $this->configure('MISP.object_fetch_hard_limit', 4);
+        $this->assertEqualsCanonicalizing($ids, $this->ids($model, 'Object', ['id' => ['IN' => $ids]], ['offset' => 4]));
+    }
+
+    public function testGalaxyClustersStartAtTheOffset()
+    {
+        $model = ClassRegistry::init('GalaxyCluster');
+        $ids = $this->insertClusters();
+        // one type: the id tie-break orders them
+        $this->assertPages($model, 'GalaxyCluster', $ids, ['order' => 'type asc']);
+        $this->assertEqualsCanonicalizing($ids, $this->ids($model, 'GalaxyCluster', ['id' => ['IN' => $ids]], ['offset' => 4]));
+    }
+
+    public function testObjectAndClusterParamsCarryAnOffsetOnlyWithALimit()
+    {
+        foreach (['MispObject', 'GalaxyCluster'] as $name) {
+            $model = ClassRegistry::init($name);
+            $params = $model->restSearch($this->user, 'json', ['limit' => 3, 'offset' => 4], true);
+            $this->assertSame([3, 4, 1], [$params['limit'], $params['offset'], $params['page']], $name);
+            $params = $model->restSearch($this->user, 'json', ['limit' => 3, 'page' => 2, 'offset' => 4], true);
+            $this->assertArrayNotHasKey('offset', $params, $name);
+            foreach ([['offset' => 4], ['limit' => 0, 'offset' => 4]] as $filters) {
+                $this->assertArrayNotHasKey('offset', $model->restSearch($this->user, 'json', $filters, true), $name);
+            }
+        }
+    }
+
+    /**
+     * @return int[] eight objects in the first event, ascending ids
+     */
+    private function insertObjects()
+    {
+        $eventId = (int)$this->firstEvent()['id'];
+        return $this->insert(ClassRegistry::init('MispObject'), 8, function ($n, $uuid) use ($eventId) {
+            return ['uuid' => $uuid, 'event_id' => $eventId, 'name' => $this->token, 'meta-category' => 'misc',
+                'description' => '', 'template_uuid' => $uuid, 'template_version' => 1, 'timestamp' => time(),
+                'distribution' => 0, 'sharing_group_id' => 0, 'comment' => '', 'deleted' => 0];
+        });
+    }
+
     public function testIdBreaksTheTiesOfAGalaxyClusterOrder()
     {
         $model = ClassRegistry::init('GalaxyCluster');
@@ -511,18 +566,22 @@ class RestSearchOffsetDbTest extends TestCase
         return $ids;
     }
 
-    private function assertPages(AppModel $model, $alias, array $ids)
+    /**
+     * @param int[] $ids the rows in the order the model returns them
+     * @param array $filters added to every request
+     */
+    private function assertPages(AppModel $model, $alias, array $ids, array $filters = [])
     {
         $this->assertCount(8, $ids);
         $rows = ['id' => ['IN' => $ids]];
         // as before: no offset, or page next to one
-        $this->assertSame(array_slice($ids, 0, 3), $this->ids($model, $alias, $rows, ['limit' => 3]));
-        $this->assertSame(array_slice($ids, 3, 3), $this->ids($model, $alias, $rows, ['limit' => 3, 'page' => 2]));
-        $this->assertSame(array_slice($ids, 3, 3), $this->ids($model, $alias, $rows, ['limit' => 3, 'page' => 2, 'offset' => 0]));
+        $this->assertSame(array_slice($ids, 0, 3), $this->ids($model, $alias, $rows, $filters + ['limit' => 3]));
+        $this->assertSame(array_slice($ids, 3, 3), $this->ids($model, $alias, $rows, $filters + ['limit' => 3, 'page' => 2]));
+        $this->assertSame(array_slice($ids, 3, 3), $this->ids($model, $alias, $rows, $filters + ['limit' => 3, 'page' => 2, 'offset' => 0]));
         // an offset that is not a multiple of the limit
-        $this->assertSame(array_slice($ids, 4, 3), $this->ids($model, $alias, $rows, ['limit' => 3, 'offset' => 4]));
-        $this->assertSame(array_slice($ids, 0, 3), $this->ids($model, $alias, $rows, ['limit' => 3, 'offset' => 0]));
-        $this->assertSame([$ids[7]], $this->ids($model, $alias, $rows, ['limit' => 3, 'offset' => 7]));
-        $this->assertSame([], $this->ids($model, $alias, $rows, ['limit' => 3, 'offset' => 8]));
+        $this->assertSame(array_slice($ids, 4, 3), $this->ids($model, $alias, $rows, $filters + ['limit' => 3, 'offset' => 4]));
+        $this->assertSame(array_slice($ids, 0, 3), $this->ids($model, $alias, $rows, $filters + ['limit' => 3, 'offset' => 0]));
+        $this->assertSame([$ids[7]], $this->ids($model, $alias, $rows, $filters + ['limit' => 3, 'offset' => 7]));
+        $this->assertSame([], $this->ids($model, $alias, $rows, $filters + ['limit' => 3, 'offset' => 8]));
     }
 }

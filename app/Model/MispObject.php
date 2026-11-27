@@ -1202,6 +1202,9 @@ class MispObject extends AppModel
             if (isset($options['page'])) {
                 $params['page'] = $options['page'];
             }
+            if (isset($options['offset'])) {
+                $params['offset'] = $options['offset'];
+            }
         }
         $results = $this->find('all', $params);
         if ($options['enforceWarninglist'] && !isset($this->Warninglist)) {
@@ -2562,6 +2565,10 @@ class MispObject extends AppModel
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
             if (!isset($filters['page'])) {
+                // Cake keeps an offset on page 1; only next to a limit, as without one the fetch loop steps by page
+                if ((int)$filters['limit'] > 0 && isset($filters['offset'])) {
+                    $params['offset'] = $this->restSearchOffset($filters, (int)$filters['limit']);
+                }
                 $filters['page'] = 1;
             }
         }

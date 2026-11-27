@@ -1266,6 +1266,9 @@ class GalaxyCluster extends AppModel
         }
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
+            if (isset($options['offset'])) {
+                $params['offset'] = $options['offset'];
+            }
         }
         if (isset($options['list']) && $options['list']) {
             return $this->find('list', $params);
@@ -1445,6 +1448,10 @@ class GalaxyCluster extends AppModel
         if (isset($filters['limit'])) {
             $params['limit'] = $filters['limit'];
             if (!isset($filters['page'])) {
+                // Cake keeps an offset on page 1; only next to a limit, as without one the fetch loop steps by page
+                if ((int)$filters['limit'] > 0 && isset($filters['offset'])) {
+                    $params['offset'] = $this->restSearchOffset($filters, (int)$filters['limit']);
+                }
                 $filters['page'] = 1;
             }
         }
