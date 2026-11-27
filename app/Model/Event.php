@@ -8424,10 +8424,11 @@ class Event extends AppModel
      * @param int $created_id
      * @param array $validationErrors
      * @param string|bool $fingerprint Of the key that verified a protected event's signature, or true when the caller trusts the input
+     * @param array|null $feed Feed the event was fetched from
      * @return bool|int|string True when new event was created, int when event with the same uuid already exists, string when validation errors
      * @throws Exception
      */
-    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array(), $fingerprint = false)
+    public function _add(array &$data, $fromXml, array $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array(), $fingerprint = false, $feed = null)
     {
         if (Configure::read('MISP.enableEventBlocklisting') !== false && isset($data['Event']['uuid'])) {
             if (!isset($this->EventBlocklist)) {
@@ -8685,7 +8686,7 @@ class Event extends AppModel
             if ($fromXml) {
                 $created_id = $this->id;
             }
-            $workflowResult = $this->afterAddWorkflow($this->id, $fromPull);
+            $workflowResult = $this->afterAddWorkflow($this->id, $fromPull, $server, $feed);
             if (is_array($workflowResult)) {
                 return implode(', ', $workflowResult);
             }
@@ -8808,11 +8809,14 @@ class Event extends AppModel
     /**
      * @param int $eventId
      * @param bool $fromPull
+     * @param array $server Server the event was pulled from, if any
+     * @param array|null $feed Feed the event was fetched from, if any
      * @return true|array
      */
-    private function afterAddWorkflow($eventId, $fromPull)
+    private function afterAddWorkflow($eventId, $fromPull, array $server, $feed)
     {
-        $triggerId = $fromPull ? 'event-after-save-new-from-pull' : 'event-after-save-new';
+        $fromRemote = $fromPull || !empty($feed['Feed']['id']);
+        $triggerId = $fromRemote ? 'event-after-save-new-from-pull' : 'event-after-save-new';
         if (!$this->isTriggerCallable($triggerId)) {
             return true;
         }
@@ -8824,6 +8828,22 @@ class Event extends AppModel
             'eventid' => $eventId,
             'includeAttachments' => 1
         ])[0];
+        if (!empty($server['Server']['id'])) {
+            $fullSavedEvent['_server'] = [
+                'id' => $server['Server']['id'],
+                'name' => $server['Server']['name'],
+                'url' => $server['Server']['url'],
+                'internal' => $server['Server']['internal'],
+                'remote_org_id' => $server['Server']['remote_org_id'],
+            ];
+        }
+        if (!empty($feed['Feed']['id'])) {
+            $fullSavedEvent['_feed'] = [
+                'id' => $feed['Feed']['id'],
+                'name' => $feed['Feed']['name'] ?? null,
+                'provider' => $feed['Feed']['provider'] ?? null,
+            ];
+        }
         $workflowErrors = [];
         $logging = [
             'model' => 'Event',
