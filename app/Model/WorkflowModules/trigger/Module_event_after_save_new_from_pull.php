@@ -6,7 +6,7 @@ class Module_event_after_save_new_from_pull extends WorkflowBaseTriggerModule
     public $id = 'event-after-save-new-from-pull';
     public $scope = 'event';
     public $name = 'Event After Save New From Pull';
-    public $description = 'This trigger is called after a new Event has been saved in the database from a PULL operation. This trigger executes in place of `event-after-save-new`. The server the event was pulled from is passed under `_server`.';
+    public $description = 'This trigger is called after a new Event has been saved in the database from a PULL operation or a feed fetch. This trigger executes in place of `event-after-save-new`. The server the event was pulled from is passed under `_server`, the feed it was fetched from under `_feed`.';
     public $icon = 'envelope';
     public $inputs = 0;
     public $outputs = 1;

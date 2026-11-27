@@ -7680,7 +7680,8 @@ class Event extends AppModel
      */
     private function afterAddWorkflow($eventId, $fromPull, array $server, $feed)
     {
-        $triggerId = $fromPull ? 'event-after-save-new-from-pull' : 'event-after-save-new';
+        $fromRemote = $fromPull || !empty($feed['Feed']['id']);
+        $triggerId = $fromRemote ? 'event-after-save-new-from-pull' : 'event-after-save-new';
         if (!$this->isTriggerCallable($triggerId)) {
             return true;
         }
