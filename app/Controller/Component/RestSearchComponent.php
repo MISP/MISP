@@ -4,6 +4,9 @@ App::uses('Component', 'Controller');
 
 class RestSearchComponent extends Component
 {
+    // Scopes whose model applies the offset filter: list one only once it does, the header claims it
+    const OFFSET_SCOPES = ['EventReport', 'Note', 'Opinion', 'Relationship', 'Collection', 'Tag', 'Organisation'];
+
     //This array determines the order for ordered_url_params, as a result it is not advised to remove or change existing values
     public $paramArray = array(
         'Attribute' => [
@@ -298,6 +301,40 @@ class RestSearchComponent extends Component
             'query'
         ],
     );
+
+    /**
+     * Checks the offset filter, run once the role's limit has replaced a missing one. The offset
+     * stays in $filters, cast, only where the model applies it: not next to page, not for a count.
+     *
+     * @param array $filters
+     * @param string $scope
+     * @param string $returnFormat
+     * @return int|null the offset applied, for X-Result-Offset
+     * @throws BadRequestException
+     */
+    public function offset(array &$filters, $scope, $returnFormat)
+    {
+        if (!isset($filters['offset'])) {
+            return null;
+        }
+        $offset = $filters['offset'];
+        unset($filters['offset']);
+        if (isset($filters['page'])) {
+            return null;
+        }
+        if (!(is_int($offset) && $offset >= 0) && !(is_string($offset) && ctype_digit($offset))) {
+            throw new BadRequestException(__('The offset must be a non-negative integer.'));
+        }
+        // the models' own cast: a limit of "abc" is no limit
+        if ((int)($filters['limit'] ?? 0) <= 0) {
+            throw new BadRequestException(__('The offset needs a limit.'));
+        }
+        if ($returnFormat === 'count' || !in_array($scope, self::OFFSET_SCOPES, true)) {
+            return null;
+        }
+        $filters['offset'] = (int)$offset;
+        return $filters['offset'];
+    }
 
     public function getFilename($filters, $scope, $responseType)
     {

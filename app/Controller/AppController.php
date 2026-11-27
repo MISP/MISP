@@ -1986,7 +1986,8 @@ class AppController extends Controller
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->request->params['named'],
-            'paramArray' => $this->RestSearch->paramArray[$scope],
+            // offset after what _harvestParameters adds, so ordered URL params keep their positions
+            'paramArray' => array_values(array_unique(array_merge($this->RestSearch->paramArray[$scope], ['page', 'limit', 'sign', 'offset']))),
             'ordered_url_params' => func_get_args()
         );
         $exception = false;
@@ -2070,9 +2071,13 @@ class AppController extends Controller
         if (empty($filters['limit']) || ($roleLimit != 0 && $filters['limit'] >= $roleLimit)) {
             $filters['limit'] = $roleLimit;
         }
+        $offset = $this->RestSearch->offset($filters, $scope, $returnFormat);
+        if ($offset !== null) {
+            $pageHeaders['X-Result-Offset'] = $offset;
+        }
 
         // halt execution if we were to query for items above the ID. Blocks the endless caching bug
-        if (!empty($filters['page']) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
+        if ((!empty($filters['page']) || isset($filters['offset'])) && !empty($filters['returnFormat']) && $filters['returnFormat'] === 'cache') {
             if ($this->__cachingOverflow($filters, $modelName, $scope)) {
                 $filename = $this->RestSearch->getFilename($filters, $scope, $responseType);
                 return $this->RestResponse->viewData('', $responseType, false, true, $filename, [
@@ -2142,7 +2147,7 @@ class AppController extends Controller
      */
     private function __cachingOverflow(array $filters, $modelName, $scope)
     {
-        $offset = (max(1, (int)$filters['page']) - 1) * (empty($filters['limit']) ? 60 : $filters['limit']);
+        $offset = $filters['offset'] ?? (max(1, (int)$filters['page']) - 1) * (empty($filters['limit']) ? 60 : $filters['limit']);
         $max_id = $this->$modelName->query(sprintf('SELECT max(id) as max_id from %s;', Inflector::tableize($scope)));
         return (int)$max_id[0][0]['max_id'] <= $offset;
     }

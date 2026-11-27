@@ -722,7 +722,7 @@ class Organisation extends AppModel
             return $tmpfile;
         }
         $this->addCountField('user_count', $this->User, ['User.org_id = Organisation.id']);
-        $offset = $limit && !empty($filters['page']) ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        $offset = $this->restSearchOffset($filters, $limit);
         $elementCounter = 0;
         $separator = '';
         $tmpfile->write('{"response": [');

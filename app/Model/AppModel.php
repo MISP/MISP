@@ -1915,6 +1915,22 @@ class AppModel extends Model
     }
 
     /**
+     * The row a restSearch page starts at: page wins over the offset filter, as in
+     * RestSearchComponent::offset, which only checks requests that come through the controller.
+     *
+     * @param array $filters
+     * @param int $limit
+     * @return int
+     */
+    public function restSearchOffset(array $filters, $limit)
+    {
+        if (isset($filters['page'])) {
+            return $limit ? max(0, (int)$filters['page'] - 1) * $limit : 0;
+        }
+        return max(0, (int)($filters['offset'] ?? 0));
+    }
+
+    /**
      * @return string|null
      */
     public function _remoteIp()
