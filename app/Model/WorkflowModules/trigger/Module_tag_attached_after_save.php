@@ -49,9 +49,23 @@ class Module_tag_attached_after_save extends WorkflowBaseTriggerModule
             [
                 'id' => 'tag',
                 'label' => __('Tags'),
-                'type' => 'input',
-                'placeholder' => __('Type a tag'),
-            ]
+                'type' => 'picker',
+                'multiple' => true,
+                'picker_options' => [
+                    'select_options_url' => '/tags/fastIndex/0.json',
+                ],
+                'placeholder' => __('Pick a tag'),
+            ],
+            [
+                'id' => 'clusters',
+                'label' => __('Galaxy Clusters'),
+                'type' => 'picker',
+                'multiple' => true,
+                'picker_options' => [
+                    'select_options_url' => '/tags/fastIndex/1.json',
+                ],
+                'placeholder' => __('Pick a Galaxy Cluster'),
+            ],
         ];
     }
 
@@ -87,7 +101,9 @@ class Module_tag_attached_after_save extends WorkflowBaseTriggerModule
         $params = $this->getParamsWithValues($node, $rData);
         $scope = $params['scope']['value'];
         $locality = $params['locality']['value'];
-        $tag = $params['tag']['value'];
+        // Workflows saved before the pickers hold a single tag name
+        $tags = array_merge((array)$params['tag']['value'], (array)$params['clusters']['value']);
+        $tags = array_filter($tags, 'strlen');
 
         if ($scope == 'attribute' && empty($rData['Tag']['attribute_id'])) {
             return false;
@@ -101,7 +117,7 @@ class Module_tag_attached_after_save extends WorkflowBaseTriggerModule
             return false;
         }
 
-        if (!empty($tag) && $rData['Tag']['name'] != $tag) {
+        if (!empty($tags) && !in_array($rData['Tag']['name'], $tags, true)) {
             return false;
         }
 
