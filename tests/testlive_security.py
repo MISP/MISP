@@ -1782,6 +1782,28 @@ class TestSecurity(unittest.TestCase):
         }
 
 
+def check_offset(test: unittest.TestCase, token: str, path: str, body: dict, row_ids) -> list:
+    """restSearch's `offset` on one endpoint: body selects at least two rows the token can see,
+    row_ids turns a reply into its row ids in order. Returns every row, as the reference."""
+    def ask(extra, status=200):
+        response = requests.post(f"{url}/{path}", json={**body, **extra}, verify=False,
+                                 headers={"Authorization": token, "Accept": "application/json"})
+        test.assertEqual(response.status_code, status, f"{path} {extra}: {response.text[:300]}")
+        return (row_ids(response.json()) if status == 200 else None), response.headers
+
+    rows, _ = ask({"limit": 1000})
+    test.assertGreaterEqual(len(rows), 2, f"{path}: the fixture needs two rows")
+    page, headers = ask({"limit": 1, "offset": 1})
+    test.assertEqual((page, headers.get("X-Result-Offset")), (rows[1:2], "1"), path)
+    page, headers = ask({"limit": 2, "offset": len(rows) - 1})
+    test.assertEqual((page, headers.get("X-Result-Offset")), (rows[-1:], str(len(rows) - 1)), path)
+    page, headers = ask({"limit": 1, "page": 1, "offset": 1})
+    test.assertEqual((page, headers.get("X-Result-Offset")), (rows[0:1], None), f"{path}: page wins")
+    ask({"limit": 1, "offset": "x"}, 400)
+    ask({"offset": 1}, 400)
+    return rows
+
+
 class TestComplexQueryAcl(unittest.TestCase):
     """The `query` tree of /attributes/restSearch must never widen what the user's ACL allows."""
 
@@ -1937,6 +1959,27 @@ class TestComplexQueryAcl(unittest.TestCase):
                                  json={**body, "returnFormat": "count"}, headers=headers, verify=False)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(int(response.text), len(self.visible))
+
+    def test_offset_starts_a_page_and_a_role_cap_only_shortens_it(self):
+        def ids(data):
+            return [int(a["id"]) for a in data["response"]["Attribute"]]
+        body = {"query": {"event_id": {"IN": self.all_events}}, "order": "id asc"}
+        rows = check_offset(self, self.user_key, "attributes/restSearch", body, ids)
+        self.assertEqual(len(rows), len(self.visible))
+
+        # a cap of 1 shortens a page of 3 at offset 2 to its first row, and stands in for a missing limit
+        role = self.admin_api("POST", "admin/roles/add", {"Role": {
+            "name": "MQA capped " + random(), "permission": "0", "perm_auth": 1,
+            "perm_complex_query": 1, "restsearch_limit_result": 1,
+        }})["Role"]
+        self.created["roles"].append(role["id"])
+        headers = {"Authorization": self.__make_user(role["id"]), "Accept": "application/json"}
+        for extra in ({"limit": 3, "offset": 2}, {"offset": 2}):
+            with self.subTest(extra):
+                response = requests.post(f"{url}/attributes/restSearch", json={**body, **extra}, headers=headers, verify=False)
+                self.assertEqual(response.status_code, 200, response.text[:300])
+                self.assertEqual(ids(response.json()), rows[2:3])
+                self.assertEqual((response.headers.get("X-Result-Page-Limit"), response.headers.get("X-Result-Offset")), ("1", "2"))
 
     def test_baseline_returns_exactly_the_visible_attributes(self):
         status, values, _ = self.__search({"event_id": self.e1})
@@ -2191,6 +2234,11 @@ class TestComplexEventQueryAcl(unittest.TestCase):
 
     def __anchored(self, tree):
         return {"AND": [{"id": {"IN": self.all_events}}, tree]}
+
+    def test_offset_starts_a_page(self):
+        check_offset(self, self.user_key, "events/restSearch",
+                     {"query": {"id": {"IN": self.all_events}}, "order": "id asc", "metadata": 1},
+                     lambda data: [int(e["Event"]["id"]) for e in data["response"]])
 
     def assertNoHiddenData(self, events, msg=None):
         self.assertNotIn(self.e3, events, msg)
@@ -2489,6 +2537,11 @@ class TestComplexObjectQueryAcl(unittest.TestCase):
 
     def __values(self, objects):
         return {i: set(v) for i, v in objects.items()}
+
+    def test_offset_starts_a_page(self):
+        # objects cannot be ordered: the reference is the same query
+        check_offset(self, self.user_key, "objects/restSearch", {"query": {"event_id": {"IN": self.all_events}}},
+                     lambda data: [int(o["Object"]["id"]) for o in data["response"]])
 
     def assertNoHiddenData(self, objects, msg=None):
         self.assertNotIn(self.o2b, objects, msg)
@@ -2937,6 +2990,11 @@ class TestComplexGalaxyClusterQueryAcl(unittest.TestCase):
         self.assertEqual(status, 200, data)
         return set(clusters)
 
+    def test_offset_starts_a_page(self):
+        check_offset(self, self.user_key, "galaxy_clusters/restSearch",
+                     {"query": {"value": {"LIKE": self.marker + "%"}}, "order": "id asc"},
+                     lambda data: [int(c["GalaxyCluster"]["id"]) for c in data["response"]])
+
     def test_fixture_is_discriminating(self):
         status, clusters, _ = self.__search({"value": {"LIKE": self.marker + "%"}}, token=key)
         self.assertEqual((status, set(clusters)), (200, self.all_ids))
@@ -3325,6 +3383,10 @@ class TestComplexEventReportQueryAcl(unittest.TestCase):
         self.assertEqual(status, 200, data)
         return {int(r["id"]) for r in reports}
 
+    def test_offset_starts_a_page(self):
+        check_offset(self, self.user_key, "event_reports/restSearch", {"query": self.__anchored()},
+                     lambda data: [int(r["EventReport"]["id"]) for r in data["response"]])
+
     def __index(self, deleted: bool):
         status, data = self.api(self.user_key, "GET", "event_reports/index" + ("/context:all" if deleted else ""))
         self.assertEqual(status, 200, data)
@@ -3588,6 +3650,12 @@ class TestComplexAnalystDataQueryAcl(unittest.TestCase):
         status, rows, data = self.__search(ty, tree, token, **kwargs)
         self.assertEqual(status, 200, data)
         return {int(r["id"]) for r in rows}
+
+    def test_offset_starts_a_page(self):
+        for ty in ("Note", "Opinion", "Relationship"):
+            with self.subTest(ty):
+                check_offset(self, self.user_key, f"analyst_data/restSearch/{ty}", {"query": self.__anchored()},
+                             lambda data: [int(r[ty]["id"]) for r in data["response"]])
 
     def __index(self, ty, token):
         status, data = self.api(token, "GET", f"analyst_data/index/{ty}/limit:1000")
@@ -3893,6 +3961,10 @@ class TestComplexCollectionQueryAcl(unittest.TestCase):
         status, rows, data = self.__search(tree, token, **kwargs)
         self.assertEqual(status, 200, data)
         return {int(r["Collection"]["id"]) for r in rows}
+
+    def test_offset_starts_a_page(self):
+        check_offset(self, self.user_key, "collections/restSearch", {"query": self.__anchored()},
+                     lambda data: [int(r["Collection"]["id"]) for r in data["response"]])
 
     def __index(self, token):
         status, data = self.api(token, "GET", "collections/index/limit:5000")
@@ -4225,6 +4297,10 @@ class TestComplexTagQueryAcl(unittest.TestCase):
         self.assertEqual(status, 200, data)
         return [int(r["Tag"]["id"]) for r in rows]
 
+    def test_offset_starts_a_page(self):
+        check_offset(self, self.user_key, "tags/restSearch", {"query": self.__anchored()},
+                     lambda data: [int(r["Tag"]["id"]) for r in data["response"]])
+
     def __index(self, token, search=None):
         status, data = self.api(token, "GET", f"tags/index/searchall:{search or self.marker}")
         self.assertEqual(status, 200, str(data)[:300])
@@ -4548,6 +4624,10 @@ class TestComplexOrganisationQueryAcl(unittest.TestCase):
         status, rows, data = self.__search(tree, token, **kwargs)
         self.assertEqual(status, 200, data)
         return [int(r["Organisation"]["id"]) for r in rows]
+
+    def test_offset_starts_a_page(self):
+        check_offset(self, self.user_key, "organisations/restSearch", {"query": self.__anchored()},
+                     lambda data: [int(r["Organisation"]["id"]) for r in data["response"]])
 
     def __index(self, token):
         status, data = self.api(token, "GET", f"organisations/index/scope:all/searchall:{self.marker}")
