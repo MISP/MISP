@@ -215,6 +215,9 @@ class SharingGroupsController extends AppController
                 if (isset($this->request->data['SharingGroup'])) {
                     $this->request->data = $this->request->data['SharingGroup'];
                 }
+                if (!$this->SharingGroup->checkIfAuthorisedToUpdate($this->Auth->user(), $sharingGroup)) {
+                    throw new MethodNotAllowedException('Action not allowed.');
+                }
                 $this->request->data['uuid'] = $sharingGroup['SharingGroup']['uuid'];
                 $id = $this->SharingGroup->captureSG($this->request->data, $this->Auth->user());
                 if ($id) {

@@ -1370,8 +1370,11 @@ class TestSecurity(unittest.TestCase):
 
     def test_sg_view_user_can_see_cannot_edit(self):
         org = self.__create_org()
+        self.addCleanup(self.admin_misp_connector.delete_organisation, org)
         sync_user = self.__create_user(org.id, ROLE.SYNC_USER)
+        self.addCleanup(self.admin_misp_connector.delete_user, sync_user)
         sg = self.__create_sharing_group()
+        self.addCleanup(self.admin_misp_connector.delete_sharing_group, sg)
         check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org.uuid))
 
         logged_in = PyMISP(url, sync_user.authkey)
@@ -1379,24 +1382,14 @@ class TestSecurity(unittest.TestCase):
 
         send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")
 
-        # This was a logic bug that has been corrected by 26ec3274374c4771e6996272c8108422f0fec34e
-        # A sync user should in fact be able to update a sharing group that they can view, even if they're not the creator user
-        # Otherwise race conditions via multiple sync paths may block future updates to the sharing group.
-        # with self.assertRaises(Exception):
-        #    send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name1"})
-        # self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
+        # A local SG (created over the API) is not updatable by sync
+        for key in (sg.id, sg.uuid):
+            self.assertErrorResponse(send(logged_in, "POST", f"/sharingGroups/edit/{key}", {"name": "New name1"}, check_errors=False))
+        self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
 
-        # with self.assertRaises(Exception):
-        #     send(logged_in, "POST", f"/sharingGroups/edit/{sg.uuid}", {"name": "New name2"})
-        # self.assertEqual(sg.name, send(logged_in, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]["name"])
-
-        # self.assertErrorResponse(logged_in.add_org_to_sharing_group(sg, self.test_org.uuid))
-        # self.assertErrorResponse(logged_in.remove_org_from_sharing_group(sg, org.uuid))
-        # self.assertErrorResponse(logged_in.delete_sharing_group(sg))
-
-        self.admin_misp_connector.delete_sharing_group(sg)
-        self.admin_misp_connector.delete_user(sync_user)
-        self.admin_misp_connector.delete_organisation(org)
+        self.assertErrorResponse(logged_in.add_org_to_sharing_group(sg, self.test_org.uuid))
+        self.assertErrorResponse(logged_in.remove_org_from_sharing_group(sg, org.uuid))
+        self.assertErrorResponse(logged_in.delete_sharing_group(sg))
 
     def test_sg_view_user_can_see_can_edit(self):
         org = self.__create_org()
@@ -1417,7 +1410,7 @@ class TestSecurity(unittest.TestCase):
                 "name": "Testcases synced SG " + random(),
                 "releasability": "Nic",
                 "Organisation": member,
-                "SharingGroupOrg": [{"extend": True, "Organisation": member}],
+                "SharingGroupOrg": [{"extend": False, "Organisation": member}],
             },
         }})
         synced_id = pushed["Event"]["sharing_group_id"]
@@ -1437,7 +1430,7 @@ class TestSecurity(unittest.TestCase):
         sg = self.__create_sharing_group()
         self.addCleanup(self.admin_misp_connector.delete_sharing_group, sg)
         check_response(self.admin_misp_connector.add_org_to_sharing_group(sg, org.uuid, True))
-        send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name3"}, check_errors=False)
+        self.assertErrorResponse(send(logged_in, "POST", f"/sharingGroups/edit/{sg.id}", {"name": "New name3"}, check_errors=False))
         stored = send(self.admin_misp_connector, "GET", f"/sharingGroups/view/{sg.id}")["SharingGroup"]
         self.assertEqual(sg.name, stored["name"], "sync renamed a local sharing group")
 
