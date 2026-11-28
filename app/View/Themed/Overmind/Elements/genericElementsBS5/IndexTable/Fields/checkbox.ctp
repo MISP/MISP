@@ -24,6 +24,10 @@ if (isset($field['enable_path'])) {
     $checkboxAttrs['data-enable'] = Hash::get($row, $field['enable_path']) ? '1' : '0';
 }
 
+if (isset($field['cache_path'])) {
+    $checkboxAttrs['data-cache'] = Hash::get($row, $field['cache_path']) ? '1' : '0';
+}
+
 if (isset($field['require_path'])) {
     $checkboxAttrs['data-require'] = Hash::get($row, $field['require_path']) ? '1' : '0';
 }

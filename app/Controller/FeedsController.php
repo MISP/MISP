@@ -1771,13 +1771,23 @@ class FeedsController extends AppController
                     $count++;
                 }
             }
-            if ($count > 0) {
-                $this->Flash->success($count . ' feeds ' . array('disabled', 'enabled')[$enable] . '.');
-                $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+            if ($cache) {
+                $done = $enable
+                    ? __('Caching enabled for %s feed(s).', $count)
+                    : __('Caching disabled for %s feed(s).', $count);
+                $noop = $enable
+                    ? __('All selected feeds already have caching enabled, nothing to update.')
+                    : __('All selected feeds already have caching disabled, nothing to update.');
             } else {
-                $this->Flash->info('All selected feeds are already ' . array('disabled', 'enabled')[$enable] . ', nothing to update.');
-                $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+                $done = $count . ' feeds ' . array('disabled', 'enabled')[$enable] . '.';
+                $noop = 'All selected feeds are already ' . array('disabled', 'enabled')[$enable] . ', nothing to update.';
             }
+            if ($count > 0) {
+                $this->Flash->success($done);
+            } else {
+                $this->Flash->info($noop);
+            }
+            $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         } else {
             $this->set('feedList', $feedList);
             $this->set('enable', $enable);

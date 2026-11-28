@@ -185,6 +185,7 @@ $fields = [
         'element' => 'checkbox',
         'data_path' => 'Feed.id',
         'enable_path' => 'Feed.enabled',
+        'cache_path' => 'Feed.caching_enabled',
         'card_section' => 'selector',
     ],
     [
@@ -445,6 +446,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'enable' => $isSiteAdmin ? true : null,
                 'enable_url' => '/feeds/toggleSelected/1/0',
                 'disable_url' => '/feeds/toggleSelected/0/0',
+                'cache' => $isSiteAdmin ? true : null,
+                'cache_enable_url' => '/feeds/toggleSelected/1/1',
+                'cache_disable_url' => '/feeds/toggleSelected/0/1',
             ],
             'fields' => $fields,
             'primary_id_path' => 'Feed.id',

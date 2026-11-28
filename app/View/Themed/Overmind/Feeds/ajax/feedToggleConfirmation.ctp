@@ -4,7 +4,7 @@ $count = count($ids);
 $field = !empty($cache) ? __('caching') : __('pulling');
 
 if (!empty($enable)) {
-    $title = __('Enable feeds');
+    $title = !empty($cache) ? __('Enable feed caching') : __('Enable feeds');
     $message = __n(
         'Enable %s for the selected feed?',
         'Enable %s for the %2$s selected feeds?',
@@ -15,7 +15,7 @@ if (!empty($enable)) {
     $submitClass = 'btn btn-success';
     $submitIcon = 'play';
 } else {
-    $title = __('Disable feeds');
+    $title = !empty($cache) ? __('Disable feed caching') : __('Disable feeds');
     $message = __n(
         'Disable %s for the selected feed?',
         'Disable %s for the %2$s selected feeds?',
@@ -33,7 +33,9 @@ echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'hiddenField' => false,
     'url' => $this->request->here(false),
     'message' => $message,
-    'submitLabel' => !empty($enable) ? __('Enable') : __('Disable'),
+    'submitLabel' => !empty($cache)
+        ? (!empty($enable) ? __('Enable caching') : __('Disable caching'))
+        : (!empty($enable) ? __('Enable') : __('Disable')),
     'submitClass' => $submitClass,
     'submitIcon' => $submitIcon,
     'canProceed' => $count > 0,

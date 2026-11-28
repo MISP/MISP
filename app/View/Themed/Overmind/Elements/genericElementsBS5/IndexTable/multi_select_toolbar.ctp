@@ -230,6 +230,21 @@ $massOpen = function ($key, $size = 'xl') use ($filter_bar, $baseurl) {
             </button>
         <?php endif; ?>
 
+        <?php if (!empty($filter_bar['cache'])): ?>
+            <button id="mass-cache-enable-button"
+                    class="btn btn-outline-success btn-sm d-none"
+                    title="<?= __('Enable caching for the selected items') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $filter_bar['cache_enable_url']) ?>', '')">
+                <i class="fas fa-bolt"></i> <?= __('Enable caching') ?>
+            </button>
+            <button id="mass-cache-disable-button"
+                    class="btn btn-outline-danger btn-sm d-none"
+                    title="<?= __('Disable caching for the selected items') ?>"
+                    onclick="multiSelectItems('<?= h($baseurl . $filter_bar['cache_disable_url']) ?>', '')">
+                <i class="fas fa-bolt"></i> <?= __('Disable caching') ?>
+            </button>
+        <?php endif; ?>
+
         <?php if (!empty($filter_bar['require'])): ?>
             <button id="mass-require-button"
                     class="btn btn-dark btn-sm d-none"

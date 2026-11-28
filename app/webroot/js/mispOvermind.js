@@ -1049,6 +1049,8 @@ function updateMultiSelectToolbar() {
     const fetchButton    = scope.querySelector('#mass-fetch-button');
     const enableButton   = scope.querySelector('#mass-enable-button');
     const disableButton  = scope.querySelector('#mass-disable-button');
+    const cacheEnableButton  = scope.querySelector('#mass-cache-enable-button');
+    const cacheDisableButton = scope.querySelector('#mass-cache-disable-button');
     const requireButton   = scope.querySelector('#mass-require-button');
     const optionalButton  = scope.querySelector('#mass-optional-button');
     const highlightButton   = scope.querySelector('#mass-highlight-button');
@@ -1070,6 +1072,8 @@ function updateMultiSelectToolbar() {
     let canDeleteAll = true;
     let allEnabled = true;
     let allDisabled = true;
+    let anyCached = false;
+    let anyUncached = false;
     let allRequired = true;
     let allOptional = true;
     let allHighlighted = true;
@@ -1079,6 +1083,8 @@ function updateMultiSelectToolbar() {
         if (!item.canDelete) canDeleteAll = false;
         if (item.enable === '1') allDisabled = false;
         if (item.enable === '0') allEnabled = false;
+        if (item.cache === '1') anyCached = true;
+        if (item.cache === '0') anyUncached = true;
         if (item.require === '1') allOptional = false;
         if (item.require === '0') allRequired = false;
         if (item.highlight === '1') allRemovehighlighted = false;
@@ -1113,6 +1119,9 @@ function updateMultiSelectToolbar() {
             disableButton.classList.remove('d-none');
         }
     }
+
+    cacheEnableButton?.classList.toggle('d-none', !anyUncached);
+    cacheDisableButton?.classList.toggle('d-none', !anyCached);
 
     if (requireButton && optionalButton) {
         if (allOptional) {
@@ -1237,12 +1246,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const canDelete = checkbox.dataset.canDelete == "1";
         const publish    = checkbox.dataset.publish;
         const enable    = checkbox.dataset.enable;
+        const cache     = checkbox.dataset.cache;
         const require    = checkbox.dataset.require;
         const highlight    = checkbox.dataset.highlight;
         const graphItem    = checkbox.dataset.graphItem;
 
         if (checkbox.checked) {
-            selectedItems.set(id, { id, canDelete, publish, enable, require, highlight, graphItem });
+            selectedItems.set(id, { id, canDelete, publish, enable, cache, require, highlight, graphItem });
         } else {
             selectedItems.delete(id);
         }
