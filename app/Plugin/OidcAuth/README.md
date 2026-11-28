@@ -10,8 +10,10 @@ to login with passwords stored in MISP.
 
 ```bash 
 cd app
-php composer.phar require certmichelin/openid-connect-php:1.3.0
+php composer.phar require certmichelin/openid-connect-php:1.3.0 "phpseclib/phpseclib:^3.0.47"
 ```
+
+The `phpseclib/phpseclib` constraint is needed: the library does not cap its version, so composer would otherwise install phpseclib 4, whose classes the library does not support.
 
 2. Enable Oidc plugin in `app/Config/bootstrap.php`, add the following line to the end:
 
